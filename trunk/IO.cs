@@ -67,6 +67,22 @@ public class IOH
   { return (int)((buf[index]<<24)|(buf[index+1]<<16)|(buf[index+2]<<8)|buf[index+3]);
   }
 
+  public static long ReadLE8(Stream stream)
+  { return (uint)ReadLE4(stream)|((long)ReadLE4(stream)<<32);
+  }
+  
+  public static long ReadLE8(byte[] buf, int index)
+  { return (uint)ReadLE4(buf, index)|((long)ReadLE4(buf, index+4)<<32);
+  }
+
+  public static long ReadBE8(Stream stream)
+  { return ((long)ReadBE4(stream)<<32)|(uint)ReadBE4(stream);
+  }
+
+  public static long ReadBE8(byte[] buf, int index)
+  { return ((long)ReadBE4(buf, index)<<32)|(uint)ReadBE4(buf, index+4);
+  }
+
   public static ushort ReadLE2U(Stream stream)
   { byte[] buf = Read(stream, 2);
     return (ushort)((buf[1]<<8)|buf[0]);
@@ -101,6 +117,22 @@ public class IOH
   
   public static uint ReadBE4U(byte[] buf, int index)
   { return (uint)((buf[index]<<24)|(buf[index+1]<<16)|(buf[index+2]<<8)|buf[index+3]);
+  }
+
+  public static ulong ReadLE8U(Stream stream)
+  { return ReadLE4U(stream)|((ulong)ReadLE4U(stream)<<32);
+  }
+  
+  public static ulong ReadLE8U(byte[] buf, int index)
+  { return ReadLE4U(buf, index)|((ulong)ReadLE4U(buf, index+4)<<32);
+  }
+
+  public static ulong ReadBE8U(Stream stream)
+  { return ((ulong)ReadBE4U(stream)<<32)|ReadBE4U(stream);
+  }
+
+  public static ulong ReadBE8U(byte[] buf, int index)
+  { return ((ulong)ReadBE4U(buf, index)<<32)|ReadBE4U(buf, index+4);
   }
 
   public static int WriteString(Stream stream, string str)
@@ -161,6 +193,26 @@ public class IOH
     buf[index+1] = (byte)(val>>16);
     buf[index+2] = (byte)(val>>8);
     buf[index+3] = (byte)val;
+  }
+
+  public static void WriteLE8(Stream stream, long val)
+  { WriteLE4(stream, (int)val);
+    WriteLE4(stream, (int)(val>>32));
+  }
+
+  public static void WriteLE8(byte[] buf, int index, long val)
+  { WriteLE4(buf, index, (int)val);
+    WriteLE4(buf, index+4, (int)(val>>32));
+  }
+  
+  public static void WriteBE8(Stream stream, long val)
+  { WriteLE4(stream, (int)(val>>32));
+    WriteLE4(stream, (int)val);
+  }
+
+  public static void WriteBE8(byte[] buf, int index, long val)
+  { WriteLE4(buf, index, (int)(val>>32));
+    WriteLE4(buf, index+4, (int)val);
   }
 }
 

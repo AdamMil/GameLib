@@ -110,11 +110,6 @@ internal struct DualTag
 #endregion
 
 #region NetLink class and supporting types
-[Flags]
-internal enum LinkType
-{ Udp=1, Tcp=2, Both=Udp|Tcp, TcpNoDelay=4
-}
-
 internal delegate void NetLinkHandler(NetLink link);
 internal delegate bool LinkMessageHandler(NetLink link, LinkMessage msg);
 
@@ -133,8 +128,8 @@ internal class LinkMessage
 
 internal class NetLink
 { public NetLink() { }
-  public NetLink(IPEndPoint ep, LinkType type) { Open(ep, type); }
-  public NetLink(Socket tcp, IPEndPoint ep, LinkType type) { Open(tcp, ep, type); }
+  public NetLink(IPEndPoint remote) { OpenClient(remote); }
+  public NetLink(Socket tcp) { OpenServer(tcp); }
 
   public const uint NoTimeout=0;
 
@@ -149,28 +144,45 @@ internal class NetLink
   { get { return udp==null ? tcp==null ? null : (IPEndPoint)tcp.RemoteEndPoint : (IPEndPoint)udp.RemoteEndPoint; }
   }
 
-  public void Open(IPEndPoint ep, LinkType type)
+  public void OpenClient(IPEndPoint remote)
   { Socket sock = null;
-    if((type&LinkType.Tcp)!=0)
-    { sock = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-      sock.Connect(ep);
-    }
-    Open(sock, ep, type);
+    sock = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+    sock.Connect(remote);
+    OpenServer(sock);
   }
   
-  public void Open(Socket tcp, IPEndPoint ep, LinkType type)
-  { if(tcp!=null)
-    { if(!tcp.Connected) throw new ArgumentException("If TCP is being used, the socket must be connected already!");
-      tcp.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.NoDelay, (type&LinkType.TcpNoDelay)==0 ? 0 : 1);
+  public void OpenServer(Socket tcp)
+  { if(tcp==null) throw new ArgumentNullException("tcp");
+    if(!tcp.Connected) throw new ArgumentException("If TCP is being used, the socket must be connected already!");
+    
+    try
+    { IPEndPoint localTcp = (IPEndPoint)tcp.LocalEndPoint, localUdp;
+
+      Socket udp = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+      udp.Bind(new IPEndPoint(localTcp.Address, 0));  // bind the udp to a local port on the same interface as the tcp
+      localUdp = (IPEndPoint)udp.LocalEndPoint;       // figure out what that is
+
+      byte[] buf = new byte[2];                       // send the udp's endpoint to the other side
+      IOH.WriteLE2(buf, 0, (short)localUdp.Port);     // the other side should be doing the same thing
+      tcp.Send(buf);                                  // PS. i know it's obsolete, but new IPAddress(byte[]) fails
+
+      if(!tcp.Poll(2000000, SelectMode.SelectRead) || tcp.Receive(buf)!=2)
+      { tcp.Close();
+        udp.Close();
+      }
+
+      // connect to it
+      udp.Connect(new IPEndPoint(((IPEndPoint)tcp.RemoteEndPoint).Address, IOH.ReadLE2U(buf, 0)));
+
       tcp.Blocking = false;
-      this.tcp = tcp;
-    }
-    if((type&LinkType.Udp)!=0)
-    { udp = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-      udp.Connect(ep);
       udp.Blocking = false;
-      udpMax = 1432;
+      this.tcp = tcp;
+      this.udp = udp;
     }
+    catch(SocketException) { throw new HandshakeException(); }
+
+    udpMax = 1450;
+
     low = new Queue(); norm = new Queue(); high = new Queue(); recv = new Queue();
     nextSize  = -1;
     connected = true;
@@ -229,8 +241,8 @@ internal class NetLink
     if(index<0 || length<0 || index+length>data.Length) throw new ArgumentOutOfRangeException("index or length");
     Queue queue = (flags&SendFlag.HighPriority)!=0 ? high : (flags&SendFlag.LowPriority)!=0 ? low : norm;
     
-    byte[] buf = new byte[length+4]; // add header (NoCopy is currently unimplemented)
-    IOH.WriteLE2(buf, 0, (short)length);
+    byte[] buf = new byte[length+4];      // add header (NoCopy is currently unimplemented)
+    IOH.WriteLE2(buf, 0, (short)length);  // TODO: implement NoCopy
     buf[2] = (byte)(flags&~(SendFlag)HeadFlag.Mask);
     Array.Copy(data, index, buf, 4, length);
 
@@ -256,12 +268,15 @@ internal class NetLink
   }
 
   public void ReceivePoll()
-  { if(tcp!=null)
+  { if(tcp!=null && connected)
       lock(tcp)
         try
-        { while(true)
+        { while(connected)
           { int avail = tcp.Available;
-            if(avail==0) break;
+            if(avail==0)
+            { if(tcp.Poll(0, SelectMode.SelectRead) && tcp.Available==0) Disconnect();
+              break;
+            }
             if(nextSize==-1)
             { if(avail>=4) // check for a message header
               { SizeBuffer(4);
@@ -332,6 +347,8 @@ internal class NetLink
     { if(link.tcp!=null) { hash[link.tcp]=link; socks.Add(link.tcp); }
       if(link.udp!=null) { hash[link.udp]=link; socks.Add(link.udp); }
     }
+    if(socks.Count==0) { Thread.Sleep((int)timeoutMs); return ret; }
+
     uint thresh = timeoutMs+Timing.Ticks;
     do
     { read = (ArrayList)socks.Clone(); write = (ArrayList)socks.Clone();
@@ -433,6 +450,7 @@ internal class NetLink
 #region Server class and supporting types
 public class Player
 { internal Player(IPEndPoint ep, NetLink link, uint id) { EndPoint=ep; Link=link; ID=id; }
+  
   public object     Data;
   public IPEndPoint EndPoint;
   internal uint     ID;
@@ -451,9 +469,10 @@ public class Server
   }
 
   public Server() { }
-  public Server(IPEndPoint ep) { Listen(ep); }
+  public Server(IPEndPoint local) { Listen(local); }
+  ~Server() { Close(); }
 
-  public event PlayerConnectHandler    PlayerConnecting;
+  public event PlayerConnectHandler    PlayerConnecting, PlayerConnected;
   public event PlayerDisconnectHandler PlayerDisconnected;
   public event ServerReceivedHandler   MessageReceived, RemoteReceived;
   public event ServerSentHandler       MessageSent
@@ -475,11 +494,13 @@ public class Server
     nextID  = 1;
     quit    = false;
     thread  = new Thread(new ThreadStart(ThreadFunc));
+    thread.Start();
   }
 
   public void Close()
   { if(thread!=null)
-    { quit = true;
+    { lock(this) foreach(Player p in players) p.Link.Close();
+      quit = true;
       thread.Join(1500);
       thread.Abort();
       StopListening();
@@ -489,11 +510,11 @@ public class Server
     links   = null;
   }
 
-  public void Listen(IPEndPoint ep)
+  public void Listen(IPEndPoint local)
   { if(thread==null) Open();
     lock(this)
     { StopListening();
-      server = new TcpListener(ep);
+      server = new TcpListener(local);
       server.Start();
     }
   }
@@ -505,6 +526,8 @@ public class Server
         server = null;
       }
   }
+  
+  public void DropPlayer(Player p) { lock(this) p.Link.Close(); }
 
   public void Send(object toWho, byte[] data, SendFlag flags) { Send(toWho, data, 0, data.Length, flags); }
   public void Send(object toWho, byte[] data, int length, SendFlag flags) { Send(toWho, data, 0, length, flags); }
@@ -536,25 +559,25 @@ public class Server
   { while(!quit)
     { bool did=false;
       lock(this)
-        while(server!=null && server.Pending())
+      { while(server!=null && server.Pending())
         { Socket sock = server.AcceptSocket();
           try
-          { Player p = new Player((IPEndPoint)sock.RemoteEndPoint,
-                                  new NetLink(sock, (IPEndPoint)sock.RemoteEndPoint, LinkType.Both), nextID++);
+          { Player p = new Player((IPEndPoint)sock.RemoteEndPoint, new NetLink(sock), nextID++);
             if(!quit && (PlayerConnecting==null || PlayerConnecting(this, p)))
             { players.Array.Add(p);
               links.Add(p.Link);
               p.Link.MessageSent    += new LinkMessageHandler(OnMessageSent);
               p.Link.RemoteReceived += new LinkMessageHandler(OnRemoteReceived);
+              if(PlayerConnected!=null) PlayerConnected(this, p);
             }
             else sock.Close();
           }
-          catch { sock.Close(); }
+          catch(SocketException) { sock.Close(); }
+          catch(HandshakeException) { sock.Close(); }
         }
 
-      for(int i=0; i<players.Count; i++)
-      { Player p = players[i];
-        lock(p.Link)
+        for(int i=0; i<players.Count; i++)
+        { Player p = players[i];
           try
           { p.Link.Poll();
 
@@ -567,13 +590,14 @@ public class Server
             { did=true;
               players.Array.RemoveAt(i--);
               links.Remove(p.Link);
-              if(!quit && PlayerDisconnected!=null) PlayerDisconnected(this, p);
+              if(PlayerDisconnected!=null) PlayerDisconnected(this, p);
             }
           }
-          catch { }
-      }
+          catch(SocketException) { }
+        }
 
-      if(!did) NetLink.WaitForEvent(links, 1000);
+        if(!did) NetLink.WaitForEvent(links, 250);
+      }
     }
   }
 
@@ -616,8 +640,9 @@ public delegate void DisconnectHandler(object sender);
 
 public class Client
 { public Client() { }
-  public Client(IPEndPoint ep) { Connect(ep); }
-  
+  public Client(IPEndPoint remote) { Connect(remote); }
+  ~Client() { Disconnect(); }
+
   public event DisconnectHandler       Disconnected;
   public event ClientReceivedHandler   MessageReceived, RemoteReceived;
   public event ClientSentHandler       MessageSent
@@ -628,13 +653,14 @@ public class Client
   public IPEndPoint RemoteEndPoint { get { CheckLink(); return link.RemoteEndPoint; } }
   public bool       Connected      { get { return link==null ? false : link.Connected; } }
 
-  public void Connect(IPEndPoint ep)
+  public void Connect(IPEndPoint remote)
   { Disconnect();
     quit   = false;
-    link   = new NetLink(ep, LinkType.Both);
+    link   = new NetLink(remote);
     link.MessageSent    += new LinkMessageHandler(OnMessageSent);
     link.RemoteReceived += new LinkMessageHandler(OnRemoteReceived);
     thread = new Thread(new ThreadStart(ThreadFunc));
+    thread.Start();
   }
   public void Disconnect()
   { if(thread!=null)
@@ -691,13 +717,13 @@ public class Client
             if(MessageReceived!=null) MessageReceived(this, cvt.ToObject(msg));
           }
           else if(!link.Connected)
-          { did=true;
-            if(!quit && Disconnected!=null) Disconnected(this);
+          { if(!quit && Disconnected!=null) Disconnected(this);
+            return;
           }
         }
         catch { }
 
-      if(!did) NetLink.WaitForEvent(links, 1000);
+      if(!did) NetLink.WaitForEvent(links, 250);
     }
   }
 
@@ -712,7 +738,7 @@ public class Client
   { if(RemoteReceived==null) RemoteReceived(this, msg.Tag);
     return true;
   }
-
+  
   MessageConverter  cvt = new MessageConverter();
   ClientSentHandler eMessageSent;
   NetLink link;
