@@ -37,10 +37,6 @@ public sealed class GLMath
   }
 }
 
-// FIXME: for negative numbers, the fractional part is complemented!
-// FIXME: ToString("R") does not produce round-trip safe values
-// FIXME: Parse() is not as good as it could be!
-
 /*#region Fixed32
 // TODO: make sure int*int==long
 // TODO: check if int<<n ==long
@@ -298,7 +294,7 @@ public struct Fixed64 : IFormattable, IComparable, IConvertible
   public Fixed64 Truncated()
   { if(val<0)
     { uint fp = (uint)val;
-      return new Fixed64((fp==0 ? val : val+0x100000000)&Trunc);
+      return new Fixed64((fp==0 ? val : val+OneVal)&Trunc);
     }
     else return new Fixed64(val&Trunc);
   }
@@ -328,7 +324,6 @@ public struct Fixed64 : IFormattable, IComparable, IConvertible
   public override string ToString() { return ToString(null, null); }
   public string ToString(string format) { return ToString(format, null); }
 
-  #region Trig functions, etc
   public static Fixed64 Abs(Fixed64 val) { return val.val<0 ? new Fixed64(-val.val) : val; }
   public static Fixed64 Acos(Fixed64 val) { return new Fixed64(Math.Acos(val.ToDouble())); }
   public static Fixed64 Asin(Fixed64 val) { return new Fixed64(Math.Asin(val.ToDouble())); }
@@ -341,7 +336,6 @@ public struct Fixed64 : IFormattable, IComparable, IConvertible
   public static Fixed64 Sqrt(Fixed64 val) { return new Fixed64(Math.Sqrt(val.ToDouble())); }
   public static Fixed64 Tan(Fixed64 val) { return new Fixed64(Math.Tan(val.ToDouble())); }
   public static Fixed64 Truncate(Fixed64 val) { return val.Truncated(); }
-  #endregion
 
   public static Fixed64 Parse(string s)
   { int pos = s.IndexOf('e');
@@ -385,11 +379,14 @@ public struct Fixed64 : IFormattable, IComparable, IConvertible
 
   public static Fixed64 operator+(Fixed64 lhs, Fixed64 rhs) { return new Fixed64(lhs.val+rhs.val); }
   public static Fixed64 operator-(Fixed64 lhs, Fixed64 rhs) { return new Fixed64(lhs.val-rhs.val); }
+
   public static Fixed64 operator*(Fixed64 lhs, Fixed64 rhs)
   { long a=lhs.ToInt(), b=(uint)lhs.val, c=rhs.ToInt(), d=(uint)rhs.val;
     return new Fixed64(((a*c)<<32) + b*c + a*d + ((b*d)>>32));
   }
-  public static Fixed64 operator/(Fixed64 lhs, Fixed64 rhs) // TODO: make sure this works for big endian machines
+
+  public static Fixed64 operator/(Fixed64 lhs, Fixed64 rhs)
+  public static Fixed64 Divide(Fixed64 lhs, Fixed64 rhs, Fixed64 remainder) // TODO: make sure this works for big endian machines
   { long quot, rem;
     uint fp = (uint)rhs.val;
     int  count;
@@ -425,7 +422,7 @@ public struct Fixed64 : IFormattable, IComparable, IConvertible
       quot += Math.DivRem(rem<<16, rhs.val, out rem);
     }
     else
-    { if((rhs.val>>32) > lhs.val) return new Fixed64(0);
+    { if((rhs.val>>32) > lhs.val) return new Fixed64(0); // TODO: make sure this is right
 
       Union ls = new Union(lhs.val), rs = new Union(rhs.val);
       Union  t = new Union();
@@ -505,6 +502,7 @@ public struct Fixed64 : IFormattable, IComparable, IConvertible
   public static readonly Fixed64 MinValue = new Fixed64(unchecked((long)0x8000000000000001));
   public static readonly Fixed64 MinusOne = new Fixed64(Trunc);
   public static readonly Fixed64 One      = new Fixed64(OneVal);
+  public static readonly Fixed64 TwoPI    = 
   public static readonly Fixed64 PI       = new Fixed64(12884901888L + 608135817);
   public static readonly Fixed64 PIover2  = new Fixed64((12884901888L + 608135817)/2);
   public static readonly Fixed64 Zero     = new Fixed64((long)0);
