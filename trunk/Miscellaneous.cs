@@ -45,9 +45,15 @@ public struct Pair // TODO: look through code and find places this could be used
   public object First, Second;
 }
 
-internal class Global
-{ private Global() { }
-  public static Random Rand = new Random();
+public sealed class Utility
+{ private Utility() { }
+  public static Random Random = new Random();
+
+  public static string NormalizeDir(string path)
+  { path = path.Replace('\\', '/');
+    if(path[path.Length-1] != '/') path += '/';
+    return path;
+  }
 }
 
 } // namespace GameLib
