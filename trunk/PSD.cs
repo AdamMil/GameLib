@@ -27,26 +27,104 @@ namespace GameLib.Video
 enum PSDChannel { Alpha=-1, Red=0, Green=1, Blue=2 };
 
 #region PSDLayer
-public class PSDLayer
-{ public PSDLayer(Rectangle bounds) : this(null, bounds, null) { }
+public sealed class PSDLayer
+{ 
+  /// <summary>Initializes this layer as being empty, with zero bounds.</summary>
+  public PSDLayer() : this(null, new Rectangle(), null) { }
+  /// <summary>Initializes this layer with the specified bounds.</summary>
+  /// <param name="bounds">A <see cref="Rectangle"/> specifying the size and location of the layer in the PSD image.</param>
+  public PSDLayer(Rectangle bounds) : this(null, bounds, null) { }
+  /// <summary>Initializes this layer with the specified bounds and name.</summary>
+  /// <param name="bounds">A <see cref="Rectangle"/> specifying the size and location of the layer in the PSD image.</param>
+  /// <param name="name">The name of the layer, or null if the layer name should be auto-generated during writing.</param>
   public PSDLayer(Rectangle bounds, string name) : this(null, bounds, name) { }
+  /// <summary>Initializes this layer with the specified surface data, using the
+  /// <see cref="GameLib.Video.Surface.Bounds"/> property for the layer boundaries.
+  /// </summary>
+  /// <param name="surface">The <see cref="GameLib.Video.Surface"/> containing the image data for this layer.</param>
   public PSDLayer(Surface surface) : this(surface, surface.Bounds, null) { }
+  /// <summary>Initializes this layer with the specified surface data and name, using the
+  /// <see cref="GameLib.Video.Surface.Bounds"/> property for the layer boundaries.
+  /// </summary>
+  /// <param name="surface">The <see cref="GameLib.Video.Surface"/> containing the image data for this layer.</param>
+  /// <param name="name">The name of the layer, or null if the layer name should be auto-generated during writing.</param>
   public PSDLayer(Surface surface, string name) : this(surface, surface.Bounds, name) { }
+  /// <summary>Initializes this layer with the specified surface data, using the <paramref name="bounds"/> parameter
+  /// to set the layer boundaries.
+  /// </summary>
+  /// <param name="surface">The <see cref="GameLib.Video.Surface"/> containing the image data for this layer.</param>
+  /// <param name="bounds">A <see cref="Rectangle"/> specifying the size and location of the layer in the PSD image.</param>
   public PSDLayer(Surface surface, Rectangle bounds) : this(surface, bounds, null) { }
+  /// <summary>Initializes this layer with the specified surface data and name, using the <paramref name="bounds"/>
+  /// parameter to set the layer boundaries.
+  /// </summary>
+  /// <param name="surface">The <see cref="GameLib.Video.Surface"/> containing the image data for this layer.</param>
+  /// <param name="bounds">A <see cref="Rectangle"/> specifying the size and location of the layer in the PSD image.</param>
+  /// <param name="name">The name of the layer, or null if the layer name should be auto-generated during writing.</param>
   public PSDLayer(Surface surface, Rectangle bounds, string name)
   { Surface=surface; Bounds=bounds; Name=name; Channels = surface==null ? 0 : surface.Format.AlphaMask==0 ? 3 : 4;
   }
 
-  public int Width  { get { return Bounds.Width; } set { Bounds.Width=value; } }
+  /// <summary>Gets or sets the width of the layer.</summary>
+  /// <remarks>This property gets/sets the <see cref="Rectangle.Width"/> property of <see cref="Bounds"/>.</remarks>
+  public int Width { get { return Bounds.Width; } set { Bounds.Width=value; } }
+  /// <summary>Gets or sets the height of the layer.</summary>
+  /// <remarks>This property gets/sets the <see cref="Rectangle.Height"/> property of <see cref="Bounds"/>.</remarks>
   public int Height { get { return Bounds.Height; } set { Bounds.Height=value; } }
+  /// <summary>Gets or sets the location of the top-left corner of the layer within the PSD image.</summary>
+  /// <remarks>This property gets/sets the <see cref="Rectangle.Location"/> property of <see cref="Bounds"/>.</remarks>
   public Point Location { get { return Bounds.Location; } set { Bounds.Location=value; } }
-  public Size  Size     { get { return Bounds.Size; } set { Bounds.Size=value; } }
+  /// <summary>Gets or sets the size of the layer.</summary>
+  /// <remarks>This property gets/sets the <see cref="Rectangle.Size"/> property of <see cref="Bounds"/>.</remarks>
+  public Size Size { get { return Bounds.Size; } set { Bounds.Size=value; } }
 
+  /// <summary>The bounds of the layer within the PSD image.</summary>
+  /// <value>A <see cref="Rectangle"/> holding the size and location of the layer within the PSD image.</value>
+  /// <remarks>Layers aren't always the same size as the PSD image. In fact, they are generally the smallest they can
+  /// be while still including all non-transparent pixels.
+  /// </remarks>
   public Rectangle Bounds;
-  public Surface   Surface;
-  public string    Name, Blend="norm";
-  public int       Channels;
-  public byte      Opacity=255, Clipping, Flags;
+  /// <summary>The image data for this layer.</summary>
+  /// <value>A <see cref="GameLib.Video.Surface"/> containing the image data for this layer, or null if the layer is
+  /// empty.
+  /// </value>
+  /// <remarks>Layers can be empty, having no data. If a layer is empty, this field should be null, and
+  /// <see cref="Bounds"/> should specify an empty rectangle.
+  /// </remarks>
+  public Surface Surface;
+  /// <summary>The name of the layer.</summary>
+  /// <value>A string holding the name of the layer, or null if the name should be auto-generated during writing.</value>
+  /// <remarks>When reading a layer, this value will contain the layer's name. When writing a layer, you can set this
+  /// field to null and the layer's name will be auto-generated.
+  /// </remarks>
+  public string Name;
+  /// <summary>The blend mode of the layer.</summary>
+  /// <value>A string holding the layer's blending mode.</value>
+  /// <remarks>The layer blending modes are not all documented, and are currently ignored (but preseved) by the
+  /// <see cref="PSDCodec"/> class. The default is "norm", which means that no special blending mode is applied.
+  /// </remarks>
+  public string Blend="norm";
+  /// <summary>The number of channels in the layer's image data.</summary>
+  /// <value>This should be 3 or 4, depending on whether the layer has an alpha channel, and should be set even if
+  /// the layer is empty (has a width and height of zero).
+  /// </value>
+  public int Channels;
+  /// <summary>The opacity of the layer.</summary>
+  /// <value>A value, ranging from 0 (transparent) to 255 (opaque), applied in addition to the layer's alpha channel.</value>
+  /// <remarks>The layer opacity is currently ignored (but preseved) by the <see cref="PSDCodec"/> class. The default
+  /// is 255 (opaque).
+  /// </remarks>
+  public byte Opacity=255;
+  /// <summary>The clipping value of the layer.</summary>
+  /// <remarks>The clipping values are not documented, and are currently ignored (but preseved) by the
+  /// <see cref="PSDCodec"/> class. The default is zero.
+  /// </remarks>
+  public byte Clipping;
+  /// <summary>The flags for the layer.</summary>
+  /// <remarks>The layer flags are not documented, and are currently ignored (but preseved) by the
+  /// <see cref="PSDCodec"/> class. The default is zero.
+  /// </remarks>
+  public byte Flags;
   
   internal PSDLayer(Stream stream)
   { int y=IOH.ReadBE4(stream), x=IOH.ReadBE4(stream), y2=IOH.ReadBE4(stream), x2=IOH.ReadBE4(stream), chans;
@@ -74,7 +152,7 @@ public class PSDLayer
     IOH.Skip(stream, bytes); extraBytes -= bytes+4;
 
     bytes = IOH.Read1(stream); extraBytes -= bytes+1;
-    Name = IOH.ReadString(stream, bytes);
+    Name = bytes==0 ? "" : IOH.ReadString(stream, bytes);
     IOH.Skip(stream, extraBytes);
   }
 
@@ -84,55 +162,162 @@ public class PSDLayer
 #endregion
 
 #region PSDImage
-public class PSDImage
-{ public PSDLayer[] Layers;
+/// <summary>This class represents a PSD format image.</summary>
+public sealed class PSDImage
+{ 
+  /// <summary>Gets or sets the size of the flattened image.</summary>
+  /// <remarks>This property gets/sets the <see cref="Width"/> and <see cref="Height"/> properties.</remarks>
+  public Size Size { get { return new Size(Width, Height); } set { Width=value.Width; Height=value.Height; } }
+
+  /// <summary>This field holds the layers for this PSD image.</summary>
+  /// <value>A <see cref="PSDLayer"/> array, or possibly null if the image has no layers.</value>
+  public PSDLayer[] Layers;
+  /// <summary>The flattened image for this PSD image.</summary>
+  /// <value>A <see cref="Surface"/> holding the data for the flattened image, or null.</value>
   public Surface Flattened;
-  public int Width, Height, Channels;
+  /// <summary>The width of the flattened image, in pixels.</summary>
+  /// <remarks>This may seem redundant with the <see cref="Flattened"/> field, but it allows the width to be
+  /// specified without having a surface of that width taking up memory.
+  /// </remarks>
+  public int Width;
+  /// <summary>The height of the flattened image, in pixels.</summary>
+  /// <remarks>This may seem redundant with the <see cref="Flattened"/> field, but it allows the height to be
+  /// specified without having a surface of that height taking up memory.
+  /// </remarks>
+  public int Height;
+  /// <summary>The number of channels in the flattened image.</summary>
+  /// <value>This should be 3 or 4, depending on whether the flattened image has an alpha channel.</value>
+  public int Channels;
 }
 #endregion
 
 #region PSDCodec
-public class PSDCodec
-{ public bool Reading { get { return state!=State.Nothing && reading; } }
+/// <summary>This class provides a decoder/encoder for Photoshop (.PSD) format files.</summary>
+/// <remarks>
+/// <para>This codec was developed using information from the most recent publically-released information regarding
+/// the PSD file format that was available at the time, and has a number of limitations. It only supports 8-bit
+/// channel depths, 3 or 4 channel image data, and RGB color mode. Also, when loading a PSD image into a
+/// <see cref="Surface"/>, blend modes, layer masks, and other fancy (and undocumented or poorly-documented) features
+/// are ignored.
+/// </para>
+/// <para>There are a couple ways to read/write PSD files with this codec. The simplest way is to call the
+/// <see cref="ReadPSD"/> or <see cref="WritePSD"/> functions, which read/write a <see cref="PSDImage"/> class
+/// containing an entire image with all its layers. PSD files can also be read/written layer by layer (with the
+/// ability to skip layers when reading) for higher performance and/or lower memory requirements.
+/// <see cref="ReadComposite"/> can be called if you just want to read the flattened (composite) image from a PSD file.
+/// </para>
+/// <para>When reading or writing, a <see cref="PSDImage"/> object is held internally, and it is referenced by all
+/// stages. The same <see cref="PSDImage"/> object and its layer information is returned by read functions at each
+/// step of the way. The codec works as a state machine, requiring certain steps to be completed before other steps
+/// can be taken. For reading, the following steps must be taken:
+/// <list type="number">
+///  <item><description>Initialize the codec with <see cref="StartReading"/>.</description></item>
+///  <item><description>For each layer in the <see cref="PSDImage"/>, read or skip the corresponding layer with
+///   <see cref="ReadLayer"/> or <see cref="SkipLayer"/>. You can read or skip all remaining layers with
+///   <see cref="ReadLayers"/> or <see cref="SkipLayers"/>.
+///  </description></item>
+///  <item><description>Read the flattened image with <see cref="ReadFlattened"/>.</description></item>
+///  <item><description>Finish reading with <see cref="FinishReading"/>.</description></item>
+/// </list>
+/// </para>
+/// <para><see cref="Read"/> or <see cref="ReadPSD"/> can be used to do all of the above steps with a
+/// single function call. Also, <see cref="ReadComposite"/> can be used to quickly get just the flattened image from a
+/// PSD. Finally, <see cref="FinishReading"/> can actually be called at any point after <see cref="StartReading"/> to
+/// end the reading process (without reading the rest of the data).
+/// </para>
+/// <para>For writing, the following steps must be taken:
+/// <list type="number">
+///  <item><description>Create a <see cref="PSDImage"/> class and populate all fields, including the layers. The
+///   actual image data (the <see cref="PSDLayer.Surface"/> and <see cref="PSDImage.Flattened"/>fields) is not
+///   required, however.
+///  </description></item>
+///  <item><description>Call <see cref="StartWriting"/> with the <see cref="PSDImage"/> class to write the header
+///   and layer headers.
+///  </description></item>
+///  <item><description>For each layer, call <see cref="WriteLayer"/> to write the layer data.</description></item>
+///  <item><description>Call <see cref="WriteFlattened"/> to write the composite image.</description></item>
+///  <item><description>Call <see cref="FinishWriting"/> to finish writing the PSD file.</description></item>
+/// </list>
+/// </para>
+/// <para><see cref="Write"/> or <see cref="WritePSD"/> can be used to do the above steps with a single function call.
+/// </para>
+/// </remarks>
+public sealed class PSDCodec
+{ 
+  /// <summary>Determines whether the codec is currently in a reading mode.</summary>
+  /// <remarks>The codec is in a reading mode if <see cref="StartReading"/> has been called to begin reading, and
+  /// <see cref="FinishReading"/> has not yet been called to end reading.
+  /// </remarks>
+  public bool Reading { get { return state!=State.Nothing && reading; } }
+  /// <summary>Determines whether the codec is currently in a writing mode.</summary>
+  /// <remarks>The codec is in a writing mode if <see cref="StartWriting"/> has been called to begin writing, and
+  /// <see cref="FinishWriting"/> has not yet been called to end writing.
+  /// </remarks>
   public bool Writing { get { return state!=State.Nothing && !reading; } }
 
+  /// <summary>Ends the reading mode and returns the <see cref="PSDImage"/> containing the PSD image data.</summary>
+  /// <returns>The <see cref="PSDImage"/> containing the PSD image data.</returns>
+  /// <remarks>This method does not finish reading image data from the PSD file. It ends the reading process at
+  /// whatever stage it happens to be at and returns the <see cref="PSDImage"/> with whatever data it happens to have
+  /// in it.
+  /// </remarks>
+  /// <exception cref="InvalidOperationException">Thrown if the codec is not in a reading mode.</exception>
   public PSDImage FinishReading()
   { AssertReading();
     PSDImage img = image;
-
-    if(autoClose) stream.Close();
-    image  = null;
-    stream = null;
-    state  = State.Nothing;
+    Abort(); // completes the process
     return img;
   }
 
+  /// <summary>Finishes writing the PSD file and ends the writing mode.</summary>
+  /// <remarks>This method requires the flattened image to have been written. This can be done with
+  /// <see cref="WriteFlattened"/>.
+  /// </remarks>
+  /// <exception cref="InvalidOperationException">
+  /// Thrown if
+  /// <para>The codec is not in a writing mode.</para>
+  /// -or-
+  /// <para>The flattened image has not been written yet.</para>
+  /// </exception>
   public void FinishWriting()
   { AssertWriting();
-    if(state!=State.Flattened) throw new ArgumentException("The flattened image has not been written yet.");
-    Abort(); // this doubles as the finalizer
+    if(state!=State.Flattened) throw new InvalidOperationException("The flattened image has not been written yet.");
+    Abort(); // completes the process
   }
 
+  /// <param name="filename">The path to a PSD image file.</param>
+  /// <include file="documentation.xml" path="//Video/PSDCodec/Read/*"/>
   public PSDImage Read(string filename)
   { StartReading(filename);
-    ReadRemainingLayers();
+    ReadLayers();
     ReadFlattened();
     return FinishReading();
   }
+  /// <param name="stream">A stream containing PSD image data. The stream does not need to be seekable.
+  /// The stream will be closed automatically.
+  /// </param>
+  /// <include file="documentation.xml" path="//Video/PSDCodec/Read/*"/>
   public PSDImage Read(Stream stream)
   { StartReading(stream);
-    ReadRemainingLayers();
+    ReadLayers();
     ReadFlattened();
     return FinishReading();
   }
+  /// <param name="stream">A stream containing PSD image data. The stream does not need to be seekable.</param>
+  /// <param name="autoClose">If true, <paramref name="stream"/> will be closed when the reading process finishes.</param>
+  /// <include file="documentation.xml" path="//Video/PSDCodec/Read/*"/>
   public PSDImage Read(Stream stream, bool autoClose)
   { StartReading(stream, autoClose);
-    ReadRemainingLayers();
+    ReadLayers();
     ReadFlattened();
     return FinishReading();
   }
 
-  public PSDLayer ReadNextLayer()
+  /// <summary>Reads the current layer and advances to the next layer, or to the flattened image.</summary>
+  /// <returns>The <see cref="PSDLayer"/> in <see cref="PSDImage.Layers"/> that contains the data for this layer.
+  /// </returns>
+  /// <include file="documentation.xml" path="//Video/PSDCodec/LayerReading/*"/>
+  public PSDLayer ReadLayer()
   { AssertLayerRead();
     try
     { PSDLayer layer = image.Layers[this.layer];
@@ -148,8 +333,18 @@ public class PSDCodec
     catch(Exception e) { Abort(); throw e; }
   }
 
+  /// <summary>Reads the flattened image.</summary>
+  /// <returns>The <see cref="PSDImage.Flattened"/> field of the <see cref="PSDImage"/>, which contains the image data
+  /// for the composite image.
+  /// </returns>
+  /// <exception cref="InvalidOperationException">
+  /// Thrown if
+  /// <para>The codec is not in a reading mode.</para>
+  /// -or-
+  /// <para>Not all layers have been read yet.</para>
+  /// </exception>
   public Surface ReadFlattened()
-  { if(state==State.Nothing || !reading) throw new InvalidOperationException("A read operation is not in progress");
+  { AssertReading();
     if(state!=State.Header) throw new InvalidOperationException("Invalid codec state");
     if(image.Layers!=null && layer<image.Layers.Length)
       throw new InvalidOperationException("Not all the layers have been read yet!");
@@ -159,26 +354,57 @@ public class PSDCodec
     catch(Exception e) { Abort(); throw e; }
   }
 
-  public PSDLayer[] ReadRemainingLayers()
+  /// <summary>Reads all remaining layers from the PSD file.</summary>
+  /// <returns>The <see cref="PSDImage.Layers"/> field of the <see cref="PSDImage"/>, which contains all the layer
+  /// information.
+  /// </returns>
+  /// <exception cref="InvalidOperationException">Thrown if the codec is not in a reading mode.</exception>
+  public PSDLayer[] ReadLayers()
   { AssertReading();
-    if(image.Layers!=null) while(layer<image.Layers.Length) ReadNextLayer();
+    if(image.Layers!=null) while(layer<image.Layers.Length) ReadLayer();
     return image.Layers;
   }
 
-  public void SkipLayer()
+  /// <summary>Skips the current layer.</summary>
+  /// <returns>The <see cref="PSDLayer"/> in <see cref="PSDImage.Layers"/> that contains the layer information for
+  /// this layer. The layer's <see cref="PSDLayer.Surface"/> field will be null after calling this.
+  /// </returns>
+  /// <include file="documentation.xml" path="//Video/PSDCodec/LayerReading/*"/>
+  public PSDLayer SkipLayer()
   { AssertLayerRead();
     try
-    { image.Layers[layer].Surface=null;
-      IOH.Skip(stream, image.Layers[layer].dataLength);
-      layer++;
+    { PSDLayer layer = image.Layers[this.layer++];
+      layer.Surface=null;
+      IOH.Skip(stream, layer.dataLength);
+      return layer;
     }
     catch(Exception e) { Abort(); throw e; }
   }
 
-  public PSDImage StartReading(string filename)
-  { return StartReading(File.Open(filename, FileMode.Open, FileAccess.Read));
+  /// <summary>Skips all remaining layers in the PSD file.</summary>
+  /// <returns>The <see cref="PSDImage.Layers"/> field of the <see cref="PSDImage"/>, which contains all the layer
+  /// information.
+  /// </returns>
+  /// <exception cref="InvalidOperationException">Thrown if the codec is not in a reading mode.</exception>
+  public PSDLayer[] SkipLayers()
+  { AssertReading();
+    if(image.Layers!=null) while(layer<image.Layers.Length) SkipLayer();
+    return image.Layers;
   }
+
+  /// <param name="filename">The path to a PSD image file.</param>
+  /// <include file="documentation.xml" path="//Video/PSDCodec/StartReading/*"/>
+  public PSDImage StartReading(string filename)
+  { return StartReading(File.Open(filename, FileMode.Open, FileAccess.Read, FileShare.Read));
+  }
+  /// <param name="stream">A stream containing PSD image data. The stream does not need to be seekable.
+  /// The stream will be closed automatically.
+  /// </param>
+  /// <include file="documentation.xml" path="//Video/PSDCodec/StartReading/*"/>
   public PSDImage StartReading(Stream stream) { return StartReading(stream, true); }
+  /// <param name="stream">A stream containing PSD image data. The stream does not need to be seekable.</param>
+  /// <param name="autoClose">If true, <paramref name="stream"/> will be closed when the reading process finishes.</param>
+  /// <include file="documentation.xml" path="//Video/PSDCodec/StartReading/*"/>
   public PSDImage StartReading(Stream stream, bool autoClose)
   { PSDImage img = new PSDImage();
     try
@@ -221,13 +447,25 @@ public class PSDCodec
     return image;
   }
 
+  /// <param name="filename">A path to the file into which the PSD data will be written.</param>
+  /// <include file="documentation.xml" path="//Video/PSDCodec/StartWriting/*"/>
   public void StartWriting(PSDImage image, string filename)
   { StartWriting(image, File.Open(filename, FileMode.Create), true);
   }
+  /// <param name="stream">A stream into which PSD image data will be written. The stream must be seekable, with its
+  /// entire range devoted to the PSD data for this image. The stream will be closed automatically.
+  /// </param>
+  /// <include file="documentation.xml" path="//Video/PSDCodec/StartWriting/*"/>
   public void StartWriting(PSDImage image, Stream stream) { StartWriting(image, stream, true); }
+  /// <param name="stream">A stream into which PSD image data will be written. The stream must be seekable, with its
+  /// entire range devoted to the PSD data for this image.
+  /// </param>
+  /// <param name="autoClose">If true, <paramref name="stream"/> will be closed when the writing process finishes.</param>
+  /// <include file="documentation.xml" path="//Video/PSDCodec/StartWriting/*"/>
   public void StartWriting(PSDImage image, Stream stream, bool autoClose)
   { try
     { AssertNothing();
+      if(image==null || stream==null) throw new ArgumentNullException();
       if(image.Width<0 || image.Height<0) throw new ArgumentException("Image has invalid size");
       ValidateChannels(image.Channels);
       if(image.Layers!=null)
@@ -256,7 +494,7 @@ public class PSDCodec
       { savedPos = (int)stream.Position;
         IOH.WriteBE4(stream, 0); // size of the miscellaneous info section (to be filled later)
         IOH.WriteBE4(stream, 0); // size of the layer section (to be filled later)
-        IOH.WriteBE2(stream, (short)image.Layers.Length); // number of layers (yes, it's negative for a reason)
+        IOH.WriteBE2(stream, (short)image.Layers.Length); // number of layers
 
         for(int i=0; i<image.Layers.Length; i++)
         { PSDLayer layer = image.Layers[i];
@@ -299,8 +537,19 @@ public class PSDCodec
     state = image.Layers==null || image.Layers.Length==0 ? State.Layers : State.Header;
   }
 
+  /// <param name="filename">A path to the file into which the PSD data will be written.</param>
+  /// <include file="documentation.xml" path="//Video/PSDCodec/Write/*"/>
   public void Write(PSDImage image, string filename) { Write(image, File.Open(filename, FileMode.Create)); }
+  /// <param name="stream">A stream into which PSD image data will be written. The stream must be seekable, with its
+  /// entire range devoted to the PSD data for this image. The stream will be closed automatically.
+  /// </param>
+  /// <include file="documentation.xml" path="//Video/PSDCodec/Write/*"/>
   public void Write(PSDImage image, Stream stream) { Write(image, stream, true); }
+  /// <param name="stream">A stream into which PSD image data will be written. The stream must be seekable, with its
+  /// entire range devoted to the PSD data for this image.
+  /// </param>
+  /// <param name="autoClose">If true, <paramref name="stream"/> will be closed automatically.</param>
+  /// <include file="documentation.xml" path="//Video/PSDCodec/Write/*"/>
   public void Write(PSDImage image, Stream stream, bool autoClose)
   { StartWriting(image, stream, autoClose);
     if(image.Layers!=null) foreach(PSDLayer layer in image.Layers) WriteLayer(layer.Surface);
@@ -308,10 +557,22 @@ public class PSDCodec
     FinishWriting();
   }
 
+  /// <param name="filename">A path to the file into which the PSD data will be written.</param>
+  /// <include file="documentation.xml" path="//Video/PSDCodec/Write_Surface/*"/>
   public void Write(Surface surface, string filename) { Write(surface, File.Open(filename, FileMode.Create)); }
+  /// <param name="stream">A stream into which PSD image data will be written. The stream must be seekable, with its
+  /// entire range devoted to the PSD data for this image. The stream will be closed automatically.
+  /// </param>
+  /// <include file="documentation.xml" path="//Video/PSDCodec/Write_Surface/*"/>
   public void Write(Surface surface, Stream stream) { Write(surface, stream, true); }
+  /// <param name="stream">A stream into which PSD image data will be written. The stream must be seekable, with its
+  /// entire range devoted to the PSD data for this image.
+  /// </param>
+  /// <param name="autoClose">If true, <paramref name="stream"/> will be closed automatically.</param>
+  /// <include file="documentation.xml" path="//Video/PSDCodec/Write_Surface/*"/>
   public void Write(Surface surface, Stream stream, bool autoClose)
-  { PSDImage image = new PSDImage();
+  { if(surface==null || stream==null) throw new ArgumentNullException();
+    PSDImage image = new PSDImage();
     image.Width = surface.Width;
     image.Height = surface.Height;
     image.Channels = surface.Format.AlphaMask==0 ? 3 : 4;
@@ -319,16 +580,35 @@ public class PSDCodec
     Write(image, stream, autoClose);
   }
   
+  /// <summary>Writes the flattened image.</summary>
+  /// <param name="surface">A <see cref="Surface"/> containing the flattened image to write.</param>
+  /// <remarks>This method requires all layers to have been written. This can be done with <see cref="WriteLayer"/>.</remarks>
+  /// <exception cref="ArgumentNullException">Thrown if <paramref name="surface"/> is null.</exception>
+  /// <exception cref="InvalidOperationException">Thrown if
+  /// <para>The codec is not in a writing mode.</para>
+  /// -or-
+  /// <para>Not all layers have been written yet.</para>
+  /// </exception>
   public void WriteFlattened(Surface surface)
   { AssertWriting();
-    if(state!=State.Layers) throw new InvalidOperationException("Not all the layers have been written yet!");
     if(surface==null) throw new ArgumentNullException("surface");
+    if(state!=State.Layers) throw new InvalidOperationException("Not all the layers have been written yet!");
     if(surface.Depth<24)
       surface = surface.Clone(new PixelFormat(surface.Format.AlphaMask==0 ? 24 : 32, surface.Format.AlphaMask!=0));
     try { WriteImageData(surface); state=State.Flattened; }
     catch(Exception e) { Abort(); throw e; }
   }
 
+  /// <summary>Writes the next layer.</summary>
+  /// <param name="surface">A <see cref="Surface"/> containing the image data for the layer, or null if the layer is
+  /// empty (has a width and height of zero pixels).
+  /// </param>
+  /// <exception cref="ArgumentException">The surface size doesn't match the layer size.</exception>
+  /// <exception cref="InvalidOperationException">Thrown if
+  /// <para>The codec is not in a writing mode.</para>
+  /// -or-
+  /// <para>All layers have been written already.</para>
+  /// </exception>
   public void WriteLayer(Surface surface)
   { AssertLayerWrite();
     try
@@ -362,7 +642,7 @@ public class PSDCodec
       if(this.layer==image.Layers.Length)
       { int endPos=(int)stream.Position, dist=endPos-savedPos-4;
         stream.Position = savedPos;
-        IOH.WriteBE4(stream, dist); // miscellaneous info section size
+        IOH.WriteBE4(stream, dist);   // miscellaneous info section size
         IOH.WriteBE4(stream, dist-4); // layer section size
         stream.Position = endPos;
 
@@ -372,51 +652,105 @@ public class PSDCodec
     catch(Exception e) { Abort(); throw e; }
   }
 
+  /// <param name="filename">A path to the file to check.</param>
+  /// <include file="documentation.xml" path="//Video/PSDCodec/IsPSD/*"/>
   public static bool IsPSD(string filename)
-  { return IsPSD(File.Open(filename, FileMode.Open, FileAccess.Read), true);
+  { return IsPSD(File.Open(filename, FileMode.Open, FileAccess.Read, FileShare.Read), true);
   }
+  /// <param name="stream">A seekable stream positioned at the beginning of the data to check. The stream's position
+  /// is unchanged (actually, changed and reset) by this function. The stream will not be closed automatically.
+  /// </param>
+  /// <include file="documentation.xml" path="//Video/PSDCodec/IsPSD/*"/>
   public static bool IsPSD(Stream stream) { return IsPSD(stream, false); }
+  /// <param name="stream">A seekable stream positioned at the beginning of the data to check. The stream's position
+  /// is unchanged (actually, changed and reset) by this function.
+  /// </param>
+  /// <param name="autoClose">If true, the stream will be closed by this function.</param>
+  /// <include file="documentation.xml" path="//Video/PSDCodec/IsPSD/*"/>
   public static bool IsPSD(Stream stream, bool autoClose)
   { long position = autoClose ? 0 : stream.Position;
     if(stream.Length-stream.Position<6) return false;
-    if(IOH.ReadString(stream, 4) != "8BPS") return false;
-    if(IOH.ReadBE2U(stream) != 1) return false;
+    bool ret=true;
+    if(IOH.ReadString(stream, 4)!="8BPS" || IOH.ReadBE2U(stream)!=1) ret=false;
     if(autoClose) stream.Close();
     else stream.Position = position;
-    return true;
+    return ret;
   }
 
+  /// <param name="filename">The path to a PSD image file.</param>
+  /// <include file="documentation.xml" path="//Video/PSDCodec/Read/*"/>
   public static PSDImage ReadPSD(string filename) { return new PSDCodec().Read(filename); }
+  /// <param name="stream">A stream containing PSD image data. The stream does not need to be seekable.
+  /// The stream will be closed automatically.
+  /// </param>
+  /// <include file="documentation.xml" path="//Video/PSDCodec/Read/*"/>
   public static PSDImage ReadPSD(Stream stream) { return new PSDCodec().Read(stream); }
+  /// <param name="stream">A stream containing PSD image data. The stream does not need to be seekable.</param>
+  /// <param name="autoClose">If true, <paramref name="stream"/> will be closed when the reading process finishes.</param>
+  /// <include file="documentation.xml" path="//Video/PSDCodec/Read/*"/>
   public static PSDImage ReadPSD(Stream stream, bool autoClose) { return new PSDCodec().Read(stream, autoClose); }
 
+  /// <param name="filename">The path to a PSD image file.</param>
+  /// <include file="documentation.xml" path="//Video/PSDCodec/ReadComposite/*"/>
   public static Surface ReadComposite(string filename)
   { PSDCodec codec = new PSDCodec();
-    return ReadComposite(codec, codec.StartReading(filename));
+    codec.StartReading(filename);
+    return ReadComposite(codec);
   }
+  /// <param name="stream">A stream containing PSD image data. The stream does not need to be seekable.
+  /// The stream will be closed automatically.
+  /// </param>
+  /// <include file="documentation.xml" path="//Video/PSDCodec/ReadComposite/*"/>
   public static Surface ReadComposite(Stream stream)
   { PSDCodec codec = new PSDCodec();
-    return ReadComposite(codec, codec.StartReading(stream));
+    codec.StartReading(stream);
+    return ReadComposite(codec);
   }
+  /// <param name="stream">A stream containing PSD image data. The stream does not need to be seekable.</param>
+  /// <param name="autoClose">If true, <paramref name="stream"/> will be closed when the reading process finishes.</param>
+  /// <include file="documentation.xml" path="//Video/PSDCodec/ReadComposite/*"/>
   public static Surface ReadComposite(Stream stream, bool autoClose)
   { PSDCodec codec = new PSDCodec();
-    return ReadComposite(codec, codec.StartReading(stream, autoClose));
+    codec.StartReading(stream, autoClose);
+    return ReadComposite(codec);
   }
 
+  /// <param name="filename">A path to the file into which the PSD data will be written.</param>
+  /// <include file="documentation.xml" path="//Video/PSDCodec/Write/*"/>
   public static void WritePSD(PSDImage image, string filename) { new PSDCodec().Write(image, filename); }
+  /// <param name="stream">A stream into which PSD image data will be written. The stream must be seekable, with its
+  /// entire range devoted to the PSD data for this image. The stream will be closed automatically.
+  /// </param>
+  /// <include file="documentation.xml" path="//Video/PSDCodec/Write/*"/>
   public static void WritePSD(PSDImage image, Stream stream) { new PSDCodec().Write(image, stream); }
+  /// <param name="stream">A stream into which PSD image data will be written. The stream must be seekable, with its
+  /// entire range devoted to the PSD data for this image.
+  /// </param>
+  /// <param name="autoClose">If true, <paramref name="stream"/> will be closed automatically.</param>
+  /// <include file="documentation.xml" path="//Video/PSDCodec/Write/*"/>
   public static void WritePSD(PSDImage image, Stream stream, bool autoClose)
   { new PSDCodec().Write(image, stream, autoClose);
   }
 
+  /// <param name="filename">A path to the file into which the PSD data will be written.</param>
+  /// <include file="documentation.xml" path="//Video/PSDCodec/Write_Surface/*"/>
   public static void WritePSD(Surface surface, string filename) { new PSDCodec().Write(surface, filename); }
+  /// <param name="stream">A stream into which PSD image data will be written. The stream must be seekable, with its
+  /// entire range devoted to the PSD data for this image. The stream will be closed automatically.
+  /// </param>
+  /// <include file="documentation.xml" path="//Video/PSDCodec/Write_Surface/*"/>
   public static void WritePSD(Surface surface, Stream stream) { new PSDCodec().Write(surface, stream); }
+  /// <param name="stream">A stream into which PSD image data will be written. The stream must be seekable, with its
+  /// entire range devoted to the PSD data for this image.
+  /// </param>
+  /// <param name="autoClose">If true, <paramref name="stream"/> will be closed automatically.</param>
+  /// <include file="documentation.xml" path="//Video/PSDCodec/Write_Surface/*"/>
   public static void WritePSD(Surface surface, Stream stream, bool autoClose)
   { new PSDCodec().Write(surface, stream, autoClose);
   }
 
-  static Surface ReadComposite(PSDCodec codec, PSDImage image)
-  { if(image.Layers!=null) for(int i=0; i<image.Layers.Length; i++) codec.SkipLayer();
+  static Surface ReadComposite(PSDCodec codec)
+  { codec.SkipLayers();
     Surface composite = codec.ReadFlattened();
     codec.FinishReading();
     return composite;
@@ -425,8 +759,8 @@ public class PSDCodec
   void Abort()
   { if(autoClose) stream.Close();
 
-    stream  = null;
     image   = null;
+    stream  = null;
     state   = State.Nothing;
     reading = false;
   }

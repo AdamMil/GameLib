@@ -29,7 +29,11 @@ public delegate void ValueChangedEventHandler(object sender, ValueChangedEventAr
 /// value changes and allow the application to see the old value.
 /// </summary>
 public class ValueChangedEventArgs : EventArgs
-{ public ValueChangedEventArgs(object old) { OldValue=old; }
+{ 
+  /// <summary>Initializes this class.</summary>
+  /// <param name="old">The old value of the property, field, etc. that changed.</param>
+  public ValueChangedEventArgs(object old) { OldValue=old; }
+  /// <summary>The old value of the property, field, etc. that changed.</summary>
   public object OldValue;
 }
 

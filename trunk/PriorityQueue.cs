@@ -25,12 +25,21 @@ namespace GameLib.Collections
 // TODO: use generics when they become available
 
 /// <summary>This class represents a priority queue.</summary>
-/// <remarks>A priority queue works like a standard <see cref="Queue"/>, except that the items are ordered by a
+/// <remarks>
+/// <para>A priority queue works like a standard <see cref="Queue"/>, except that the items are ordered by a
 /// predicate. The value with the highest priority will always be dequeued first. The object with the highest priority
 /// is the object with the greatest value, as determined by the <see cref="IComparer"/> used to initialize the queue.
 /// Multiple objects with the same priority level can be added to the queue.
+/// </para>
+/// <para>The priority queue is implemented using a heap, which is a very efficient array structure that makes finding
+/// the highest priority item very fast (an O(1) operation), but makes finding the lowest priority item rather
+/// slow (an O(n) operation). You can use the <see cref="BinaryTree"/> class if you want a priority queue that allows
+/// fairly efficient finding of both the minimum and maximum priority items (O(log2 n) for both). However, the
+/// overall efficiency of the <see cref="BinaryTree"/> is comparatively lower due to the fact that tree operations are
+/// slower than simple array operations.
+/// </para>
 /// </remarks>
-public sealed class PriorityQueue : ICollection, IEnumerable
+public sealed class PriorityQueue : ICollection
 { 
   /// <summary>Initializes a new, empty instance of the <see cref="PriorityQueue"/> class, with a default capacity and
   /// using <see cref="Comparer.Default"/> to compare elements.
@@ -114,7 +123,7 @@ public sealed class PriorityQueue : ICollection, IEnumerable
   /// </param>
   /// <param name="startIndex">The zero-based index in array at which copying begins.</param>
   /// <remarks>See <see cref="ICollection.CopyTo"/> for more information. <seealso cref="ICollection.CopyTo"/></remarks>
-  public void CopyTo(Array array, int index) { array.CopyTo(array, index); }
+  public void CopyTo(Array array, int startIndex) { array.CopyTo(array, startIndex); }
   /// <summary>Gets a value indicating whether access to the queue is synchronized (thread-safe).</summary>
   /// <remarks>See the <see cref="ICollection.IsSynchronized"/> property for more information.
   /// <seealso cref="ICollection.IsSynchronized"/>
@@ -136,18 +145,17 @@ public sealed class PriorityQueue : ICollection, IEnumerable
   void Heapify(int i)
   { object tmp;
     int li, ri, largest, count=Count;
-    i++;
     while(true)
-    { li=i*2-1; ri=i*2; i--; // li=Left(i), ri=Right(i)
+    { ri=(i+1)*2; li=ri-1; // ri=Right(i), li=Left(i)
       largest = li<count && cmp.Compare(array[li], array[i])>0 ? li : i;
       if(ri<count && cmp.Compare(array[ri], array[largest])>0) largest=ri;
       if(largest==i) break;
       tmp=array[i]; array[i]=array[largest]; array[largest]=tmp;
-      i = largest+1;
+      i = largest;
     }
   }
 
-  ArrayList array;
+  ArrayList array; // slightly less efficient than managing an array ourselves, but makes for much simpler code
   IComparer cmp;
 }
 

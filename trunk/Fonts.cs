@@ -803,7 +803,7 @@ public class TrueTypeFont : StyledFont
   protected CachedChar GetChar(char c)
   { Color shade = shadeColor!=Color.Transparent ? shadeColor : bgColor!=Color.Transparent ? bgColor : Color.Black;
     CacheIndex ind = new CacheIndex(c, color, shade, fstyle, rstyle);
-    LinkedList.Node node = (LinkedList.Node)tree[ind];
+    LinkedList.Node node = (LinkedList.Node)map[ind];
     CachedChar cc;
     if(node!=null)
     { cc = (CachedChar)node.Data;
@@ -838,7 +838,7 @@ public class TrueTypeFont : StyledFont
 
     if(cacheMax!=0)
     { while(list.Count>=cacheMax) CacheRemove(list.Tail);
-      tree[ind]=list.Prepend(cc);
+      map[ind]=list.Prepend(cc);
     }
     done:
     if(Video.Video.DisplaySurface!=null)
@@ -856,7 +856,7 @@ public class TrueTypeFont : StyledFont
 
   /// <summary>Clears the glyph cache.</summary>
   protected void ClearCache()
-  { tree.Clear();
+  { map.Clear();
     list.Clear();
   }
 
@@ -902,7 +902,7 @@ public class TrueTypeFont : StyledFont
   void CacheRemove(LinkedList.Node node)
   { CachedChar cc = (CachedChar)node.Data;
     cc.Dispose();
-    tree.Remove(cc.Index);
+    map.Remove(cc.Index);
     list.Remove(node);
   }
 
@@ -914,7 +914,7 @@ public class TrueTypeFont : StyledFont
     ShadeColor = Color.Transparent;
   }
 
-  RedBlackTree tree = new RedBlackTree();
+  Map           map = new Map();
   LinkedList   list = new LinkedList();
   Color        color, bgColor, shadeColor;
   int          cacheMax=192, compatible=-1;
