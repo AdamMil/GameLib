@@ -37,7 +37,7 @@ public sealed class DelegateMarshaller
 
 public sealed class Unsafe
 { // TODO: consider using memcpy
-  public static unsafe void Copy(byte* dest, byte* src, int length)
+  public static unsafe void Copy(byte* src, byte* dest, int length)
   { if(src==null || dest==null) throw new ArgumentNullException();
     if(length<0) throw new ArgumentOutOfRangeException("length", length, "must not be negative");
     int len=length/4;
@@ -54,14 +54,15 @@ public sealed class Unsafe
   }
 }
 
-internal abstract class StreamCallbackSource
+internal abstract class StreamCallbackSource : IDisposable
 { protected StreamCallbackSource(System.IO.Stream stream, bool autoClose)
   { if(stream==null) throw new ArgumentNullException("stream");
     if(!stream.CanRead) throw new ArgumentException("stream must be readable", "stream");
     this.stream=stream; this.autoClose=autoClose;
     if(!autoClose) GC.SuppressFinalize(this);
   }
-  ~StreamCallbackSource() { Close(); }
+  ~StreamCallbackSource() { Dispose(); }
+  public void Dispose() { if(autoClose) Close(); GC.SuppressFinalize(this); }
 
   public virtual void Close()
   { if(stream!=null) { stream.Close(); stream=null; }
@@ -70,7 +71,7 @@ internal abstract class StreamCallbackSource
 
   protected enum SeekType { Absolute, Relative, FromEnd }
   protected long Seek(long offset, SeekType type)
-  { if(stream==null) return -1;
+  { if(stream==null || !stream.CanSeek) return -1;
     long pos=-1;
     switch(type)
     { case SeekType.Absolute: pos = stream.Seek(offset, System.IO.SeekOrigin.Begin); break;
@@ -82,35 +83,34 @@ internal abstract class StreamCallbackSource
   
   protected long Tell() { return stream.CanSeek ? stream.Position : -1; }
 
-  protected unsafe long Read(byte* data, long size, long maxnum)
+  protected unsafe int Read(byte* data, int size, int maxnum)
   { if(stream==null) return -1;
     if(size<=0 || maxnum<=0) return 0;
     if(size==1)
     { try
-      { int len = (int)maxnum, read;
-        if(buffer==null || buffer.Length<len) buffer = new byte[len];
-        read = stream.Read(buffer, 0, (int)maxnum);
-        fixed(byte* src = buffer) Unsafe.Copy(data, src, read);
+      { int read;
+        if(buffer==null || buffer.Length<maxnum) buffer = new byte[maxnum];
+        read = stream.Read(buffer, 0, maxnum);
+        fixed(byte* src = buffer) Unsafe.Copy(src, data, read);
         return read;
       }
       catch { return -1; }
     }
     else
-    { long i=0, read;
-      int  j, jlen=(int)size;
-      if(buffer==null || buffer.Length<jlen) buffer = new byte[jlen];
+    { int i=0, j, read;
+      if(buffer==null || buffer.Length<size) buffer = new byte[size];
 
       try
       { fixed(byte* src=buffer)
           for(; i<maxnum; i++)
-          { read = stream.Read(buffer, 0, jlen);
+          { read = stream.Read(buffer, 0, size);
             if(read!=size)
             { if(stream.CanSeek) stream.Position-=read;
-              return i==0 ? -1 : i;
+              return read==0 ? 0 : i==0 ? -1 : i;
             }
-            if(size>8) Unsafe.Copy(data, src, jlen);
-            else for(j=0; j<jlen; j++) data[j]=src[j];
-            data += jlen;
+            if(size>8) Unsafe.Copy(src, data, size);
+            else for(j=0; j<size; j++) data[j]=src[j];
+            data += size;
           }
         return i;
       }
@@ -128,7 +128,7 @@ internal abstract class StreamCallbackSource
       fixed(byte* dest = buf)
         do
         { if(total<len) len=(int)total;
-          if(len>8) Unsafe.Copy(dest, data, len);
+          if(len>8) Unsafe.Copy(data, dest, len);
           else for(int i=0; i<len; i++) dest[i]=data[i];
           data += len;
           stream.Write(buf, 0, len);
@@ -147,8 +147,7 @@ internal abstract class StreamCallbackSource
   
   protected void MaybeClose()
   { if(stream==null) return;
-    if(autoClose) try { Close(); } catch { }
-    GC.SuppressFinalize(this);
+    Dispose();
   }
 
   protected byte[] buffer;

@@ -153,7 +153,7 @@ public sealed class OpenGL
         unsafe
         { fixed(byte* arrp=arr)
           { byte* dest=arrp, src=(byte*)temp.Data;
-            for(int y=0; y<temp.Height; dest+=line,src+=temp.Pitch,y++) Unsafe.Copy(dest, src, line);
+            for(int y=0; y<temp.Height; dest+=line,src+=temp.Pitch,y++) Unsafe.Copy(src, dest, line);
             GL.glTexImage2D(GL.GL_TEXTURE_2D, level, internalFormat, temp.Width, temp.Height, border,
                             pf.Depth==32 ? GL.GL_RGBA : GL.GL_RGB, GL.GL_UNSIGNED_BYTE, arrp);
           }

@@ -769,7 +769,8 @@ public struct Vector
   public bool Equals(Vector vect, float epsilon)
   { return Math.Abs(vect.X-X)<=epsilon && Math.Abs(vect.Y-Y)<=epsilon;
   }
-  public override int GetHashCode() { return X.GetHashCode() ^ Y.GetHashCode(); }
+  public override int GetHashCode() { unsafe { fixed(Vector* v=&this) return *(int*)&v->X ^ *(int*)&v->Y; } }
+  public Point ToPoint() { return new Point(X, Y); }
   public override string ToString() { return string.Format("[{0:f},{1:f}]", X, Y); }
 
   public static Vector operator-(Vector v) { return new Vector(-v.X, -v.Y); }
@@ -813,7 +814,7 @@ public struct Point
   public bool Equals(Point point, float epsilon)
   { return Math.Abs(point.X-X)<=epsilon && Math.Abs(point.Y-Y)<=epsilon;
   }
-  public override int GetHashCode() { return X.GetHashCode() ^ Y.GetHashCode(); }
+  public override int GetHashCode() { unsafe { fixed(Point* v=&this) return *(int*)&v->X ^ *(int*)&v->Y; } }
   public override string ToString() { return string.Format("({0:f},{1:f})", X, Y); }
 
   public static Point Invalid { get { return new Point(float.NaN, float.NaN); } }
@@ -1394,7 +1395,10 @@ public struct Vector
   public bool Equals(Vector vect, float epsilon)
   { return Math.Abs(vect.X-X)<=epsilon && Math.Abs(vect.Y-Y)<=epsilon && Math.Abs(vect.Z-Z)<=epsilon;
   }
-  public override int GetHashCode() { return (X+Y+Z).GetHashCode(); }
+  public override int GetHashCode()
+  { unsafe { fixed(Vector* v=&this) return *(int*)&v->X ^ *(int*)&v->Y ^ *(int*)&v->Z; }
+  }
+  public Point ToPoint() { return new Point(X, Y, Z); }
   public override string ToString() { return string.Format("[{0:f},{1:f},{2:f}]", X, Y, Z); }
 
   public static Vector operator-(Vector v) { return new Vector(-v.X, -v.Y, -v.Z); }
@@ -1432,7 +1436,9 @@ public struct Point
   public bool Equals(Point point, float epsilon)
   { return Math.Abs(point.X-X)<=epsilon && Math.Abs(point.Y-Y)<=epsilon && Math.Abs(point.Z-Z)<=epsilon;
   }
-  public override int GetHashCode() { return (X+Y+Z).GetHashCode(); }
+  public override int GetHashCode()
+  { unsafe { fixed(Point* v=&this) return *(int*)&v->X ^ *(int*)&v->Y ^ *(int*)&v->Z; }
+  }
   public override string ToString() { return string.Format("({0:f},{1:f},{2:f})", X, Y, Z); }
 
   public static Vector operator-(Point lhs, Point rhs)  { return new Vector(lhs.X-rhs.X, lhs.Y-rhs.Y, lhs.Z-rhs.Z); }

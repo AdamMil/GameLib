@@ -101,7 +101,7 @@ public class Surface : IBlittable, IDisposable
         Lock();
         byte* src=(byte*)data.Scan0, dest=(byte*)Data;
         int len=bitmap.Width*(depth/8);
-        for(int i=0; i<bitmap.Height; src+=data.Stride,dest+=Pitch,i++) Unsafe.Copy(dest, src, len); // TODO: big endian safe?
+        for(int i=0; i<bitmap.Height; src+=data.Stride,dest+=Pitch,i++) Unsafe.Copy(src, dest, len); // TODO: big endian safe?
         Unlock();
       }
     }
@@ -510,8 +510,8 @@ public class Surface : IBlittable, IDisposable
     try
     { if(bd.Stride<0) throw new NotImplementedException("Can't handle bottom-up images");
       byte* src=(byte*)data, dest=(byte*)bd.Scan0.ToPointer();
-      if(bd.Stride==stride) Unsafe.Copy(dest, src, height*stride);
-      else for(; height!=0; src += stride, dest += bd.Stride, height--) Unsafe.Copy(dest, src, row);
+      if(bd.Stride==stride) Unsafe.Copy(src, dest, height*stride);
+      else for(; height!=0; src += stride, dest += bd.Stride, height--) Unsafe.Copy(src, dest, row);
     }
     finally { bmp.UnlockBits(bd); }
     return bmp;
@@ -554,7 +554,7 @@ public class Surface : IBlittable, IDisposable
           { byte* dest=arrp;
             byte v;
             if(Pitch==Width*xinc)
-            { Unsafe.Copy(dest, src, arr.Length);
+            { Unsafe.Copy(src, dest, arr.Length);
               #if BIGENDIAN
               if(Format.AlphaMask!=0xFF) dest++; 
               #else
@@ -564,7 +564,7 @@ public class Surface : IBlittable, IDisposable
             }
             else
               for(int y=0,line=Width*xinc,yinc=Pitch-line; y<Height; src+=Pitch,dest+=line,y++)
-              { Unsafe.Copy(dest, src, line);
+              { Unsafe.Copy(src, dest, line);
                 #if BIGENDIAN
                 byte *dp = Format.AlphaMask==0xFF ? dest : dest+1;
                 #else
