@@ -273,7 +273,7 @@ public class Button : ButtonBase
     bright = Color.FromArgb(back.R+(255-back.R)*3/5, back.G+(255-back.G)*3/5, back.B+(255-back.B)*3/5);
     dark   = Color.FromArgb(back.R/2, back.G/2, back.B/2);
     if(Pressed) { Color t=bright; bright=dark; dark=t; }
-    else if(Focused) bright=dark=Color.Black;
+    else if(Selected) bright=dark=Color.Black;
     Primitives.Line(e.Surface, rect.X, rect.Y, rect.Right-1, rect.Y, bright);
     Primitives.Line(e.Surface, rect.X, rect.Y, rect.X, rect.Bottom-1, bright);
     Primitives.Line(e.Surface, rect.X, rect.Bottom-1, rect.Right-1, rect.Bottom-1, dark);
@@ -628,7 +628,7 @@ public class TextBoxBase : Control
         }
         else if(caret-selectLen<0) selectLen = -caret;
         caretOn = true;
-        if(oldlen!=0 && (Focused || !hideSelection)) Invalidate();
+        if(oldlen!=0 && (Selected || !hideSelection)) Invalidate();
         OnCaretPositionChanged(e);
       }
     }
@@ -638,7 +638,7 @@ public class TextBoxBase : Control
   { get { return hideSelection; }
     set
     { hideSelection=value;
-      if(value && !Focused) Invalidate();
+      if(value && !Selected) Invalidate();
     }
   }
 
@@ -693,7 +693,7 @@ public class TextBoxBase : Control
     { if(value!=selectLen)
       { if(value<-Text.Length || value>Text.Length) throw new ArgumentOutOfRangeException("SelectionLength");
         selectLen = value;
-        if(Focused || !hideSelection) Invalidate();
+        if(Selected || !hideSelection) Invalidate();
       }
     }
   }
@@ -735,24 +735,35 @@ public class TextBoxBase : Control
   
   protected internal override void OnKeyDown(KeyEventArgs e)
   { char c=e.KE.Char;
-    // TODO: implement ctrl-arrow
     if(e.KE.Key==Key.Left)
-    { if(e.KE.KeyMods==KeyMod.None || e.KE.HasOnlyKeys(KeyMod.Shift))
+    { if(e.KE.KeyMods==KeyMod.None || e.KE.HasOnlyKeys(KeyMod.Shift|KeyMod.Ctrl))
       { if(caret>0)
-        { if(e.KE.KeyMods!=KeyMod.None) Select(caret-1, selectLen+1);
-          else Select(caret-1, 0);
+        { if(e.KE.KeyMods==KeyMod.None) Select(caret-1, 0);
+          else if(e.KE.HasOnlyKeys(KeyMod.Shift)) Select(caret-1, selectLen+1);
+          else
+          { int pos = CtrlScan(-1);
+            if(e.KE.HasOnlyKeys(KeyMod.Ctrl)) Select(pos, 0);
+            else if(selectLen<0) Select(pos, SelectionStart-pos);
+            else Select(pos, SelectionEnd-pos);
+          }
         }
-        else if(e.KE.KeyMods==KeyMod.None) SelectionLength=0;
+        else if(!e.KE.HasAnyMod(KeyMod.Shift)) SelectionLength=0;
         e.Handled=true;
       }
     }
     else if(e.KE.Key==Key.Right)
-    { if(e.KE.KeyMods==KeyMod.None || e.KE.HasOnlyKeys(KeyMod.Shift))
+    { if(e.KE.KeyMods==KeyMod.None || e.KE.HasOnlyKeys(KeyMod.Shift|KeyMod.Ctrl))
       { if(caret<Text.Length)
-        { if(e.KE.KeyMods!=KeyMod.None) Select(caret+1, selectLen-1);
-          else Select(caret+1, 0);
+        { if(e.KE.KeyMods==KeyMod.None) Select(caret+1, 0);
+          else if(e.KE.HasOnlyKeys(KeyMod.Shift)) Select(caret+1, selectLen-1);
+          else
+          { int pos = CtrlScan(1);
+            if(e.KE.HasOnlyKeys(KeyMod.Ctrl)) Select(pos, 0);
+            else if(selectLen<0) Select(pos, SelectionStart-pos);
+            else Select(pos, SelectionEnd-pos);
+          }
         }
-        else if(e.KE.KeyMods==KeyMod.None) SelectionLength=0;
+        else if(!e.KE.HasAnyMod(KeyMod.Shift)) SelectionLength=0;
         e.Handled=true;
       }
     }
@@ -766,22 +777,46 @@ public class TextBoxBase : Control
         }
         e.Handled=true;
       }
-    }
-    else if(e.KE.Key==Key.Delete && e.KE.KeyMods==KeyMod.None)
-    { if(selectLen!=0) { Modified=true; SelectedText=""; }
-      else if(caret<Text.Length)
-      { Modified=true;
-        Text = Text.Substring(0, caret) + Text.Substring(caret+1, Text.Length-caret-1);
+      else if(e.KE.HasOnlyKeys(KeyMod.Ctrl))
+      { if(caret>0 && selectLen==0)
+        { int end=caret, pos=CtrlScan(-1);
+          Modified=true;
+          Select(pos, 0);
+          Text = Text.Substring(0, pos) + Text.Substring(end, Text.Length-end);
+        }
+        e.Handled=true;
       }
-      e.Handled=true;
+    }
+    else if(e.KE.Key==Key.Delete)
+    { if(e.KE.KeyMods==KeyMod.None || e.KE.HasOnlyKeys(KeyMod.Ctrl))
+      { if(selectLen!=0) { Modified=true; SelectedText=""; }
+        else if(caret<Text.Length)
+        { Modified=true;
+          if(e.KE.KeyMods==KeyMod.None)
+            Text = Text.Substring(0, caret) + Text.Substring(caret+1, Text.Length-caret-1);
+          else
+          { int pos = CtrlScan(1);
+            Text = Text.Substring(0, caret) + Text.Substring(pos, Text.Length-pos);
+          }
+        }
+        e.Handled=true;
+      }
     }
     else if(e.KE.Key==Key.Home)
     { if(e.KE.KeyMods==KeyMod.None) { Select(0, 0); e.Handled=true; }
-      else if(e.KE.HasOnlyKeys(KeyMod.Shift)) { Select(0, caret); e.Handled=true; }
+      else if(e.KE.HasOnlyKeys(KeyMod.Shift))
+      { if(selectLen<0) Select(0, SelectionStart);
+        else Select(0, SelectionEnd);
+        e.Handled=true;
+      }
     }
     else if(e.KE.Key==Key.End)
     { if(e.KE.KeyMods==KeyMod.None) { Select(Text.Length, 0); e.Handled=true; }
-      else if(e.KE.HasOnlyKeys(KeyMod.Shift)) { Select(caret, Text.Length-caret); e.Handled=true; }
+      else if(e.KE.HasOnlyKeys(KeyMod.Shift))
+      { if(selectLen<0) Select(Text.Length, SelectionStart-Text.Length);
+        else Select(Text.Length, SelectionEnd-Text.Length);
+        e.Handled=true;
+      }
     }
     else if(e.KE.HasOnlyKeys(KeyMod.Ctrl) && (c=='C'-64 || e.KE.Key==Key.Insert))
     { Copy();
@@ -830,8 +865,25 @@ public class TextBoxBase : Control
   public void SelectAll() { CaretPosition=Text.Length; SelectionLength=-Text.Length; }
   #endregion
   
-  protected bool HasCaret { get { return withCaret==this; } }
+  protected bool HasCaret { get { return withCaret==this && Focused; } }
 
+  int CtrlScan(int dir)
+  { // skip whitespace
+    // skip punctuation
+    // scan until whitespace or punctuation
+    string text = Text;
+    int i=caret;
+    if(dir<0) { if(--i<0) return 0; }
+    else if(caret==Text.Length) return caret;
+    for(; i>=0 && i<Text.Length; i+=dir) if(!char.IsWhiteSpace(text[i])) break;
+    for(; i>=0 && i<Text.Length; i+=dir) if(!IsPunctuation(text[i])) break;
+    for(; i>=0 && i<Text.Length; i+=dir)
+      if(IsPunctuation(text[i]) || char.IsWhiteSpace(text[i])) { if(dir<0) i++; break; }
+    return i<0 ? 0 : i;
+  }
+  
+  bool IsPunctuation(char c) { return char.IsPunctuation(c) || char.IsSymbol(c); }
+  
   int  caret, selectLen, maxLength=-1;
   bool hideSelection, modified, wordWrap;
 
@@ -870,7 +922,7 @@ public class TextBoxBase : Control
   static void CaretFlash(object dummy)
   { caretOn = !caretOn;
     TextBoxBase tb = withCaret;
-    if(tb!=null) tb.OnCaretFlash();
+    if(tb!=null && tb.HasCaret) tb.OnCaretFlash();
   }
   
   static System.Threading.Timer caretTimer;
@@ -885,13 +937,40 @@ public class TextBoxBase : Control
 #region TextBox
 // TODO: optimize this
 public class TextBox : TextBoxBase
-{ public TextBox() { BackColor=Color.White; ForeColor=Color.Black; }
+{ public TextBox()
+  { BackColor=Color.White; ForeColor=Color.Black; Style|=ControlStyle.Clickable|ControlStyle.Draggable;
+  }
 
   public Color BorderColor { get { return border; } set { border=value; } }
 
   protected internal override void OnPaintBackground(PaintEventArgs e)
   { base.OnPaintBackground(e);
-    Helpers.DrawBorder(e.Surface, DisplayRect, BorderStyle.FixedThick, border, true);
+
+    GameLib.Fonts.Font font = Font;
+    Rectangle rect = DisplayRect;
+    if(font!=null && Text.Length>0)
+    { int caret = CaretPosition;
+      if(caret<start) start = Math.Max(caret-10, 0);
+      string text;
+      while(true)
+      { text = start==0 ? Text : Text.Substring(start);
+        end = start+font.HowManyFit(text, rect.Width-padding*2);
+        if(end-start<text.Length && caret>=end) start = Math.Min(start+10+caret-end, Text.Length);
+        else break;
+      }
+
+      if(SelectionLength!=0)
+      { text = Text.Substring(start, end-start);
+        int x = rect.X+padding, width;
+        if(SelectionStart>start) x += font.CalculateSize(text.Substring(0, SelectionStart-start)).Width;
+        width = font.CalculateSize(text.Substring(Math.Max(0, SelectionStart-start),
+                                                  Math.Min(Math.Abs(SelectionLength), end-start))).Width;
+        e.Surface.Fill(new Rectangle(x, rect.Y+padding, width, rect.Height-padding*2), ForeColor);
+      }
+    }
+    else start=end=0;
+
+    Helpers.DrawBorder(e.Surface, rect, BorderStyle.FixedThick, border, true);
   }
   
   protected internal override void OnPaint(PaintEventArgs e)
@@ -899,17 +978,60 @@ public class TextBox : TextBoxBase
     GameLib.Fonts.Font font = Font;
     if(font!=null)
     { Rectangle rect = DisplayRect;
-      rect.Inflate(-2, 0);
+      rect.Inflate(-padding, -padding);
+      Point location = rect.Location;
+
+      string text = Text.Substring(start, end-start);
 
       font.Color = ForeColor;
       font.BackColor = BackColor;
-      font.Render(e.Surface, Text, rect, ContentAlignment.MiddleLeft);
+      if(SelectionLength==0) font.Render(e.Surface, text, location);
+      else
+      { if(SelectionStart>start)
+          location.X += font.Render(e.Surface, text.Substring(0, SelectionStart-start), location);
+
+        font.Color = BackColor;
+        font.BackColor = ForeColor;
+        location.X += font.Render(e.Surface, text.Substring(Math.Max(0, SelectionStart-start),
+                                                            Math.Min(Math.Abs(SelectionLength), end-start)), location);
+        if(SelectionEnd<end)
+        { font.Color = ForeColor;
+          font.BackColor = BackColor;
+          font.Render(e.Surface, text.Substring(SelectionEnd-start, end-SelectionEnd), location);
+        }
+      }
+
+      int x = rect.X + font.CalculateSize(text.Substring(0, CaretPosition-start)).Width;
+      Primitives.VLine(e.Surface, x, rect.Top+2, rect.Bottom-3, CaretOn ? ForeColor : BackColor);
     }
   }
 
-  protected override void OnCaretPositionChanged(ValueChangedEventArgs e)
-  { Invalidate();
+  protected internal override void OnMouseClick(ClickEventArgs e)
+  { if(e.CE.Button==0)
+    { Select(PointToPos(e.CE.X), 0);
+      e.Handled = true;
+    }
   }
+  
+  protected internal override void OnDragStart(DragEventArgs e)
+  { if(e.Pressed(0) && !e.Cancel) Select(PointToPos(e.Start.X), 0);
+    else e.Cancel=true;
+    base.OnDragStart(e);
+  }
+
+  protected internal override void OnDragMove(DragEventArgs e)
+  { int start = PointToPos(e.Start.X), end = PointToPos(e.End.X);
+    Select(end, start-end);
+    base.OnDragMove(e);
+  }
+
+  protected internal override void OnDragEnd(DragEventArgs e)
+  { int start = PointToPos(e.Start.X), end = PointToPos(e.End.X);
+    Select(end, start-end);
+    base.OnDragEnd(e);
+  }
+
+  protected override void OnCaretPositionChanged(ValueChangedEventArgs e) { Invalidate(); }
   
   protected override void OnTextChanged(ValueChangedEventArgs e)
   { Invalidate();
@@ -917,10 +1039,33 @@ public class TextBox : TextBoxBase
   }
 
   protected override void OnCaretFlash()
-  { 
+  { DesktopControl desktop = Desktop;
+    GameLib.Fonts.Font font = Font;
+    if(desktop!=null && desktop.Surface!=null && font!=null)
+    { Rectangle rect = DisplayRect;
+      rect.Y += padding+2; rect.Height -= padding*2+4; rect.Width = 1;
+      rect.X += font.CalculateSize(Text.Substring(start, CaretPosition-start)).Width + padding;
+      Primitives.VLine(desktop.Surface, rect.X, rect.Top, rect.Bottom-1, CaretOn ? ForeColor : BackColor);
+      desktop.AddUpdatedArea(rect);
+      if(Events.Events.QueueSize==0) Events.Events.PushEvent(new Events.DesktopUpdatedEvent(desktop));
+    }
+  }
+
+  int PointToPos(int x)
+  { Rectangle rect = WindowRect;
+    rect.Inflate(-padding, -padding);
+    if(x<rect.X) return start;
+    else if(x>rect.Width) return end;
+    else
+    { GameLib.Fonts.Font font = Font;
+      return font==null ? 0 : start + font.HowManyFit(Text.Substring(start, end-start), x-rect.X);
+    }
   }
   
+  const int padding=2;
+
   Color border = Color.FromArgb(212, 208, 200);
+  int start, end;
 }
 #endregion
 
@@ -963,7 +1108,7 @@ public class MenuBase : ContainerControl
     OnPopup(new EventArgs());
     BringToFront();
     Visible = true;
-    Modal   = true;
+    SetModal(true);
     Capture = true;
     if(wait) while(Events.Events.PumpEvent() && this.source!=null);
   }
@@ -1158,8 +1303,7 @@ public class FormBase : ContainerControl
     Visible = true;
     Parent  = desktop;
     BringToFront();
-    Modal = true;
-    Focus();
+    SetModal(true);
     while(Events.Events.PumpEvent() && Parent!=null);
     return returnValue;
   }

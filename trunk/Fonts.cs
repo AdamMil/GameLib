@@ -301,8 +301,8 @@ public class TrueTypeFont : NonFixedFont, IDisposable
   { int width=0;
     for(int i=0; i<text.Length; i++)
     { CachedChar c = GetChar(text[i]);
-      width += (width>0 ? c.Advance : 0) + c.OffsetX + c.Surface.Width;
-      if(width>pixels) return i;
+      width += i>0 ? c.Advance : 0;
+      if(width+c.OffsetX+c.Surface.Width > pixels) return i;
     }
     return text.Length;
   }
