@@ -31,7 +31,7 @@ public class LinkedList : ICollection, IEnumerable
     foreach(object o in col) Append(o);
   }
 
-  public class Node
+  public sealed class Node
   { internal Node(object data) { this.data=data; }
     internal Node(object data, Node prev, Node next) { this.data=data; Prev=prev; Next=next; }
     public Node   PrevNode { get { return Prev; } }
