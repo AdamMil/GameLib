@@ -5,6 +5,11 @@ Legend
 *  Alteration/other
 !  Alteration/Removal/other that breaks backwards compatibility
 
+LATEST (alpha/beta)
+-------------------
++ Added PriorityQueue.Dequeue, which does the same thing as
+  PriorityQueue.DequeueMaximum
+
 2004.05.02 (alpha/beta)
 -----------------------
 Release stats (only counts code written by me):

@@ -91,7 +91,7 @@ public sealed class PriorityQueue : ICollection
   /// <summary>Removes and returns the element in the queue with the highest priority.</summary>
   /// <returns>The element in the queue with the highest priority.</returns>
   /// <exception cref="InvalidOperationException">Thrown if the collection is empty.</exception>
-  public object DequeueMaximum()
+  public object Dequeue()
   { if(Count==0) throw new InvalidOperationException("The collection is empty.");
     object max = array[0], tmp;
     int i=0, li=1, ri=2, count=Count-1, largest;
@@ -108,6 +108,11 @@ public sealed class PriorityQueue : ICollection
     }
     return max;
   }
+
+  /// <summary>Removes and returns the element in the queue with the highest priority.</summary>
+  /// <returns>The element in the queue with the highest priority.</returns>
+  /// <exception cref="InvalidOperationException">Thrown if the collection is empty.</exception>
+  public object DequeueMaximum() { return Dequeue(); }
   
   /// <summary>Adds an object to the queue.</summary>
   /// <param name="value">The object to add to the queue.</param>
