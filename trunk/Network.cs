@@ -20,6 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 using System;
 using System.Collections;
+using System.Collections.Specialized;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
@@ -28,7 +29,6 @@ using System.Reflection;
 using GameLib.IO;
 
 // TODO: stress test the locking, changes were made that may have destabilized it
-// TODO: expose low-level networking by making the NetLink class suitable for non-threaded use
 // TODO: add a 'Peer' class
 
 namespace GameLib.Network
@@ -201,18 +201,36 @@ public sealed class NetLink
   public NetLink(IPEndPoint remote) { Open(remote); }
   public NetLink(Socket tcp) { Open(tcp); }
 
-  public const uint NoTimeout=0;
+  public const int NoTimeout=-1;
 
   public event LinkMessageRecvHandler MessageReceived;
   public event LinkMessageHandler RemoteReceived, MessageSent;
   public event NetLinkHandler     Disconnected;
 
-  public bool Connected        { get { if(tcp!=null) Poll(); return connected; } }
-  public int  Available        { get { ReceivePoll(); lock(recv) return recv.Count; } }
+  public bool Connected
+  { get
+    { if(!connected) return false;
+      Socket tcp = this.tcp;
+      return tcp!=null && tcp.Connected;
+    }
+  }
+
   public SendFlag DefaultFlags { get { return defFlags; } set { defFlags=value; } }
 
   public uint LagAverage  { get { return lagAverage;  } set { lagAverage =value; } }
   public uint LagVariance { get { return lagVariance; } set { lagVariance=value; } }
+
+  public bool MessageWaiting
+  { get
+    { lock(recv)
+      { if(recv.Count==0)
+        { ReceivePoll();
+          return recv.Count!=0;
+        }
+        else return true;
+      }
+    }
+  }
 
   public IPEndPoint RemoteEndPoint
   { get { return tcp==null ? udp==null ? null : (IPEndPoint)udp.RemoteEndPoint : (IPEndPoint)tcp.RemoteEndPoint; }
@@ -227,40 +245,22 @@ public sealed class NetLink
 
   public void Open(Socket tcp)
   { if(tcp==null) throw new ArgumentNullException("tcp");
-    if(!tcp.Connected) throw new ArgumentException("If TCP is being used, the socket must be connected already!");
+    if(!tcp.Connected) throw new ArgumentException("The socket must be connected already!", "tcp");
 
-    try
-    { IPEndPoint localTcp = (IPEndPoint)tcp.LocalEndPoint, localUdp;
+    IPEndPoint localTcp = (IPEndPoint)tcp.LocalEndPoint, remote = (IPEndPoint)tcp.RemoteEndPoint;
 
-      Socket udp = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-      udp.Bind(new IPEndPoint(localTcp.Address, 0));  // bind the udp to a local port on the same interface as the tcp
-      localUdp = (IPEndPoint)udp.LocalEndPoint;       // figure out what that is
+    Socket udp = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+    udp.Bind(new IPEndPoint(localTcp.Address, localTcp.Port));  // bind the udp to the same port/interface
+    udp.Connect(remote);
 
-      tcp.Blocking = true;
-      byte[] buf = new byte[2];                       // send the udp's endpoint to the other side
-      IOH.WriteLE2(buf, 0, (short)localUdp.Port);     // the other side should be doing the same thing
-      tcp.Send(buf);                                  // PS. i know it's obsolete, but 'new IPAddress(byte[])' fails
+    tcp.Blocking = false;
+    udp.Blocking = false;
 
-      if(!tcp.Poll(2000000, SelectMode.SelectRead) || tcp.Receive(buf)!=2)
-      { tcp.Close();
-        udp.Close();
-        throw new HandshakeException();
-      }
-
-      // connect to it
-      udp.Connect(new IPEndPoint(((IPEndPoint)tcp.RemoteEndPoint).Address, IOH.ReadLE2U(buf, 0)));
-
-      tcp.Blocking = false;
-      udp.Blocking = false;
-      this.tcp = tcp;
-      this.udp = udp;
-    }
-    catch(SocketException) { throw new HandshakeException(); }
-
-    udpMax = 1450; // this is common for ethernet, but probably too high for dialup(?)
-
-    low = new Queue(); norm = new Queue(); high = new Queue(); recv = new Queue();
+    udpMax = 1450; // this is common for ethernet, but maybe too high for dialup (???)
+    recv = new Queue();
     nextSize  = -1;
+    this.tcp = tcp;
+    this.udp = udp;
     connected = true;
   }
 
@@ -272,19 +272,19 @@ public sealed class NetLink
     }
     if(udp!=null)
     { udp.Close();
-      udp = null;
+      udp=null;
     }
-    low = norm = high = null;
+    low=norm=high=null;
   }
 
   public QueueStats GetQueueStats(SendFlag flags)
   { QueueStats stats = new QueueStats();
     if(connected)
-    { if((flags&SendFlag.LowPriority)!=0)
+    { if((flags&SendFlag.LowPriority)!=0 && low!=null)
         lock(low) foreach(LinkMessage msg in low) { stats.SendMessages++; stats.SendBytes+=msg.Length; }
-      if((flags&SendFlag.NormalPriority)!=0)
+      if((flags&SendFlag.NormalPriority)!=0 && norm!=null)
         lock(norm) foreach(LinkMessage msg in norm) { stats.SendMessages++; stats.SendBytes+=msg.Length; }
-      if((flags&SendFlag.HighPriority)!=0)
+      if((flags&SendFlag.HighPriority)!=0 && high!=null)
         lock(high) foreach(LinkMessage msg in high) { stats.SendMessages++; stats.SendBytes+=msg.Length; }
     }
     if((flags&SendFlag.ReceiveQueue)!=0)
@@ -292,25 +292,68 @@ public sealed class NetLink
     return stats;
   }
 
-  public void Send(byte[] data) { Send(data, 0, data.Length, defFlags, NoTimeout, null); }
-  public void Send(byte[] data, int length) { Send(data, 0, length, defFlags, NoTimeout, null); }
-  public void Send(byte[] data, int index, int length) { Send(data, index, length, defFlags, NoTimeout, null); }
-  public void Send(byte[] data, int index, int length, SendFlag flags) { Send(data, index, length, flags, NoTimeout, null); }
+  public LinkMessage PeekMessage()
+  { if(recv==null) throw new InvalidOperationException("Link has not been opened");
+    lock(recv)
+    { if(recv.Count==0) ReceivePoll();
+      return recv.Count!=0 ? (LinkMessage)recv.Peek() : null;
+    }
+  }
+
+  public byte[] Receive() { return Receive(NoTimeout); }
+
+  public byte[] Receive(int timeoutMs)
+  { LinkMessage m = ReceiveMessage();
+    if(m==null)
+    { if(timeoutMs!=0 && WaitForEvent(timeoutMs))
+        lock(recv) m = recv.Count==0 ? null : (LinkMessage)recv.Dequeue();
+      if(m==null) return null;
+    }
+
+    if(m.Length==m.Data.Length) return m.Data;
+    byte[] ret = new byte[m.Length];
+    Array.Copy(m.Data, m.Index, ret, 0, m.Length);
+    return ret;
+  }
+
+  public LinkMessage ReceiveMessage()
+  { if(recv==null) throw new InvalidOperationException("Link has not been opened");
+    lock(recv)
+    { if(recv.Count==0) ReceivePoll();
+      return recv.Count!=0 ? (LinkMessage)recv.Dequeue() : null;
+    }
+  }
+
+  public void Send(byte[] data) { Send(data, 0, data.Length, defFlags, 0, null); }
+  public void Send(byte[] data, int length) { Send(data, 0, length, defFlags, 0, null); }
+  public void Send(byte[] data, int index, int length) { Send(data, index, length, defFlags, 0, null); }
+  public void Send(byte[] data, int index, int length, SendFlag flags) { Send(data, index, length, flags, 0, null); }
   public void Send(byte[] data, int index, int length, SendFlag flags, uint timeoutMs) { Send(data, index, length, flags, timeoutMs, null); }
-  public void Send(byte[] data, int length, SendFlag flags) { Send(data, 0, length, flags, NoTimeout, null); }
+  public void Send(byte[] data, int length, SendFlag flags) { Send(data, 0, length, flags, 0, null); }
   public void Send(byte[] data, int length, SendFlag flags, uint timeoutMs) { Send(data, 0, length, flags, timeoutMs, null); }
-  public void Send(byte[] data, SendFlag flags) { Send(data, 0, data.Length, flags, NoTimeout, null); }
+  public void Send(byte[] data, SendFlag flags) { Send(data, 0, data.Length, flags, 0, null); }
   public void Send(byte[] data, SendFlag flags, uint timeoutMs) { Send(data, 0, data.Length, flags, timeoutMs, null); }
   public void Send(byte[] data, int index, int length, SendFlag flags, uint timeoutMs, object tag)
   { if(udp==null || !connected) throw new InvalidOperationException("Link is not open");
-    if(tcp==null && (flags&SendFlag.Reliable)!=0)
-      throw new InvalidOperationException("Cannot send reliably unless TCP is being used");
     if((flags&SendFlag.NotifyReceived)!=0)
       throw new NotImplementedException("SendFlag.NotifyReceived is not yet implemented");
     if(!connected) throw new ConnectionLostException();
     if(length>65535) throw new DataTooLargeException(65535);
     if(index<0 || length<0 || index+length>data.Length) throw new ArgumentOutOfRangeException("index or length");
-    Queue queue = (flags&SendFlag.HighPriority)!=0 ? high : (flags&SendFlag.LowPriority)!=0 ? low : norm;
+
+    Queue queue;
+    if((flags&SendFlag.HighPriority)!=0)
+    { if(high==null) high=new Queue();
+      queue = high;
+    }
+    else if((flags&SendFlag.LowPriority)!=0)
+    { if(low==null) low=new Queue();
+      queue = low;
+    }
+    else
+    { if(norm==null) norm=new Queue();
+      queue = norm;
+    }
 
     byte[] buf = new byte[length+HeaderSize];         // add header (NoCopy is currently unimplemented)
     IOH.WriteLE2(buf, 0, (short)length);              // TODO: implement NoCopy
@@ -323,37 +366,27 @@ public sealed class NetLink
     Array.Copy(data, index, buf, HeaderSize, length);
 
     LinkMessage m = new LinkMessage(buf, 0, buf.Length, flags, timeoutMs, tag);
-    if(lagAverage>0 || lagVariance>0)
+    if(lagAverage!=0 || lagVariance!=0)
     { int lag = Utility.Random.Next((int)lagVariance*2)+(int)lagAverage-(int)lagVariance;
-      if(lag>0) { m.lag = Timing.Msecs+(uint)lag; m.deadline += m.lag; }
+      if(lag!=0) { m.lag = Timing.Msecs+(uint)lag; m.deadline += m.lag; }
     }
 
-    lock(queue) queue.Enqueue(m);
-    sendQueue++;
+    lock(queue)
+    { queue.Enqueue(m);
+      sendQueue++;
+    }
     SendPoll();
     if(!connected) throw new ConnectionLostException();
   }
 
-  public byte[] Receive()
-  { LinkMessage m = ReceiveMessage();
-    if(m==null) return null;
-    if(m.Length==m.Data.Length) return m.Data;
-    byte[] ret = new byte[m.Length];
-    Array.Copy(m.Data, m.Index, ret, 0, m.Length);
-    return ret;
-  }
-
-  public LinkMessage ReceiveMessage()
-  { if(recv==null) throw new InvalidOperationException("Link has not been opened");
-    ReceivePoll();
-    lock(recv) return recv.Count>0 ? (LinkMessage)recv.Dequeue() : null;
-  }
-
   public void ReceivePoll()
-  { if(tcp!=null && connected)
+  { if(!connected) return;
+    Socket tcp=this.tcp, udp=this.udp;
+
+    if(tcp!=null && tcp.Connected)
       lock(tcp)
         try
-        { while(connected)
+        { do
           { int avail = tcp.Available;
             if(avail==0)
             { if(tcp.Poll(0, SelectMode.SelectRead) && tcp.Available==0) Disconnect();
@@ -372,7 +405,7 @@ public sealed class NetLink
             }
             if(nextSize!=-1 && avail>=nextSize)
             { SizeBuffer(nextSize);
-              int read = tcp.Receive(recvBuf, nextIndex, nextSize, SocketFlags.None);
+              int read = avail==0 ? 0 : tcp.Receive(recvBuf, nextIndex, nextSize, SocketFlags.None);
               nextSize -= read; nextIndex += read;
               if(nextSize==0)
               { nextSize = -1;
@@ -390,13 +423,13 @@ public sealed class NetLink
               }
             }
             else break;
-          }
+          } while(tcp.Connected);
         }
         catch(SocketException) { Disconnect(); }
 
     if(udp!=null)
       lock(udp)
-        while(udp.Available>0)
+        while(udp.Available!=0)
         { int avail = udp.Available;
           SizeBuffer(avail);
           int read = udp.Receive(recvBuf, 0, avail, SocketFlags.None);
@@ -411,49 +444,116 @@ public sealed class NetLink
   }
 
   public void SendPoll()
-  { if(tcp!=null) System.Threading.Monitor.Enter(tcp);
-    if(udp!=null) System.Threading.Monitor.Enter(udp);
+  { if(sendQueue==0 || !connected) return;
+
+    System.Threading.Monitor.Enter(tcp);
+    System.Threading.Monitor.Enter(udp);
     try { SendMessages(low, SendMessages(norm, SendMessages(high, true))); }
     finally
-    { if(udp!=null) System.Threading.Monitor.Exit(udp);
-      if(tcp!=null) System.Threading.Monitor.Exit(tcp);
+    { System.Threading.Monitor.Exit(udp);
+      System.Threading.Monitor.Exit(tcp);
     }
   }
 
   public void Poll() { SendPoll(); ReceivePoll(); }
 
-  public static ArrayList WaitForEvent(ICollection links, uint timeoutMs)
-  { Hashtable hash = new Hashtable(), did = new Hashtable();
-    ArrayList read=new ArrayList(links.Count*2), write=new ArrayList(links.Count*2), ret = new ArrayList();
-    foreach(NetLink link in links)
-    { bool send = link.sendQueue>0;
-      if(link.tcp!=null) { hash[link.tcp]=link; read.Add(link.tcp); if(send) write.Add(link.tcp); }
-      if(link.udp!=null) { hash[link.udp]=link; read.Add(link.udp); if(send) write.Add(link.udp); }
-    }
-    if(read.Count==0) { Thread.Sleep((int)timeoutMs); return ret; }
+  public bool WaitForEvent(int timeoutMs)
+  { if(!connected) return false;
 
-    uint thresh = timeoutMs+Timing.Msecs;
-    do
-    { ArrayList rl = (ArrayList)read.Clone(), wl = write.Count>0 ? (ArrayList)write.Clone() : null;
-      Socket.Select(rl, wl, null, (int)timeoutMs*1000);
-      if(rl.Count>0)
-        foreach(Socket sock in rl)
-        { NetLink link = (NetLink)hash[sock];
-          link.ReceivePoll();
-          if(!link.Connected || link.Available>0) ret.Add(link);
-        }
-      if(wl!=null && wl.Count>0)
-        foreach(Socket sock in wl)
-        { NetLink link = (NetLink)hash[sock];
-          if(!did.Contains(link))
-          { link.SendPoll();
-            did[link]=true;
+    ArrayList read=new ArrayList(2);
+    uint start = timeoutMs>0 ? Timing.Msecs : 0;
+    while(true)
+    { read.Add(tcp);
+      read.Add(udp);
+      Socket.Select(read, null, null, timeoutMs==NoTimeout ? int.MaxValue : (int)timeoutMs*1000);
+      if(read.Count!=0)
+      { if(MessageWaiting) return true;
+      }
+      else if(!Connected) return true;
+
+      if(timeoutMs==0) break;
+      else if(timeoutMs!=NoTimeout)
+      { uint now=Timing.Msecs;
+        int  elapsed=(int)(now-start);
+        if(elapsed>=timeoutMs) break;
+        timeoutMs -= elapsed;
+        start = now;
+      }
+
+      read.Clear();
+    }
+    return false;
+  }
+
+  public static IList WaitForEvent(ICollection links, int timeoutMs)
+  { if(links.Count==0)
+    { if(timeoutMs==NoTimeout) throw new ArgumentException("Infinite timeout specified, but no links were passed.");
+      Thread.Sleep(timeoutMs);
+      return null;
+    }
+
+    ListDictionary dict=new ListDictionary();
+    ArrayList ret=null, read=new ArrayList(links.Count*2), write=null;
+
+    uint start = timeoutMs>0 ? Timing.Msecs : 0;
+    while(true)
+    { if(dict.Count==0)
+        foreach(NetLink link in links)
+        { bool send;
+          if(link.sendQueue==0) send=false;
+          else
+          { if(write!=null) write = new ArrayList();
+            send=true;
+          }
+
+          if(link.Connected)
+          { dict[link.tcp]=link; dict[link.udp]=link; 
+            read.Add(link.tcp); read.Add(link.udp);
+            if(send) { write.Add(link.tcp); write.Add(link.udp); }
           }
         }
-      if(ret.Count>0) return ret;
-      did.Clear();
-      timeoutMs = thresh-Timing.Msecs;
-    } while(timeoutMs<thresh); // works because timeoutMs is unsigned and becomes >thresh when it becomes "negative"
+      else
+        foreach(NetLink link in links)
+        { bool send = link.sendQueue!=0;
+          if(link.Connected)
+          { read.Add(link.tcp); read.Add(link.udp);
+            if(send) { write.Add(link.tcp); write.Add(link.udp); }
+          }
+        }
+
+      if(read.Count==0)
+      { if(timeoutMs!=NoTimeout) Thread.Sleep(timeoutMs);
+        return null;
+      }
+
+      Socket.Select(read, write, null, timeoutMs==NoTimeout ? int.MaxValue : (int)timeoutMs*1000);
+      if(read.Count!=0)
+        foreach(Socket sock in read)
+        { NetLink link = (NetLink)dict[sock];
+          if(!link.Connected || link.MessageWaiting)
+          { if(ret==null) ret = new ArrayList();
+            else if(!ret.Contains(link)) ret.Add(link);
+          }
+        }
+
+      if(write!=null && write.Count!=0)
+        foreach(Socket sock in write) ((NetLink)dict[sock]).SendPoll();
+
+      if(ret!=null) return ret;
+
+      if(timeoutMs==0) break;
+      else if(timeoutMs!=NoTimeout)
+      { uint now=Timing.Msecs;
+        int  elapsed=(int)(now-start);
+        if(elapsed>=timeoutMs) break;
+        timeoutMs -= elapsed;
+        start = now;
+      }
+
+      read.Clear();
+      if(write!=null) write.Clear();
+    }
+
     return null;
   }
 
@@ -477,10 +577,11 @@ public sealed class NetLink
   }
 
   bool SendMessages(Queue queue, bool trySend)
-  { if(!connected) return false;
+  { if(queue==null) return true;
+    if(!connected) return false;
 
     lock(queue)
-    { while(queue.Count>0)
+    { while(queue.Count!=0)
       { LinkMessage msg = (LinkMessage)queue.Peek();
         if(Timing.Msecs<msg.lag) return true;
         if(msg.deadline!=0 && Timing.Msecs>msg.deadline) goto Remove;
@@ -489,7 +590,7 @@ public sealed class NetLink
         bool useTcp;
         int  sent;
 
-        if((msg.Flags&SendFlag.Reliable)!=0 && msg.Length<=udpMax && udp!=null) useTcp=false;
+        if((msg.Flags&SendFlag.Reliable)==0 && msg.Length<=udpMax && udp!=null) useTcp=false;
         else if(tcp==null || !connected) goto Remove;
         else useTcp=true;
 
@@ -532,7 +633,7 @@ public sealed class NetLink
     if(Disconnected!=null) Disconnected(this);
   }
 
-  SendFlag   defFlags;
+  SendFlag   defFlags=SendFlag.ReliableSequential;
   Socket     tcp, udp;
   Queue      low, norm, high, recv;
   byte[]     recvBuf;
@@ -580,7 +681,7 @@ public class Server
   }
 
   public SendFlag DefaultFlags { get { return defFlags; } set { defFlags=value; } }
-  public IPEndPoint LocalEndPoint { get { return listening ? (IPEndPoint)server.LocalEndpoint : null; } }
+  public IPEndPoint LocalEndPoint { get { return server==null ? null : (IPEndPoint)server.LocalEndpoint; } }
   public PlayerCollection Players { get { return players; } }
 
   public uint LagAverage
@@ -609,8 +710,8 @@ public class Server
     players = new PlayerCollection();
     links   = new ArrayList();
     nextID  = 1;
-    quit    = listening = false;
-    server  = new TcpListener(IPAddress.Any, 30000); // dummy port
+    quit    = false;
+    server  = null;
     thread  = new Thread(new ThreadStart(ThreadFunc));
     thread.Start();
   }
@@ -640,8 +741,12 @@ public class Server
   }
 
   public void StopListening()
-  { listening = false;
-    server.Stop();
+  { if(server!=null)
+      lock(this)
+      { listening = false;
+        server.Stop();
+        server = null;
+      }
   }
 
   public QueueStats GetQueueStats(ServerPlayer p, SendFlag flags) { lock(this) return p.Link.GetQueueStats(flags); }
@@ -714,29 +819,29 @@ public class Server
   { try
     { while(!quit)
       { bool did=false;
-        while(listening && server.Pending())
-        { Socket sock = server.AcceptSocket();
-          try
-          { ServerPlayer p = new ServerPlayer(new NetLink(sock), nextID++);
-            if(!quit && (PlayerConnecting==null || PlayerConnecting(this, p)))
-            { p.Link.LagAverage      = lagAverage;
-              p.Link.LagVariance     = lagVariance;
-              p.Link.MessageSent    += new LinkMessageHandler(OnMessageSent);
-              p.Link.RemoteReceived += new LinkMessageHandler(OnRemoteReceived);
-              lock(this)
-              { players.Array.Add(p);
-                links.Add(p.Link);
-              }
-              if(PlayerConnected!=null) PlayerConnected(this, p);
-            }
-            else sock.Close();
-          }
-          catch(SocketException) { sock.Close(); }
-          catch(HandshakeException) { sock.Close(); }
-        }
 
         lock(this)
-        { ArrayList disconnected=null;
+        { while(listening && server.Pending())
+          { Socket sock = server.AcceptSocket();
+            try
+            { ServerPlayer p = new ServerPlayer(new NetLink(sock), nextID++);
+              if(!quit && (PlayerConnecting==null || PlayerConnecting(this, p)))
+              { p.Link.LagAverage      = lagAverage;
+                p.Link.LagVariance     = lagVariance;
+                p.Link.MessageSent    += new LinkMessageHandler(OnMessageSent);
+                p.Link.RemoteReceived += new LinkMessageHandler(OnRemoteReceived);
+                players.Array.Add(p);
+                links.Add(p.Link);
+                p.Link.Send(new byte[0], SendFlag.Reliable);
+                if(PlayerConnected!=null) PlayerConnected(this, p);
+              }
+              else sock.Close();
+            }
+            catch(SocketException) { sock.Close(); }
+            catch(HandshakeException) { sock.Close(); }
+          }
+
+          ArrayList disconnected=null;
           for(int i=0; i<players.Count; i++)
           { ServerPlayer p = players[i];
             try
@@ -837,16 +942,25 @@ public class Client
   { Disconnect();
     quit = delayedDrop = false;
     link = new NetLink(remote);
+
+    byte[] msg = link.Receive(5000);
+    if(msg==null)
+    { Disconnect();
+      throw new NetworkException("Timed out while waiting for handshake packet.");
+    }
+
     link.MessageSent    += new LinkMessageHandler(OnMessageSent);
     link.RemoteReceived += new LinkMessageHandler(OnRemoteReceived);
     thread = new Thread(new ThreadStart(ThreadFunc));
     thread.Start();
   }
+
   public void DelayedDisconnect() { DelayedDisconnect(0); }
   public void DelayedDisconnect(uint timeoutMs)
   { dropTime    = timeoutMs==0 ? 0 : Timing.Msecs+timeoutMs;
     delayedDrop = true;
   }
+
   public void Disconnect()
   { if(thread!=null)
     { if(Disconnected!=null) Disconnected(this);
