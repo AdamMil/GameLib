@@ -416,109 +416,39 @@ public class Surface : IBlittable, IDisposable
     return new Surface(ret, true);
   }
 
-  public Bitmap ToBitmap()
-  { System.Drawing.Imaging.PixelFormat format;
-    switch(Depth) // TODO: support 555 packing
-    { case 8:  format = System.Drawing.Imaging.PixelFormat.Format8bppIndexed; break;
-      case 16: format = System.Drawing.Imaging.PixelFormat.Format16bppRgb565; break;
-      case 24: format = System.Drawing.Imaging.PixelFormat.Format24bppRgb; break;
-      case 32:
-        format = Format.AlphaMask==0 ? System.Drawing.Imaging.PixelFormat.Format32bppRgb :
-                                       System.Drawing.Imaging.PixelFormat.Format32bppArgb;
-        break;
-      default: throw new NotImplementedException("Unhandled depth in ToBitmap()");
-    }
+  public Bitmap ToBitmap() { return ToBitmap(false); }
 
-    Bitmap bitmap;
-    Lock();
-
-    unsafe
-    { try
-      { if(Depth>24 && Format.BlueMask>Format.RedMask)
-        { byte* src  = (byte*)Data;
-          int   xinc = Depth/8, len = Width*Height;
-          byte[] arr = new byte[len*xinc];
-
-          fixed(byte* arrp = arr)
-          { byte* dest=arrp;
-            byte v;
-            if(Pitch==Width*xinc)
-            { Unsafe.Copy(dest, src, arr.Length);
-              if(Format.AlphaMask==0xFF) dest++;
-              while(len-- != 0) { v=*dest; *dest=dest[2]; dest[2]=v; dest+=xinc; }
-            }
-            else
-              for(int y=0,line=Width*xinc,yinc=Pitch-line; y<Height; src+=Pitch,dest+=line,y++)
-              { Unsafe.Copy(dest, src, line);
-                byte *dp = Format.AlphaMask==0xFF ? dest+1 : dest;
-                int xlen = Width;
-                while(xlen-- != 0) { v=*dp; *dp=dp[2]; dp[2]=v; dp+=xinc; }
-              }
-            bitmap = new Bitmap(Width, Height, Width*xinc, format, new IntPtr(arrp));
-          }
-        }
-        else if(Depth==16 && Format.BlueMask>Format.RedMask)
-        { int len = Width*Height;
-          ushort* src = (ushort*)Data;
-          ushort[] arr = new ushort[len];
-          fixed(ushort* arrp = arr)
-          { ushort* dest=arrp;
-            ushort p;
-            if(Pitch==Width*2)
-              while(len-- != 0)
-              { p = *src++;
-                *dest++ = (ushort)((p>>11) | (p&0x7E0) | ((p&0x1F)<<11));
-              }
-            else
-              for(int y=0,yinc=Pitch-Width*2; y<Height; src+=yinc,y++)
-                for(int x=0; x<Width; x++)
-                { p = *src++;
-                  *dest++ = (ushort)((p>>11) | (p&0x7E0) | ((p&0x1F)<<11));
-                }
-            bitmap = new Bitmap(Width, Height, Width*2, format, new IntPtr(arrp));
-          }
-        }
-        else bitmap = new Bitmap(Width, Height, (int)Pitch, format, new IntPtr(Data));
-      }
-      finally { Unlock(); }
-    }
-
-    if(Depth==8)
-    { System.Drawing.Imaging.ColorPalette pal = bitmap.Palette;
-      GetPalette(pal.Entries, PaletteSize);
-      bitmap.Palette = pal;
-    }
-    return bitmap;
-  }
-  
   public void Save(string filename, ImageType type)
   { Stream stream = new FileStream(filename, FileMode.Create, FileAccess.Write);
     try { Save(stream, type); }
     finally { stream.Close(); }
   }
+
   public void Save(Stream stream, ImageType type)
   { Bitmap bitmap=null;
     switch(type)
     { case ImageType.PCX: WritePCX(stream); break;
       case ImageType.PSD: PSDCodec.WritePSD(this, stream); break;
-      case ImageType.BMP: (bitmap=ToBitmap()).Save(stream, System.Drawing.Imaging.ImageFormat.Bmp);  break;
-      case ImageType.GIF: (bitmap=ToBitmap()).Save(stream, System.Drawing.Imaging.ImageFormat.Gif);  break;
-      case ImageType.JPG: (bitmap=ToBitmap()).Save(stream, System.Drawing.Imaging.ImageFormat.Jpeg); break;
-      case ImageType.PNG: (bitmap=ToBitmap()).Save(stream, System.Drawing.Imaging.ImageFormat.Png);  break;
-      case ImageType.TIF: (bitmap=ToBitmap()).Save(stream, System.Drawing.Imaging.ImageFormat.Tiff); break;
+      case ImageType.BMP: (bitmap=ToBitmap(true)).Save(stream, System.Drawing.Imaging.ImageFormat.Bmp);  break;
+      case ImageType.GIF: (bitmap=ToBitmap(true)).Save(stream, System.Drawing.Imaging.ImageFormat.Gif);  break;
+      case ImageType.JPG: (bitmap=ToBitmap(true)).Save(stream, System.Drawing.Imaging.ImageFormat.Jpeg); break;
+      case ImageType.PNG: (bitmap=ToBitmap(true)).Save(stream, System.Drawing.Imaging.ImageFormat.Png);  break;
+      case ImageType.TIF: (bitmap=ToBitmap(true)).Save(stream, System.Drawing.Imaging.ImageFormat.Tiff); break;
       default: throw new NotImplementedException();
     }
     if(bitmap!=null) bitmap.Dispose();
   }
+
   public void Save(string filename, System.Drawing.Imaging.ImageCodecInfo encoder,
                    System.Drawing.Imaging.EncoderParameters parms)
   { Stream stream = new FileStream(filename, FileMode.Create, FileAccess.Write);
     try { Save(stream, encoder, parms); }
     finally { stream.Close(); }
   }
+
   public void Save(Stream stream, System.Drawing.Imaging.ImageCodecInfo encoder,
                    System.Drawing.Imaging.EncoderParameters parms)
-  { Bitmap bitmap = ToBitmap();
+  { Bitmap bitmap = ToBitmap(true);
     bitmap.Save(stream, encoder, parms);
     bitmap.Dispose();
   }
@@ -528,6 +458,7 @@ public class Surface : IBlittable, IDisposable
     try { SaveJPEG(stream, quality); }
     finally { stream.Close(); }
   }
+
   public void SaveJPEG(Stream stream, int quality)
   { if(quality<0 || quality>100) throw new ArgumentOutOfRangeException("quality", quality, "must be from 0-100");
     foreach(System.Drawing.Imaging.ImageCodecInfo codec in System.Drawing.Imaging.ImageCodecInfo.GetImageEncoders())
@@ -535,7 +466,7 @@ public class Surface : IBlittable, IDisposable
       { System.Drawing.Imaging.EncoderParameters parms = new System.Drawing.Imaging.EncoderParameters(1);
         parms.Param[0] =
           new System.Drawing.Imaging.EncoderParameter(System.Drawing.Imaging.Encoder.Quality, (long)quality);
-        Bitmap bitmap = ToBitmap();
+        Bitmap bitmap = ToBitmap(true);
         bitmap.Save(stream, codec, parms);
         bitmap.Dispose();
         return;
@@ -556,12 +487,118 @@ public class Surface : IBlittable, IDisposable
     Init();
   }
 
+  protected unsafe Bitmap BitmapFromData(int width, int height, int stride, System.Drawing.Imaging.PixelFormat format,
+                                         void* data)
+  { return BitmapFromData(width, height, stride, stride, format, data);
+  }
+
+  protected unsafe Bitmap BitmapFromData(int width, int height, int row, int stride,
+                                         System.Drawing.Imaging.PixelFormat format, void* data)
+  { Bitmap bmp = new Bitmap(width, height, format);
+    System.Drawing.Imaging.BitmapData bd = bmp.LockBits(new Rectangle(0, 0, width, height),
+                                                        System.Drawing.Imaging.ImageLockMode.WriteOnly, format);
+    try
+    { if(bd.Stride<0) throw new NotImplementedException("Can't handle bottom-up images");
+      byte* src=(byte*)data, dest=(byte*)bd.Scan0.ToPointer();
+      if(bd.Stride==stride) Unsafe.Copy(dest, src, height*stride);
+      else for(; height!=0; src += stride, dest += bd.Stride, height--) Unsafe.Copy(dest, src, row);
+    }
+    finally { bmp.UnlockBits(bd); }
+    return bmp;
+  }
+  
   protected unsafe void Init()
   { format = new PixelFormat(surface->Format);
   }
+
   protected unsafe void InitFromFormat(int width, int height, PixelFormat format, SurfaceFlag flags)
   { InitFromSurface(SDL.CreateRGBSurface((uint)flags, width, height, format.Depth, format.RedMask,
                                          format.GreenMask, format.BlueMask, format.AlphaMask));
+  }
+
+  Bitmap ToBitmap(bool forSaving)
+  { System.Drawing.Imaging.PixelFormat format;
+    switch(Depth) // TODO: support 555 packing
+    { case 8:  format = System.Drawing.Imaging.PixelFormat.Format8bppIndexed; break;
+      case 16: format = System.Drawing.Imaging.PixelFormat.Format16bppRgb565; break;
+      case 24: format = System.Drawing.Imaging.PixelFormat.Format24bppRgb; break;
+      case 32:
+        format = Format.AlphaMask==0 ? System.Drawing.Imaging.PixelFormat.Format32bppRgb :
+                                       System.Drawing.Imaging.PixelFormat.Format32bppArgb;
+        break;
+      default: throw new NotImplementedException("Unhandled depth in ToBitmap()");
+    }
+
+    Bitmap bitmap;
+    Lock();
+
+    unsafe
+    { try
+      { // TODO: handle RGBA -> ARGB
+        if(Depth>24 && Format.BlueMask>Format.RedMask)
+        { byte* src  = (byte*)Data;
+          int   xinc = Depth/8, len = Width*Height;
+          byte[] arr = new byte[len*xinc];
+
+          fixed(byte* arrp = arr)
+          { byte* dest=arrp;
+            byte v;
+            if(Pitch==Width*xinc)
+            { Unsafe.Copy(dest, src, arr.Length);
+              #if BIGENDIAN
+              if(Format.AlphaMask!=0xFF) dest++; 
+              #else
+              if(Format.AlphaMask==0xFF) dest++; 
+              #endif
+              while(len-- != 0) { v=*dest; *dest=dest[2]; dest[2]=v; dest+=xinc; }
+            }
+            else
+              for(int y=0,line=Width*xinc,yinc=Pitch-line; y<Height; src+=Pitch,dest+=line,y++)
+              { Unsafe.Copy(dest, src, line);
+                #if BIGENDIAN
+                byte *dp = Format.AlphaMask==0xFF ? dest : dest+1;
+                #else
+                byte *dp = Format.AlphaMask==0xFF ? dest+1 : dest;
+                #endif
+                int xlen = Width;
+                while(xlen-- != 0) { v=*dp; *dp=dp[2]; dp[2]=v; dp+=xinc; }
+              }
+            bitmap = BitmapFromData(Width, Height, Width*xinc, format, arrp);
+          }
+        }
+        else if(Depth==16 && Format.BlueMask>Format.RedMask) // TODO: big endian safe?
+        { int len = Width*Height;
+          ushort* src = (ushort*)Data;
+          ushort[] arr = new ushort[len];
+          fixed(ushort* arrp = arr)
+          { ushort* dest=arrp;
+            ushort p;
+            if(Pitch==Width*2)
+              while(len-- != 0)
+              { p = *src++;
+                *dest++ = (ushort)((p>>11) | (p&0x7E0) | ((p&0x1F)<<11));
+              }
+            else
+              for(int y=0,yinc=Pitch-Width*2; y<Height; src+=yinc,y++)
+                for(int x=0; x<Width; x++)
+                { p = *src++;
+                  *dest++ = (ushort)((p>>11) | (p&0x7E0) | ((p&0x1F)<<11));
+                }
+            bitmap = BitmapFromData(Width, Height, Width*2, format, arrp);
+          }
+        }
+        else bitmap = forSaving ? new Bitmap(Width, Height, (int)Pitch, format, new IntPtr(Data))
+                                : BitmapFromData(Width, Height, Width*Depth/8, (int)Pitch, format, Data);
+      }
+      finally { Unlock(); }
+    }
+
+    if(Depth==8)
+    { System.Drawing.Imaging.ColorPalette pal = bitmap.Palette;
+      GetPalette(pal.Entries, PaletteSize);
+      bitmap.Palette = pal;
+    }
+    return bitmap;
   }
 
   protected unsafe void ValidatePaletteArgs(Color[] colors, int startColor, int numColors)
