@@ -44,7 +44,7 @@ class App
     font = new GameLib.Fonts.TrueTypeFont(dataPath+"mstrr.ttf", 24);
     font.RenderStyle = RenderStyle.Blended;
 
-    Events.PumpEvents(new EventProcedure(EventProc));
+    Events.PumpEvents(new EventProcedure(EventProc), new IdleProcedure(IdleProc));
     
     Video.Deinitialize();
     Input.Deinitialize();
@@ -63,27 +63,36 @@ class App
       if(e is KeyboardEvent)
       { KeyboardEvent ke = (KeyboardEvent)e;
         text = string.Format("Key {0} (char {1}) {2}", ke.Key,
-                             ke.Char==0 ? ' ' : ke.Char,
-                             ke.Down ? "pressed" : "release");
+                              ke.Char==0 ? ' ' : ke.Char,
+                              ke.Down ? "pressed" : "release");
       }
       else if(e is MouseMoveEvent)
       { MouseMoveEvent mme = (MouseMoveEvent)e;
         text = string.Format("Mouse moved {0},{1} to {2}", mme.Xrel, mme.Yrel,
-                             mme.Point);
+                              mme.Point);
       }
       else if(e is MouseClickEvent)
       { MouseClickEvent mce = (MouseClickEvent)e;
         text = string.Format("Mouse button {0} {1}", mce.Button,
-                             mce.Down ? "pressed" : "released");
+                              mce.Down ? "pressed" : "released");
       }
       font.Render(Video.DisplaySurface, text, 0, font.LineSkip);
-      Video.Flip();
+      updated = true;
     }
     else if(e is QuitEvent) return false;
     return true;
   }
   
+  static bool IdleProc()
+  { if(updated)
+    { Video.Flip();
+      updated = false;
+    }
+    return false;
+  }
+  
   static GameLib.Fonts.TrueTypeFont font;
+  static bool updated;
 }
 
 } // namespace InputTest

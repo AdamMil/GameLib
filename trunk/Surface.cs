@@ -23,43 +23,155 @@ using GameLib.IO;
 using GameLib.Interop;
 using GameLib.Interop.SDL;
 
+// TODO: support 15-bit color (pixelformat, etc)
+
 namespace GameLib.Video
 {
 
+#region Enums and supporting types
+/// <summary>This interface is intended to be used for generic objects which can draw into a surface.
+/// Ideally, it would support animation, which requires some kind of notification
+/// for when the next frame is to be drawn. However, the current design does not support that.
+/// </summary>
 public interface IBlittable
-{ int  Width  { get; }
+{ /*int  Width  { get; }
   int  Height { get; }
   bool StaticImage  { get; }
   bool ImageChanged { get; }
 
   void Blit(Surface dest, int dx, int dy);
   void Blit(Surface dest, Rectangle src, int dx, int dy);
-  IBlittable CreateCompatible();
+  IBlittable CreateCompatible();*/
 }
 
+/// <summary>An enum of image formats used when saving and loading images.</summary>
 public enum ImageType
-{ BMP, PNM, XPM, XCF, PCX, GIF, JPG, TIF, PNG, LBM, PSD
+{ 
+  /// <summary>Windows bitmap (.BMP) format.</summary>
+  BMP,
+  /// <summary>Portable PixMap, Portable GreyMap, and Portable PixMap formats.</summary>
+  PNM,
+  /// <summary>XPicMap format.</summary>
+  XPM,
+  /// <summary>GIMP native format.</summary>
+  XCF,
+  /// <summary>PC Paintbrush format.</summary>
+  PCX,
+  /// <summary>GIF (Graphics Interchange Format).</summary>
+  GIF,
+  /// <summary>JPEG (Joint Photographic Experts Group) format.</summary>
+  JPG,
+  /// <summary>TIFF (Tagged Image File Format).</summary>
+  TIF,
+  /// <summary>PNG (Portable Network Graphics) format.</summary>
+  PNG,
+  /// <summary>Deluxe Paint .LBM format.</summary>
+  LBM,
+  /// <summary>Adobe Photoshop .PSD format.</summary>
+  PSD
 }
 
 [Flags]
 public enum SurfaceFlag : uint
-{ None = 0,
-  // any surface
-  Software  = SDL.VideoFlag.SWSurface, Hardware  = SDL.VideoFlag.HWSurface,
-  HWPalette = SDL.VideoFlag.HWPalette, AsyncBlit = SDL.VideoFlag.AsyncBlit,
-  // non-display surfaces only
-  RLE = SDL.VideoFlag.RLEAccel, SrcAlpha=SDL.VideoFlag.SrcAlpha,
-  // display surfaces only
-  DoubleBuffer = SDL.VideoFlag.DoubleBuffer, Fullscreen = SDL.VideoFlag.FullScreen,
-  OpenGL       = SDL.VideoFlag.OpenGL,       /* DEPRECATED OpenGLBlit = SDL.VideoFlag.OpenGLBlit,*/
-  NoFrame      = SDL.VideoFlag.NoFrame,      Resizeable = SDL.VideoFlag.Resizable,
-  // display surface creation only
-  AnyFormat = SDL.VideoFlag.AnyFormat
-}
+{ 
+  /// <summary>Default flags.</summary>
+  None = 0,
 
+  /* surfaces only */
+  /// <summary>The surface will be run-length encoded.</summary>
+  /// <remarks>Run-length encoded surfaces can be used to speed up blitting in the rare case that hardware
+  /// acceleration cannot be used and the surface is stored in system memory and it contains blocks of solid
+  /// color and does not change often. This flag is not to be used when setting the video mode.
+  /// </remarks>
+  RLE = SDL.VideoFlag.RLEAccel,
+  /// <summary>When blitted, the surface will use alpha blending.</summary>
+  /// <remarks>This flag is not to be used when setting the video mode, and only makes sense for surfaces
+  /// that contain an alpha channel or use a surface alpha.
+  /// </remarks>
+  SrcAlpha = SDL.VideoFlag.SrcAlpha,
+
+  /* surfaces and mode setting */
+  /// <summary>Asynchronous blits will be used if possible.</summary>
+  /// <remarks>This flag can be used during surface creation and mode setting. It indicates that blits should return
+  /// immediately if possible, setting up the blit to happen in the background. This may slow down blitting on
+  /// single CPU machines, but may provide a speed increase on SMP systems.
+  /// </remarks>
+  AsyncBlit = SDL.VideoFlag.AsyncBlit,
+  /// <summary>The surface will be stored in video memory if possible.</summary>
+  /// <remarks>When setting the video mode, this flag indicates that a video mode which allows hardware surfaces
+  /// is desired.
+  /// </remarks>
+  Hardware = SDL.VideoFlag.HWSurface,
+  /// <summary>The surface will be stored in system memory.</summary>
+  /// <remarks>This flag can be used in the creation of any surface.</remarks>
+  Software = SDL.VideoFlag.SWSurface,
+
+  /* mode setting only */
+  /// <summary>Enables double buffering for the display surface.</summary>
+  /// <remarks>This flag is only used when setting the video mode, and is only valid in conjunction with the
+  /// <see cref="Hardware"/> flag. Using double buffering will reduce tearing and will allow the
+  /// <see cref="Video.Flip"/> call to return immediately in most cases. Not all systems support double buffering,
+  /// though, and if it cannot be enabled, a single hardware surface will be attempted instead, falling back to a
+  /// software surface if that, too, fails.
+  /// </remarks>
+  DoubleBuffer = SDL.VideoFlag.DoubleBuffer,
+  /// <summary>An attempt will be made to use a fullscreen video mode.</summary>
+  Fullscreen = SDL.VideoFlag.FullScreen,
+  /// <summary>Disable video mode emulation.</summary>
+  /// <remarks>Normally, if a mode cannot be set at a specified bit depth, an attempt will be made to emulate
+  /// the bit depth with a shadow surface. Specifying this flag causes <see cref="Video.SetMode"/> to not
+  /// emulate the color depth but instead just use whichever color depth is closest. The format of the
+  /// <see cref="Video.DisplaySurface"/> may not be what is expected if this flag is used.
+  /// </remarks>
+  NoEmulation = SDL.VideoFlag.AnyFormat,
+  /// <summary>For windowed video modes, this flag attempts to remove the title bar and frame decoration from
+  /// the window.
+  /// </summary>
+  NoFrame = SDL.VideoFlag.NoFrame,
+  /// <summary>The surface has an associated OpenGL rendering context.</summary>
+  /// <remarks>If passed to <see cref="Video.SetMode"/>, an OpenGL video mode will be set.
+  /// <see cref="Video.SetGLMode"/> automatically applies this flag.
+  /// </remarks>
+  OpenGL = SDL.VideoFlag.OpenGL,
+  /// <summary>For windowed video modes, this flag attempts to make the window resizeable.</summary>
+  /// <remarks>Applications should handle the <see cref="Events.ResizeEvent">resize event</see> if they use
+  /// this flag.
+  /// </remarks>
+  Resizeable = SDL.VideoFlag.Resizable,
+  /// <summary>This surface will have the physical paletted associated with it.</summary>
+  /// <remarks>This flag can be used when setting the video mode to indicate that the display surface can be used
+  /// to control the physical palette.
+  /// </remarks>
+  PhysicalPalette = SDL.VideoFlag.HWPalette
+}
+#endregion
+
+// TODO: allowing Surface to be inherited from
 [System.Security.SuppressUnmanagedCodeSecurity()]
-public class Surface : IBlittable, IDisposable
-{ public Surface(Bitmap bitmap)
+public sealed class Surface : IDisposable
+{ 
+  /// <summary>This constructor attempts to initialize the surface from a <see cref="System.Drawing.Bitmap"/>.
+  /// </summary>
+  /// <param name="bitmap">The <see cref="System.Drawing.Bitmap"/> containing the image to initialize this
+  /// surface with.
+  /// </param>
+  /// <remarks>Using this is equivalent to using <see cref="Surface(Bitmap,SurfaceFlag)"/> and passing 
+  /// <see cref="SurfaceFlag.None"/>. You may want to use <see cref="CloneDisplay"/> to convert the surface
+  /// into something that matches the display surface, for efficiency.
+  /// </remarks>
+  public Surface(Bitmap bitmap) : this(bitmap, SurfaceFlag.None) { }
+
+  /// <summary>This constructor attempts to initialize the surface from a <see cref="System.Drawing.Bitmap"/>.
+  /// </summary>
+  /// <param name="bitmap">The <see cref="System.Drawing.Bitmap"/> containing the image to initialize this
+  /// surface with.
+  /// </param>
+  /// <param name="flags">The <see cref="SurfaceFlag">flags</see> to use when initializing this
+  /// surface. The <see cref="SurfaceFlag.SrcAlpha"/> flag is automatically set if the bitmap contains an alpha
+  /// channel. You may want to use <see cref="CloneDisplay"/> to convert the surface
+  /// into something that matches the display surface, for efficiency.
+  /// </param>
+  public Surface(Bitmap bitmap, SurfaceFlag flags)
   { System.Drawing.Imaging.PixelFormat format;
     int depth;
     switch(bitmap.PixelFormat)
@@ -92,7 +204,7 @@ public class Surface : IBlittable, IDisposable
     PixelFormat pf = new PixelFormat(depth);
     if(depth==32) { pf.AlphaMask=0xFF; pf.RedMask=0xFF00; pf.GreenMask=0xFF0000; pf.BlueMask=0xFF000000; }
 
-    InitFromFormat(bitmap.Width, bitmap.Height, pf, depth==32 ? SurfaceFlag.SrcAlpha : SurfaceFlag.None);
+    InitFromFormat(bitmap.Width, bitmap.Height, pf, depth==32 ? flags|SurfaceFlag.SrcAlpha : flags);
     System.Drawing.Imaging.BitmapData data = bitmap.LockBits(new Rectangle(0, 0, bitmap.Width, bitmap.Height),
                                                              System.Drawing.Imaging.ImageLockMode.ReadOnly, format);
     try
@@ -108,28 +220,66 @@ public class Surface : IBlittable, IDisposable
     catch { Dispose(); }
     finally { bitmap.UnlockBits(data); }
   }
+
+  /// <summary>Creates an empty surface with the given dimensions and bit depth.</summary>
+  /// <param name="width">The width of the surface to create.</param>
+  /// <param name="height">The height of the surface to create.</param>
+  /// <param name="depth">The bit depth of the surface to create, in bits per pixel.</param>
+  /// <remarks>Using this is equivalent to using <see cref="Surface(int,int,int,SurfaceFlag)"/> and
+  /// passing <see cref="SurfaceFlag.None"/>. The pixel format is the default format for the given bit depth (see
+  /// <see cref="PixelFormat.GenerateDefaultMasks"/> for more information).
+  /// </remarks>
   public Surface(int width, int height, int depth) : this(width, height, depth, SurfaceFlag.None) { }
+
+  /// <summary>Creates an empty surface with the given dimensions and bit depth.</summary>
+  /// <param name="width">The width of the surface to create.</param>
+  /// <param name="height">The height of the surface to create.</param>
+  /// <param name="depth">The bit depth of the surface to create, in bits per pixel.</param>
+  /// <param name="flags">The <see cref="SurfaceFlag"/> flags to use when initializing this surface.</param>
+  /// <remarks>The pixel format is the default format for the given bit depth (see
+  /// <see cref="PixelFormat.GenerateDefaultMasks"/> for more information).
+  /// </remarks>
   public Surface(int width, int height, int depth, SurfaceFlag flags)
   { InitFromFormat(width, height, new PixelFormat(depth, (flags&SurfaceFlag.SrcAlpha)!=0), flags);
   }
 
-  public Surface(int width, int height, int depth, uint Rmask, uint Gmask, uint Bmask, uint Amask)
-    : this(width, height, depth, Rmask, Gmask, Bmask, Amask, SurfaceFlag.None) { }
-  public unsafe Surface(int width, int height, int depth,
-                        uint Rmask, uint Gmask, uint Bmask, uint Amask, SurfaceFlag flags)
-  { InitFromSurface(SDL.CreateRGBSurface((uint)flags, width, height, depth, Rmask, Gmask, Bmask, Amask));
-  }
-
+  /// <summary>Creates an empty surface with the given dimensions and pixel format</summary>
+  /// <param name="width">The width of the surface to create.</param>
+  /// <param name="height">The height of the surface to create.</param>
+  /// <param name="format">The <see cref="PixelFormat"/> of the surface to create.</param>
+  /// <remarks>Using this is equivalent to using <see cref="Surface(int,int,PixelFormat,SurfaceFlag)"/> and
+  /// passing <see cref="SurfaceFlag.None"/>.
+  /// </remarks>
   public Surface(int width, int height, PixelFormat format) : this(width, height, format, SurfaceFlag.None) { }
+
+  /// <summary>Creates an empty surface with the given dimensions and pixel format</summary>
+  /// <param name="width">The width of the surface to create.</param>
+  /// <param name="height">The height of the surface to create.</param>
+  /// <param name="format">The <see cref="PixelFormat"/> of the surface to create.</param>
+  /// <param name="flags">The <see cref="SurfaceFlag"/> flags to use when initializing this surface.</param>
   public Surface(int width, int height, PixelFormat format, SurfaceFlag flags)
   { InitFromFormat(width, height, format, flags);
   }
   
+  /// <summary>Initializes this surface by loading an image from a file.</summary>
+  /// <param name="filename">The path to the image file to load.</param>
+  /// <remarks>This constructor will attempt to detect the type of the image, but it is recommended that you use
+  /// <see cref="Surface(string,ImageType)"/> if possible, as the detection is not perfect.
+  /// You may want to use <see cref="CloneDisplay"/> to convert the surface
+  /// into something that matches the display surface, for efficiency.
+  /// </remarks>
   public unsafe Surface(string filename)
   { if(filename.Length>4 && filename.ToLower().LastIndexOf(".psd")==filename.Length-4)
       InitFromSurface(PSDCodec.ReadComposite(filename));
     else InitFromSurface(Interop.SDLImage.Image.Load(filename));
   }
+
+  /// <summary>Initializes this surface by loading an image from a file.</summary>
+  /// <param name="filename">The path to the image file to load.</param>
+  /// <param name="type">The <see cref="ImageType"/> of the image to load.</param>
+  /// <remarks>You may want to use <see cref="CloneDisplay"/> to convert the surface
+  /// into something that matches the display surface, for efficiency.
+  /// </remarks>
   public unsafe Surface(string filename, ImageType type)
   { if(type==ImageType.PSD) InitFromSurface(PSDCodec.ReadComposite(filename));
     else
@@ -138,7 +288,30 @@ public class Surface : IBlittable, IDisposable
       InitFromSurface(Interop.SDLImage.Image.LoadTyped_RW(ops, 1, Interop.SDLImage.Image.Type.Types[(int)type]));
     }
   }
+
+  /// <summary>Initializes the surface by loading an image from a stream.</summary>
+  /// <param name="stream">The <see cref="System.IO.Stream"/> from which the image will be read.
+  /// The given stream should be seekable, with its entire range dedicated to the image data.
+  /// </param>
+  /// <remarks>Using this is equivalent to using <see cref="Surface(System.IO.Stream,bool)"/> and passing true
+  /// to automatically close the stream.
+  /// This constructor will attempt to detect the type of the image, but it is recommended that you use
+  /// <see cref="Surface(System.IO.Stream,ImageType)"/> if possible, as the detection is not perfect.
+  /// You may want to use <see cref="CloneDisplay"/> to convert the surface
+  /// into something that matches the display surface, for efficiency.
+  /// </remarks>
   public unsafe Surface(System.IO.Stream stream) : this(stream, true) { }
+
+  /// <summary>Initializes the surface by loading an image from a stream.</summary>
+  /// <param name="stream">The <see cref="System.IO.Stream"/> from which the image will be read.
+  /// The given stream should be seekable, with its entire range dedicated to the image data.
+  /// </param>
+  /// <param name="autoClose">If true, the stream will be closed after the image is successfully loaded.</param>
+  /// <remarks>This constructor will attempt to detect the type of the image, but it is recommended that you use
+  /// <see cref="Surface(System.IO.Stream,ImageType,bool)"/> if possible, as the detection is not perfect.
+  /// You may want to use <see cref="CloneDisplay"/> to convert the surface
+  /// into something that matches the display surface, for efficiency.
+  /// </remarks>
   public unsafe Surface(System.IO.Stream stream, bool autoClose)
   { if(PSDCodec.IsPSD(stream)) InitFromSurface(PSDCodec.ReadComposite(stream, autoClose));
     else
@@ -146,7 +319,29 @@ public class Surface : IBlittable, IDisposable
       fixed(SDL.RWOps* ops = &ss.ops) InitFromSurface(Interop.SDLImage.Image.Load_RW(ops, 0));
     }
   }
+
+  /// <summary>Initializes the surface by loading an image from a stream.</summary>
+  /// <param name="stream">The <see cref="System.IO.Stream"/> from which the image will be read.
+  /// The given stream should be seekable, with its entire range dedicated to the image data.
+  /// </param>
+  /// <param name="type">The <see cref="ImageType"/> of the image contained in the stream.</param>
+  /// <remarks>Using this is equivalent to using <see cref="Surface(System.IO.Stream,ImageType,bool)"/> and passing
+  /// true to automatically close the stream. 
+  /// You may want to use <see cref="CloneDisplay"/> to convert the
+  /// surface into something that matches the display surface, for efficiency.
+  /// </remarks>
   public unsafe Surface(System.IO.Stream stream, ImageType type) : this(stream, type, true) { }
+
+  /// <summary>Initializes the surface by loading an image from a stream.</summary>
+  /// <param name="stream">The <see cref="System.IO.Stream"/> from which the image will be read.
+  /// The given stream should be seekable, with its entire range dedicated to the image data.
+  /// </param>
+  /// <param name="type">The <see cref="ImageType"/> of the image contained in the stream.</param>
+  /// <param name="autoClose">If true, the stream will be closed after the image is successfully loaded.</param>
+  /// <remarks>
+  /// You may want to use <see cref="CloneDisplay"/> to convert the
+  /// surface into something that matches the display surface, for efficiency.
+  /// </remarks>
   public unsafe Surface(System.IO.Stream stream, ImageType type, bool autoClose)
   { if(type==ImageType.PSD) InitFromSurface(PSDCodec.ReadComposite(stream, autoClose));
     else
@@ -162,32 +357,81 @@ public class Surface : IBlittable, IDisposable
     Init();
   }
 
+  /// <summary>The finalizer calls <see cref="Dispose()"/> to free the image.</summary>
   ~Surface() { Dispose(true); }
+
+  /// <summary>Frees the resources held by the surface.</summary>
   public void Dispose() { Dispose(false); GC.SuppressFinalize(this); }
 
+  /// <summary>Gets the width of the image.</summary>
+  /// <value>The width of the image, in pixels.</value>
   public unsafe int Width  { get { return surface->Width; } }
+  /// <summary>Gets the height of the image.</summary>
+  /// <value>The height of the image, in pixels.</value>
   public unsafe int Height { get { return surface->Height; } }
-  public int  Depth { get { return format.Depth; } }
-  public bool StaticImage  { get { return true; } }
-  public bool ImageChanged { get { return false; } }
-  public Size Size   { get { return new Size(Width, Height); } }
+  /// <summary>Gets the color depth of the image.</summary>
+  /// <value>The color depth of the image, in bits per pixel.</value>
+  public int Depth { get { return format.Depth; } }
+  /// <summary>Gets the size of the image.</summary>
+  /// <value>A <see cref="Size"/> structure containing the width and height of the image.</value>
+  public Size Size { get { return new Size(Width, Height); } }
+  /// <summary>Gets the bounds of the image.</summary>
+  /// <value>A <see cref="Rectangle"/> containing the bounds of the image. <see cref="Rectangle.X"/> and
+  /// <see cref="Rectangle.Y"/> will be 0, and <see cref="Rectangle.Width"/> and <see cref="Rectangle.Height"/>
+  /// will be the width and height of the surface.
+  /// </value>
   public Rectangle Bounds { get { return new Rectangle(0, 0, Width, Height); } }
 
-  public unsafe int Pitch  { get { return surface->Pitch; } }
-  public unsafe void* Data     { get { return surface->Pixels; } }
-  public PixelFormat  Format   { get { return format; } }
+  /// <summary>Returns the number of bytes per row of image data.</summary>
+  /// <value>The number of bytes per row of image data.</value>
+  /// <remarks>This property is used when writing to the image directly. The length of a row of image data may
+  /// be greater than the width times the number of bytes per pixel. This property is only valid while the image
+  /// is locked (see <see cref="Lock"/> and <see cref="Locked"/>). You shouldn't alter the data between the end of
+  /// the actual pixel data and the end of the row.
+  /// </remarks>
+  public unsafe int Pitch { get { return surface->Pitch; } }
+  /// <summary>Gets a pointer to the raw image data.</summary>
+  /// <value>A pointer to the raw image data.</value>
+  /// <remarks>This property is only valid while the image is locked (see <see cref="Lock"/> and
+  /// <see cref="Locked"/>).
+  /// </remarks>
+  public unsafe void* Data { get { return surface->Pixels; } }
 
+  /// <summary>Gets the pixel format of the surface.</summary>
+  /// <value>A <see cref="PixelFormat"/> object describing the pixel format of this surface.</value>
+  public PixelFormat Format { get { return format; } }
+
+  /// <summary>Gets the number of entries in this surface's logical palette.</summary>
+  /// <value>The number of entries in this surface's logical palette.</value>
   public unsafe int PaletteSize
   { get
     { SDL.Palette* palette = surface->Format->Palette;
       return palette==null ? 0 : palette->Entries;
     }
   }
-  public bool HasHWPalette { get { return (Flags&SurfaceFlag.HWPalette) != 0; } }
 
-  public unsafe bool        Locked { get { return lockCount!=0; } }
-  public unsafe SurfaceFlag  Flags { get { return (SurfaceFlag)surface->Flags; } }
+  /// <summary>Returns true if this surface has a logical palette.</summary>
+  /// <value>A boolean indicating whether this surface has a logical palette.</value>
+  public bool HasPalette { get { return PaletteSize!=0; } }
 
+  /// <summary>Returns true if this surface has a physical palette.</summary>
+  /// <value>A boolean indicating whether this surface has a physical palette.</value>
+  public bool HasPhysicalPalette { get { return (Flags&SurfaceFlag.PhysicalPalette) != 0; } }
+
+  /// <summary>Returns true if this surface is locked.</summary>
+  /// <value>A boolean indicating whether this surface is locked.</value>
+  public unsafe bool Locked { get { return lockCount!=0; } }
+
+  /// <summary>Returns the flags for this surface.</summary>
+  /// <value>The <see cref="SurfaceFlag"/> flags for this surface.</value>
+  /// <remarks>This may not be the same as was passed to the constructor, as it represents the surface's current
+  /// set of flags.
+  /// </remarks>
+  public unsafe SurfaceFlag Flags { get { return (SurfaceFlag)surface->Flags; } }
+
+  /// <summary>Gets/sets the clipping rectangle associated with this surface.</summary>
+  /// <value>A rectangle to which blits and other drawing operations will be clipped.</value>
+  /// <remarks>If you create any primitive drawing code, you should honor the clipping rectangle.</remarks>
   public unsafe Rectangle ClipRect
   { get { return surface->ClipRect.ToRectangle(); }
     set
@@ -196,105 +440,271 @@ public class Surface : IBlittable, IDisposable
     }
   }
 
-  public Color ColorKey
-  { get { return key; }
-    set { if(UsingKey) SetColorKey(value); else key=value; }
-  }
-
+  /// <summary>Gets/sets the alpha value for this surface.</summary>
+  /// <value>The alpha level for the surface as a whole, from 0 (transparent) to 255 (opaque).</value>
+  /// <remarks>The surface alpha is used to blit a surface that doesn't have an alpha channel using a constant
+  /// alpha across the entire surface.
+  /// This property will not cause blits to be alpha blended unless the surface alpha is also enabled.
+  /// The <see cref="UsingAlpha"/> property can be used to enable and disable the use of alpha blending.
+  /// The surface alpha will be ignored if the surface has an alpha channel. The default value is 255 (opaque).
+  /// The values 0, 128, and 255 are optimized more than other values.
+  /// If this property is set to 255 (opaque), <see cref="UsingAlpha"/> will automatically be set to false.
+  /// </remarks>
   public byte Alpha
   { get { return alpha; }
     set { if(UsingAlpha) SetSurfaceAlpha(value); else alpha=value; }
   }
-
-  public bool UsingKey
-  { get { unsafe { return (surface->Flags&(uint)SDL.VideoFlag.SrcColorKey)!=0; } }
-    set { if(value!=UsingKey) if(value) SetColorKey(key); else DisableColorKey(); }
+  /// <summary>Gets/sets the color key for this surface.</summary>
+  /// <value>The color considered transparent when blitting this surface.</value>
+  /// <remarks>The color key is used during blitting to mark source pixels as transparent. Source pixels matching
+  /// the color key will not be copied.
+  /// This property will not cause blits to respect the color key unless the color key is also enabled.
+  /// The <see cref="UsingKey"/> property can be used to enable and disable the use of the color key. The default
+  /// value is <see cref="Color.Magenta"/>. If this property is set to <see cref="Color.Transparent"/>,
+  /// <see cref="UsingKey"/> will automatically be set to false. The color key will be ignored if the surface has
+  /// an alpha channel. In that case, use the alpha channel to mark pixels as transparent by setting the alpha value
+  /// to zero (transparent).
+  /// </remarks>
+  public Color ColorKey
+  { get { return key; }
+    set { if(UsingKey) SetColorKey(value); else rawKey=MapColor(key=value); }
   }
 
-  public bool UsingAlpha
-  { get { return (Flags&SurfaceFlag.SrcAlpha) != SurfaceFlag.None; }
-    set { if(value!=UsingAlpha) if(value) EnableAlpha(); else DisableAlpha(); }
+  /// <summary>Enables/disables the use of alpha blending during blit operations.</summary>
+  /// <value>A boolean indicating whether alpha blending will be used during blit operations.</value>
+  /// <remarks>See <see cref="Blit(Surface,Rectangle,int,int)"/> to see how this property affects blits.</remarks>
+  public unsafe bool UsingAlpha
+  { get { return (surface->Flags&(uint)SDL.VideoFlag.SrcAlpha) != 0; }
+    set
+    { if(value) SDL.Check(SDL.SetAlpha(surface, (uint)(SDL.VideoFlag.SrcAlpha | (UsingRLE ? SDL.VideoFlag.RLEAccel : 0)), alpha));
+      else SDL.Check(SDL.SetAlpha(surface, (uint)(UsingRLE ? SDL.VideoFlag.RLEAccel : 0), 255));
+    }
   }
   
-  public bool UsingRLE
-  { get { return (Flags&SurfaceFlag.RLE) != SurfaceFlag.None; }
-    set { if(value) EnableRLE(); else DisableRLE(); }
+  /// <summary>Enables/disables use of the color key during blit operations.</summary>
+  /// <value>A boolean indicating whether the color key will be used during blit operations.</value>
+  /// <remarks>See <see cref="Blit(Surface,Rectangle,int,int)"/> to see how this property affects blits.</remarks>
+  public unsafe bool UsingKey
+  { get { return (surface->Flags&(uint)SDL.VideoFlag.SrcColorKey) != 0; }
+    set
+    { if(value) SDL.Check(SDL.SetColorKey(surface, (uint)(SDL.VideoFlag.SrcColorKey | (UsingRLE ? SDL.VideoFlag.RLEAccel : 0)), rawKey));
+      else SDL.Check(SDL.SetColorKey(surface, (uint)(UsingRLE ? SDL.VideoFlag.RLEAccel : 0), 0));
+    }
   }
 
-  public unsafe void Flip() { SDL.Check(SDL.Flip(surface)); }
+  /// <summary>Enables/disables use of RLE encoding.</summary>
+  /// <value>A boolean indicating whether RLE encoding is in use.</value>
+  /// <remarks>Run-length encoded surfaces can be used to speed up blitting in the rare case that hardware
+  /// acceleration cannot be used and the surface is stored in system memory and it contains blocks of solid
+  /// color and does not change often.
+  /// </remarks>
+  public unsafe bool UsingRLE
+  { get { return (surface->Flags&(uint)SDL.VideoFlag.RLEAccel) != 0; }
+    set
+    { if(value==UsingRLE) return;
+      if(value) SDL.Check(SDL.SetColorKey(surface, (uint)((UsingKey ? SDL.VideoFlag.SrcColorKey : 0) | SDL.VideoFlag.RLEAccel), rawKey));
+      else SDL.Check(SDL.SetColorKey(surface, UsingKey ? (uint)SDL.VideoFlag.SrcColorKey : 0, rawKey));
+    }
+  }
 
-  public void Fill()            { Fill(Bounds, MapColor(Color.Black)); }
+  /// <summary>Fills the surface with black.</summary>
+  public void Fill() { Fill(Bounds, MapColor(Color.Black)); }
+  /// <summary>Fills the surface with the specified color.</summary>
+  /// <param name="color">The color to fill the surface with.</param>
+  /// <remarks>The color will be converted to a raw pixel value with <see cref="MapColor(Color)"/> before the surface
+  /// is filled. This method respects the <see cref="ClipRect"/> set on the surface.
+  /// </remarks>
   public void Fill(Color color) { Fill(Bounds, MapColor(color)); }
+  /// <summary>Fills the surface with the specified raw pixel value.</summary>
+  /// <param name="color">The raw pixel value to fill the surface with.</param>
+  /// <remarks>The color will be converted to a raw pixel value with <see cref="MapColor(Color)"/> before the surface
+  /// is filled. This method respects the <see cref="ClipRect"/> set on the surface.
+  /// </remarks>
   public void Fill(uint color)  { Fill(Bounds, color); }
+  /// <summary>Fills a portion of the surface with a given color.</summary>
+  /// <param name="rect">The portion of the surface to fill.</param>
+  /// <param name="color">The color to fill the area with.</param>
+  /// <remarks>This method respects the <see cref="ClipRect"/> set on the surface.</remarks>
   public void Fill(Rectangle rect, Color color) { Fill(rect, MapColor(color)); }
+  /// <summary>Fills a portion of the surface with a given raw pixel value.</summary>
+  /// <param name="rect">The portion of the surface to fill.</param>
+  /// <param name="color">The raw pixel value to fill the area with.</param>
+  /// <remarks>This method should not be called when either is locked.
+  /// The color will be converted to a raw pixel value with <see cref="MapColor(Color)"/> before the surface
+  /// is filled. This method respects the <see cref="ClipRect"/> set on the surface.
+  /// </remarks>
   public unsafe void Fill(Rectangle rect, uint color)
   { SDL.Rect drect = new SDL.Rect(rect);
-    bool locked = Locked;
-    if(locked) Unlock();
-    try { SDL.Check(SDL.FillRect(surface, ref drect, color)); }
-    finally { if(locked) Lock(); }
+    SDL.Check(SDL.FillRect(surface, ref drect, color));
   }
 
+  /// <summary>Blits this surface onto a destination surface at the top left corner.</summary>
+  /// <param name="dest">The destination surface to blit onto.</param>
+  /// <remarks>Calling this is equivalent to calling <see cref="Blit(Surface,int,int)"/> and passing
+  /// 0,0 for the destination coordinate. For details about how blitting works (including alpha blending), see
+  /// <see cref="Blit(Surface,Rectangle,int,int)"/>.
+  /// This method should not be called when either surface is locked.
+  /// </remarks>
   public void Blit(Surface dest) { Blit(dest, 0, 0); }
+  /// <summary>Blits this surface onto a destination surface at the given point.</summary>
+  /// <param name="dest">The destination surface to blit onto.</param>
+  /// <param name="dpt">The destination point where the blit will begin.</param>
+  /// <remarks>Calling this method is equivalent to calling <see cref="Blit(Surface,int,int)"/> and passing the X and
+  /// Y coordinates of the point. For details about how blitting works (including alpha blending), see
+  /// <see cref="Blit(Surface,Rectangle,int,int)"/>.
+  /// This method should not be called when either surface is locked.
+  /// </remarks>
   public void Blit(Surface dest, Point dpt) { Blit(dest, dpt.X, dpt.Y); }
+  /// <summary>Blits this surface onto a destination surface at the given point.</summary>
+  /// <param name="dest">The destination surface to blit onto.</param>
+  /// <param name="dx">The X coordinate of the destination point where the blit will begin.</param>
+  /// <param name="dy">The Y coordinate of the destination point where the blit will begin.</param>
+  /// <remarks>This method blits the entire surface onto the destination surface, with the upper left corner of the
+  /// blit beginning at the specified point. For details about how blitting works (including alpha blending), see
+  /// <see cref="Blit(Surface,Rectangle,int,int)"/>.
+  /// This method should not be called when either surface is locked.
+  /// </remarks>
   public unsafe void Blit(Surface dest, int dx, int dy)
   { SDL.Rect rect = new SDL.Rect(dx, dy);
-    bool sl = Locked, dl = dest.Locked;
-    try
-    { if(sl) Unlock();
-      if(dl) dest.Unlock();
-      SDL.Check(SDL.BlitSurface(surface, null, dest.surface, &rect));
-    }
-    finally
-    { if(sl) Lock();
-      if(dl) dest.Lock();
-    }
+    SDL.Check(SDL.BlitSurface(surface, null, dest.surface, &rect));
   }
+  /// <summary>Blits a portion of this surface onto a destination surface at the given point.</summary>
+  /// <param name="dest">The destination surface to blit onto.</param>
+  /// <param name="src">The portion of this surface to blit.</param>
+  /// <param name="dpt">The destination point where the blit will begin.</param>
+  /// <remarks>Calling this method is equivalent to calling <see cref="Blit(Surface,Rectangle,int,int)"/> and passing
+  /// the X and Y coordinates of the point. For details about how blitting works (including alpha blending), see
+  /// <see cref="Blit(Surface,Rectangle,int,int)"/>.
+  /// This method should not be called when either surface is locked.
+  /// </remarks>
   public void Blit(Surface dest, Rectangle src, Point dpt) { Blit(dest, src, dpt.X, dpt.Y); }
+  /// <summary>Blits a portion of this surface onto a destination surface at the given point.</summary>
+  /// <param name="dest">The destination surface to blit onto.</param>
+  /// <param name="src">The portion of this surface to blit.</param>
+  /// <param name="dx">The X coordinate of the destination point where the blit will begin.</param>
+  /// <param name="dy">The Y coordinate of the destination point where the blit will begin.</param>
+  /// <remarks>This method blits the given area of this surface onto the destination surface, with the upper left
+  /// corner of the blit beginning at the specified point. Blitting respects the <see cref="ClipRect"/> set
+  /// on the destination surface. This method should not be called when either surface is locked.
+  /// The logic of alpha blending and color keys works as follows:
+  /// <code>
+  /// IF UsingAlpha THEN
+  ///   IF has alpha channel (Format.AlphaMask != 0) THEN
+  ///     Blit using alpha channel and ignore the color key
+  ///   ELSE IF UsingKey THEN
+  ///     Blit using the color key (ColorKey) and the surface alpha (Alpha)
+  ///   ELSE
+  ///     Blit using the surface alpha (Alpha)
+  /// ELSE IF UsingKey
+  ///   Blit using the color key (ColorKey)
+  /// ELSE
+  ///   Opaque rectangular blit (if both surfaces have an alpha channel,
+  ///   the alpha information will be COPIED)
+  /// </code>
+  /// The effects of surfaces with various combinations of alpha channels is as follows:
+  /// <code>
+  /// USA = Source surface's UsingAlpha value
+  /// SHA = Source surface has an alpha channel (Format->AlphaMask!=0)
+  /// DHA = Destination surface has an alpha channel (Format->AlphaMask!=0)
+  /// UsingKey refers to the source surface's UsingKey value
+  /// USA  SHA  DHA  Effect
+  ///  Y    Y    N   The source is alpha-blended with the destination,
+  ///                using the alpha channel. The color key and surface
+  ///                alpha are ignored.
+  ///  N    Y    N   The RGB data is copied from the source. The source alpha
+  ///                channel and the surface alpha value are ignored.
+  ///  Y    N    Y   The source is alpha blended with the destination using
+  ///                the surface alpha value. If UsingKey is set, only the
+  ///                pixels not matching the color key value are copied. The
+  ///                alpha channel of the copied pixels is set to opaque.
+  ///  N    N    Y   The RGB data is copied from the source and the alpha
+  ///                value of the copied pixels is set to opaque. If UsingKey
+  ///                is set, only the pixels not matching the color key value
+  ///                are copied. 
+  ///  Y    Y    Y   The source is alpha blended with the destination using
+  ///                the source alpha channel. The alpha channel in the
+  ///                destination surface is left untouched. The color key is
+  ///                ignored.
+  ///  N    Y    Y   The RGBA data is copied to the destination surface.
+  ///                If UsingKey is set, only the pixels not matching the
+  ///                color key value are copied.
+  ///  Y    N    N   The source is alpha blended with the destination using
+  ///                the surface alpha value. If UsingKey is set, only the
+  ///                pixels not matching the color key value are copied.
+  ///  N    N    N   The RGB data is copied from the source. If UsingKey is
+  ///                set, only the pixels not matching the color key value
+  ///                are copied.
+  /// </code>
+  /// </remarks>
   public unsafe void Blit(Surface dest, Rectangle src, int dx, int dy)
   { SDL.Rect srect = new SDL.Rect(src), drect = new SDL.Rect(dx, dy);
-    bool sl = Locked, dl = dest.Locked;
-    try
-    { if(sl) Unlock();
-      if(dl) dest.Unlock();
-      SDL.Check(SDL.BlitSurface(surface, &srect, dest.surface, &drect));
-    }
-    finally
-    { if(sl) Lock();
-      if(dl) dest.Lock();
-    }
+    SDL.Check(SDL.BlitSurface(surface, &srect, dest.surface, &drect));
   }
 
+  /// <summary>Returns the color of the pixel at the specified point.</summary>
+  /// <param name="point">The point whose color value will be returned.</param>
+  /// <returns>The <see cref="Color"/> of the pixel.</returns>
+  /// <remarks>This method reads the raw pixel value and calls <see cref="MapColor(uint)"/> to convert it to a
+  /// <see cref="Color"/>.
+  /// This method is quite inefficient. Also, it uses <see cref="Lock"/> to lock the
+  /// surface first if necessary. If you are reading/writing many pixels at once, you should consider locking
+  /// the surface before all the operations and unlocking it afterwards, or doing direct pixel access yourself
+  /// using <see cref="Data"/>.
+  /// </remarks>
   public Color GetPixel(Point point) { return MapColor(GetPixelRaw(point.X, point.Y)); }
+  /// <summary>Returns the color of the pixel at the specified point.</summary>
+  /// <param name="x">The X coordinate of the point whose color value will be returned.</param>
+  /// <param name="y">The Y coordinate of the point whose color value will be returned.</param>
+  /// <returns>The <see cref="Color"/> of the pixel.</returns>
+  /// <remarks>This method reads the raw pixel value and calls <see cref="MapColor(uint)"/> to convert it to a
+  /// <see cref="Color"/>.
+  /// This method is quite inefficient. Also, it uses <see cref="Lock"/> to lock the
+  /// surface first if necessary. If you are reading/writing many pixels at once, you should consider locking
+  /// the surface before all the operations and unlocking it afterwards, or doing direct pixel access yourself
+  /// using <see cref="Data"/>.
+  /// </remarks>
   public Color GetPixel(int x, int y) { return MapColor(GetPixelRaw(x, y)); }
 
+  /// <summary>Sets the color of the pixel at the specified point.</summary>
+  /// <param name="point">The point whose color value will be set.</param>
+  /// <param name="color">The color value to set the pixel to.</param>
+  /// <remarks>This method calls <see cref="MapColor(Color)"/> to convert the color into a raw pixel value.
+  /// This method respects the <see cref="ClipRect"/> set up for the surface. This method is quite inefficient.
+  /// Also, it uses <see cref="Lock"/> to lock the surface first if necessary. If you are reading/writing many
+  /// pixels at once, you should consider locking the surface before all the operations and unlocking it afterwards,
+  /// or doing direct pixel access yourself using <see cref="Data"/>.
+  /// </remarks>
   public void PutPixel(Point point, Color color) { PutPixelRaw(point.X, point.Y, MapColor(color)); }
+  /// <summary>Sets the color of the pixel at the specified point.</summary>
+  /// <param name="x">The X coordinate of the point whose color value will be set.</param>
+  /// <param name="y">The Y coordinate of the point whose color value will be set.</param>
+  /// <param name="color">The color value to set the pixel to.</param>
+  /// <remarks>This method calls <see cref="MapColor(Color)"/> to convert the color into a raw pixel value.
+  /// This method respects the <see cref="ClipRect"/> set up for the surface. This method is quite inefficient.
+  /// Also, it uses <see cref="Lock"/> to lock the surface first if necessary. If you are reading/writing many
+  /// pixels at once, you should consider locking the surface before all the operations and unlocking it afterwards,
+  /// or doing direct pixel access yourself using <see cref="Data"/>.
+  /// </remarks>
   public void PutPixel(int x, int y, Color color) { PutPixelRaw(x, y, MapColor(color)); }
 
-  public void PutPixelRaw(Point point, uint color) { PutPixelRaw(point.X, point.Y, color); }
-  public void PutPixelRaw(int x, int y, uint color)
-  { if(!ClipRect.Contains(x, y)) return;
-    Lock();
-    try
-    { unsafe
-      { byte* line = (byte*)Data+y*Pitch;
-        switch(Depth)
-        { case 8:  *(line+x) = (byte)color; break;
-          case 16: *((ushort*)line+x) = (ushort)color; break;
-          case 24:
-            byte* ptr = line+x*3;
-            *(ushort*)ptr = (ushort)color; // TODO: make big-endian safe
-            *(ptr+2) = (byte)(color>>16);
-            break;
-          case 32: *((uint*)line+x) = color; break;
-          default: throw new VideoException("Unhandled depth: "+Depth);
-        }
-      }
-    }
-    finally { Unlock(); }
-  }
-
+  /// <summary>Gets the raw value of the pixel at the specified point.</summary>
+  /// <param name="point">The point whose raw pixel value will be returned.</param>
+  /// <returns>The raw pixel value for the specified point.</returns>
+  /// <remarks>This method is quite inefficient.
+  /// Also, it uses <see cref="Lock"/> to lock the surface first if necessary. If you are reading/writing many
+  /// pixels at once, you should consider locking the surface before all the operations and unlocking it afterwards,
+  /// or doing direct pixel access yourself using <see cref="Data"/>.
+  /// </remarks>
   public uint GetPixelRaw(Point point) { return GetPixelRaw(point.X, point.Y); }
+  /// <summary>Gets the raw value of the pixel at the specified point.</summary>
+  /// <param name="x">The X coordinate of the point whose raw pixel value will be returned.</param>
+  /// <param name="y">The Y coordinate of the point whose raw pixel value will be returned.</param>
+  /// <returns>The raw pixel value for the specified point.</returns>
+  /// <remarks>This method is quite inefficient.
+  /// Also, it uses <see cref="Lock"/> to lock the surface first if necessary. If you are reading/writing many
+  /// pixels at once, you should consider locking the surface before all the operations and unlocking it afterwards,
+  /// or doing direct pixel access yourself using <see cref="Data"/>.
+  /// </remarks>
   public uint GetPixelRaw(int x, int y)
   { if(!Bounds.Contains(x, y)) throw new ArgumentOutOfRangeException();
     Lock();
@@ -319,60 +729,137 @@ public class Surface : IBlittable, IDisposable
     finally { Unlock(); }
   }
   
-  public Color GetColorKey() { return key; }
-  public unsafe void SetColorKey(Color color) // automatically enables color key
-  { SDL.Check(SDL.SetColorKey(surface, (uint)SDL.VideoFlag.SrcColorKey, rawKey=MapColor(key=color)));
-  }
-  public unsafe void DisableColorKey() { SDL.Check(SDL.SetColorKey(surface, 0, 0)); }
-
-  public byte GetSurfaceAlpha() { return alpha; }
-  public unsafe void SetSurfaceAlpha(byte alpha) // automatically enables alpha if 'alpha' != AlphaLevel.Opaque
-  { if(alpha==AlphaLevel.Opaque) DisableAlpha();
-    else
-    { SDL.Check(SDL.SetAlpha(surface, (uint)(SDL.VideoFlag.SrcAlpha | (UsingRLE ? SDL.VideoFlag.RLEAccel : 0)), alpha));
+  /// <summary>Sets the raw pixel value of the pixel at the specified point.</summary>
+  /// <param name="point">The point whose raw pixel value will be set.</param>
+  /// <param name="color">The value to set the pixel to.</param>
+  /// <remarks>This method respects the <see cref="ClipRect"/> set up for the surface.
+  /// This method is quite inefficient.
+  /// Also, it uses <see cref="Lock"/> to lock the surface first if necessary. If you are reading/writing many
+  /// pixels at once, you should consider locking the surface before all the operations and unlocking it afterwards,
+  /// or doing direct pixel access yourself using <see cref="Data"/>.
+  /// </remarks>
+  public void PutPixelRaw(Point point, uint color) { PutPixelRaw(point.X, point.Y, color); }
+  /// <summary>Sets the raw pixel value of the pixel at the specified point.</summary>
+  /// <param name="x">The X coordinate of the point whose raw pixel value will be set.</param>
+  /// <param name="y">The Y coordinate of the point whose raw pixel value will be set.</param>
+  /// <param name="color">The value to set the pixel to.</param>
+  /// <remarks>This method respects the <see cref="ClipRect"/> set up for the surface.
+  /// This method is quite inefficient.
+  /// Also, it uses <see cref="Lock"/> to lock the surface first if necessary. If you are reading/writing many
+  /// pixels at once, you should consider locking the surface before all the operations and unlocking it afterwards,
+  /// or doing direct pixel access yourself using <see cref="Data"/>.
+  /// </remarks>
+  public void PutPixelRaw(int x, int y, uint color)
+  { if(!ClipRect.Contains(x, y)) return;
+    Lock();
+    try
+    { unsafe
+      { byte* line = (byte*)Data+y*Pitch;
+        switch(Depth)
+        { case 8:  *(line+x) = (byte)color; break;
+          case 16: *((ushort*)line+x) = (ushort)color; break;
+          case 24:
+            byte* ptr = line+x*3;
+            *(ushort*)ptr = (ushort)color; // TODO: make big-endian safe
+            *(ptr+2) = (byte)(color>>16);
+            break;
+          case 32: *((uint*)line+x) = color; break;
+          default: throw new VideoException("Unhandled depth: "+Depth);
+        }
+      }
     }
-  }
-  public unsafe void EnableAlpha()
-  { SDL.Check(SDL.SetAlpha(surface, (uint)((UsingRLE ? SDL.VideoFlag.RLEAccel : 0) | SDL.VideoFlag.SrcAlpha), alpha));
-  }
-  public unsafe void DisableAlpha()
-  { SDL.Check(SDL.SetAlpha(surface, (uint)(UsingRLE ? SDL.VideoFlag.RLEAccel : 0), AlphaLevel.Opaque));
-  }
-  
-  public unsafe void EnableRLE()
-  { if(UsingRLE) return;
-    SDL.Check(SDL.SetColorKey(surface,
-                              (uint)((UsingKey ? SDL.VideoFlag.SrcColorKey : 0) | SDL.VideoFlag.RLEAccel), rawKey));
-  }
-  public unsafe void DisableRLE()
-  { if(!UsingRLE) return;
-    SDL.Check(SDL.SetColorKey(surface, UsingKey ? (uint)SDL.VideoFlag.SrcColorKey : 0, rawKey));
+    finally { Unlock(); }
   }
 
-  public unsafe void Lock()   { if(lockCount++==0) SDL.Check(SDL.LockSurface(surface)); }
+  /// <summary>This method sets the color key and enables/disables transparent blitting.</summary>
+  /// <param name="color">The color to set the color key to.</param>
+  /// <remarks>The color key is used during blitting to mark source pixels as transparent. Source pixels matching
+  /// the color key will not be copied. This method sets the color key and then sets <see cref="UsingKey"/> to false
+  /// if <paramref name="color"/> is <see cref="Color.Transparent"/> and true otherwise.
+  /// </remarks>
+  public unsafe void SetColorKey(Color color)
+  { rawKey = MapColor(key=color);
+    UsingKey = color!=Color.Transparent;
+  }
+
+  /// <summary>This method sets the surface alpha and enables/disables alpha blending.</summary>
+  /// <param name="alpha">The alpha level of the surface, from 0 (transparent) to 255 (opaque).</param>
+  /// <remarks>The surface alpha is used to blit a surface that doesn't have an alpha channel using a constant
+  /// alpha across the entire surface. This method sets the surface alpha level and then sets <see cref="UsingAlpha"/>
+  /// to false if <paramref name="alpha"/> is 255 (opaque) and true otherwise.
+  /// </remarks>
+  public unsafe void SetSurfaceAlpha(byte alpha)
+  { this.alpha = alpha;
+    UsingAlpha = alpha!=255;
+  }
+
+  /// <summary>This method locks the surface, allowing raw access to the surface memory.</summary>
+  /// <remarks>After calling this method, the <see cref="Pitch"/> and <see cref="Data"/> properties are
+  /// valid until the surface is unlocked. The lock is recursive, so you can lock the surface multiple times.
+  /// <see cref="Unlock"/> must be called the same number of times to finally unlock the surface.
+  /// </remarks>
+  public unsafe void Lock() { if(lockCount++==0) SDL.Check(SDL.LockSurface(surface)); }
+  /// <summary>This method unlocks the surface.</summary>
+  /// <remarks><see cref="Lock"/> is recursive, so the surface can be locked multiple times. This method must be
+  /// called the same number of times to finally unlock the surface.
+  /// </remarks>
   public unsafe void Unlock()
   { if(lockCount==0) throw new InvalidOperationException("Unlock called too many times");
     if(--lockCount==0) SDL.UnlockSurface(surface);
   }
 
+  /// <summary>Maps a <see cref="Color"/> to the nearest raw pixel value.</summary>
+  /// <param name="color">The <see cref="Color"/> to map.</param>
+  /// <returns>The raw pixel value closest to the color given.</returns>
   public unsafe uint MapColor(Color color)
   { return SDL.MapRGBA(surface->Format, color.R, color.G, color.B, color.A);
   }
+  /// <summary>Maps a <see cref="Color"/> to the nearest raw pixel value.</summary>
+  /// <param name="color">The <see cref="Color"/> to map.</param>
+  /// <param name="alpha">The alpha value to use for the color.</param>
+  /// <returns>The raw pixel value closest to the color given.</returns>
+  /// <remarks>The alpha value passed overrides the alpha value contained in the <see cref="Color.A"/>
+  /// property of <paramref name="color"/>.
+  /// </remarks>
   public unsafe uint MapColor(Color color, byte alpha)
   { return SDL.MapRGBA(surface->Format, color.R, color.G, color.B, alpha);
   }
+  /// <summary>Maps a raw pixel value to the corresponding <see cref="Color"/>.</summary>
+  /// <param name="color">The raw pixel value to map.</param>
+  /// <returns>The <see cref="Color"/> corresponding to <paramref name="color"/>.</returns>
   public unsafe Color MapColor(uint color)
   { byte r, g, b, a;
     SDL.GetRGBA(color, surface->Format, out r, out g, out b, out a);
     return Color.FromArgb(a, r, g, b);
   }
 
-  public void GetPalette(Color[] colors) { GetPalette(colors, 0, 0, colors.Length); }
-  public void GetPalette(Color[] colors, int numColors) { GetPalette(colors, 0, 0, numColors); }
-  public void GetPalette(Color[] colors, int startIndex, int startColor, int numColors)
-  { GetPalette(colors, startIndex, startColor, numColors, PaletteType.Both);
+  /// <summary>Returns the logical color palette.</summary>
+  /// <returns>An array of <see cref="Color"/> containing the logical color palette.</returns>
+  /// <exception cref="VideoException">Thrown if the surface has no associated palette.</exception>
+  public Color[] GetPalette()
+  { Color[] colors = new Color[PaletteSize];
+    GetPalette(colors);
+    return colors;
   }
-  public unsafe void GetPalette(Color[] colors, int startIndex, int startColor, int numColors, PaletteType type)
+  /// <summary>Gets the logical palette colors.</summary>
+  /// <param name="colors">An array of <see cref="Color"/> which will be filled with color data from the palette.
+  /// </param>
+  /// <remarks>This will not fill the entire array if it's longer than the number of entries in the palette.</remarks>
+  /// <exception cref="ArgumentNullException">Thrown if <paramref name="colors"/> is null.</exception>
+  public void GetPalette(Color[] colors)
+  { if(colors==null) throw new ArgumentNullException("colors");
+    GetPalette(colors, 0, 0, Math.Min(PaletteSize, colors.Length));
+  }
+  /// <summary>Gets the logical palette colors.</summary>
+  /// <param name="colors">An array of <see cref="Color"/> which will be filled with color data from the palette.
+  /// </param>
+  /// <param name="numColors">The number of colors to copy from the palette.</param>
+  /// <exception cref="ArgumentOutOfRangeException">Thrown if <paramref name="numColors"/> is invalid or would
+  /// overflow the palette.
+  /// </exception>
+  /// <exception cref="ArgumentNullException">Thrown if <paramref name="colors"/> is null.</exception>
+  public void GetPalette(Color[] colors, int numColors) { GetPalette(colors, 0, 0, numColors); }
+  public unsafe void GetPalette(Color[] colors, int startIndex, int startColor, int numColors)
   { ValidatePaletteArgs(colors, startColor, numColors);
 
     SDL.Color* palette = surface->Format->Palette->Colors;
@@ -382,11 +869,57 @@ public class Surface : IBlittable, IDisposable
     }
   }
 
-  public bool SetPalette(Color[] colors) { return SetPalette(colors, 0, 0, colors.Length); }
-  public bool SetPalette(Color[] colors, int numColors) { return SetPalette(colors, 0, 0, numColors); }
-  public bool SetPalette(Color[] colors, int startIndex, int startColor, int numColors)
-  { return SetPalette(colors, startIndex, startColor, numColors, PaletteType.Both);
+  /// <summary>Sets the logical palette colors.</summary>
+  /// <param name="colors">An array of <see cref="Color"/> to set the palette with.</param>
+  /// <remarks>If <paramref name="colors"/> contains too few colors, part of the palette will remain unchanged.
+  /// </remarks>
+  /// <exception cref="ArgumentOutOfRangeException">Thrown if the number of colors would overflow the palette.
+  /// </exception>
+  /// <exception cref="ArgumentNullException">Thrown if <paramref name="colors"/> is null.</exception>
+  public bool SetPalette(Color[] colors)
+  { if(colors==null) throw new ArgumentNullException("colors");
+    return SetPalette(colors, 0, 0, colors.Length, PaletteType.Logical);
   }
+  /// <summary>Sets the logical palette colors.</summary>
+  /// <param name="colors">An array of <see cref="Color"/> to set the palette with.</param>
+  /// <param name="numColors">The number of colors to set.</param>
+  /// <remarks>If <paramref name="numColors"/> is smaller than the number of colors in the palette, part of the
+  /// palette will remain unchanged.
+  /// </remarks>
+  /// <exception cref="ArgumentOutOfRangeException">Thrown if the number of colors would overflow the palette.
+  /// </exception>
+  /// <exception cref="ArgumentNullException">Thrown if <paramref name="colors"/> is null.</exception>
+  public bool SetPalette(Color[] colors, int numColors)
+  { return SetPalette(colors, 0, 0, numColors, PaletteType.Logical);
+  }
+  /// <summary>Sets the logical palette colors.</summary>
+  /// <param name="colors">An array of <see cref="Color"/> to set the palette with.</param>
+  /// <param name="startIndex">The starting index within the palette where colors will be written.</param>
+  /// <param name="startColor">The starting index within the color array from where colors will be read.</param>
+  /// <param name="numColors">The number of colors to set.</param>
+  /// <remarks>If <paramref name="numColors"/> is smaller than the number of colors in the palette, part of the
+  /// palette will remain unchanged.
+  /// </remarks>
+  /// <exception cref="ArgumentOutOfRangeException">Thrown if the number of colors would overflow the palette or
+  /// one of the indices are invalid.
+  /// </exception>
+  /// <exception cref="ArgumentNullException">Thrown if <paramref name="colors"/> is null.</exception>
+  public bool SetPalette(Color[] colors, int startIndex, int startColor, int numColors)
+  { return SetPalette(colors, startIndex, startColor, numColors, PaletteType.Logical);
+  }
+  /// <summary>Sets palette colors.</summary>
+  /// <param name="colors">An array of <see cref="Color"/> to set the palette with.</param>
+  /// <param name="startIndex">The starting index within the palette where colors will be written.</param>
+  /// <param name="startColor">The starting index within the color array from where colors will be read.</param>
+  /// <param name="numColors">The number of colors to set.</param>
+  /// <param name="type">The palette to change (<see cref="PaletteType"/>).</param>
+  /// <remarks>If <paramref name="numColors"/> is smaller than the number of colors in the palette, part of the
+  /// palette will remain unchanged.
+  /// </remarks>
+  /// <exception cref="ArgumentOutOfRangeException">Thrown if the number of colors would overflow the palette or
+  /// one of the indices are invalid.
+  /// </exception>
+  /// <exception cref="ArgumentNullException">Thrown if <paramref name="colors"/> is null.</exception>
   public unsafe bool SetPalette(Color[] colors, int startIndex, int startColor, int numColors, PaletteType type)
   { ValidatePaletteArgs(colors, startColor, numColors);
 
@@ -400,7 +933,19 @@ public class Surface : IBlittable, IDisposable
     return SDL.SetPalette(surface, (uint)type, array, startColor, numColors)==1;
   }
 
+  /// <summary>Creates a surface with the same pixel format as this one, and a specified size.</summary>
+  /// <param name="width">The width of the new surface.</param>
+  /// <param name="height">The height of the new surface.</param>
+  /// <returns>A <see cref="Surface"/> with the same pixel format as this one.</returns>
+  /// <remarks>This is equivalent to calling <see cref="CreateCompatible(int,int,SurfaceFlag)"/> and passing
+  /// the value of the <see cref="Flags"/> property.
+  /// </remarks>
   public Surface CreateCompatible(int width, int height) { return CreateCompatible(width, height, Flags); }
+  /// <summary>Creates a surface with the same pixel format as this one, and a specified size.</summary>
+  /// <param name="width">The width of the new surface.</param>
+  /// <param name="height">The height of the new surface.</param>
+  /// <param name="flags">The surface flags for the new surface.</param>
+  /// <returns>A <see cref="Surface"/> with the same pixel format as this one.</returns>
   public unsafe Surface CreateCompatible(int width, int height, SurfaceFlag flags)
   { SDL.Surface* ret = SDL.CreateRGBSurface((uint)flags, width, height, format.Depth, format.RedMask,
                                             format.GreenMask, format.BlueMask, format.AlphaMask);
@@ -408,9 +953,23 @@ public class Surface : IBlittable, IDisposable
     return new Surface(ret, true);
   }
 
-  public Surface Clone()                   { return Clone(Format, Flags); }
+  /// <summary>Returns a clone of this surface.</summary>
+  /// <returns>A new <see cref="Surface"/> containing the same image data.</returns>
+  public Surface Clone() { return Clone(Format, Flags); }
+  /// <summary>Returns a clone of this surface.</summary>
+  /// <param name="format">The pixel format of the new surface.</param>
+  /// <returns>A new <see cref="Surface"/> containing the same image data, converted to the given pixel format.
+  /// </returns>
   public Surface Clone(PixelFormat format) { return Clone(format, Flags); }
-  public Surface Clone(SurfaceFlag flags)  { return Clone(Format, flags); }
+  /// <summary>Returns a clone of this surface.</summary>
+  /// <param name="flags">The surface flags for the new surface.</param>
+  /// <returns>A new <see cref="Surface"/> containing the same image data.</returns>
+  public Surface Clone(SurfaceFlag flags) { return Clone(Format, flags); }
+  /// <summary>Returns a clone of this surface.</summary>
+  /// <param name="format">The pixel format of the new surface.</param>
+  /// <param name="flags">The surface flags for the new surface.</param>
+  /// <returns>A new <see cref="Surface"/> containing the same image data, converted to the given pixel format.
+  /// </returns>
   public unsafe Surface Clone(PixelFormat format, SurfaceFlag flags)
   { SDL.Surface* ret;
     fixed(SDL.PixelFormat* pf = &format.format) ret = SDL.ConvertSurface(surface, pf, (uint)flags);
@@ -418,22 +977,46 @@ public class Surface : IBlittable, IDisposable
     return new Surface(ret, true);
   }
 
-  public IBlittable CreateCompatible() { return CloneDisplay(); }
+  /// <summary>Returns a copy of this surface in the same general format as the display surface, suitable for fast
+  /// blitting.
+  /// </summary>
+  /// <returns>A new <see cref="Surface"/> containing the same image data, converted to the same general pixel format
+  /// of the display surface. The new surface will have an alpha channel if this surface has an alpha channel.
+  /// </returns>
   public unsafe Surface CloneDisplay() { return CloneDisplay(Format.AlphaMask!=0); }
+  /// <summary>Returns a copy of this surface in the same general format as the display surface, suitable for fast
+  /// blitting.
+  /// </summary>
+  /// <param name="alphaChannel">A boolean which determines whether the new surface should have an alpha channel.
+  /// </param>
+  /// <returns>A new <see cref="Surface"/> containing the same image data, converted to the same general pixel format
+  /// of the display surface.
+  /// </returns>
   public unsafe Surface CloneDisplay(bool alphaChannel)
   { SDL.Surface* ret = alphaChannel ? SDL.DisplayFormatAlpha(surface) : SDL.DisplayFormat(surface);
     if(ret==null) SDL.RaiseError();
     return new Surface(ret, true);
   }
 
+  /// <summary>Converts the surface into a <see cref="Bitmap"/>.</summary>
+  /// <returns>A new <see cref="Bitmap"/> containing the image data from this surface.</returns>
   public Bitmap ToBitmap() { return ToBitmap(false); }
 
+  /// <summary>Saves this image to a file using the given image format.</summary>
+  /// <param name="filename">The path to the file into which the image will be saved.</param>
+  /// <param name="type">The <see cref="ImageType"/> of the destination image.</param>
   public void Save(string filename, ImageType type)
   { Stream stream = new FileStream(filename, FileMode.Create, FileAccess.Write);
     try { Save(stream, type); }
     finally { stream.Close(); }
   }
 
+  /// <summary>Writes this image to a stream using the given image format.</summary>
+  /// <param name="stream">The stream into which the image will be written. The given stream should be seekable,
+  /// with its entire range dedicated to the image data.
+  /// </param>
+  /// <param name="type">The <see cref="ImageType"/> of the destination image.</param>
+  /// <remarks></remarks>
   public void Save(Stream stream, ImageType type)
   { Bitmap bitmap=null;
     switch(type)
@@ -449,6 +1032,13 @@ public class Surface : IBlittable, IDisposable
     if(bitmap!=null) bitmap.Dispose();
   }
 
+  /// <summary>Saves this image to a file using the given encoder.</summary>
+  /// <param name="filename">The path to the file into which the image will be saved.</param>
+  /// <param name="encoder">The <see cref="System.Drawing.Imaging.ImageCodecInfo">encoder</see> that will encode
+  /// the image data.
+  /// </param>
+  /// <param name="parms"><see cref="System.Drawing.Imaging.EncoderParameters">paramaters</see> for the encoder.
+  /// </param>
   public void Save(string filename, System.Drawing.Imaging.ImageCodecInfo encoder,
                    System.Drawing.Imaging.EncoderParameters parms)
   { Stream stream = new FileStream(filename, FileMode.Create, FileAccess.Write);
@@ -456,6 +1046,15 @@ public class Surface : IBlittable, IDisposable
     finally { stream.Close(); }
   }
 
+  /// <summary>Writes this image to a stream using the given encoder.</summary>
+  /// <param name="stream">The stream into which the image will be written. The given stream should be seekable,
+  /// with its entire range dedicated to the image data.
+  /// </param>
+  /// <param name="encoder">The <see cref="System.Drawing.Imaging.ImageCodecInfo">encoder</see> that will encode
+  /// the image data.
+  /// </param>
+  /// <param name="parms"><see cref="System.Drawing.Imaging.EncoderParameters">paramaters</see> for the encoder.
+  /// </param>
   public void Save(Stream stream, System.Drawing.Imaging.ImageCodecInfo encoder,
                    System.Drawing.Imaging.EncoderParameters parms)
   { Bitmap bitmap = ToBitmap(true);
@@ -463,12 +1062,21 @@ public class Surface : IBlittable, IDisposable
     bitmap.Dispose();
   }
 
+  /// <summary>Writes the image as a JPEG using the given quality level.</summary>
+  /// <param name="filename">The path to the file into which the image will be saved.</param>
+  /// <param name="quality">The image quality of the compression, from 0 (worst) to 100 (best).</param>
   public void SaveJPEG(string filename, int quality)
   { Stream stream = new FileStream(filename, FileMode.Create, FileAccess.Write);
     try { SaveJPEG(stream, quality); }
     finally { stream.Close(); }
   }
 
+  /// <summary>Writes this image to a stream as a JPEG using the given quality level.</summary>
+  /// <param name="stream">The stream into which the image will be written. The given stream should be seekable,
+  /// with its entire range dedicated to the image data.
+  /// </param>
+  /// <param name="quality">The image quality of the compression, from 0 (worst) to 100 (best).</param>
+  /// <exception cref="ArgumentOutOfRangeException">Thrown if quality is less than 0 or greater than 100.</exception>
   public void SaveJPEG(Stream stream, int quality)
   { if(quality<0 || quality>100) throw new ArgumentOutOfRangeException("quality", quality, "must be from 0-100");
     foreach(System.Drawing.Imaging.ImageCodecInfo codec in System.Drawing.Imaging.ImageCodecInfo.GetImageEncoders())
@@ -497,12 +1105,12 @@ public class Surface : IBlittable, IDisposable
     Init();
   }
 
-  protected unsafe Bitmap BitmapFromData(int width, int height, int stride, System.Drawing.Imaging.PixelFormat format,
+  unsafe Bitmap BitmapFromData(int width, int height, int stride, System.Drawing.Imaging.PixelFormat format,
                                          void* data)
   { return BitmapFromData(width, height, stride, stride, format, data);
   }
 
-  protected unsafe Bitmap BitmapFromData(int width, int height, int row, int stride,
+  unsafe Bitmap BitmapFromData(int width, int height, int row, int stride,
                                          System.Drawing.Imaging.PixelFormat format, void* data)
   { Bitmap bmp = new Bitmap(width, height, format);
     System.Drawing.Imaging.BitmapData bd = bmp.LockBits(new Rectangle(0, 0, width, height),
@@ -517,11 +1125,13 @@ public class Surface : IBlittable, IDisposable
     return bmp;
   }
   
-  protected unsafe void Init()
+  unsafe void Init()
   { format = new PixelFormat(surface->Format);
+    if(UsingKey) ColorKey = key;
+    else rawKey = MapColor(key);
   }
 
-  protected unsafe void InitFromFormat(int width, int height, PixelFormat format, SurfaceFlag flags)
+  unsafe void InitFromFormat(int width, int height, PixelFormat format, SurfaceFlag flags)
   { InitFromSurface(SDL.CreateRGBSurface((uint)flags, width, height, format.Depth, format.RedMask,
                                          format.GreenMask, format.BlueMask, format.AlphaMask));
   }
@@ -611,7 +1221,7 @@ public class Surface : IBlittable, IDisposable
     return bitmap;
   }
 
-  protected unsafe void ValidatePaletteArgs(Color[] colors, int startColor, int numColors)
+  unsafe void ValidatePaletteArgs(Color[] colors, int startColor, int numColors)
   { SDL.Palette* palette = surface->Format->Palette;
     if(palette==null) throw new VideoException("This surface does not have an associated palette.");
     int max = palette->Entries;
@@ -620,7 +1230,7 @@ public class Surface : IBlittable, IDisposable
     if(colors==null) throw new ArgumentNullException("array");
   }
 
-  protected void WritePCX(Stream stream)
+  void WritePCX(Stream stream)
   { byte[] pbuf = new byte[768];
     stream.WriteByte(10);           // manufacturer. 10 = z-soft
     stream.WriteByte(5);            // version
@@ -720,20 +1330,20 @@ public class Surface : IBlittable, IDisposable
     }
   }
   
-  protected unsafe void Dispose(bool destructing)
+  unsafe void Dispose(bool destructing)
   { if(autoFree && surface!=null)
     { SDL.FreeSurface(surface);
       surface=null;
     }
   }
 
-  protected PixelFormat format;
-  protected Color key;
-  protected uint  lockCount, rawKey;
-  protected byte  alpha=AlphaLevel.Opaque;
+  PixelFormat format;
+  Color key=Color.Magenta;
+  uint  lockCount, rawKey;
+  byte  alpha=255;
 
   internal unsafe SDL.Surface* surface;
-  private  bool   autoFree;
+  bool autoFree;
 }
 
 } // namespace GameLib.Video

@@ -89,6 +89,10 @@
                     BuildAction = "Compile"
                 />
                 <File
+                    RelPath = "BUILDING"
+                    BuildAction = "None"
+                />
+                <File
                     RelPath = "CD.cs"
                     SubType = "Code"
                     BuildAction = "Compile"
@@ -201,6 +205,10 @@
                     RelPath = "PSD.cs"
                     SubType = "Code"
                     BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "README"
+                    BuildAction = "None"
                 />
                 <File
                     RelPath = "RedBlackTree.cs"
