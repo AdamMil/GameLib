@@ -1,3 +1,4 @@
+#!/usr/bin/perl
 while(<>)
 { if(/^\.module extern SDL_image$/) { s/SDL_image/SDL/ }
   elsif(/^\.module extern SDL$/) { s/SDL/SDL_image/ }
