@@ -12,6 +12,7 @@ public class Config
   public const string SDLTTFImportPath   = "SDL_ttf";
   public const string SDLGFXImportPath   = "sdlgfx";
   public const string GLMixerImportPath  = "Mixer";
+  public const string SndFileImportPath  = "libsndfile";
   
   #if BIGENDIAN
   public const bool CompiledBigEndian = true;

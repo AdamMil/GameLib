@@ -192,6 +192,11 @@
                     BuildAction = "Compile"
                 />
                 <File
+                    RelPath = "SndFileInterop.cs"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
                     RelPath = "Surface.cs"
                     SubType = "Code"
                     BuildAction = "Compile"

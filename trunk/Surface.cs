@@ -47,12 +47,14 @@ public class Surface : IDisposable
   }
   
   public unsafe Surface(string filename) { InitFromSurface(Interop.SDLImage.Image.Load(filename)); }
-  public unsafe Surface(System.IO.Stream stream)
-  { StreamSource ss = new StreamSource(stream);
+  public unsafe Surface(System.IO.Stream stream) : this(stream, true) { }
+  public unsafe Surface(System.IO.Stream stream, bool autoClose)
+  { StreamRWOps ss = new StreamRWOps(stream, autoClose);
     fixed(SDL.RWOps* ops = &ss.ops) InitFromSurface(Interop.SDLImage.Image.Load_RW(ops, 0));
   }
-  public unsafe Surface(System.IO.Stream stream, ImageType type)
-  { StreamSource ss = new StreamSource(stream);
+  public unsafe Surface(System.IO.Stream stream, ImageType type) : this(stream, type, true) { }
+  public unsafe Surface(System.IO.Stream stream, ImageType type, bool autoClose)
+  { StreamRWOps ss = new StreamRWOps(stream, autoClose);
     fixed(SDL.RWOps* ops = &ss.ops)
       InitFromSurface(Interop.SDLImage.Image.LoadTyped_RW(ops, 0, Interop.SDLImage.Image.Type.Types[(int)type]));
   }
