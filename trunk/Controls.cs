@@ -36,29 +36,30 @@ public class ContainerControl : Control
   { Rectangle avail = ContentRect;
 
     foreach(Control c in Controls)
-      switch(c.Dock)
-      { case DockStyle.Left:
-          c.SetBounds(new Rectangle(avail.X, avail.Y, c.Width, avail.Height), BoundsType.Layout);
-          avail.X += c.Width; avail.Width -= c.Width;
-          break;
-        case DockStyle.Top:
-          c.SetBounds(new Rectangle(avail.X, avail.Y, avail.Width, c.Height), BoundsType.Layout);
-          avail.Y += c.Height; avail.Height -= c.Height;
-          break;
-        case DockStyle.Right:
-          c.SetBounds(new Rectangle(avail.Right-c.Width, avail.Y, c.Width, avail.Height), BoundsType.Layout);
-          avail.Width -= c.Width;
-          break;
-        case DockStyle.Bottom:
-          c.SetBounds(new Rectangle(avail.X, avail.Bottom-c.Height, avail.Width, c.Height), BoundsType.Layout);
-          avail.Height -= c.Height;
-          break;
-      }
+      if(!c.HasStyle(ControlStyle.DontLayout))
+        switch(c.Dock)
+        { case DockStyle.Left:
+            c.SetBounds(new Rectangle(avail.X, avail.Y, c.Width, avail.Height), true);
+            avail.X += c.Width; avail.Width -= c.Width;
+            break;
+          case DockStyle.Top:
+            c.SetBounds(new Rectangle(avail.X, avail.Y, avail.Width, c.Height), true);
+            avail.Y += c.Height; avail.Height -= c.Height;
+            break;
+          case DockStyle.Right:
+            c.SetBounds(new Rectangle(avail.Right-c.Width, avail.Y, c.Width, avail.Height), true);
+            avail.Width -= c.Width;
+            break;
+          case DockStyle.Bottom:
+            c.SetBounds(new Rectangle(avail.X, avail.Bottom-c.Height, avail.Width, c.Height), true);
+            avail.Height -= c.Height;
+            break;
+        }
 
     AnchorSpace = avail;
     LayoutEventArgs e = recursive ? new LayoutEventArgs(true) : null;
     foreach(Control c in Controls)
-    { if(c.Dock==DockStyle.None) c.DoAnchor();
+    { if(c.Dock==DockStyle.None && !c.HasStyle(ControlStyle.DontLayout)) c.DoAnchor();
       if(recursive) c.OnLayout(e);
     }
   }
@@ -73,7 +74,7 @@ public class ContainerControl : Control
           c.Update();
         }
       }
-    base.OnPaint(e); // yes, this needs to be at the bottom, not the top!
+    base.OnPaint(e); // yes, this needs to be at the bottom, not the top! (TODO: why?)
   }
 
   protected internal override void OnLayout(LayoutEventArgs e)
@@ -95,8 +96,8 @@ public class ScrollableControl : Control
   public override Rectangle ContentRect
   { get
     { Rectangle rect = base.ContentRect;
-      if(horz!=null) rect.Width  -= horz.Width;
-      if(vert!=null) rect.Height -= vert.Height;
+      if(horz!=null) rect.Height -= horz.Height;
+      if(vert!=null) rect.Width  -= vert.Width;
       return rect;
     }
   }
@@ -110,6 +111,7 @@ public class ScrollableControl : Control
     { if(value != (horz!=null))
       { if(horz==null)
         { horz = MakeScrollBar(true);
+          horz.ValueChanged += new ValueChangedEventHandler(OnHorzizontalScroll);
           Controls.Add(horz);
           TriggerLayout();
         }
@@ -128,6 +130,7 @@ public class ScrollableControl : Control
     { if(value != (vert!=null))
       { if(vert==null)
         { vert = MakeScrollBar(false);
+          vert.ValueChanged += new ValueChangedEventHandler(OnVerticalScroll);
           Controls.Add(vert);
           TriggerLayout();
         }
@@ -141,10 +144,22 @@ public class ScrollableControl : Control
   }
 
   protected internal override void OnLayout(LayoutEventArgs e)
-  { base.OnLayout(e);
-    Rectangle rect = base.ContentRect;
-    if(horz!=null) horz.Height = rect.Height - (vert==null ? 0 : vert.Height);
-    if(vert!=null) vert.Width  = rect.Height - (horz==null ? 0 : horz.Width);
+  { Rectangle rect = PaddingRect;
+    if(horz!=null)
+    { horz.Top   = rect.Bottom - horz.Height;
+      horz.Width = rect.Width  - (vert==null ? 0 : vert.Height);
+    }
+    if(vert!=null)
+    { vert.Left   = rect.Right  - vert.Width;
+      vert.Height = rect.Height - (horz==null ? 0 : horz.Width);
+    }
+    base.OnLayout(e);
+  }
+
+  protected internal override void OnPaint(PaintEventArgs e)
+  { if(horz!=null) PaintBar(horz, e);
+    if(vert!=null) PaintBar(vert, e);
+    base.OnPaint(e); // yes, this needs to be at the bottom, not the top! (TODO: why?)
   }
 
   protected virtual ScrollBarBase MakeScrollBar(bool horizontal)
@@ -153,6 +168,18 @@ public class ScrollableControl : Control
     return bar;
   }
   
+  protected virtual void OnHorzizontalScroll(object bar, ValueChangedEventArgs e) { }
+  protected virtual void OnVerticalScroll(object bar, ValueChangedEventArgs e) { }
+
+  void PaintBar(ScrollBarBase bar, PaintEventArgs e)
+  { Rectangle paint = Rectangle.Intersect(bar.Bounds, e.WindowRect);
+    if(paint.Width>0)
+    { paint.X -= bar.Left; paint.Y -= bar.Top;
+      bar.AddInvalidRect(paint);
+      bar.Update();
+    }
+  }
+
   ScrollBarBase horz, vert;
 }
 #endregion
@@ -327,7 +354,7 @@ public abstract class ButtonBase : LabelBase
 #region Button
 public class Button : ButtonBase
 { public Button()
-  { ImageAlign=TextAlign=ContentAlignment.MiddleCenter; alwaysUse=false; DontDraw=DontDraw.Border;
+  { ImageAlign=TextAlign=ContentAlignment.MiddleCenter; alwaysUse=false; DontDraw|=DontDraw.Border;
   }
   public Button(string text) : this() { Text=text; }
 
@@ -417,7 +444,7 @@ public abstract class CheckBoxBase : ButtonBase
 #region CheckBox
 public class CheckBox : CheckBoxBase
 { public CheckBox()
-  { BorderStyle=BorderStyle.FixedThick; DontDraw=DontDraw.Border; Padding=new RectOffset(1, 1);
+  { BorderStyle=BorderStyle.FixedThick; DontDraw|=DontDraw.Border; Padding=new RectOffset(1, 1);
   }
   public CheckBox(bool check) : this() { Checked=check; }
   public CheckBox(string text) : this() { Text=text; }
@@ -1275,7 +1302,7 @@ public class TextBox : TextBoxBase
 #region ListControl
 // TODO: implement multi-column list boxes
 // TODO: document
-public abstract class ListControl : Control
+public abstract class ListControl : ScrollableControl
 { protected ListControl() { items = new ItemCollection(this); }
   protected ListControl(ICollection items) { this.items=new ItemCollection(this, items); }
   protected ListControl(IEnumerable items)
@@ -1309,15 +1336,20 @@ public abstract class ListControl : Control
     internal int IndexOf(object item) { return InnerList.IndexOf(item); } // TODO: use sorted list
     internal void InnerAdd(object item) { InnerList.Add(item); }
 
-    protected override void OnClearComplete() { parent.Invalidate(parent.ContentRect); }
+    protected override void OnClearComplete()
+    { parent.OnCountChanged();
+      parent.Invalidate(parent.ContentRect);
+    }
     protected override void OnInsertComplete(int index, object value) { RedrawFrom(index); }
     protected override void OnRemoveComplete(int index, object value) { RedrawFrom(index); }
     protected override void OnSetComplete(int index, object oldValue, object newValue)
-    { parent.Invalidate(parent.GetItemRectangle(index));
+    { parent.OnCountChanged();
+      parent.Invalidate(parent.GetItemRectangle(index, true));
     }
     
     void RedrawFrom(int index)
-    { Rectangle rect = parent.GetItemRectangle(index);
+    { parent.OnCountChanged();
+      Rectangle rect = parent.GetItemRectangle(index, true);
       rect.Height += parent.Bottom-rect.Bottom; // invalidate all the items after this one, too
       parent.Invalidate(rect);
     }
@@ -1372,14 +1404,14 @@ public abstract class ListControl : Control
     return -1;
   }
 
-  public abstract Rectangle GetItemRectangle(int index);
-
   public string GetItemText(int index) { return items[index].ToString(); }
   
-  protected abstract int DefaultItemHeight { get; }
-  protected abstract bool IsSelected(int index);
   protected abstract void DrawItem(int index, PaintEventArgs e, Rectangle bounds);
+  protected abstract Rectangle GetItemRectangle(int index, bool onlySeen);
+  protected abstract bool IsSelected(int index);
   protected abstract Size MeasureItem(int index);
+  protected virtual void OnCountChanged() { }
+  protected abstract int PointToItem(Point clientPoint);
 
   ItemCollection items;
   int top;
@@ -1388,10 +1420,10 @@ public abstract class ListControl : Control
 
 #region ListBoxBase
 public abstract class ListBoxBase : ListControl
-{ protected ListBoxBase() { }
-  protected ListBoxBase(ICollection items) : base(items) { }
-  protected ListBoxBase(IEnumerable items) : base(items) { }
-  
+{ protected ListBoxBase() { Padding=new RectOffset(1); }
+  protected ListBoxBase(ICollection items) : base(items) { Padding=new RectOffset(1); }
+  protected ListBoxBase(IEnumerable items) : base(items) { Padding=new RectOffset(1); }
+
   public Color SelectedBackColor { get { return selBack; } set { selBack=value; } }
   public Color SelectedForeColor { get { return selFore; } set { selFore=value; } }
 
@@ -1403,6 +1435,9 @@ public abstract class ListBoxBase : ListControl
         ret.Height += size.Height;
         if(size.Width>ret.Width) ret.Width=size.Width;
       }
+      if(VerticalScrollBar!=null) ret.Width += VerticalScrollBar.Width;
+      Rectangle rect = ContentRect;
+      ret.Width += rect.X + Right-rect.Right;
       return ret;
     }
   }
@@ -1412,31 +1447,122 @@ public abstract class ListBoxBase : ListControl
     set
     { int newValue = value<-1 || value>=Items.Count ? -1 : value;
       if(newValue!=selected)
-      { if(selected>=0) Invalidate(GetItemRectangle(selected));
-        if(newValue>=0) Invalidate(GetItemRectangle(newValue));
+      { if(selected>=0) Invalidate(GetItemRectangle(selected, true));
+        if(newValue>=0) Invalidate(GetItemRectangle(newValue, true));
         selected = newValue;
       }
     }
   }
 
-  protected void CalculateRedraw(PaintEventArgs e, ref Rectangle bounds, out int start, out int end)
-  { throw new NotImplementedException();
-  }
+  protected override Rectangle GetItemRectangle(int index, bool onlySeen)
+  { if(index<0 || index>=Items.Count) throw new ArgumentOutOfRangeException("index", index, "out of range");
+    if(onlySeen && index<TopIndex) return new Rectangle(-1, -1, 0, 0);
 
-  protected internal override void OnPaint(PaintEventArgs e)
-  { Rectangle bounds = ContentDrawRect;
-    int start, end;
-    CalculateRedraw(e, ref bounds, out start, out end);
-
-    for(; start<end && bounds.Height>0; start++)
-    { Size size = MeasureItem(start);
-      DrawItem(start, e, new Rectangle(bounds.Location, size));
-      bounds.Y += size.Height; bounds.Height -= size.Height;
+    Rectangle bounds = ContentRect;
+    if(index<TopIndex)
+    { for(int i=TopIndex; i>=index; i--)
+      { int height = MeasureItem(i).Height;
+        bounds.Y -= height; bounds.Height = height;
+      }
+      return bounds;
+    }
+    else
+    { int i=TopIndex, end=bounds.Bottom;
+      while(true)
+      { int height = MeasureItem(i).Height;
+        bounds.Height = height;
+        if(i++==index) return bounds;
+        if(bounds.Y>=end) return new Rectangle(-1, -1, 0, 0);
+        bounds.Y += height;
+      }
     }
   }
 
+  protected override bool IsSelected(int index) { return index==selected; }
+
+  protected internal override void OnMouseDown(ClickEventArgs e)
+  { base.OnMouseDown(e);
+    if(!e.Handled && e.CE.Button==MouseButton.Left)
+    { SelectedIndex = PointToItem(e.CE.Point);
+      e.Handled = true;
+    }
+  }
+
+  protected override void OnCountChanged()
+  { base.OnCountChanged();
+    ShowVerticalScrollBar = !AllFit;
+    if(VerticalScrollBar!=null) VerticalScrollBar.Maximum = Items.Count;
+  }
+
+  protected override void OnVerticalScroll(object bar, ValueChangedEventArgs e)
+  { base.OnVerticalScroll(bar, e);
+    TopIndex = VerticalScrollBar.Value;
+  }
+
+  protected internal override void OnPaint(PaintEventArgs e)
+  { base.OnPaint(e);
+
+    Rectangle bounds = ContentDrawRect; // TODO: set e.Surface.ClipRect
+    bool drew=false;
+    for(int i=TopIndex; i<Items.Count; i++)
+    { Rectangle itemRect = new Rectangle(bounds.X, bounds.Y, bounds.Width, MeasureItem(i).Height);
+      if(itemRect.Height>bounds.Height) break;
+      if(itemRect.IntersectsWith(e.DisplayRect)) { DrawItem(i, e, itemRect); drew=true; }
+      else if(drew) break;
+      bounds.Y += itemRect.Height; bounds.Height -= itemRect.Height;
+    }
+  }
+
+  protected override int PointToItem(Point clientPoint)
+  { Rectangle bounds = ContentRect;
+    for(int i=TopIndex; i<Items.Count; i++)
+    { Rectangle itemRect = new Rectangle(bounds.X, bounds.Y, bounds.Width, MeasureItem(i).Height);
+      if(itemRect.Contains(clientPoint)) return i;
+      bounds.Y += itemRect.Height; bounds.Height -= itemRect.Height;
+    }
+    return -1;
+  }
+
+  bool AllFit { get { return ContentRect.Contains(GetItemRectangle(Items.Count-1, true)); } }
+
   int selected=-1;
   Color selBack=SystemColors.Highlight, selFore=SystemColors.HighlightText;
+}
+#endregion
+
+#region ListBox
+public class ListBox : ListBoxBase
+{ public ListBox() { Init(); }
+  public ListBox(ICollection items) : base(items) { Init(); }
+  public ListBox(IEnumerable items) : base(items) { Init(); }
+  public ListBox(params object[] items) : base((ICollection)items) { Init(); }
+  void Init() { BackColor=Color.White; BorderStyle=BorderStyle.FixedFlat; }
+
+  public override Color BorderColor
+  { get { return RawBorderColor==Color.Transparent ? ForeColor : RawBorderColor; }
+  }
+
+  protected override void DrawItem(int index, PaintEventArgs e, Rectangle bounds)
+  { Color fore, back;
+
+    if(IsSelected(index))
+    { back=SelectedBackColor; fore=SelectedForeColor;
+      if(back!=Color.Transparent) e.Surface.Fill(bounds, back);
+    }
+    else { back=BackColor; fore=ForeColor; }
+
+    GameLib.Fonts.Font font = Font;
+    if(font!=null)
+    { font.Color     = fore;
+      font.BackColor = back;
+      font.Render(e.Surface, GetItemText(index), bounds.Location);
+    }
+  }
+
+  protected override Size MeasureItem(int index)
+  { GameLib.Fonts.Font font = Font;
+    return font==null ? new Size(Width, 12) : font.CalculateSize(GetItemText(index));
+  }
 }
 #endregion
 #endregion
@@ -1467,7 +1593,7 @@ public abstract class MenuItemBase : Control
 // TODO: add arrow key support
 public abstract class MenuBase : ContainerControl
 { public MenuBase()
-  { Style |= ControlStyle.Clickable|ControlStyle.CanFocus;
+  { Style |= ControlStyle.Clickable|ControlStyle.CanFocus|ControlStyle.DontLayout;
     BackColor = SystemColors.Menu;
     ForeColor = SystemColors.MenuText;
   }
@@ -1512,7 +1638,7 @@ public abstract class MenuBase : ContainerControl
     this.pullDown = pullDown;
     Visible = false;
     Parent  = desktop;
-    SetBounds(new Rectangle(source.WindowToAncestor(position, desktop), Size), BoundsType.Absolute);
+    Bounds  = new Rectangle(source.WindowToAncestor(position, desktop), Size);
     OnPopup(new EventArgs());
     BringToFront();
     Visible = true;
@@ -1821,7 +1947,7 @@ public class MenuItem : MenuItemBase
   public MenuItem(string text) { Text=text; }
   public MenuItem(string text, char hotKey) { Text=text; HotKey=hotKey; }
   public MenuItem(string text, char hotKey, KeyCombo globalHotKey)
-  { Text=text; HotKey=hotKey; GlobalHotKey=globalHotKey;
+  { Text=text; HotKey=hotKey; GlobalHotKey=globalHotKey; Padding=new RectOffset(2, 0);
   }
 
   public Color RawSelectedBackColor { get { return selBack; } }
@@ -1896,7 +2022,7 @@ public class MenuItem : MenuItemBase
 // TODO: make sure this handles font/text changes, etc
 // TODO: handle menus with lots of items (scrolling?)
 public class Menu : MenuBase
-{ public Menu() { BorderStyle=BorderStyle.Fixed3D; }
+{ public Menu() { BorderStyle=BorderStyle.FixedThick; }
   public Menu(string text) : this() { Text=text; }
   public Menu(string text, KeyCombo globalHotKey) : this() { Text=text; GlobalHotKey=globalHotKey; }
 
@@ -1980,11 +2106,9 @@ public class MenuBar : MenuBarBase
 #region TitleBarBase
 public abstract class TitleBarBase : ContainerControl
 { public TitleBarBase(FormBase parent)
-  { Style    |= ControlStyle.Draggable;
+  { Style    |= ControlStyle.Draggable|ControlStyle.DontLayout;
     BackColor = SystemColors.ActiveCaption;
     ForeColor = SystemColors.ActiveCaptionText;
-
-    Dock = DockStyle.Top;
     parent.Controls.Add(this);
   }
 
@@ -2033,8 +2157,8 @@ public class TitleBar : TitleBarBase
     { if(value!=CloseBox)
       { if(value)
         { close = new CloseButton();
-          close.Bounds = new Rectangle(Right-Height+2, 2, Height-4, Height-4);
           close.Anchor = AnchorStyle.TopBottom | AnchorStyle.Right;
+          close.Bounds = new Rectangle(Right-Height+2, 2, Height-4, Height-4);
           Controls.Add(close);
         }
         else
@@ -2078,15 +2202,12 @@ public class TitleBar : TitleBarBase
 
   #region CloseButton
   class CloseButton : Button
-  { public CloseButton() { BackColor = SystemColors.Control; ForeColor = SystemColors.ControlText; }
+  { public CloseButton() { BackColor=SystemColors.Control; ForeColor=SystemColors.ControlText; }
 
     protected override void OnResize(EventArgs e)
     { Rectangle rect = Bounds;
       int xd = Width-Height;
-      if(xd!=0)
-      { rect.X += xd; rect.Width -= xd;
-        SetBounds(rect, BoundsType.Absolute);
-      }
+      if(xd!=0) { rect.X += xd; rect.Width -= xd; Bounds = rect; } // if it's not square, make it square
       base.OnResize(e);
     }
 
@@ -2097,7 +2218,6 @@ public class TitleBar : TitleBarBase
 
     protected internal override void OnPaint(PaintEventArgs e)
     { Rectangle rect = ContentDrawRect;
-
       float size = (float)rect.Width*3/5;
       int pad = (int)Math.Round((rect.Width-size)/2), isize = (int)Math.Round(size);
       rect.X += pad; rect.Width  -= isize-(rect.Width&1)-1;
@@ -2130,6 +2250,14 @@ public abstract class FormBase : ContainerControl
   }
 
   public ButtonClicked Button { get { return button; } set { button=value; }  }
+
+  public override Rectangle ContentRect
+  { get
+    { Rectangle rect = base.ContentRect;
+      rect.Y += TitleBar.Height; rect.Height -= TitleBar.Height;
+      return rect;
+    }
+  }
 
   public int MinimumHeight
   { get { return min.Height; }
@@ -2294,6 +2422,13 @@ public abstract class FormBase : ContainerControl
 
     if(Bounds!=bounds) { TriggerLayout(true); Bounds=bounds; }
   }
+  
+  protected internal override void OnLayout(LayoutEventArgs e)
+  { Rectangle rect = PaddingRect;
+    rect.Height = TitleBar.Height;
+    TitleBar.SetBounds(rect, true);
+    base.OnLayout(e);
+  }
 
   object returnValue;
   Size          min = new Size(100, 24), max = new Size(-1, -1);
@@ -2304,10 +2439,25 @@ public abstract class FormBase : ContainerControl
 
 #region Form
 // TODO: add menu bar?
+// TODO: rewrite the titlebar stuff so it doesn't use docking
 public class Form : FormBase
 { public Form() { titleBar=new TitleBar(this); BorderStyle=BorderStyle.FixedThick; }
 
   public override TitleBarBase TitleBar { get { return titleBar; } }
+
+  protected override void OnGotFocus(EventArgs e)
+  { base.OnGotFocus(e);
+    BorderColor = SystemColors.ActiveBorder;
+    TitleBar.ForeColor = SystemColors.ActiveCaptionText;
+    TitleBar.BackColor = SystemColors.ActiveCaption;
+  }
+  
+  protected override void OnLostFocus(EventArgs e)
+  { base.OnLostFocus(e);
+    BorderColor = SystemColors.InactiveBorder;
+    TitleBar.ForeColor = SystemColors.InactiveCaptionText;
+    TitleBar.BackColor = SystemColors.InactiveCaption;
+  }
 
   TitleBar titleBar;
 }
@@ -2331,7 +2481,7 @@ public sealed class MessageBox : Form
   { Parent = desktop;
     if(!init)
     { GameLib.Fonts.Font font = Font;
-      if(font!=null)
+      if(font!=null) // TODO: clean this up. it's a mess
       { int btnWidth=0, btnHeight=font.LineSkip*3/2, height=font.LineSkip*3+btnHeight, btnSpace=12;
         int[] sizes = new int[buttonTexts.Length];
         for(int i=0; i<buttonTexts.Length; i++)
@@ -2341,8 +2491,9 @@ public sealed class MessageBox : Form
         }
         btnWidth += (buttonTexts.Length-1) * btnSpace; // space between buttons
 
-        Label label  = new Label(message);
-        int textWidth = desktop.Width/2-font.LineSkip*2, textHeight;
+        Size deskSize = desktop.ContentSize;
+        Label label   = new Label(message);
+        int textWidth = deskSize.Width/2-font.LineSkip*2, textHeight;
         if(btnWidth>textWidth) textWidth = btnWidth;
         Rectangle rect = new Rectangle(0, 0, textWidth, int.MaxValue);
         int lines = font.WordWrap(message, rect).Length;
@@ -2350,8 +2501,8 @@ public sealed class MessageBox : Form
         textHeight = lines*font.LineSkip;
 
         height += textHeight + TitleBar.Height;
-        Size size = new Size(Math.Max(Math.Min(desktop.Width, btnWidth*3/2), textWidth+font.LineSkip*2), height);
-        SetBounds(new Point((desktop.Width-size.Width)/2, (desktop.Height-size.Height)/2), size, BoundsType.Absolute);
+        Size size = new Size(Math.Max(Math.Min(deskSize.Width, btnWidth*3/2), textWidth+font.LineSkip*2), height);
+        Bounds = new Rectangle(new Point((deskSize.Width-size.Width)/2, (deskSize.Height-size.Height)/2), size);
 
         label.Bounds = new Rectangle((ContentWidth-textWidth)/2, font.LineSkip, textWidth, textHeight);
         label.TextAlign = ContentAlignment.TopCenter;

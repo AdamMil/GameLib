@@ -39,7 +39,7 @@ class App
     Video.SetMode(640, 480, 32); // set 640x480x32bpp windowed mode
     WM.WindowTitle = "BasicVideo Example";
 
-    font = new TrueTypeFont(dataPath+"mstrr.ttf", 24); // load a font
+    font = new TrueTypeFont(dataPath+"vera.ttf", 16); // load a font
     font.RenderStyle = RenderStyle.Blended;
     font.Color = Color.Pink;
     smiley = new Surface(dataPath+"smiley.png"); // load a smiley face image

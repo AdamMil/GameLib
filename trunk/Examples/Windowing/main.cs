@@ -139,6 +139,25 @@ class SampleForm : Form
 }
 #endregion
 
+#region ControlsForm
+public class ControlsForm : Form
+{ public ControlsForm()
+  { Text = "Controls Form";
+    Size = new Size(320, 240);
+    Padding = new RectOffset(4);
+
+    #region Add Controls
+    ListBox list = new ListBox();
+    for(int i=1; i<=100; i++) list.Items.Add("Item "+i);
+    list.Size = new Size(75, 100);
+
+    Controls.AddRange(list);
+    TriggerLayout(true);
+    #endregion
+  }
+}
+#endregion
+
 class App
 { 
   #if DEBUG
@@ -152,7 +171,7 @@ class App
     SetMode(640, 480);
 
     #region Setup controls
-    { TrueTypeFont font = new TrueTypeFont(dataPath+"mstrr.ttf", 12);
+    { TrueTypeFont font = new TrueTypeFont(dataPath+"vera.ttf", 11);
       font.RenderStyle = RenderStyle.Shaded; // make the font look pretty
       desktop.Font = font; // set the default font
       desktop.KeyRepeatDelay = 350; // 350 ms delay before key repeat
@@ -160,9 +179,11 @@ class App
       Menu menu = new Menu("Menu", new KeyCombo(KeyMod.Alt, 'M'));
       menu.Add(new MenuItem("MessageBox", 'M', new KeyCombo(KeyMod.Ctrl, 'M')))
         .Click += new EventHandler(MessageBox_Click);
-      menu.Add(new MenuItem("Form", 'F', new KeyCombo(KeyMod.Ctrl, 'F')))
-        .Click += new EventHandler(Form_Click);
-      menu.Add(new MenuItem("Exit", 'X', new KeyCombo(KeyMod.Ctrl, 'X')))
+      menu.Add(new MenuItem("Form 1", 'F', new KeyCombo(KeyMod.Ctrl, 'F')))
+        .Click += new EventHandler(Form1_Click);
+      menu.Add(new MenuItem("Form 2", 'C', new KeyCombo(KeyMod.Ctrl, 'C')))
+        .Click += new EventHandler(Form2_Click);
+      menu.Add(new MenuItem("Exit", 'Q', new KeyCombo(KeyMod.Ctrl, 'Q')))
         .Click += new EventHandler(Exit_Click);
       desktop.Menu.Add(menu);
       
@@ -215,13 +236,19 @@ class App
                          "format the hard drive.");
   }
 
-  private static void Form_Click(object sender, EventArgs e)
-  { Random rand = new Random(); // place it randomly inside the desktop
-    SampleForm form = new SampleForm();
+  private static void Form1_Click(object sender, EventArgs e)
+  { SampleForm form = new SampleForm();
     form.Parent = desktop;
-    form.SetBounds(new Point(rand.Next(desktop.Width-form.Width),
-                             rand.Next(desktop.Height-form.Height)),
-                   form.Size, BoundsType.Absolute);
+
+    Random rand = new Random(); // place it randomly on the desktop
+    form.Location = new Point(rand.Next(desktop.ContentWidth-form.Width),
+                              rand.Next(desktop.ContentHeight-form.Height));
+  }
+
+  private static void Form2_Click(object sender, EventArgs e)
+  { ControlsForm form = new ControlsForm();
+    form.Parent   = desktop;
+    form.Location = new Point(10, 10);
   }
 
   static void Exit_Click(object sender, EventArgs e)

@@ -19,6 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // TODO: implement mouse cursor
 // TODO: add 'other control' to focus events?
 // TODO: do something so that slow painting/updating doesn't lag the entire windowing system
+// TODO: implement overlapping window support
 using System;
 using System.Collections;
 using System.Drawing;
@@ -116,6 +117,10 @@ public struct RectOffset
     rect.Y += Top;
     rect.Height -= Top+Bottom;
     return rect;
+  }
+
+  public override string ToString()
+  { return string.Format("{{Left={0} Top={1} Right={2} Bottom={3}}}", Left, Top, Right, Bottom);
   }
 
   /// <summary>The offset that will be applied to the left side of a rectangle.</summary>
@@ -351,23 +356,6 @@ public enum AnchorStyle
   All=TopLeft|BottomRight
 }
 
-/// <summary>This enum is used by <see cref="Control.SetBounds"/> to control how the new bounds will be treated.
-/// </summary>
-public enum BoundsType
-{ 
-  /// <summary>The specified bounds may be altered according to layout logic.</summary>
-  Normal,
-  /// <summary>The layout logic will be altered so that the new bounds come out the same as the specified
-  /// bounds. This differs from <see cref="Layout"/> in that future layouts will not move the control. This
-  /// allows the control to be placed even above docked areas. Note that this value requires the control to
-  /// have an existing parent for it to work properly. If it doesn't, it behaves the same as
-  /// <see cref="Normal"/>.
-  /// </summary>
-  Absolute,
-  /// <summary>No layout logic will be considered. The bounds will be used as-is.</summary>
-  Layout
-}
-
 /// <summary>
 /// This enum is generally used by derived controls to control how they will be treated by the
 /// <see cref="DesktopControl">Desktop</see>. The enumeration members can be ORed together to combine their effects.
@@ -397,7 +385,9 @@ public enum ControlStyle
   /// its window. Another use for backing surfaces is to create a semi-transparent window by using
   /// <see cref="Surface.SetSurfaceAlpha"/>.
   /// </summary>
-  BackingSurface=16
+  BackingSurface=16,
+  /// <summary>This flag indicates that the control should be skipped by layout code.</summary>
+  DontLayout=32,
 }
 
 /// <summary>
@@ -693,15 +683,15 @@ public class Control
   /// color. Reading this property will return the effective background color, after taking the default into account.
   /// </remarks>
   /// <value>The effective background color of this control.</value>
-  public Color BorderColor
+  public virtual Color BorderColor
   { get
-    { return borderColor==Color.Transparent ? (Focused ? SystemColors.ActiveBorder : SystemColors.InactiveBorder)
-                                            : borderColor;
+    { return borderColor==Color.Transparent ? Focused ? SystemColors.ActiveBorder : SystemColors.InactiveBorder :
+                                              borderColor;
     }
     set
     { Color old = BorderColor;
       borderColor = value;
-      if(value != old) Invalidate();
+      if(value!=old && BorderWidth>0) Invalidate();
     }
   }
 
@@ -740,7 +730,7 @@ public class Control
   /// <remarks>Changing this property will both move and resize the control.</remarks>
   public Rectangle Bounds
   { get { return bounds; }
-    set { SetBounds(value, BoundsType.Normal); }
+    set { SetBounds(value, false); }
   }
 
   /// <summary>This property is true if the control can receive focus.</summary>
@@ -786,7 +776,7 @@ public class Control
   /// <remarks>The content area of a control is the control's client area, minus the border and padding.
   /// However, a control can override <see cref="ContentRect"/> to alter the definition of the content area.
   /// </remarks>
-  public int ContentHeight { get { return ContentRect.Width; } }
+  public int ContentHeight { get { return ContentRect.Height; } }
 
   /// <summary>Gets the rectangle representing the content area, in control coordinates.</summary>
   /// <value>A <see cref="Rectangle"/> representing the content area.</value>
@@ -802,6 +792,13 @@ public class Control
     }
   }
   
+  /// <summary>Gets the size of the content area.</summary>
+  /// <value>The <see cref="Size"/> of the content area, in pixels.</value>
+  /// <remarks>The content area of a control is the control's client area, minus the border and padding.
+  /// However, a control can override <see cref="ContentRect"/> to alter the definition of the content area.
+  /// </remarks>
+  public Size ContentSize { get { return ContentRect.Size; } }
+
   /// <summary>Gets the width of the content area.</summary>
   /// <value>The width of the content area, in pixels.</value>
   /// <remarks>The content area of a control is the control's client area, minus the border and padding.
@@ -975,13 +972,7 @@ public class Control
   /// <remarks>Changing this property will resize the control.</remarks>
   public int Height
   { get { return bounds.Height; }
-    set
-    { if(value!=bounds.Height)
-      { Size s = bounds.Size;
-        s.Height = value;
-        Size = s;
-      }
-    }
+    set { if(value!=bounds.Height) Size = new Size(bounds.Width, value); }
   }
 
   /// <summary>Gets or sets the area of the control that must be painted.</summary>
@@ -1009,20 +1000,14 @@ public class Control
   /// <remarks>Changing this property will move the control.</remarks>
   public int Left
   { get { return bounds.X; }
-    set
-    { if(value!=bounds.X)
-      { Point p = bounds.Location;
-        p.X = value;
-        Location = p;
-      }
-    }
+    set { if(value!=bounds.X) { Location = new Point(value, bounds.Y); } }
   }
 
   /// <summary>Gets or sets the location of this control's top-left point, relative to its parent.</summary>
   /// <remarks>Changing this property will move the control.</remarks>
   public Point Location
   { get { return bounds.Location; }
-    set { SetBounds(value, bounds.Size, BoundsType.Normal); }
+    set { SetBounds(value, bounds.Size, false); }
   }
 
   /// <summary>Returns true if this is a modal control.</summary>
@@ -1177,7 +1162,7 @@ public class Control
   /// <remarks>Changing this control will resize the control.</remarks>
   public Size Size
   { get { return bounds.Size; }
-    set { SetBounds(bounds.Location, value, BoundsType.Normal); }
+    set { SetBounds(bounds.Location, value, false); }
   }
 
   /// <summary>Gets or sets this control's <see cref="ControlStyle"/>.</summary>
@@ -1239,13 +1224,7 @@ public class Control
   /// <remarks>Changing this property will move the control.</remarks>
   public int Top
   { get { return bounds.Top; }
-    set
-    { if(value!=bounds.Top)
-      { Point p = bounds.Location;
-        p.Y = value;
-        Location = p;
-      }
-    }
+    set { if(value!=bounds.Top) Location = new Point(bounds.X, value); }
   }
 
   /// <summary>Returns true if this is the topmost modal control.</summary>
@@ -1284,13 +1263,7 @@ public class Control
   /// <remarks>Changing this property will resize the control.</remarks>
   public int Width
   { get { return bounds.Width; }
-    set
-    { if(value!=bounds.Width)
-      { Size s = bounds.Size;
-        s.Width = value;
-        Size = s;
-      }
-    }
+    set { if(value!=bounds.Width) Size = new Size(value, bounds.Height); }
   }
 
   /// <summary>Gets a rectangle representing the client area of this control.</summary>
@@ -1474,72 +1447,76 @@ public class Control
   { return new Rectangle(ParentToWindow(parentRect.Location), parentRect.Size);
   }
 
+  /// <summary>Forces this control to lay out its children.</summary>
+  /// <param name="recursive">Determines whether the layout will recurse and lay out all descendents.
+  /// See <see cref="TriggerLayout(bool)"/> for more information.
+  /// </param>
+  public void PerformLayout(bool recursive)
+  { OnLayout(new LayoutEventArgs(recursive));
+  }
+
   /// <summary>Sets the <see cref="Bounds"/> property and performs layout logic.</summary>
   /// <param name="x">The new X coordinate of the left edge of the control.</param>
   /// <param name="y">The new Y coordinate of the top edge of the control.</param>
   /// <param name="width">The new width of the control.</param>
   /// <param name="height">The new height of the control.</param>
-  /// <param name="mode">A <see cref="BoundsType"/> that determines how the new bounds will be treated.</param>
-  /// <remarks>Calling this method is equivalent to calling <see cref="SetBounds(Rectangle,BoundsType)"/> and
+  /// <param name="absolute">Determines whether the coordinates will be affected by layout logic or not.</param>
+  /// <remarks>Calling this method is equivalent to calling <see cref="SetBounds(Rectangle,bool)"/> and
   /// using the <paramref name="x"/>, <paramref name="y"/>, <paramref name="width"/>, and <paramref name="height"/>
-  /// parameters to create a new rectangle. See <see cref="SetBounds(Rectangle,BoundsType)"/> for more
+  /// parameters to create a new rectangle. See <see cref="SetBounds(Rectangle,bool)"/> for more
   /// information on this method.
   /// </remarks>
-  public void SetBounds(int x, int y, int width, int height, BoundsType mode)
-  { SetBounds(new Rectangle(x, y, width, height), mode);
+  public void SetBounds(int x, int y, int width, int height, bool absolute)
+  { SetBounds(new Rectangle(x, y, width, height), absolute);
   }
 
   /// <summary>Sets the <see cref="Bounds"/> property and performs layout logic.</summary>
   /// <param name="location">The new location of the control.</param>
   /// <param name="size">The new size of the control.</param>
-  /// <param name="mode">A <see cref="BoundsType"/> that determines how the new bounds will be treated.</param>
-  /// <remarks>Calling this method is equivalent to calling <see cref="SetBounds(Rectangle,BoundsType)"/> and
+  /// <param name="absolute">Determines whether the coordinates will be affected by layout logic or not.</param>
+  /// <remarks>Calling this method is equivalent to calling <see cref="SetBounds(Rectangle,bool)"/> and
   /// using the <paramref name="location"/> and <paramref name="size"/> parameters to create a new rectangle.
-  /// See <see cref="SetBounds(Rectangle,BoundsType)"/> for more information on this method.
-  /// <seealso cref="SetBounds(Rectangle,BoundsType)"/>
+  /// See <see cref="SetBounds(Rectangle,bool)"/> for more information on this method.
   /// </remarks>
-  public void SetBounds(Point location, Size size, BoundsType mode)
-  { SetBounds(new Rectangle(location, size), mode);
+  public void SetBounds(Point location, Size size, bool absolute)
+  { SetBounds(new Rectangle(location, size), absolute);
   }
 
   /// <summary>Sets the <see cref="Bounds"/> property and performs layout logic.</summary>
   /// <param name="newBounds">The new control boundaries.</param>
-  /// <param name="mode">A <see cref="BoundsType"/> that determines how <paramref name="newBounds"/> will be treated.
-  /// </param>
-  /// <remarks>This method is used to set the bounds of a control and perform operations that need to execute
-  /// whenever the bounds change. If <paramref name="mode"/> is <see cref="BoundsType.Normal"/>,
-  /// <paramref name="newBounds"/> may be modified due to layout logic. If it's <see cref="BoundsType.Absolute"/>,
-  /// <paramref name="newBounds"/> is used as-is and the anchor is updated so that it won't be moved by future
-  /// layouts. If it's <see cref="BoundsType.Layout"/>, <paramref name="newBounds"/> is used as-is and no layout
-  /// logic is executed. This method is also responsible for calling <see cref="OnLocationChanged"/> and
+  /// <param name="absolute">Determines whether the coordinates will be affected by layout logic or not.</param>
+  /// <remarks><para>This method is used to set the bounds of a control and perform operations that need to execute
+  /// whenever the bounds change.</para>
+  /// <para>If <paramref name="absolute"/> is true, <paramref name="newBounds"/> will be used as-is and no layout
+  /// logic will be taken into account. Otherwise, <paramref name="newBounds"/> may be modified by layout code, and
+  /// the anchor will be updated to reflect the new position. Note that using absolute coordinates does not prevent
+  /// later layout logic from altering the control's position. If you want to place a control without having it
+  /// affected by layout logic in the future, give it the <see cref="ControlStyle.DontLayout"/> control style.</para>
+  /// <para>This method is also responsible for calling <see cref="OnLocationChanged"/> and
   /// <see cref="OnSizeChanged"/> as necessary. Overriders should implement their version by calling this base
-  /// method.
-  /// <seealso cref="BoundsType"/>
+  /// method.</para>
   /// </remarks>
-  public virtual void SetBounds(Rectangle newBounds, BoundsType mode)
-  { if(mode!=BoundsType.Layout)
+  public virtual void SetBounds(Rectangle newBounds, bool absolute)
+  { if(!absolute)
     { preLayoutBounds = newBounds;
       anchorSpace.Width  += newBounds.Width  - bounds.Width;
       anchorSpace.Height += newBounds.Height - bounds.Height;
-      if(parent!=null)
-      { if(dock!=DockStyle.None)
-        { // TODO: do docking more efficiently
-          if(parent!=null) parent.TriggerLayout();
-        }
-        else if(mode==BoundsType.Normal)
-        { int left=preLayoutBounds.Left-parent.anchorSpace.Left, top=preLayoutBounds.Top-parent.anchorSpace.Top;
-          anchorOffsets = new Rectangle(left, top, parent.anchorSpace.Right-preLayoutBounds.Right-left,
-                                        parent.anchorSpace.Bottom-preLayoutBounds.Bottom-top);
-          DoAnchor();
-          return;
-        }
+      if(parent!=null && !HasStyle(ControlStyle.DontLayout))
+      { if(dock!=DockStyle.None) parent.TriggerLayout(); // TODO: do docking more efficiently if possible
         else
-        { int left=newBounds.Left-parent.anchorSpace.Left, top=newBounds.Top-parent.anchorSpace.Top;
-          anchorOffsets = new Rectangle(left, top, parent.anchorSpace.Right-newBounds.Right-left,
-                                        parent.anchorSpace.Bottom-newBounds.Bottom-top);
+        { // TODO: the calls to Max() below will prevent a control from going outside of the anchor area (at
+          // least to the upper-left). this might not be so bad... but we should allow it once we have
+          // overlapping window support
+          anchorOffsets = new RectOffset(Math.Max(preLayoutBounds.Left-parent.anchorSpace.Left, 0),
+                                         Math.Max(preLayoutBounds.Top-parent.anchorSpace.Top, 0),
+                                         Math.Max(parent.anchorSpace.Right-preLayoutBounds.Right, 0),
+                                         Math.Max(parent.anchorSpace.Bottom-preLayoutBounds.Bottom, 0));
+          DoAnchor(); // calls SetBounds() recursively (with absolute==true), so we return immediately
+          return;
         }
       }
     }
+
     if(bounds!=newBounds)
     { ValueChangedEventArgs e = new ValueChangedEventArgs(null);
       if(newBounds.Location!=bounds.Location)
@@ -1885,7 +1862,7 @@ public class Control
   { if(EnabledChanged!=null) EnabledChanged(this, e);
     if(Enabled != (bool)e.OldValue)
     { if(!Enabled) Blur();
-      Invalidate();
+      Invalidate(); // TODO: there are a whole bunch of these. should we remove them and make children Invalidate() themselves if they care about the particular value that changed?
       foreach(Control c in controls) c.OnParentEnabledChanged(e);
     }
   }
@@ -2096,12 +2073,12 @@ public class Control
   /// end of the derived version.
   /// </remarks>
   protected virtual void OnControlAdded(ControlEventArgs e)
-  { if(e.Control.Dock==DockStyle.None) e.Control.SetBounds(e.Control.bounds, BoundsType.Normal);
+  { if(e.Control.Dock==DockStyle.None) e.Control.SetBounds(e.Control.bounds, false);
     else
     { Control c = e.Control;
       switch(c.Dock)
-      { case DockStyle.Top:  case DockStyle.Bottom: c.SetBounds(c.Left, c.Top, 0, c.Height, BoundsType.Normal); break;
-        case DockStyle.Left: case DockStyle.Right:  c.SetBounds(c.Left, c.Top, c.Width, 0, BoundsType.Normal); break; 
+      { case DockStyle.Top:  case DockStyle.Bottom: c.SetBounds(c.Left, c.Top, 0, c.Height, false); break;
+        case DockStyle.Left: case DockStyle.Right:  c.SetBounds(c.Left, c.Top, c.Width, 0, false); break; 
       }
     }
     if(ControlAdded!=null) ControlAdded(this, e);
@@ -2227,7 +2204,7 @@ public class Control
       backImage.Blit(e.Surface, at.X, at.Y);
     }
     if(border!=BorderStyle.None && (dontDraw&DontDraw.Border)==0)
-      Helpers.DrawBorder(e.Surface, DrawRect, border, borderColor);
+      Helpers.DrawBorder(e.Surface, DrawRect, border, BorderColor);
   }
 
   /// <summary>Called when the parent's <see cref="BackColor"/> property changes.</summary>
@@ -2405,21 +2382,21 @@ public class Control
   internal void DoAnchor()
   { Rectangle newBounds=preLayoutBounds, avail=parent.anchorSpace;
 
-    if((anchor&AnchorStyle.LeftRight)==AnchorStyle.LeftRight)
-    { newBounds.X = avail.X+anchorOffsets.Left;
-      newBounds.Width = avail.Width-anchorOffsets.Left-anchorOffsets.Right;
+    if((anchor&AnchorStyle.LeftRight)==AnchorStyle.LeftRight) // LeftRight
+    { newBounds.X     = avail.X+anchorOffsets.Left;
+      newBounds.Width = avail.Width-anchorOffsets.Horizontal;
     }
-    else if((anchor&AnchorStyle.Right)!=0) newBounds.X = avail.Right-anchorOffsets.Right-newBounds.Width;
-    else newBounds.X = avail.X+anchorOffsets.Left;
+    else if((anchor&AnchorStyle.Right)!=0) newBounds.X = avail.Right-anchorOffsets.Right-newBounds.Width; // Right
+    else newBounds.X = avail.X+anchorOffsets.Left; // Left (default)
 
-    if((anchor&AnchorStyle.TopBottom)==AnchorStyle.TopBottom)
-    { newBounds.Y = avail.Y+anchorOffsets.Top;
-      newBounds.Height = avail.Height-anchorOffsets.Top-anchorOffsets.Bottom;
+    if((anchor&AnchorStyle.TopBottom)==AnchorStyle.TopBottom) // TopBottom
+    { newBounds.Y      = avail.Y+anchorOffsets.Top;
+      newBounds.Height = avail.Height-anchorOffsets.Vertical;
     }
-    else if((anchor&AnchorStyle.Bottom)!=0) newBounds.Y = avail.Bottom-anchorOffsets.Bottom-newBounds.Height;
-    else newBounds.Y = avail.Y+anchorOffsets.Top;
+    else if((anchor&AnchorStyle.Bottom)!=0) newBounds.Y = avail.Bottom-anchorOffsets.Bottom-newBounds.Height; // Bottom
+    else newBounds.Y = avail.Y+anchorOffsets.Top; // Top (default)
 
-    SetBounds(newBounds, BoundsType.Layout);
+    SetBounds(newBounds, true);
   }
 
   internal void SetParent(Control control)
@@ -2503,8 +2480,8 @@ public class Control
   string name=string.Empty, text=string.Empty;
   object tag;
   Rectangle bounds = new Rectangle(0, 0, 100, 100), invalid;
-  Rectangle anchorSpace = new Rectangle(0, 0, 100, 100), anchorOffsets, preLayoutBounds;
-  RectOffset padding;
+  Rectangle anchorSpace = new Rectangle(0, 0, 100, 100), preLayoutBounds;
+  RectOffset padding, anchorOffsets;
   int tabIndex=-1, dragThreshold=-1;
   ControlStyle style;
   AnchorStyle  anchor=AnchorStyle.TopLeft;
@@ -3028,7 +3005,7 @@ public class DesktopControl : ContainerControl, IDisposable
   { if(updatedLen>0)
     { if(surface==null) throw new InvalidOperationException("Cannot update the display when Surface is null!");
       if(surface==Video.Video.DisplaySurface)
-      { for(int i=0; i<updated.Length; i++) updated[i].Intersect(surface.Bounds);
+      { for(int i=0; i<updatedLen; i++) updated[i].Intersect(surface.Bounds);
         Video.Video.UpdateRects(updated, 0, updatedLen);
       }
       else if(Video.Video.DisplaySurface==null) throw new InvalidOperationException("No video mode has been set!");
@@ -3163,8 +3140,12 @@ public class DesktopControl : ContainerControl, IDisposable
       control.OnPaint(pe);
       pe.Surface.ClipRect = pe.Surface.Bounds;
 
+      // propogate changes to the desktop's surface if we need to
+      // we skip translucent controls because their Invalidate() call simply invalidates the given area of the
+      // parent control
       if(control.backingSurface!=null || pe.Surface!=surface && !control.Transparent)
       { Point pt = control.WindowToDisplay(pe.WindowRect.Location);
+surface.ClipRect = surface.Bounds; // FIXME: the cliprect is getting messed up somewhere. in a C library?? where?
         pe.Surface.Blit(surface, pe.DisplayRect, pt);
         pe.DisplayRect.Location = pt;
       }
