@@ -9,3 +9,4 @@
 * create patch against libsndfile for easy updating
 * all the TODOs everywhere in the code!
 * Add "real" support for overlapping windows in the windowing code
++ Add more checks and assertions wrapped in #if DEBUG regions
