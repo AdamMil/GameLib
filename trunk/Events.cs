@@ -48,8 +48,15 @@ public class KeyboardEvent : Event
     Scan = evt.Key.Scan;
     Down = evt.Down!=0;
   }
-  public bool HasAnyMod (Input.KeyMod mod) { return (Mods&mod)!=Input.KeyMod.None; }
-  public bool HasAllMods(Input.KeyMod mod) { return (Mods&mod)==mod; }
+  public bool HasAnyMod  (Input.KeyMod mod) { return (Mods&mod)!=Input.KeyMod.None; }
+  public bool HasAllMods (Input.KeyMod mod) { return (Mods&mod)==mod; }
+  public bool HasAllKeys (Input.KeyMod mod) { return (KeyMods&mod)==mod; }
+  public bool HasOnlyKeys(Input.KeyMod mod)
+  { Input.KeyMod mods = KeyMods;
+    return (mods&mod)!=Input.KeyMod.None && (mods&~mod)==Input.KeyMod.None;
+  }
+  public Input.KeyMod KeyMods    { get { return Mods&Input.KeyMod.KeyMask; } }
+  public Input.KeyMod StatusMods { get { return Mods&Input.KeyMod.StatusMask; } }
 
   public Input.Key    Key;
   public Input.KeyMod Mods;

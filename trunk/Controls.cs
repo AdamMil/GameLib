@@ -9,6 +9,8 @@ using GameLib.Video;
 namespace GameLib.Forms
 {
 
+public enum BorderStyle { None, Flat, ThreeDimensional };
+
 #region ContainerControl
 public class ContainerControl : Control
 { protected internal override void OnPaint(PaintEventArgs e)
@@ -464,9 +466,10 @@ public class ScrollBarBase : Control
   }
   
   protected void RepeatClick(object dummy)
-  { if(repeatEvent!=null) { Events.Events.PushEvent(repeatEvent); repeated=true; }
+  { ClickRepeat rc = repeatEvent;
+    if(rc!=null) { Events.Events.PushEvent(rc); repeated=true; }
   }
-  
+
   protected ThumbEventArgs thumbArgs = new ThumbEventArgs();
   protected EventArgs eventArgs = new EventArgs();
   protected ValueChangedEventArgs valChange = new ValueChangedEventArgs(0);
@@ -510,6 +513,251 @@ public class ScrollBar : ScrollBarBase // TODO: replace with image-based scrollb
     rect.Inflate(-1, -1);
     e.Surface.Fill(rect, ForeColor);
   }
+}
+#endregion
+
+#region TextBoxBase
+// TODO: support multi-line edit controls
+public class TextBoxBase : Control
+{ public TextBoxBase() { Style=ControlStyle.CanFocus; }
+  static TextBoxBase() { CaretFlashRate=600; }
+
+  #region Properties
+  public int CaretPosition
+  { get { return caret; }
+    set
+    { if(value!=caret)
+      { if(value<0 || value>Text.Length) throw new ArgumentOutOfRangeException("CaretPosition");
+        ValueChangedEventArgs e = new ValueChangedEventArgs(caret);
+        caret = value;
+        OnCaretPositionChanged(e);
+      }
+    }
+  }
+
+  public bool HideSelection
+  { get { return hideSelection; }
+    set
+    { hideSelection=value;
+      if(value && !Focused) Invalidate();
+    }
+  }
+
+  public string[] Lines
+  { get { return Text.Split('\n'); }
+    set { Text=string.Join("\n", value); }
+  }
+
+  public int MaxLength
+  { get { return maxLength; }
+    set
+    { if(maxLength<-1) throw new ArgumentOutOfRangeException("MaxLength", value, "must be >= -1");
+      maxLength = MaxLength;
+      if(maxLength>Text.Length) Text = Text.Substring(0, maxLength);
+    }
+  }
+
+  public bool Modified
+  { get { return modified; }
+    set
+    { if(value!=modified)
+      { modified=value;
+        OnModifiedChanged(new EventArgs());
+      }
+    }
+  }
+
+  public bool MultiLine
+  { get { return false; }
+    set { if(value) throw new NotImplementedException("MultiLine text boxes not implemented"); }
+  }
+
+  public int SelectionStart
+  { get { return selectStart; }
+    set
+    { if(value!=selectStart)
+      { if(value<0 || value>=Text.Length) throw new ArgumentOutOfRangeException("SelectionStart");
+        selectStart = value;
+        if(selectStart+selectLen>Text.Length) selectLen = Text.Length-selectStart;
+        if(Focused || !hideSelection) Invalidate();
+      }
+    }
+  }
+
+  public int SelectionLength
+  { get { return selectLen; }
+    set
+    { if(value!=selectLen)
+      { if(value<0 || value>Text.Length) throw new ArgumentOutOfRangeException("SelectionLength");
+        selectLen = value;
+        if(Focused || !hideSelection) Invalidate();
+      }
+    }
+  }
+  
+  public string SelectedText
+  { get { return Text.Substring(selectStart, selectLen); }
+    set
+    { if(value==null) throw new ArgumentNullException("SelectedText");
+      int selectEnd = selectStart+selectLen;
+      selectLen = value.Length;
+      Text = Text.Substring(0, selectStart) + value + Text.Substring(selectEnd, Text.Length-selectEnd);
+    }
+  }
+
+  public bool WordWrap { get { return wordWrap; } set { wordWrap=value; } }
+  #endregion
+  
+  #region Events
+  public event EventHandler ModifiedChanged;
+  protected virtual void OnModifiedChanged(EventArgs e) { if(ModifiedChanged!=null) ModifiedChanged(this, e); }
+  protected virtual void OnCaretPositionChanged(ValueChangedEventArgs e) { }
+  protected virtual void OnCaretFlash() { }
+  
+  protected internal override void OnKeyPress(KeyEventArgs e)
+  { if(e.KE.Char>=32)
+    { if(maxLength==-1 || Text.Length<maxLength) { Modified=true; InsertText(e.KE.Char.ToString()); }
+      e.Handled=true;
+    }
+    base.OnKeyPress(e);
+  }
+  
+  protected internal override void OnKeyDown(KeyEventArgs e)
+  { if(e.KE.Key==Input.Key.Left)
+    { if(caret>0)
+      { if(e.KE.KeyMods==Input.KeyMod.None) { CaretPosition--; e.Handled=true; }
+        else if(e.KE.HasOnlyKeys(Input.KeyMod.Shift))
+        { if(caret<selectStart) Select(selectStart-1, selectLen+1);
+          else Select(selectStart, selectLen-1);
+          e.Handled=true;
+        }
+      }
+    }
+    else if(e.KE.Key==Input.Key.Right)
+    { if(caret>0)
+      { if(e.KE.KeyMods==Input.KeyMod.None) { CaretPosition--; e.Handled=true; }
+        else if(e.KE.HasOnlyKeys(Input.KeyMod.Shift))
+        { if(caret<selectStart) Select(selectStart-1, selectLen+1);
+          else Select(selectStart, selectLen-1);
+          e.Handled=true;
+        }
+      }
+    }
+    else if(e.KE.Key==Input.Key.Backspace)
+    { if(e.KE.KeyMods==Input.KeyMod.None)
+      { if(caret>0)
+        { Modified=true;
+          CaretPosition--;
+          Text = Text.Substring(0, caret) + Text.Substring(caret+1, Text.Length-caret-1);
+          e.Handled=true;
+        }
+      }
+    }
+    else if(e.KE.Key==Input.Key.Home)
+    { if(e.KE.KeyMods==Input.KeyMod.None) { CaretPosition=0; e.Handled=true; }
+    }
+    else if(e.KE.Key==Input.Key.End)
+    { if(e.KE.KeyMods==Input.KeyMod.None) { CaretPosition=Text.Length; e.Handled=true; }
+    }
+    else if(e.KE.HasOnlyKeys(Input.KeyMod.Ctrl) && (e.KE.Key==Input.Key.C || e.KE.Key==Input.Key.Insert))
+    { Copy();
+      e.Handled=true;
+    }
+    else if(e.KE.Key==Input.Key.X      && e.KE.HasOnlyKeys(Input.KeyMod.Ctrl) ||
+            e.KE.Key==Input.Key.Delete && e.KE.HasOnlyKeys(Input.KeyMod.Shift))
+    { if(selectLen>0) Modified=true;
+      Cut();
+      e.Handled=true;
+    }
+    else if(e.KE.Key==Input.Key.V      && e.KE.HasOnlyKeys(Input.KeyMod.Ctrl) ||
+            e.KE.Key==Input.Key.Insert && e.KE.HasOnlyKeys(Input.KeyMod.Shift))
+    { if(maxLength==-1 || Text.Length<maxLength)
+      { Modified=true;
+        if(maxLength==-1) Paste();
+        else
+        { int avail=maxLength-Text.Length;
+          InsertText(clipboard.Length>avail ? clipboard.Substring(0, avail) : clipboard);
+        }
+      }
+      e.Handled=true;
+    }
+  }
+  #endregion
+
+  #region Methods
+  public void AppendText(string text) { Text+=text; }
+  // TODO: implement a better clipboard (GameLib.Forms-wide?)
+  public void Copy()  { clipboard=SelectedText; }
+  public void Cut()   { clipboard=SelectedText; SelectedText=""; }
+  public void Paste() { InsertText(clipboard); }
+
+  public void InsertText(string text)
+  { if(selectLen>0) SelectedText=text;
+    else if(text.Length>0)
+    { Text = Text.Substring(0, caret) + text + Text.Substring(caret, Text.Length-caret);
+      CaretPosition += text.Length;
+    }
+  }
+
+  public void ScrollToCaret() { }
+
+  public void Select(int start, int length) { SelectionStart=start; SelectionLength=length; }
+  public void SelectAll() { SelectionStart=0; SelectionLength=Text.Length; }
+  #endregion
+  
+  int  caret, maxLength=-1, selectStart, selectLen;
+  bool hideSelection, modified, wordWrap;
+
+  #region Statics
+  public static int CaretFlashRate
+  { get { return flashRate; }
+    set
+    { if(value!=flashRate)
+      { flashRate=value;
+        if(value==0)
+        { if(caretTimer!=null)
+          { caretTimer.Change(System.Threading.Timeout.Infinite, System.Threading.Timeout.Infinite);
+            caretTimer.Dispose();
+            caretTimer=null;
+          }
+        }
+        else if(caretTimer!=null) caretTimer.Change(flashRate/2, flashRate);
+        else caretTimer = new System.Threading.Timer(new System.Threading.TimerCallback(CaretFlash), null,
+                                                     flashRate/2, flashRate);
+      }
+    }
+  }
+
+  protected static bool CaretOn { get { return caretOn; } set { caretOn=value; } }
+
+  static TextBoxBase WithCaret
+  { get { return withCaret; }
+    set
+    { if(withCaret!=value)
+      { if(withCaret!=null && caretOn) { caretOn=false; withCaret.OnCaretFlash(); caretOn=true; }
+        withCaret=value;
+      }
+    }
+  }
+
+  static void CaretFlash(object dummy)
+  { caretOn = !caretOn;
+    TextBoxBase tb = withCaret;
+    if(tb!=null) tb.OnCaretFlash();
+  }
+  
+  static System.Threading.Timer caretTimer;
+  static TextBoxBase withCaret;
+  static string clipboard = string.Empty;
+  static int flashRate;
+  static bool caretOn;
+  #endregion
+}
+#endregion
+
+#region TextBox
+public class TextBox : TextBoxBase
+{ 
 }
 #endregion
 

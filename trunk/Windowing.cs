@@ -54,13 +54,13 @@ public delegate void ClickEventHandler(object sender, ClickEventArgs e);
 public delegate void MouseMoveEventHandler(object sender, MouseMoveEvent e);
 #endregion
 
+#region Control class
 [Flags]
 public enum ControlStyle
 { None=0, Clickable=1, DoubleClickable=2, Draggable=4, CanFocus=8,
   NormalClick=Clickable|DoubleClickable, Anyclick=NormalClick|Draggable,
 }
 
-#region Control class
 public class Control
 { public Control() { controls = new ControlCollection(this); }
 
@@ -125,6 +125,8 @@ public class Control
   #endregion
 
   #region Properties
+  public bool AcceptsTab { get { return acceptsTab; } set { acceptsTab=value; } }
+
   public Color BackColor
   { get { return back; }
     set
@@ -549,6 +551,7 @@ public class Control
   public event DragEventHandler DragStart, DragMove, DragEnd;
   public event PaintEventHandler PaintBackground, Paint;
   
+  // TODO: should these be triggered if our back-color is transparent and an ancestor's is changed?
   protected virtual void OnBackColorChanged(ValueChangedEventArgs e)
   { if(BackColorChanged!=null) BackColorChanged(this, e);
     Invalidate();
@@ -744,7 +747,7 @@ public class Control
   object tag;
   int tabIndex=-1;
   ControlStyle style;
-  bool enabled=true, visible=true, mychange, keyPreview;
+  bool enabled=true, visible=true, mychange, keyPreview, acceptsTab;
 }
 #endregion
 
@@ -759,7 +762,9 @@ public class DesktopControl : ContainerControl
 
   #region Properties
   public AutoFocus AutoFocusing { get { return focus; } set { focus=value; } }
+
   public uint DoubleClickDelay  { get { return dcDelay; } set { dcDelay=value; } }
+
   public int DragThreshold
   { get { return dragThresh; }
     set
@@ -767,6 +772,7 @@ public class DesktopControl : ContainerControl
       dragThresh=value;
     }
   }
+
   public uint KeyRepeatDelay
   { get { return krDelay; }
     set
@@ -783,6 +789,7 @@ public class DesktopControl : ContainerControl
       }
     }
   }
+
   public uint KeyRepeatRate
   { get { return krRate; }
     set
@@ -791,6 +798,7 @@ public class DesktopControl : ContainerControl
       if(krTimer!=null) krTimer.Change(krRate, krRate);
     }
   }
+
   public bool ProcessKeys      { get { return keys; } set { keys=value; } }
   public bool ProcessMouseMove { get { return moves; } set { moves=value; } }
   public bool ProcessClicks    { get { return clicks; } set { clicks=value; } }
@@ -804,13 +812,22 @@ public class DesktopControl : ContainerControl
       }
     }
   }
+
   public Input.Key TabCharacter { get { return tab; } set { tab=value; } }
+
+  public bool TrackUpdates
+  { get { return trackUpdates; }
+    set
+    { trackUpdates=value;
+      if(!value) updatedLen=0;
+    }
+  }
   public bool Updated
   { get { return updatedLen>0; }
     set { if(value) Invalidate(); else updatedLen=0; }
   }
   public int UpdatedLength { get { return updatedLen; } }
-  public Rectangle[] UpdatedRects { get { return updated; } }
+  public Rectangle[] UpdatedAreas { get { return updated; } }
   #endregion
 
   public void DoPaint() { DoPaint(this); }
@@ -821,22 +838,24 @@ public class DesktopControl : ContainerControl
       child.OnPaint(pe);
 
       // TODO: combine rectangles more efficiently
-      int i;
-      for(i=0; i<updatedLen; i++)
-      { if(updated[i].Contains(pe.DisplayRect)) return;
-        retest:
-        if(pe.DisplayRect.Contains(updated[i]) && --updatedLen != i)
-        { updated[i] = updated[updatedLen];
-          goto retest;
+      if(trackUpdates)
+      { int i;
+        for(i=0; i<updatedLen; i++)
+        { if(updated[i].Contains(pe.DisplayRect)) return;
+          retest:
+          if(pe.DisplayRect.Contains(updated[i]) && --updatedLen != i)
+          { updated[i] = updated[updatedLen];
+            goto retest;
+          }
         }
-      }
-      if(i>=updatedLen)
-      { if(updatedLen==updated.Length)
-        { Rectangle[] narr = new Rectangle[updated.Length*2];
-          Array.Copy(narr, updated, updated.Length);
-          updated = narr;
+        if(i>=updatedLen)
+        { if(updatedLen==updated.Length)
+          { Rectangle[] narr = new Rectangle[updated.Length*2];
+            Array.Copy(narr, updated, updated.Length);
+            updated = narr;
+          }
+          updated[updatedLen++] = pe.DisplayRect;
         }
-        updated[updatedLen++] = pe.DisplayRect;
       }
     }
   }
@@ -1068,16 +1087,16 @@ public class DesktopControl : ContainerControl
 
   protected bool DispatchKeyToFocused(KeyEventArgs e)
   { if(e.Handled) return false;
-    if(FocusedControl!=null)
-    { Control fc = FocusedControl;
-      while(fc.FocusedControl!=null)
+    Control fc=FocusedControl;
+    if(fc!=null)
+    { while(fc.FocusedControl!=null)
       { if(fc.KeyPreview && !DispatchKeyEvent(fc, e)) goto done;
         fc = fc.FocusedControl;
       }
-      if(!DispatchKeyEvent(fc, e)) return false;
+      if(!DispatchKeyEvent(fc, e)) goto done;
     }
     done:
-    if(e.KE.Down && e.KE.Key==tab) TabToNext(e.KE.HasAnyMod(Input.KeyMod.Shift));
+    if(e.KE.Down && e.KE.Key==tab && (!e.Handled || !fc.AcceptsTab)) TabToNext(e.KE.HasAnyMod(Input.KeyMod.Shift));
     return !e.Handled;
   }
   #endregion
@@ -1104,7 +1123,7 @@ public class DesktopControl : ContainerControl
   protected ClickStatus clickStatus;
   protected int   dragThresh=16, enteredLen, updatedLen;
   protected uint  dcDelay=350, krDelay, krRate=50;
-  protected bool  keys=true, clicks=true, moves=true, active, init, dragStarted;
+  protected bool  keys=true, clicks=true, moves=true, active, init, dragStarted, trackUpdates;
   
   void Init()
   { Events.Events.Initialize();
