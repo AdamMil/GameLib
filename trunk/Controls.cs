@@ -913,6 +913,11 @@ public abstract class TextBoxBase : Control
     }
     else if(c=='A'-64 && e.KE.HasOnlyKeys(KeyMod.Ctrl)) { SelectAll(); e.Handled=true; }
   }
+
+  protected internal override void OnCustomEvent(GameLib.Events.WindowEvent e)
+  { if(e is CaretFlashEvent) OnCaretFlash();
+    base.OnCustomEvent(e);
+  }
   #endregion
 
   #region Methods
@@ -937,6 +942,8 @@ public abstract class TextBoxBase : Control
   #endregion
   
   protected bool HasCaret { get { return withCaret==this && Focused; } }
+
+  class CaretFlashEvent : Events.WindowEvent { public CaretFlashEvent(TextBoxBase tb) : base(tb) { } }
 
   int CtrlScan(int dir)
   { // skip whitespace
@@ -984,9 +991,9 @@ public abstract class TextBoxBase : Control
   { get { return withCaret; }
     set
     { if(withCaret!=value)
-      { if(withCaret!=null) { caretOn=false; withCaret.OnCaretFlash(); }
+      { if(withCaret!=null) withCaret.Invalidate();
         withCaret=value;
-        if(withCaret!=null) { caretOn=true; withCaret.OnCaretFlash(); }
+        if(withCaret!=null) { caretOn=true; DoFlash(withCaret); }
       }
     }
   }
@@ -994,8 +1001,10 @@ public abstract class TextBoxBase : Control
   static void CaretFlash(object dummy)
   { caretOn = !caretOn;
     TextBoxBase tb = withCaret;
-    if(tb!=null && tb.HasCaret) tb.OnCaretFlash();
+    if(tb!=null && tb.HasCaret) DoFlash(tb);
   }
+  
+  static void DoFlash(TextBoxBase tb) { Events.Events.PushEvent(new CaretFlashEvent(tb)); }
   
   static System.Threading.Timer caretTimer;
   static TextBoxBase withCaret;
