@@ -24,14 +24,7 @@ namespace GameLib.Input
 {
 
 #region Types
-public class MouseButton
-{ private MouseButton() { }
-  public const byte Left      =0;
-  public const byte Middle    =1;
-  public const byte Right     =2;
-  public const byte WheelUp   =3;
-  public const byte WheelDown =4;
-}
+public enum MouseButton : byte { Left=0, Middle=1, Right=2, WheelUp=3, WheelDown=4 }
 
 #region Key enum
 public enum Key : int
@@ -387,17 +380,26 @@ public sealed class Mouse
   public static event MouseMoveHandler  MouseMove;
   public static event MouseClickHandler MouseClick;
 
-  public static int X { get { return x; } }
-  public static int Y { get { return y; } }
-  public static System.Drawing.Point Point { get { return new System.Drawing.Point(x, y); } }
+  public static System.Drawing.Point Point
+  { get { return new System.Drawing.Point(x, y); }
+    set { x=value.X; y=value.Y; }
+  }
+  public static int X { get { return x; } set { x=value; } }
+  public static int Y { get { return y; } set { y=value; } }
+  public static int Z { get { return z; } set { z=value; } }
   
   public static bool SystemCursorVisible
   { get { return cursorVisible; }
     set { SDL.ShowCursor(value?1:0); cursorVisible=(SDL.ShowCursor(-1)!=0); }
   }
 
-  public static byte Buttons { get { return buttons; } }
-  public static bool Pressed(int button) { return (buttons&(1<<button))!=0; }
+  public static byte Buttons { get { return buttons; } set { buttons=value; } }
+  public static bool OnlyPressed(MouseButton button) { return buttons==(byte)button; }
+  public static bool Pressed(MouseButton button) { return (buttons&(1<<(byte)button))!=0; }
+  public static void SetPressed(MouseButton button, bool down)
+  { if(down) buttons |= (byte)(1<<(byte)button);
+    else buttons &= (byte)~(1<<(byte)button);
+  }
 
   internal static void Initialize()
   { unsafe
@@ -413,12 +415,14 @@ public sealed class Mouse
     if(MouseMove!=null) MouseMove(e);
   }
   internal static void OnMouseClick(MouseClickEvent e)
-  { if(e.Down) buttons |= (byte)(1<<e.Button);
-    else buttons &= (byte)~(1<<e.Button);
+  { if(e.Down) buttons |= (byte)(1<<(byte)e.Button);
+    else buttons &= (byte)~(1<<(byte)e.Button);
+    if(e.Button==MouseButton.WheelUp) z--;
+    else if(e.Button==MouseButton.WheelDown) z++;
     if(MouseClick!=null) MouseClick(e);
   }
 
-  static int  x, y;
+  static int  x, y, z;
   static byte buttons;
   static bool cursorVisible;
 }
