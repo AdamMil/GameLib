@@ -75,7 +75,6 @@ public abstract class Font
   public virtual int[] WordWrap(string text, Rectangle rect, int startx, int starty, char[] breakers)
   { if(text.Length==0) return new int[0];
 
-    // FIXME: take offsets into account
     ArrayList list = new ArrayList();
     int x=rect.X+startx, start=0, end=0, pend, length=0, plen=0, height=LineSkip;
     int rwidth=rect.Width-startx, rheight=rect.Height-starty;
@@ -84,46 +83,39 @@ public abstract class Font
     while(true)
     { for(pend=end; end<text.Length; end++)
       { char c=text[end];
-        for(int i=0; i<breakers.Length; i++)
-          if(c==breakers[i])
-          { plen = length;
-            end++;
-            length += CalculateSize(text.Substring(pend, end-pend)).Width;
-            goto extended;
-          }
+        for(int i=0; i<breakers.Length; i++) if(c==breakers[i]) { end++; goto extend; }
       }
-      extended:
+      extend:
+      plen    = length;
+      length += CalculateSize(text.Substring(pend, end-pend)).Width;
+
       if(length>rwidth)
-      { if(pend==start)
-        { for(length=plen; pend<end; pend++)
+      { height += LineSkip;
+        if(pend==start)
+        { if(rwidth<rect.Width)
+          { if(height>=rheight) break;
+            end=pend; length=plen; list.Add(0); goto cont;
+          }
+          for(length=plen; pend<end; pend++)
           { length += CalculateSize(text[pend].ToString()).Width;
-            if(length>rect.Width) break;
+            if(length>rwidth) break;
             plen=length;
           }
           if(pend==start) goto done; // can't possibly fit. prevent infinite loops
           end = pend;
         }
-        else { end=pend; }
+        else { end=pend; length=plen; }
         list.Add(end-start);
-        height += LineSkip;
         if(height>=rheight) break;
         start  = end;
         length = 0;
+        cont:
         rwidth = rect.Width;
       }
       else if(end==text.Length)
       { list.Add(end-start);
         break;
       }
-
-      // while text remains...
-      // extend current line until the next breaker, or to the end
-      // if line doesn't fit
-      //   if previous length is zero, length = as many characters as will fit
-      //   else length = previous length
-      //   add line to array, zero length
-      // else if at end of text
-      //   add line to array
     }
     done:
     return (int[])list.ToArray(typeof(int));
