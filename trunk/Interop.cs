@@ -36,17 +36,21 @@ public sealed class DelegateMarshaller
 }
 
 public sealed class Unsafe
-{ public static unsafe void Copy(byte* dest, byte* src, int length)
+{ // TODO: consider using memcpy
+  public static unsafe void Copy(byte* dest, byte* src, int length)
   { if(src==null || dest==null) throw new ArgumentNullException();
-    int i, len=length/4;
-    for(i=0; i<len; src+=4,dest+=4,i++) *((int*)dest) = *((int*)src);
-    for(i=0,len=length&3; i<len; i++) *dest++ = *src++;
+    if(length<0) throw new ArgumentOutOfRangeException("length", length, "must not be negative");
+    int len=length/4;
+    for(; len!=0; src+=4,dest+=4,len--) *((int*)dest) = *((int*)src);
+    for(len=length&3; len!=0; len--) *dest++ = *src++;
   }
+  // TODO: consider using memset
   public static unsafe void Fill(byte* dest, byte value, int length)
   { if(dest==null) throw new ArgumentNullException();
-    int i, len=length/4, iv = value|(value<<8)|(value<<16)|(value<<24);
-    for(i=0; i<len; dest+=4,i++) *((int*)dest) = iv;
-    for(i=0,len=length&3; i<len; i++) *dest++ = value;
+    if(length<0) throw new ArgumentOutOfRangeException("length", length, "must not be negative");
+    int len=length/4, iv = value|(value<<8)|(value<<16)|(value<<24);
+    for(; len!=0; dest+=4,len--) *((int*)dest) = iv;
+    for(len=length&3; len!=0; len--) *dest++ = value;
   }
 }
 

@@ -1835,7 +1835,7 @@ public class Control
   /// When overriding this method in a derived class, be sure to call the base class' version to ensure that the
   /// default processing gets performed.
   /// </remarks>
-  protected virtual void OnParentFontChanged(ValueChangedEventArgs e) { if(font==null) c.OnFontChanged(e); }
+  protected virtual void OnParentFontChanged(ValueChangedEventArgs e) { if(font==null) OnFontChanged(e); }
 
   /// <summary>Called when the parent's <see cref="ForeColor"/> property changes.</summary>
   /// <param name="e">A <see cref="ValueChangedEventArgs"/> that contains the event data.</param>
@@ -2014,7 +2014,7 @@ public class DesktopControl : ContainerControl, IDisposable
 
   public uint DoubleClickDelay  { get { return dcDelay; } set { dcDelay=value; } }
 
-  public int DragThreshold
+  public new int DragThreshold
   { get { return dragThresh; }
     set
     { if(value<1) throw new ArgumentOutOfRangeException("DragThreshold", "must be >=1");
@@ -2134,7 +2134,7 @@ public class DesktopControl : ContainerControl, IDisposable
         Control p=this, c;
         // passModal is true if there's no modal window, or this movement is within the modal window
         bool passModal = modal.Count==0;
-        at.X -= bounds.X; at.Y -= bounds.Y; // at is the cursor point local to 'p'
+        at.X -= Bounds.X; at.Y -= Bounds.Y; // at is the cursor point local to 'p'
         EventArgs eventArgs=null;
         int ei=0;
         while(p.Enabled && p.Visible)
@@ -2181,7 +2181,7 @@ public class DesktopControl : ContainerControl, IDisposable
           else if(capturing==null || capturing==p)
           { int xd = ea.X-drag.Start.X;
             int yd = ea.Y-drag.Start.Y;
-            if(xd*xd+yd*yd >= (p.dragThreshold==-1 ? dragThresh : p.dragThreshold))
+            if(xd*xd+yd*yd >= (p.DragThreshold==-1 ? dragThresh : p.DragThreshold))
             { drag.Start = p.DisplayToWindow(drag.Start);
               drag.End = ea.Point;
               drag.Buttons = ea.Buttons;
@@ -2246,7 +2246,7 @@ public class DesktopControl : ContainerControl, IDisposable
         uint time = Timing.Msecs;
         bool passModal = modal.Count==0;
         
-        at.X -= bounds.X; at.Y -= bounds.Y; // at is the cursor point local to 'p'
+        at.X -= Bounds.X; at.Y -= Bounds.Y; // at is the cursor point local to 'p'
         while(p.Enabled && p.Visible)
         { c = p.GetChildAtPoint(at);
           if(c==null) break;
@@ -2307,6 +2307,12 @@ public class DesktopControl : ContainerControl, IDisposable
     #region WindowEvent
     else if(e is WindowEvent)
     { WindowEvent we = (WindowEvent)e;
+      DesktopControl desktop = we.Control.Desktop;
+      if(we.SubType==WindowEvent.MessageType.Custom && (desktop==this || desktop==null))
+      { we.Control.OnCustomEvent(we); return true;
+      }
+      if(desktop!=this) return false;
+
       switch(we.SubType)
       { case WindowEvent.MessageType.KeyRepeat:
           if(heldKey!=null)
@@ -2318,7 +2324,6 @@ public class DesktopControl : ContainerControl, IDisposable
         case WindowEvent.MessageType.Paint: DoPaint(we.Control); break;
         case WindowEvent.MessageType.Layout: we.Control.OnLayout(new EventArgs()); break;
         case WindowEvent.MessageType.DesktopUpdated: if(we.Control!=this) return false; break;
-        default: we.Control.OnCustomEvent(we); break;
       }
       return true;
     }
@@ -2452,7 +2457,7 @@ public class DesktopControl : ContainerControl, IDisposable
     Video.Video.ModeChanged += modeChanged;
   }
 
-  void RepeatKey(object dummy) { if(!keyProcessing) Events.Events.PushEvent(new KeyRepeatEvent()); }
+  void RepeatKey(object dummy) { if(!keyProcessing) Events.Events.PushEvent(new KeyRepeatEvent(this)); }
 
   void TabToNext(bool reverse)
   { Control fc = this;

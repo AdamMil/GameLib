@@ -33,8 +33,7 @@ namespace GameLib.Forms
 #region ContainerControl
 public class ContainerControl : Control
 { protected internal override void OnPaint(PaintEventArgs e)
-  { base.OnPaint(e);
-    foreach(Control c in Controls)
+  { foreach(Control c in Controls)
       if(c.Visible)
       { Rectangle paint = Rectangle.Intersect(c.Bounds, e.WindowRect);
         if(paint.Width>0)
@@ -43,6 +42,7 @@ public class ContainerControl : Control
           c.Update();
         }
       }
+    base.OnPaint(e); // yes, this needs to be at the bottom, not the top!
   }
   
   protected internal override void OnLayout(EventArgs e)
@@ -384,7 +384,7 @@ public abstract class ScrollBarBase : Control, IDisposable
 { public ScrollBarBase()
   { Style = ControlStyle.Clickable|ControlStyle.Draggable|ControlStyle.CanFocus;
     ClickRepeatDelay = 300;
-    dragThreshold    = 4;
+    DragThreshold    = 4;
   }
   ~ScrollBarBase() { Dispose(true); }
   public void Dispose() { Dispose(false); GC.SuppressFinalize(this); }
@@ -1564,9 +1564,6 @@ public class MenuItem : MenuItemBase
 
   protected internal override void OnMouseEnter(EventArgs e) { mouseOver=true;  Invalidate(); base.OnMouseEnter(e); }
   protected internal override void OnMouseLeave(EventArgs e) { mouseOver=false; Invalidate(); base.OnMouseLeave(e); }
-
-  protected override void OnBackColorChanged(ValueChangedEventArgs e) { Invalidate(); base.OnBackColorChanged(e); }
-  protected override void OnForeColorChanged(ValueChangedEventArgs e) { Invalidate(); base.OnForeColorChanged(e); }
 
   protected internal override void OnPaintBackground(PaintEventArgs e)
   { if(mouseOver)
