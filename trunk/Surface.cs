@@ -89,12 +89,14 @@ public class Surface : IBlittable, IDisposable
         break;
     }
 
-    InitFromFormat(bitmap.Width, bitmap.Height, new PixelFormat(depth, depth==32),
-                   depth==32 ? SurfaceFlag.SrcAlpha : SurfaceFlag.None);
+    PixelFormat pf = new PixelFormat(depth);
+    if(depth==32) { pf.AlphaMask=0xFF; pf.RedMask=0xFF00; pf.GreenMask=0xFF0000; pf.BlueMask=0xFF000000; }
+
+    InitFromFormat(bitmap.Width, bitmap.Height, pf, depth==32 ? SurfaceFlag.SrcAlpha : SurfaceFlag.None);
+    System.Drawing.Imaging.BitmapData data = bitmap.LockBits(new Rectangle(0, 0, bitmap.Width, bitmap.Height),
+                                                             System.Drawing.Imaging.ImageLockMode.ReadOnly, format);
     try
-    { System.Drawing.Imaging.BitmapData data = bitmap.LockBits(new Rectangle(0, 0, bitmap.Width, bitmap.Height),
-                                                               System.Drawing.Imaging.ImageLockMode.ReadOnly, format);
-      unsafe
+    { unsafe
       { if(depth==8) SetPalette(bitmap.Palette.Entries);
         Lock();
         byte* src=(byte*)data.Scan0, dest=(byte*)Data;
@@ -104,6 +106,7 @@ public class Surface : IBlittable, IDisposable
       }
     }
     catch { Dispose(); }
+    finally { bitmap.UnlockBits(data); }
   }
   public Surface(int width, int height, int depth) : this(width, height, depth, SurfaceFlag.None) { }
   public Surface(int width, int height, int depth, SurfaceFlag flags)

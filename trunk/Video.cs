@@ -62,6 +62,8 @@ public sealed class PixelFormat
   public uint BlueMask  { get { return format.Bmask; } set { format.Bmask=value; } }
   public uint AlphaMask { get { return format.Amask; } set { format.Amask=value; } }
   
+  // TODO: this makes BGRA by default. (it's what my card uses...)
+  // is this what we want? perhaps the default should be based upon the current/available video modes?
   public void GenerateDefaultMasks() { GenerateDefaultMasks(false); }
   public void GenerateDefaultMasks(bool withAlpha)
   { switch(Depth) // TODO: make big-endian compatible (?)
@@ -74,7 +76,7 @@ public sealed class PixelFormat
       default: RedMask=GreenMask=BlueMask=AlphaMask=0; break;
     }
   }
-  
+
   internal SDL.PixelFormat format;
 }
 #endregion
