@@ -161,7 +161,15 @@ public class ControlsForm : Form
     Controls.Add(list); // we add it first so GetPreferredSize is correct
     list.Size = new Size(75, list.GetPreferredSize(10).Height);
 
-    TriggerLayout(true);
+    ComboBox combo = new ComboBox(list.Items);
+    combo.Left  = list.Right + 4;
+    combo.Width = list.Width + 20;
+    combo.ListBoxHeight = list.Height;
+    combo.SelectedIndex = 0;
+    combo.DropDownStyle = ComboBoxStyle.DropDownList;
+    Controls.Add(combo);
+
+    TriggerLayout(true); // force a layout before the form is displayed
     #endregion
   }
 }
