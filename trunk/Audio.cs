@@ -413,9 +413,9 @@ public class SampleSource : AudioSource
   { int frames = BytesToFrames(length);
     lock(this)
     { int toRead = Math.Min(frames, this.length-curPos);
-      Array.Copy(data, curPos, buf, index, toRead*format.FrameSize);
+      Array.Copy(data, curPos*format.FrameSize, buf, index, toRead*format.FrameSize);
       curPos += toRead;
-      return toRead;
+      return toRead*format.FrameSize;
     }
   }
 
@@ -705,7 +705,7 @@ public sealed class Channel
       }
 
       if(source.CanSeek) source.Position = position;
-      if(convert || rate!=1f)
+      if(convert || rate!=1f) // FIXME: this path can result in 'toRead' not being a frame multiple!!!
       { int index=0, mustWrite = frames*Audio.Format.FrameSize, framesRead;
         bool stop=false;
         if(rate==1f) toRead = (int)((long)mustWrite*sdDiv/sdMul);
@@ -717,6 +717,14 @@ public sealed class Channel
           GLMixer.AudioCVT cvt = Audio.SetupCVT(format, Audio.Format);
           toRead = (int)((long)mustWrite*cvt.lenDiv/cvt.lenMul+shift)>>shift<<shift;
         }
+        
+        // FIXME: HACK: this hacks the 'toRead' not frame multiple problem by duplicating samples
+        // this means it's possible that a few samples may be added each buffer fill. this is not correct output!
+        if(format.FrameSize>1)
+        { int diff = toRead & (format.FrameSize-1);
+          if(diff>0) toRead += format.FrameSize-diff;
+        }
+
         int len = Math.Max(toRead, mustWrite);
         if(convBuf==null || convBuf.Length<len) convBuf = new byte[len];
 
@@ -742,8 +750,8 @@ public sealed class Channel
         samples    = framesRead*Audio.Format.Channels;
         if(Filters==null && filters==null)
           fixed(byte* src = convBuf)
-                GLMixer.Check(GLMixer.ConvertMix(stream, src, (uint)samples,
-                                                 (ushort)Audio.Format.Format, (ushort)left, (ushort)right));
+            GLMixer.Check(GLMixer.ConvertMix(stream, src, (uint)samples, (ushort)Audio.Format.Format,
+                                             (ushort)left, (ushort)right));
         else
         { int* buffer = stackalloc int[samples];
           fixed(byte* src = convBuf)
