@@ -291,8 +291,7 @@ public sealed class Mouse
     if(MouseMove!=null) MouseMove(e);
   }
   internal static void OnMouseClick(MouseClickEvent e)
-  { /*x=e.X; y=e.Y;*/ // TODO: should i keep this?
-    if(e.Down) buttons |= (byte)(1<<e.Button);
+  { if(e.Down) buttons |= (byte)(1<<e.Button);
     else buttons &= (byte)~(1<<e.Button);
     if(MouseClick!=null) MouseClick(e);
   }
@@ -358,7 +357,14 @@ public sealed class Joystick : IDisposable
     if(JoyButton!=null) JoyButton(this, e);
   }
 
-  void Dispose(bool deconstructor) { SDL.JoystickClose(joystick); }
+  void Dispose(bool deconstructor)
+  { unsafe
+    { if(joystick.ToPointer()!=null)
+      { SDL.JoystickClose(joystick);
+        joystick = new IntPtr(null);
+      }
+    }
+  }
 
   IntPtr        joystick;
   Ball[]        balls;
@@ -374,7 +380,7 @@ public sealed class Joystick : IDisposable
 public sealed class Input
 { private Input() { }
 
-  public Joystick[] Joysticks { get { return joysticks; } }
+  public static Joystick[] Joysticks { get { return joysticks; } }
 
   public static void Initialize(bool useJoysticks)
   { if(initCount++==0)
@@ -385,7 +391,8 @@ public sealed class Input
       SDL.ShowCursor(0);
       
       if(useJoysticks)
-      { joysticks = new Joystick[SDL.NumJoysticks()];
+      { SDL.Initialize(SDL.InitFlag.Joystick);
+        joysticks = new Joystick[SDL.NumJoysticks()];
         for(int i=0; i<joysticks.Length; i++) joysticks[i] = new Joystick(i);
       }
     }
@@ -394,9 +401,13 @@ public sealed class Input
   public static void Deinitialize()
   { if(initCount==0) throw new InvalidOperationException("Deinitialize called too many times!");
     if(--initCount==0)
-    { Events.Events.EventFilter -= new EventFilter(OnEvent);
+    { if(joysticks!=null)
+      { for(int i=0; i<joysticks.Length; i++) joysticks[i].Dispose();
+        SDL.Deinitialize(SDL.InitFlag.Joystick);
+        joysticks = null;
+      }
+      Events.Events.EventFilter -= new EventFilter(OnEvent);
       Events.Events.Deinitialize();
-      joysticks = null;
     }
   }
 

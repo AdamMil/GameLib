@@ -29,7 +29,7 @@ public abstract class Event
 public class FocusEvent : Event
 { public FocusEvent() : base(EventType.Focus) { }
   internal FocusEvent(ref SDL.ActiveEvent evt) : base(EventType.Focus)
-  { FocusType=(FocusType)evt.State; Focused=evt.Focused;
+  { FocusType=(FocusType)evt.State; Focused=(evt.Focused!=0);
   }
   public FocusType FocusType;
   public bool      Focused;
@@ -41,7 +41,7 @@ public class KeyboardEvent : Event
     Mods = (Input.KeyMod)evt.Key.Mod;
     Char = evt.Key.Unicode;
     Scan = evt.Key.Scan;
-    Down = evt.Down;
+    Down = evt.Down!=0;
   }
   public Input.Key    Key;
   public Input.KeyMod Mods;
@@ -65,7 +65,7 @@ public class MouseMoveEvent : Event
 public class MouseClickEvent : Event
 { public MouseClickEvent() : base(EventType.MouseClick) { }
   internal MouseClickEvent(ref SDL.MouseButtonEvent evt) : base(EventType.MouseClick)
-  { Button=(byte)(evt.Button-1); Down=evt.Down; X=(int)evt.X; Y=(int)evt.Y;
+  { Button=(byte)(evt.Button-1); Down=(evt.Down!=0); X=(int)evt.X; Y=(int)evt.Y;
   }
   public byte Button;
   public bool Down;
@@ -98,7 +98,7 @@ public class JoyHatEvent : Event
 public class JoyButtonEvent : Event
 { public JoyButtonEvent() : base(EventType.JoyButton) { }
   internal JoyButtonEvent(ref SDL.JoyButtonEvent evt) : base(EventType.JoyButton)
-  { Device=evt.Device; Button=evt.Button; Down=evt.Down;
+  { Device=evt.Device; Button=evt.Button; Down=(evt.Down!=0);
   }
   public byte Device, Button;
   public bool Down;
@@ -142,18 +142,16 @@ public sealed class Events
   public static void Initialize()
   { if(initCount++==0)
     { queue = new System.Collections.Queue();
-      SDL.Initialize();
-      SDL.InitSubSystem(SDL.InitFlag.EventThread);
-      SDL.EnableUNICODE(1); // must be AFTER InitSubSystem(EventThread) (SDL quirk...)
-      // TODO: figure out why the .Char member still isn't being populated
+      SDL.Initialize(SDL.InitFlag.Video);
+      SDL.Initialize(SDL.InitFlag.EventThread); // SDL quirk: this must be done AFTER video
+      SDL.EnableUNICODE(1); // SDL quirk: must be AFTER Initialize(EventThread)
     }
   }
 
   public static void Deinitialize()
   { if(initCount==0) throw new InvalidOperationException("Deinitialize called too many times!");
     if(--initCount==0)
-    { SDL.QuitSubSystem(SDL.InitFlag.EventThread);
-      SDL.Deinitialize();
+    { SDL.Deinitialize(SDL.InitFlag.Video|SDL.InitFlag.EventThread);
       queue = null;
     }
   }
