@@ -418,7 +418,7 @@ public class Surface : IBlittable, IDisposable
 
   public Bitmap ToBitmap()
   { System.Drawing.Imaging.PixelFormat format;
-    switch(Depth) // FIXME: make this work with nonstandard byte packing (BGR, 555, etc)
+    switch(Depth) // TODO: support 555 packing
     { case 8:  format = System.Drawing.Imaging.PixelFormat.Format8bppIndexed; break;
       case 16: format = System.Drawing.Imaging.PixelFormat.Format16bppRgb565; break;
       case 24: format = System.Drawing.Imaging.PixelFormat.Format24bppRgb; break;
@@ -428,12 +428,61 @@ public class Surface : IBlittable, IDisposable
         break;
       default: throw new NotImplementedException("Unhandled depth in ToBitmap()");
     }
+
     Bitmap bitmap;
     Lock();
+
     unsafe
-    { try { bitmap = new Bitmap(Width, Height, (int)Pitch, format, new IntPtr(Data)); }
+    { try
+      { if(Depth>24 && Format.BlueMask>Format.RedMask)
+        { byte* src  = (byte*)Data;
+          int   xinc = Depth/8, len = Width*Height;
+          byte[] arr = new byte[len*xinc];
+
+          fixed(byte* arrp = arr)
+          { byte* dest=arrp;
+            byte v;
+            if(Pitch==Width*xinc)
+            { Unsafe.Copy(dest, src, arr.Length);
+              if(Format.AlphaMask==0xFF) dest++;
+              while(len-- != 0) { v=*dest; *dest=dest[2]; dest[2]=v; dest+=xinc; }
+            }
+            else
+              for(int y=0,line=Width*xinc,yinc=Pitch-line; y<Height; src+=Pitch,dest+=line,y++)
+              { Unsafe.Copy(dest, src, line);
+                byte *dp = Format.AlphaMask==0xFF ? dest+1 : dest;
+                int xlen = Width;
+                while(xlen-- != 0) { v=*dp; *dp=dp[2]; dp[2]=v; dp+=xinc; }
+              }
+            bitmap = new Bitmap(Width, Height, Width*xinc, format, new IntPtr(arrp));
+          }
+        }
+        else if(Depth==16 && Format.BlueMask>Format.RedMask)
+        { int len = Width*Height;
+          ushort* src = (ushort*)Data;
+          ushort[] arr = new ushort[len];
+          fixed(ushort* arrp = arr)
+          { ushort* dest=arrp;
+            ushort p;
+            if(Pitch==Width*2)
+              while(len-- != 0)
+              { p = *src++;
+                *dest++ = (ushort)((p>>11) | (p&0x7E0) | ((p&0x1F)<<11));
+              }
+            else
+              for(int y=0,yinc=Pitch-Width*2; y<Height; src+=yinc,y++)
+                for(int x=0; x<Width; x++)
+                { p = *src++;
+                  *dest++ = (ushort)((p>>11) | (p&0x7E0) | ((p&0x1F)<<11));
+                }
+            bitmap = new Bitmap(Width, Height, Width*2, format, new IntPtr(arrp));
+          }
+        }
+        else bitmap = new Bitmap(Width, Height, (int)Pitch, format, new IntPtr(Data));
+      }
       finally { Unlock(); }
     }
+
     if(Depth==8)
     { System.Drawing.Imaging.ColorPalette pal = bitmap.Palette;
       GetPalette(pal.Entries, PaletteSize);
