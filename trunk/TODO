@@ -1,5 +1,4 @@
-+ mp3 support
-+ module support
++ mp3 and module support
 + finish low level GLU support (GLU objects)
 + higher level opengl support
 + higher level glu support
@@ -10,3 +9,4 @@
 * all the TODOs everywhere in the code!
 * Add "real" support for overlapping windows in the windowing code
 + Add more checks and assertions wrapped in #if DEBUG regions
+* move as much duplicated documentation as possible into documentation.xml

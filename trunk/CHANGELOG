@@ -25,8 +25,17 @@ DEVELOPMENT (alpha/beta)
   system
 + Added ScrollableControl (a control that supports built-in scrollbars)
 + Added basic list controls (eg, ListBox)
+* Fixed an awful bug that caused bits of Controls to disappear if they had
+  a backing surface and certain types of child controls
 * Various other windowing changes
 * Altered the Windowing sample to reflect the changes
+* Moved a lot more documentation into documentation.xml so the source code
+  will be less cluttered with repetitive text
+* Changed Surface.PutPixelRaw to Surface.PutPixel
++ Added some new overloads for Font.WordWrap that accept a Size instead of
+  a Sectangle
+* Cleaned up the MessageBox code
+* Made windowing controls look greyed out when they're disabled
 
 2004.06.28 (alpha/beta)
 -------------------

@@ -1,137 +1,271 @@
 <?xml version="1.0" encoding="utf-8" ?> 
 <GameLib>
- <IComparable>
-  <CompareTo>
-   <summary>Compares the current instance with another object of the same type.</summary>
-   <param name="obj">An object to compare with this instance.</param>
-   <returns>An integer that indicates the relative order of the comparands. The return value has these meanings:
-   <list type="table">
-   <listheader><term>Value</term><description>Meaning</description></listheader>
-   <item><term>Less than zero</term><description>This instance is less than <paramref name="obj"/>.</description></item>
-   <item><term>Zero</term><description>This instance is equal to <paramref name="obj"/>.</description></item>
-   <item><term>Greater than zero</term><description>This instance is greater than <paramref name="obj"/>.</description></item>
-   </list>
-   </returns>
-  </CompareTo>
- </IComparable>
- <IConvertible>
-  <ToUInt64>
-   <summary>Converts this value to a <see cref="UInt64"/>.</summary>
-   <param name="provider">An <see cref="IFormatProvider"/> used to control formatting, or null to use the default.</param>
-   <returns>A <see cref="UInt64"/> representing this value.</returns>
-   <exception cref="OverflowException">Thrown if the value cannot be represented by the return type.</exception>
-  </ToUInt64>
-  <ToSByte>
-   <summary>Converts this value to an <see cref="SByte"/>.</summary>
-   <param name="provider">An <see cref="IFormatProvider"/> used to control formatting, or null to use the default.</param>
-   <returns>An <see cref="SByte"/> representing this value.</returns>
-   <exception cref="OverflowException">Thrown if the value cannot be represented by the return type.</exception>
-  </ToSByte>
-  <ToDouble>
-   <summary>Converts this value to a <see cref="Double"/>.</summary>
-   <param name="provider">An <see cref="IFormatProvider"/> used to control formatting, or null to use the default.</param>
-   <returns>The <see cref="Double"/> closest to this value.</returns>
-   <exception cref="OverflowException">Thrown if the value cannot be represented by the return type.</exception>
-  </ToDouble>
-  <ToSingle>
-   <summary>Converts this value to a <see cref="Single"/>.</summary>
-   <param name="provider">An <see cref="IFormatProvider"/> used to control formatting, or null to use the default.</param>
-   <returns>The <see cref="Single"/> closest to this value.</returns>
-   <exception cref="OverflowException">Thrown if the value cannot be represented by the return type.</exception>
-  </ToSingle>
-  <ToInt32>
-   <summary>Converts this value to an <see cref="Int32"/>.</summary>
-   <param name="provider">An <see cref="IFormatProvider"/> used to control formatting, or null to use the default.</param>
-   <returns>An <see cref="Int32"/> representing this value.</returns>
-   <exception cref="OverflowException">Thrown if the value cannot be represented by the return type.</exception>
-  </ToInt32>
-  <ToUInt16>
-   <summary>Converts this value to a <see cref="UInt16"/>.</summary>
-   <param name="provider">An <see cref="IFormatProvider"/> used to control formatting, or null to use the default.</param>
-   <returns>A <see cref="UInt16"/> representing this value.</returns>
-   <exception cref="OverflowException">Thrown if the value cannot be represented by the return type.</exception>
-  </ToUInt16>
-  <ToInt16>
-   <summary>Converts this value to an <see cref="Int16"/>.</summary>
-   <param name="provider">An <see cref="IFormatProvider"/> used to control formatting, or null to use the default.</param>
-   <returns>An <see cref="Int16"/> representing this value.</returns>
-   <exception cref="OverflowException">Thrown if the value cannot be represented by the return type.</exception>
-  </ToInt16>
-  <ToString>
-   <summary>Converts this value to a string.</summary>
-   <param name="provider">An <see cref="IFormatProvider"/> used to control formatting, or null to use the default.</param>
-   <returns>An string representing this value.</returns>
-   <exception cref="OverflowException">Thrown if the value cannot be represented by the return type.</exception>
-  </ToString>
-  <ToByte>
-   <summary>Converts this value to a <see cref="Byte"/>.</summary>
-   <param name="provider">An <see cref="IFormatProvider"/> used to control formatting, or null to use the default.</param>
-   <returns>An <see cref="Byte"/> representing this value.</returns>
-   <exception cref="OverflowException">Thrown if the value cannot be represented by the return type.</exception>
-  </ToByte>
-  <ToChar>
-   <summary>Converts this value to a <see cref="Char"/>.</summary>
-   <param name="provider">An <see cref="IFormatProvider"/> used to control formatting, or null to use the default.</param>
-   <returns>An <see cref="Char"/> representing this value.</returns>
-   <exception cref="OverflowException">Thrown if the value cannot be represented by the return type.</exception>
-  </ToChar>
-  <ToInt64>
-   <summary>Converts this value to an <see cref="Int64"/>.</summary>
-   <param name="provider">An <see cref="IFormatProvider"/> used to control formatting, or null to use the default.</param>
-   <returns>An <see cref="Int64"/> representing this value.</returns>
-   <exception cref="OverflowException">Thrown if the value cannot be represented by the return type.</exception>
-  </ToInt64>
-  <ToDecimal>
-   <summary>Converts this value to a <see cref="Decimal"/>.</summary>
-   <param name="provider">An <see cref="IFormatProvider"/> used to control formatting, or null to use the default.</param>
-   <returns>A <see cref="Decimal"/> representing this value.</returns>
-  </ToDecimal>
-  <ToType>
-   <summary>Converts the value to the given type.</summary>
-   <param name="conversionType">The type to which this value should be converted.</param>
-   <param name="provider">An <see cref="IFormatProvider"/> used to control formatting, or null to use the default.</param>
-   <returns>An object containing this value converted to the given type.</returns>
-   <exception cref="OverflowException">Thrown if the value cannot be represented by the return type.</exception>
-   <exception cref="InvalidCastException">Thrown if no conversion to the destination type exists.</exception>
-  </ToType>
-  <ToUInt32>
-   <summary>Converts this value to a <see cref="UInt32"/>.</summary>
-   <param name="provider">An <see cref="IFormatProvider"/> used to control formatting, or null to use the default.</param>
-   <returns>A <see cref="UInt32"/> representing this value.</returns>
-   <exception cref="OverflowException">Thrown if the value cannot be represented by the return type.</exception>
-  </ToUInt32>
- </IConvertible>
+  <IComparable>
+    <CompareTo>
+      <summary>Compares the current instance with another object of the same type.</summary>
+      <param name="obj">An object to compare with this instance.</param>
+      <returns>An integer that indicates the relative order of the comparands. The return value has these meanings:
+      <list type="table">
+      <listheader><term>Value</term><description>Meaning</description></listheader>
+      <item><term>Less than zero</term><description>This instance is less than <paramref name="obj"/>.</description></item>
+      <item><term>Zero</term><description>This instance is equal to <paramref name="obj"/>.</description></item>
+      <item><term>Greater than zero</term><description>This instance is greater than <paramref name="obj"/>.</description></item>
+      </list>
+      </returns>
+    </CompareTo>
+  </IComparable>
 
- <Fonts>
-  <BitmapFont>
-   <BitmapFont1>
-    <param name="font">A surface containing the font data.</param>
-    <param name="charset">A list of characters in the font, in the order in which they appear in the image.
-    The font class can operate much more efficiently if the characters in the character set are contiguous.
-    That is, for each each character, its value is one greater than value of the previous character.
-    </param>
-    <param name="charWidth">The width of the characters in the font.</param>
-    <remarks>The surface should contain all the characters, in the order specified by <paramref name="charset"/>,
-    all in a single row. Each character should be <paramref name="charWidth"/> pixels wide, and there should be no
-    unused space anywhere. If the surface has a color key or alpha channel, it will be used.
-    </remarks>
-   </BitmapFont1>
-   <BitmapFont2>
-    <param name="font">A surface containing the font data.</param>
-    <param name="charset">A list of characters in the font, in the order in which they appear in the image.
-    The font class can operate much more efficiently if the characters in the character set are contiguous.
-    That is, for each each character, its value is one greater than value of the previous character.
-    </param>
-    <param name="charWidths">An array the same length as <paramref name="charset"/>, containing the width of each
-    character.
-    </param>
-    <remarks>The surface should contain all the characters, in the order specified by <paramref name="charset"/>,
-    all in a single row. Each character should the number of pixels specified in <paramref name="charWidths"/>
-    pixels wide, and there should be no unused space anywhere. If the surface has a color key or alpha channel,
-    it will be used.
-    </remarks>
-   </BitmapFont2>
-  </BitmapFont>
+  <IConvertible>
+    <ToUInt64>
+      <summary>Converts this value to a <see cref="UInt64"/>.</summary>
+      <param name="provider">An <see cref="IFormatProvider"/> used to control formatting, or null to use the default.</param>
+      <returns>A <see cref="UInt64"/> representing this value.</returns>
+      <exception cref="OverflowException">Thrown if the value cannot be represented by the return type.</exception>
+    </ToUInt64>
+    <ToSByte>
+      <summary>Converts this value to an <see cref="SByte"/>.</summary>
+      <param name="provider">An <see cref="IFormatProvider"/> used to control formatting, or null to use the default.</param>
+      <returns>An <see cref="SByte"/> representing this value.</returns>
+      <exception cref="OverflowException">Thrown if the value cannot be represented by the return type.</exception>
+    </ToSByte>
+    <ToDouble>
+      <summary>Converts this value to a <see cref="Double"/>.</summary>
+      <param name="provider">An <see cref="IFormatProvider"/> used to control formatting, or null to use the default.</param>
+      <returns>The <see cref="Double"/> closest to this value.</returns>
+      <exception cref="OverflowException">Thrown if the value cannot be represented by the return type.</exception>
+    </ToDouble>
+    <ToSingle>
+      <summary>Converts this value to a <see cref="Single"/>.</summary>
+      <param name="provider">An <see cref="IFormatProvider"/> used to control formatting, or null to use the default.</param>
+      <returns>The <see cref="Single"/> closest to this value.</returns>
+      <exception cref="OverflowException">Thrown if the value cannot be represented by the return type.</exception>
+    </ToSingle>
+    <ToInt32>
+      <summary>Converts this value to an <see cref="Int32"/>.</summary>
+      <param name="provider">An <see cref="IFormatProvider"/> used to control formatting, or null to use the default.</param>
+      <returns>An <see cref="Int32"/> representing this value.</returns>
+      <exception cref="OverflowException">Thrown if the value cannot be represented by the return type.</exception>
+    </ToInt32>
+    <ToUInt16>
+      <summary>Converts this value to a <see cref="UInt16"/>.</summary>
+      <param name="provider">An <see cref="IFormatProvider"/> used to control formatting, or null to use the default.</param>
+      <returns>A <see cref="UInt16"/> representing this value.</returns>
+      <exception cref="OverflowException">Thrown if the value cannot be represented by the return type.</exception>
+    </ToUInt16>
+    <ToInt16>
+      <summary>Converts this value to an <see cref="Int16"/>.</summary>
+      <param name="provider">An <see cref="IFormatProvider"/> used to control formatting, or null to use the default.</param>
+      <returns>An <see cref="Int16"/> representing this value.</returns>
+      <exception cref="OverflowException">Thrown if the value cannot be represented by the return type.</exception>
+    </ToInt16>
+    <ToString>
+      <summary>Converts this value to a string.</summary>
+      <param name="provider">An <see cref="IFormatProvider"/> used to control formatting, or null to use the default.</param>
+      <returns>An string representing this value.</returns>
+      <exception cref="OverflowException">Thrown if the value cannot be represented by the return type.</exception>
+    </ToString>
+    <ToByte>
+      <summary>Converts this value to a <see cref="Byte"/>.</summary>
+      <param name="provider">An <see cref="IFormatProvider"/> used to control formatting, or null to use the default.</param>
+      <returns>An <see cref="Byte"/> representing this value.</returns>
+      <exception cref="OverflowException">Thrown if the value cannot be represented by the return type.</exception>
+    </ToByte>
+    <ToChar>
+      <summary>Converts this value to a <see cref="Char"/>.</summary>
+      <param name="provider">An <see cref="IFormatProvider"/> used to control formatting, or null to use the default.</param>
+      <returns>An <see cref="Char"/> representing this value.</returns>
+      <exception cref="OverflowException">Thrown if the value cannot be represented by the return type.</exception>
+    </ToChar>
+    <ToInt64>
+      <summary>Converts this value to an <see cref="Int64"/>.</summary>
+      <param name="provider">An <see cref="IFormatProvider"/> used to control formatting, or null to use the default.</param>
+      <returns>An <see cref="Int64"/> representing this value.</returns>
+      <exception cref="OverflowException">Thrown if the value cannot be represented by the return type.</exception>
+    </ToInt64>
+    <ToDecimal>
+      <summary>Converts this value to a <see cref="Decimal"/>.</summary>
+      <param name="provider">An <see cref="IFormatProvider"/> used to control formatting, or null to use the default.</param>
+      <returns>A <see cref="Decimal"/> representing this value.</returns>
+    </ToDecimal>
+    <ToType>
+      <summary>Converts the value to the given type.</summary>
+      <param name="conversionType">The type to which this value should be converted.</param>
+      <param name="provider">An <see cref="IFormatProvider"/> used to control formatting, or null to use the default.</param>
+      <returns>An object containing this value converted to the given type.</returns>
+      <exception cref="OverflowException">Thrown if the value cannot be represented by the return type.</exception>
+      <exception cref="InvalidCastException">Thrown if no conversion to the destination type exists.</exception>
+    </ToType>
+    <ToUInt32>
+      <summary>Converts this value to a <see cref="UInt32"/>.</summary>
+      <param name="provider">An <see cref="IFormatProvider"/> used to control formatting, or null to use the default.</param>
+      <returns>A <see cref="UInt32"/> representing this value.</returns>
+      <exception cref="OverflowException">Thrown if the value cannot be represented by the return type.</exception>
+    </ToUInt32>
+  </IConvertible>
+
+  <Fonts>
+    <LineSkip>
+      <summary>Gets the vertical offset that should be added to move the draw position to the next line. This is
+        equivalent to the height of the font plus spacing between lines.
+      </summary>
+    </LineSkip>
+
+    <CalculateSize>
+      <summary>Calculates the size of a string of text.</summary>
+      <param name="text">The text to use for the calculation.</param>
+      <returns>A <see cref="Size"/> that contains the amount of space required to render the given text with this
+        font.
+      </returns>
+      <remarks>This method does not perform word-wrapping on the text, and returns a calculation assuming the text
+        is rendered as a single line.
+      </remarks>
+    </CalculateSize>
+
+    <HowManyFit>
+      <summary>Calculates how many characters of the given string would fit into the given width.</summary>
+      <param name="text">The string to test.</param>
+      <param name="width">The available width, in pixels.</param>
+      <returns>The number of characters that would fully fit within the given width.</returns>
+    </HowManyFit>
+    
+    <Render>
+      <Point>
+        <Common>
+          <summary>Renders text at a given point.</summary>
+          <param name="dest">The surface to render into.</param>
+          <param name="text">The text to render.</param>
+          <returns>Returns the width of the text rendered plus spacing so that you can use the value to calculate where
+          more text can be rendered (by adding the returned width to the starting position).
+          </returns>
+        </Common>
+        <Pt>
+          <include file="documentation.xml" path="//Fonts/Render/Point/Common/*"/>
+          <param name="pt">The point where the top-left corner of the rendered text should appear.</param>
+        </Pt>
+        <XY>
+          <include file="documentation.xml" path="//Fonts/Render/Point/Common/*"/>
+          <param name="x">The X coordinate where the left side of the rendered text should appear.</param>
+          <param name="y">The Y coordinate where the top edge of the rendered text should appear.</param>
+        </XY>
+      </Point>
+      
+      <Rect>
+        <Common>
+          <summary>Word-wraps and renders text into a given rectangle.</summary>
+          <param name="dest">The surface to render into.</param>
+          <param name="text">The text to render.</param>
+          <param name="rect">The area into which text will be rendered.</param>
+        </Common>
+        <Align>
+          <include file="documentation.xml" path="//Fonts/Render/Rect/Common/*"/>
+          <param name="align">The <see cref="ContentAlignment"/> to use inside the rectangle.</param>
+          <returns>Returns the end point of the rendering, where rendering can be continue with more text.
+          This only works with top-left alignment, since the endpoints for other types of alignment require before-hand
+          knowledge of the amount of text. For other alignment types, the value of the returned point is undefined.
+          </returns>
+        </Align>
+        <NoAlign>
+          <include file="documentation.xml" path="//Fonts/Render/Rect/Common/*"/>
+          <returns>Returns the end point of the rendering, where rendering can be continue with more text.</returns>
+        </NoAlign>
+        <Offset>
+          <param name="startx">The X offset into the rectangle at which rendering will begin.</param>
+          <param name="starty">The Y offset into the rectangle at which rendering will begin.</param>
+        </Offset>
+      </Rect>
+    </Render>
+    
+    <WordWrap>
+      <Common>
+        <summary>Word-wraps text into a specified area.</summary>
+        <param name="text">The text to word-wrap.</param>
+        <returns>An array of integers specifying indices into the string. There is one element for each line of text.
+          The value of the element is how many characters should be rendered on that line.
+        </returns>
+        <remarks>Currently, a newline character will not force a line break. This behavior will be changed in the
+          future.
+        </remarks>
+      </Common>
+      <Size>
+        <include file="documentation.xml" path="//Fonts/WordWrap/Common/*"/>
+        <param name="size">The size of the area bounding the text.</param>
+      </Size>
+      <Rect>
+        <include file="documentation.xml" path="//Fonts/WordWrap/Common/*"/>
+        <param name="rect">The area bounding the text.</param>
+      </Rect>
+      <Dims>
+        <include file="documentation.xml" path="//Fonts/WordWrap/Common/*"/>
+        <param name="width">The width of the area bounding the text.</param>
+        <param name="height">The height of the area bounding the text.</param>
+      </Dims>
+      <Offset>
+        <param name="startx">The X offset into the rectangle at which the text should start.</param>
+        <param name="starty">The Y offset into the rectangle at which the text should start.</param>
+      </Offset>
+      <Breakers>
+        <param name="breakers">An array of characters that will be used to break the text. Those characters will
+          mark preferred places within the string to break to a new line.
+        </param>
+      </Breakers>
+    </WordWrap>
+
+    <BitmapFont>
+      <Common>
+        <param name="font">A surface containing the font data.</param>
+        <param name="charset">A list of characters in the font, in the order in which they appear in the image.
+        The font class can operate much more efficiently if the characters in the character set are contiguous.
+        That is, for each each character, its value is one greater than value of the previous character.
+        </param>
+      </Common>
+      <BitmapFont1>
+        <include file="documentation.xml" path="//Fonts/BitmapFont/Common/*"/>
+        <param name="charWidth">The width of the characters in the font.</param>
+        <remarks>The surface should contain all the characters, in the order specified by <paramref name="charset"/>,
+        all in a single row. Each character should be <paramref name="charWidth"/> pixels wide, and there should be no
+        unused space anywhere. If the surface has a color key or alpha channel, it will be used.
+        </remarks>
+      </BitmapFont1>
+      <BitmapFont2>
+        <include file="documentation.xml" path="//Fonts/BitmapFont/Common/*"/>
+        <param name="charWidths">An array the same length as <paramref name="charset"/>, containing the width of each
+        character.
+        </param>
+        <remarks>The surface should contain all the characters, in the order specified by <paramref name="charset"/>,
+        all in a single row. Each character should the number of pixels specified in <paramref name="charWidths"/>
+        pixels wide, and there should be no unused space anywhere. If the surface has a color key or alpha channel,
+        it will be used.
+        </remarks>
+      </BitmapFont2>
+    </BitmapFont>
+    
+    <TrueTypeFont>
+      <Cons>
+        <Stream>
+          <summary>Initializes this font from a stream containing TrueType font data.</summary>
+          <param name="stream">The stream to read the font from. The stream must be seekable, with its entire set of
+          data devoted to the font.
+          </param>
+          <param name="pointSize">The size of the font, in points (based on 72dpi).</param>
+        </Stream>
+        <File>
+          <summary>Initializes this font from a file on disk.</summary>
+          <param name="filename">The path to the TrueType font file.</param>
+          <param name="pointSize">The size of the font, in points (based on 72dpi).</param>
+        </File>
+        <Index>
+          <param name="fontIndex">Some fonts contain multiple faces. This parameter selects which face to use
+            (zero-based).
+          </param>
+        </Index>
+        <AutoClose>
+          <param name="autoClose">If true, the stream will be closed after the font is loaded.</param>
+        </AutoClose>
+        <WillClose>
+          <remarks>The stream will be closed after the font is loaded.</remarks>
+        </WillClose>
+      </Cons>
+    </TrueTypeFont>
  </Fonts>
 
  <IO>
@@ -495,6 +629,382 @@ byte[] output = IOH.Write("dfp?d", parms);
     </remarks>
    </WillTextureFit>
   </OpenGL>
+
+  <Primitives>
+    <Pixel>
+      <Common>
+        <summary>Writes a pixel on the destination surface, with optional alpha blending.</summary>
+        <param name="dest">The surface to draw into.</param>
+      </Common>
+      <XY>
+        <param name="x">The X coordinate of the pixel to change.</param>
+        <param name="y">The Y coordinate of the pixel to change.</param>
+      </XY>
+      <Pt>
+        <param name="pt">The coordinate of the pixel to change.</param>
+      </Pt>
+      <C>
+        <param name="color">The color to use. If the color contains a non-opaque alpha level, the color will be
+        alpha blended over the existing pixel.
+        </param>
+      </C>
+      <CA>
+        <param name="color">The color to use. The alpha component of this color is ignored.</param>
+        <param name="alpha">The alpha value to use, from 0 (transparent) to 255 (opaque). If not opaque, the color
+        will be alpha blended over the existing pixel.
+        </param>
+      </CA>
+    </Pixel>
+
+    <Line>
+      <HLine>
+        <summary>Draws a horizontal line, with optional alpha blending.</summary>
+        <param name="dest">The surface onto which the line will be drawn.</param>
+        <param name="x1">The starting X coordinate of the line.</param>
+        <param name="x2">The ending X coordinate of the line.</param>
+        <param name="y">The row at which the line will be drawn.</param>
+      </HLine>
+      <VLine>
+        <summary>Draws a vertical line, with optional alpha blending.</summary>
+        <param name="dest">The surface onto which the line will be drawn.</param>
+        <param name="x">The column at which the line will be drawn.</param>
+        <param name="y1">The starting Y coordinate of the line.</param>
+        <param name="y2">The ending Y coordinate of the line.</param>
+      </VLine>
+      <Line>
+        <summary>Draws a line, with optional alpha blending.</summary>
+        <param name="dest">The surface onto which the line will be drawn.</param>
+      </Line>
+      <AA>
+        <summary>Draws an antialiased line, with optional alpha blending.</summary>
+        <param name="dest">The surface onto which the line will be drawn.</param>
+      </AA>
+      <Pt>
+        <param name="p1">The starting point of the line.</param>
+        <param name="p2">The ending point of the line.</param>
+      </Pt>
+      <XY>
+        <param name="x1">The X coordinate of the starting point of the line.</param>
+        <param name="y1">The Y coordinate of the starting point of the line.</param>
+        <param name="x2">The X coordinate of the ending point of the line.</param>
+        <param name="y2">The Y coordinate of the ending point of the line.</param>
+      </XY>
+      <C>
+        <param name="color">The color to use. If the color contains a non-opaque alpha level, the line will be
+        alpha blended onto the surface.
+        </param>
+      </C>
+      <CA>
+        <param name="color">The color to use. The alpha component of this color is ignored.</param>
+        <param name="alpha">The alpha value to use, from 0 (transparent) to 255 (opaque). If not opaque, the line
+        will be alpha blended onto the surface.
+        </param>
+      </CA>
+    </Line>
+
+    <Rectangle>
+      <Hollow>
+        <summary>Draws a hollow rectangle, with optional alpha blending.</summary>
+        <param name="dest">The surface onto which the rectangle will be drawn.</param>
+      </Hollow>
+      <Filled>
+        <summary>Draws a filled rectangle, with optional alpha blending.</summary>
+        <param name="dest">The surface onto which the rectangle will be drawn.</param>
+      </Filled>
+      <Rect>
+        <param name="rect">A <see cref="Rectangle"/> describing the rectangle to draw.</param>
+      </Rect>
+      <Pt>
+        <param name="p1">A corner of the rectangle to draw.</param>
+        <param name="p2">The opposite corner of the rectangle to draw.</param>
+      </Pt>
+      <XY>
+        <param name="x1">The X coordinate of a corner of the rectangle to draw.</param>
+        <param name="y1">The Y coordinate of a corner of the rectangle to draw.</param>
+        <param name="x2">The X coordinate of the opposite corner of the rectangle to draw.</param>
+        <param name="y2">The Y coordinate of the opposite corner of the rectangle to draw.</param>
+      </XY>
+      <C>
+        <param name="color">The color to use. If the color contains a non-opaque alpha level, the rectangle will be
+        alpha blended onto the surface.
+        </param>
+      </C>
+      <CA>
+        <param name="color">The color to use. The alpha component of this color is ignored.</param>
+        <param name="alpha">The alpha value to use, from 0 (transparent) to 255 (opaque). If not opaque, the rectangle
+        will be alpha blended onto the surface.
+        </param>
+      </CA>
+    </Rectangle>
+
+    <Circle>
+      <Hollow>
+        <summary>Draws a hollow circle, with optional alpha blending.</summary>
+        <param name="radius">The radius of the circle, in pixels.</param>
+        <param name="dest">The surface onto which the circle will be drawn.</param>
+      </Hollow>
+      <Filled>
+        <summary>Draws a filled circle, with optional alpha blending.</summary>
+        <param name="radius">The radius of the circle, in pixels.</param>
+        <param name="dest">The surface onto which the circle will be drawn.</param>
+      </Filled>
+      <AA>
+        <summary>Draws an antialiased hollow circle, with optional alpha blending.</summary>
+        <param name="radius">The radius of the circle, in pixels.</param>
+        <param name="dest">The surface onto which the circle will be drawn.</param>
+      </AA>
+      <Pt>
+        <param name="pt">The circle's center point.</param>
+      </Pt>
+      <XY>
+        <param name="x">The X coordinate of the circle's center point.</param>
+        <param name="y">The Y coordinate of the circle's center point.</param>
+      </XY>
+      <C>
+        <param name="color">The color to use. If the color contains a non-opaque alpha level, the circle will be
+        alpha blended onto the surface.
+        </param>
+      </C>
+      <CA>
+        <param name="color">The color to use. The alpha component of this color is ignored.</param>
+        <param name="alpha">The alpha value to use, from 0 (transparent) to 255 (opaque). If not opaque, the circle
+        will be alpha blended onto the surface.
+        </param>
+      </CA>
+      <AAC>
+        <param name="color">The base color of the circle. Surrounding pixels will be blended with this color to provide
+        antialiasing. If the color contains a non-opaque alpha level, the circle will be alpha blended onto the surface.
+        </param>
+      </AAC>
+      <AACA>
+        <param name="color">The base color of the circle. Surrounding pixels will be blended with this color to provide
+        antialiasing. The alpha component of this color is ignored.
+        </param>
+        <param name="alpha">The alpha value to use, from 0 (transparent) to 255 (opaque). If not opaque, the circle
+        will be alpha blended onto the surface.
+        </param>
+      </AACA>
+    </Circle>
+
+    <Ellipse>
+      <Common>
+        <param name="dest">The surface onto which the ellipse will be drawn.</param>
+        <param name="xRadius">The radius of the ellipse along the X axis, in pixels.</param>
+        <param name="yRadius">The radius of the ellipse along the Y axis, in pixels.</param>
+      </Common>
+      <Hollow>
+        <summary>Draws a hollow ellipse, with optional alpha blending.</summary>
+        <include file="documentation.xml" path="//Video/Primitives/Ellipse/Common/*"/>
+      </Hollow>
+      <Filled>
+        <include file="documentation.xml" path="//Video/Primitives/Ellipse/Common/*"/>
+      </Filled>
+      <AA>
+        <include file="documentation.xml" path="//Video/Primitives/Ellipse/Common/*"/>
+      </AA>
+      <Pt>
+        <param name="pt">The ellipse's center point.</param>
+      </Pt>
+      <XY>
+        <param name="x">The X coordinate of the ellipse's center point.</param>
+        <param name="y">The Y coordinate of the ellipse's center point.</param>
+      </XY>
+      <C>
+        <param name="color">The color to use. If the color contains a non-opaque alpha level, the ellipse will be
+        alpha blended onto the surface.
+        </param>
+      </C>
+      <CA>
+        <param name="color">The color to use. The alpha component of this color is ignored.</param>
+        <param name="alpha">The alpha value to use, from 0 (transparent) to 255 (opaque). If not opaque, the ellipse
+        will be alpha blended onto the surface.
+        </param>
+      </CA>
+      <AAC>
+        <param name="color">The base color of the ellipse. Surrounding pixels will be blended with this color to provide
+        antialiasing. If the color contains a non-opaque alpha level, the ellipse will be alpha blended onto the surface.
+        </param>
+      </AAC>
+      <AACA>
+        <param name="color">The base color of the ellipse. Surrounding pixels will be blended with this color to provide
+        antialiasing. The alpha component of this color is ignored.
+        </param>
+        <param name="alpha">The alpha value to use, from 0 (transparent) to 255 (opaque). If not opaque, the ellipse
+        will be alpha blended onto the surface.
+        </param>
+      </AACA>
+    </Ellipse>
+
+    <Pie>
+      <Filled>
+        <summary>Draws a filled pie, with optional alpha blending.</summary>
+        <include file="documentation.xml" path="//Video/Primitives/Pie/Common/*"/>
+      </Filled>
+      <Hollow>
+        <summary>Draws a hollow pie, with optional alpha blending.</summary>
+      <include file="documentation.xml" path="//Video/Primitives/Pie/Common/*"/>
+        </Hollow>
+      <Pt>
+        <param name="pt">The pie's center point.</param>
+      </Pt>
+      <XY>
+        <param name="x">The X coordinate of the pie's center point.</param>
+        <param name="y">The Y coordinate of the pie's center point.</param>
+      </XY>
+      <C>
+        <param name="color">The color to use. If the color contains a non-opaque alpha level, the pie will be
+        alpha blended onto the surface.
+        </param>
+      </C>
+      <CA>
+        <param name="color">The color to use. The alpha component of this color is ignored.</param>
+        <param name="alpha">The alpha value to use, from 0 (transparent) to 255 (opaque). If not opaque, the pie
+        will be alpha blended onto the surface.
+        </param>
+      </CA>
+      <Common>
+        <param name="dest">The surface into which the pie will be drawn.</param>
+        <param name="radius">The radius of the pie, in pixels.</param>
+        <param name="startDegs">The starting angle of the pie's arc, in degrees. 0 is to the right.</param>
+        <param name="endDegs">The ending angle of the pie's arc, in degrees. 0 is to the right.</param>
+      </Common>
+    </Pie>
+    
+    <Triangle>
+      <Hollow>
+        <summary>Draws a hollow triangle, with optional alpha blending.</summary>
+        <param name="dest">The surface onto which the triangle will be drawn.</param>
+      </Hollow>
+      <Filled>
+        <summary>Draws a filled triangle, with optional alpha blending.</summary>
+        <param name="dest">The surface onto which the triangle will be drawn.</param>
+      </Filled>
+      <AA>
+        <summary>Draws an antialiased hollow triangle, with optional alpha blending.</summary>
+        <param name="dest">The surface onto which the triangle will be drawn.</param>
+      </AA>
+      <Pt>
+        <param name="p1">The first point of the triangle.</param>
+        <param name="p2">The second point of the triangle.</param>
+        <param name="p3">The third point of the triangle.</param>
+      </Pt>
+      <XY>
+        <param name="x1">The X coordinate of the first point of the triangle.</param>
+        <param name="y1">The Y coordinate of the first point of the triangle.</param>
+        <param name="x2">The X coordinate of the second point of the triangle.</param>
+        <param name="y2">The Y coordinate of the second point of the triangle.</param>
+        <param name="x3">The X coordinate of the third point of the triangle.</param>
+        <param name="y3">The Y coordinate of the third point of the triangle.</param>
+      </XY>
+      <C>
+        <param name="color">The color to use. If the color contains a non-opaque alpha level, the triangle will be
+        alpha blended onto the surface.
+        </param>
+      </C>
+      <CA>
+        <param name="color">The color to use. The alpha component of this color is ignored.</param>
+        <param name="alpha">The alpha value to use, from 0 (transparent) to 255 (opaque). If not opaque, the triangle
+        will be alpha blended onto the surface.
+        </param>
+      </CA>
+      <AAC>
+        <param name="color">The base color of the triangle. Surrounding pixels will be blended with this color to
+        provide antialiasing. If the color contains a non-opaque alpha level, the triangle will be alpha blended onto
+        the surface.
+        </param>
+      </AAC>
+      <AACA>
+        <param name="color">The base color of the triangle. Surrounding pixels will be blended with this color to
+        provide antialiasing. The alpha component of this color is ignored.
+        </param>
+        <param name="alpha">The alpha value to use, from 0 (transparent) to 255 (opaque). If not opaque, the triangle
+        will be alpha blended onto the surface.
+        </param>
+      </AACA>
+    </Triangle>
+    
+    <Polygon>
+      <Hollow>
+        <summary>Draws a hollow polygon, with optional alpha blending.</summary>
+        <param name="dest">The surface onto which the polygon will be drawn.</param>
+      </Hollow>
+      <Filled>
+        <summary>Draws a filled polygon, with optional alpha blending.</summary>
+        <param name="dest">The surface onto which the polygon will be drawn.</param>
+      </Filled>
+      <AA>
+        <summary>Draws an antialiased hollow polygon, with optional alpha blending.</summary>
+        <param name="dest">The surface onto which the polygon will be drawn.</param>
+      </AA>
+      <A>
+        <param name="points">An array of points defining the polygon.</param>
+      </A>
+      <AL>
+        <param name="points">An array of points defining the polygon.</param>
+        <param name="index">The starting index into <paramref name="points"/>.</param>
+        <param name="length">The number of points to read from <paramref nam="points"/>, starting from
+        <paramref name="index"/>.
+        </param>
+      </AL>
+      <C>
+        <param name="color">The color to use. If the color contains a non-opaque alpha level, the polygon will be
+        alpha blended onto the surface.
+        </param>
+      </C>
+      <CA>
+        <param name="color">The color to use. The alpha component of this color is ignored.</param>
+        <param name="alpha">The alpha value to use, from 0 (transparent) to 255 (opaque). If not opaque, the polygon
+        will be alpha blended onto the surface.
+        </param>
+      </CA>
+      <AAC>
+        <param name="color">The base color of the polygon. Surrounding pixels will be blended with this color to
+        provide antialiasing. If the color contains a non-opaque alpha level, the polygon will be alpha blended onto
+        the surface.
+        </param>
+      </AAC>
+      <AACA>
+        <param name="color">The base color of the polygon. Surrounding pixels will be blended with this color to
+        provide antialiasing. The alpha component of this color is ignored.
+        </param>
+        <param name="alpha">The alpha value to use, from 0 (transparent) to 255 (opaque). If not opaque, the polygon
+        will be alpha blended onto the surface.
+        </param>
+      </AACA>
+    </Polygon>
+    
+    <Curve>
+      <Common>
+        <summary>Draws a bezier curve, with optional alpha blending.</summary>
+        <param name="dest">The surface onto which the curve will be drawn.</param>
+        <param name="steps">The number of interpolation steps. Higher numbers of steps will yield smoother curves,
+        but with correspondingly reduced performance.
+        </param>
+      </Common>
+      <C>
+        <param name="color">The color to use. If the color contains a non-opaque alpha level, the curve will be
+        alpha blended onto the surface.
+        </param>
+      </C>
+      <CA>
+        <param name="color">The color to use. The alpha component of this color is ignored.</param>
+        <param name="alpha">The alpha value to use, from 0 (transparent) to 255 (opaque). If not opaque, the curve
+        will be alpha blended onto the surface.
+        </param>
+      </CA>
+      <A>
+        <param name="points">An array of points defining the curve.</param>
+      </A>
+      <AL>
+        <param name="points">An array of points defining the curve.</param>
+        <param name="index">The starting index into <paramref name="points"/>.</param>
+        <param name="length">The number of points to read from <paramref nam="points"/>, starting from
+          <paramref name="index"/>.
+        </param>
+      </AL>
+    </Curve>
+  </Primitives>
+
   <PSDCodec>
    <IsPSD>
     <summary>Determines whether a file is a PSD image file that can be read by this codec.</summary>
@@ -566,7 +1076,191 @@ byte[] output = IOH.Write("dfp?d", parms);
     </exception>
     <exception cref="ArgumentException">Thrown if <paramref name="image"/> contains invalid data.</exception>
     <exception cref="InvalidOperationException">Thrown if the codec is currently in a reading or writing mode.</exception>
-   </Writing_X>   
+   </Writing_X>
   </PSDCodec>
+  
+  <Surface>
+    <Cons>
+      <FromBmp>
+        <summary>This constructor attempts to initialize the surface from a <see cref="System.Drawing.Bitmap"/>.</summary>
+        <param name="bitmap">The <see cref="System.Drawing.Bitmap"/> containing the image to initialize this
+        surface with.
+        </param>
+      </FromBmp>
+      <FromDims>
+        <summary>Creates an empty surface with the given dimensions and bit depth.</summary>
+        <param name="width">The width of the surface to create.</param>
+        <param name="height">The height of the surface to create.</param>
+        <param name="depth">The bit depth of the surface to create, in bits per pixel.</param>
+      </FromDims>
+      <FromFormat>
+        <summary>Creates an empty surface with the given dimensions and pixel format</summary>
+        <param name="width">The width of the surface to create.</param>
+        <param name="height">The height of the surface to create.</param>
+        <param name="format">The <see cref="PixelFormat"/> of the surface to create.</param>
+      </FromFormat>
+    </Cons>
+    
+    <Fill>
+      <Whole>
+        <summary>Fills the surface with the specified color.</summary>
+      </Whole>
+      <Rect>
+        <summary>Fills a portion of the surface with the specified color.</summary>
+        <param name="rect">The portion of the surface to fill.</param>
+      </Rect>
+      <C>
+        <param name="color">The color to fill with.</param>
+        <remarks>The color will be converted to a raw pixel value with <see cref="MapColor(Color)"/> before the area
+        is filled. This method should not be called while the surface is locked. This method respects the
+        <see cref="ClipRect"/> set on the surface.
+        </remarks>
+      </C>
+      <R>
+        <param name="color">The raw pixel value to fill with.</param>
+        <remarks>This method should not be called while the surface is locked. This method respects the
+        <see cref="ClipRect"/> set on the surface.
+        </remarks>
+      </R>
+    </Fill>
+    
+    <Blit>
+      <Whole>
+        <summary>Blits this surface onto a destination surface at the given point.</summary>
+        <param name="dest">The destination surface to blit onto.</param>
+      </Whole>
+      <Part>
+        <summary>Blits a portion of this surface onto a destination surface at the given point.</summary>
+        <param name="dest">The destination surface to blit onto.</param>
+        <param name="src">The portion of this surface to blit.</param>
+      </Part>
+      <Pt>
+        <param name="dpt">The destination point where the blit will begin.</param>
+      </Pt>
+      <XY>
+        <param name="dx">The X coordinate of the destination point where the blit will begin.</param>
+        <param name="dy">The Y coordinate of the destination point where the blit will begin.</param>
+      </XY>
+    </Blit>
+    
+    <GetPixel>
+      <C>
+        <summary>Returns the color of the pixel at the specified point.</summary>
+        <returns>The <see cref="Color"/> of the pixel.</returns>
+        <remarks>This method reads the raw pixel value and calls <see cref="MapColor(uint)"/> to convert it to a
+        <see cref="Color"/>.
+        This method is quite inefficient. Also, it uses <see cref="Lock"/> to lock the
+        surface first if necessary. If you are reading/writing many pixels at once, you should consider locking
+        the surface before all the operations and unlocking it afterwards, or doing direct pixel access yourself
+        using <see cref="Data"/>.
+        </remarks>
+      </C>
+      <R>
+        <summary>Gets the raw value of the pixel at the specified point.</summary>
+        <returns>The raw pixel value for the specified point.</returns>
+        <remarks>This method is quite inefficient.
+        Also, it uses <see cref="Lock"/> to lock the surface first if necessary. If you are reading/writing many
+        pixels at once, you should consider locking the surface before all the operations and unlocking it afterwards,
+        or doing direct pixel access yourself using <see cref="Data"/>.
+        </remarks>
+      </R>
+      <Pt>
+        <param name="point">The point whose color value will be returned.</param>
+      </Pt>
+      <XY>
+        <param name="x">The X coordinate of the point whose color value will be returned.</param>
+        <param name="y">The Y coordinate of the point whose color value will be returned.</param>
+      </XY>
+    </GetPixel>
+    
+    <PutPixel>
+      <C>
+        <summary>Sets the color of the pixel at the specified point.</summary>
+        <param name="color">The color value to set the pixel to.</param>
+        <remarks>This method calls <see cref="MapColor(Color)"/> to convert the color into a raw pixel value.
+        This method respects the <see cref="ClipRect"/> set up for the surface. This method is quite inefficient.
+        Also, it uses <see cref="Lock"/> to lock the surface first if necessary. If you are reading/writing many
+        pixels at once, you should consider locking the surface before all the operations and unlocking it afterwards,
+        or doing direct pixel access yourself using <see cref="Data"/>.
+        </remarks>
+      </C>
+      <R>
+        <summary>Sets the raw pixel value of the pixel at the specified point.</summary>
+        <param name="color">The raw color value to set the pixel to.</param>
+        <remarks>This method respects the <see cref="ClipRect"/> set up for the surface.
+        This method is quite inefficient.
+        Also, it uses <see cref="Lock"/> to lock the surface first if necessary. If you are reading/writing many
+        pixels at once, you should consider locking the surface before all the operations and unlocking it afterwards,
+        or doing direct pixel access yourself using <see cref="Data"/>.
+        </remarks>
+      </R>
+      <Pt>
+        <param name="point">The point whose color value will be set.</param>
+      </Pt>
+      <XY>
+        <param name="x">The X coordinate of the point whose color value will be set.</param>
+        <param name="y">The Y coordinate of the point whose color value will be set.</param>
+      </XY>
+    </PutPixel>
+    
+    <SetPalette>
+      <Common>
+        <exception cref="ArgumentNullException">Thrown if <paramref name="colors"/> is null.</exception>
+        <param name="colors">An array of <see cref="Color"/> to set the palette with.</param>
+      </Common>
+      <ANCommon>
+        <param name="numColors">The number of colors to set.</param>
+        <remarks>If <paramref name="numColors"/> is smaller than the number of colors in the palette, part of the
+        palette will remain unchanged.
+        </remarks>
+      </ANCommon>
+
+      <Logical>
+        <summary>Sets the logical palette colors.</summary>
+        <include file="documentation.xml" path="//Video/Surface/SetPalette/Common/*"/>
+      </Logical>
+
+      <A>
+        <remarks>If <paramref name="colors"/> contains too few colors, part of the palette will remain unchanged.
+        </remarks>
+      </A>
+      <AN>
+        <include file="documentation.xml" path="//Video/Surface/SetPalette/ANCommon/*"/>
+        <remarks>If <paramref name="numColors"/> is smaller than the number of colors in the palette, part of the
+        palette will remain unchanged.
+        </remarks>
+        <exception cref="ArgumentOutOfRangeException">Thrown if the number of colors would overflow the palette.
+        </exception>
+      </AN>
+      <AA>
+        <include file="documentation.xml" path="//Video/Surface/SetPalette/AN/*"/>
+        <param name="startIndex">The starting index within the palette where colors will be written.</param>
+        <param name="startColor">The starting index within the color array from where colors will be read.</param>
+        <exception cref="ArgumentOutOfRangeException">Thrown if the number of colors would overflow the palette or
+        one of the indices are invalid.
+        </exception>
+      </AA>
+      <EN>
+        <exception cref="ArgumentOutOfRangeException">Thrown if the number of colors would overflow the palette.
+        </exception>
+      </EN>
+    </SetPalette>
+    
+    <CreateCompatible>
+      <summary>Creates a surface with the same pixel format as this one, and a specified size.</summary>
+      <param name="width">The width of the new surface.</param>
+      <param name="height">The height of the new surface.</param>
+      <returns>A <see cref="Surface"/> with the same pixel format as this one.</returns>
+    </CreateCompatible>
+    
+    <CloneDisplay>
+      <summary>Returns a copy of this surface in the same general format as the display surface, suitable for fast
+      blitting.
+      </summary>
+      <returns>A new <see cref="Surface"/> containing the same image data, converted to the same general pixel format
+      of the display surface. The new surface will have an alpha channel if this surface has an alpha channel.
+      </returns>
+    </CloneDisplay>
+  </Surface>
  </Video>
 </GameLib>

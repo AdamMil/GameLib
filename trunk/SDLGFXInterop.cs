@@ -71,6 +71,8 @@ internal sealed class GFX
   #region Pies
   [DllImport(Config.SDLGFXImportPath, CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern int filledpieRGBA(SDL.SDL.Surface* dst, short x, short y, short rad, short start, short end, byte r, byte g, byte b, byte a);
+  [DllImport(Config.SDLGFXImportPath, CallingConvention=CallingConvention.Cdecl)]
+  public unsafe static extern int pieRGBA(SDL.SDL.Surface* dst, short x, short y, short rad, short start, short end, byte r, byte g, byte b, byte a);
   #endregion
 
   #region Triangles
