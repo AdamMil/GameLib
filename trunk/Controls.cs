@@ -11,61 +11,6 @@ using GameLib.Input;
 namespace GameLib.Forms
 {
 
-public enum BorderStyle { None, FixedFlat, Fixed3D, FixedThick, Resizeable };
-
-#region Helper
-public class Helpers
-{ private Helpers() { }
-
-  public static void DrawBorder(Surface surface, Rectangle rect, BorderStyle border, bool depressed)
-  { switch(border)
-    { case BorderStyle.FixedFlat: DrawBorder(surface, rect, border, Color.Black, depressed); break;
-      case BorderStyle.Fixed3D: case BorderStyle.FixedThick: case BorderStyle.Resizeable:
-        DrawBorder(surface, rect, border, Color.FromArgb(212, 208, 200), depressed);
-        break;
-    }
-  }
-
-  public static void DrawBorder(Surface surface, Rectangle rect, BorderStyle border, Color color, bool depressed)
-  { switch(border)
-    { case BorderStyle.FixedFlat: DrawBorder(surface, rect, border, color, color, depressed); break;
-      case BorderStyle.Fixed3D: case BorderStyle.FixedThick: case BorderStyle.Resizeable:
-        DrawBorder(surface, rect, border,
-                   Color.FromArgb(color.R+(255-color.R)/2, color.G+(255-color.G)/2, color.B+(255-color.B)/2),
-                   Color.FromArgb(color.R*2/3, color.G*2/3, color.B*2/3), depressed);
-        break;
-    }
-  }
-
-  public static void DrawBorder(Surface surface, Rectangle rect, BorderStyle border, Color c1, Color c2, bool depressed)
-  { switch(border)
-    { case BorderStyle.FixedFlat: Primitives.Box(surface, rect, c1); break;
-      case BorderStyle.Fixed3D:
-        if(depressed) { Color t=c1; c1=c2; c2=t; }
-        Primitives.Line(surface, rect.X, rect.Y, rect.Right-1, rect.Y, c1);
-        Primitives.Line(surface, rect.X, rect.Y, rect.X, rect.Bottom-1, c1);
-        Primitives.Line(surface, rect.X, rect.Bottom-1, rect.Right-1, rect.Bottom-1, c2);
-        Primitives.Line(surface, rect.Right-1, rect.Y, rect.Right-1, rect.Bottom-1, c2);
-        break;
-      case BorderStyle.FixedThick: case BorderStyle.Resizeable:
-        Color c3, c4;
-        if(depressed) { c3=c2; c4=Color.White; c2=c1; c1=Color.Black; }
-        else { c4=c2; c2=Color.Black; c3=Color.White; }
-        Primitives.Line(surface, rect.X, rect.Y, rect.Right-1, rect.Y, c1);
-        Primitives.Line(surface, rect.X, rect.Y, rect.X, rect.Bottom-1, c1);
-        Primitives.Line(surface, rect.X, rect.Bottom-1, rect.Right-1, rect.Bottom-1, c2);
-        Primitives.Line(surface, rect.Right-1, rect.Y, rect.Right-1, rect.Bottom-1, c2);
-        rect.Inflate(-1, -1);
-        Primitives.Line(surface, rect.X, rect.Y, rect.Right-1, rect.Y, c3);
-        Primitives.Line(surface, rect.X, rect.Y, rect.X, rect.Bottom-1, c3);
-        Primitives.Line(surface, rect.X, rect.Bottom-1, rect.Right-1, rect.Bottom-1, c4);
-        Primitives.Line(surface, rect.Right-1, rect.Y, rect.Right-1, rect.Bottom-1, c4);
-        break;
-    }
-  }
-}
-#endregion
-
 #region ContainerControl
 public class ContainerControl : Control
 { protected internal override void OnPaint(PaintEventArgs e)
@@ -182,7 +127,7 @@ public class Label : LabelBase
   protected internal override void OnPaint(PaintEventArgs e)
   { base.OnPaint(e);
     if(Image!=null)
-    { Point at = Utility.CalculateAlignment(DisplayRect, new Size(Image.Width, Image.Height), ImageAlign);
+    { Point at = Helpers.CalculateAlignment(DisplayRect, new Size(Image.Width, Image.Height), ImageAlign);
       Image.Blit(e.Surface, at.X, at.Y);
     }
     if(Text.Length>0)
@@ -268,7 +213,7 @@ public class Button : ButtonBase
     Rectangle rect = DisplayRect;
 
     if(Image!=null)
-    { Point at = Utility.CalculateAlignment(rect, new Size(Image.Width, Image.Height), ImageAlign);
+    { Point at = Helpers.CalculateAlignment(rect, new Size(Image.Width, Image.Height), ImageAlign);
       if(Pressed) at.Offset(1, 1);
       Image.Blit(e.Surface, at.X, at.Y);
     }
@@ -329,6 +274,72 @@ public abstract class CheckBoxBase : ButtonBase
   }
   
   bool value;
+}
+#endregion
+
+#region CheckBox
+public class CheckBox : CheckBoxBase
+{ public CheckBox() { }
+  public CheckBox(bool check) { Checked=check; } 
+
+  public ContentAlignment TextAlignment
+  { get { return align; }
+    set
+    { if(value!=align)
+      { if(Helpers.AlignedMiddle(value)) throw new ArgumentException("Middle alignment not allowed for checkbox");
+        align=value;
+        Invalidate();
+      }
+    }
+  }
+
+  protected internal override void OnPaintBackground(PaintEventArgs e)
+  { base.OnPaintBackground(e);
+    if(Focused) Helpers.DrawBorder(e.Surface, DisplayRect, BorderStyle.FixedFlat, Color.Black, false);
+  }
+
+  protected internal override void OnPaint(PaintEventArgs e)
+  { base.OnPaint(e);
+    
+    Rectangle rect = DisplayRect;
+    rect.Inflate(-1, -1);
+
+    bool right = Helpers.AlignedRight(align);
+    int boxSize=13, x=right ? rect.X : rect.Right-boxSize, y=rect.Y+(Height-boxSize)/2;
+    Rectangle box = new Rectangle(x, y, boxSize, boxSize);
+
+    Helpers.DrawBorder(e.Surface, box, BorderStyle.FixedThick, border, true);
+    box.Inflate(-2, -2);
+    e.Surface.Fill(box, down ? border : Color.White);
+
+    if(Checked)
+      for(int yo=0; yo<3; yo++)
+      { Primitives.Line(e.Surface, box.X+1, box.Y+yo+3, box.X+3, box.Y+yo+5, Color.Black);
+        Primitives.Line(e.Surface, box.X+4, box.Y+yo+4, box.X+7, box.Y+yo+1, Color.Black);
+      }
+
+    GameLib.Fonts.Font font = Font;
+    if(font!=null)
+    { if(right) rect.X += boxSize+3;
+      else rect.Width -= boxSize+3;
+      font.BackColor = BackColor;
+      font.Color = ForeColor;
+      font.Render(e.Surface, Text, rect, align);
+    }
+
+    Color.FromArgb(212, 208, 200);
+  }
+  
+  protected internal override void OnMouseDown(ClickEventArgs e) { down=true; Invalidate(); base.OnMouseDown(e); }
+  protected internal override void OnMouseUp(ClickEventArgs e) { down=false; Invalidate(); base.OnMouseUp(e); }
+  protected override void OnGotFocus(EventArgs e) { Invalidate(); base.OnGotFocus(e); }
+  protected override void OnLostFocus(EventArgs e) { Invalidate(); base.OnLostFocus(e); }
+  protected override void OnCheckedChanged(EventArgs e) { Invalidate(); base.OnCheckedChanged(e); }
+
+  
+  Color border = Color.FromArgb(212, 208, 200);
+  ContentAlignment align=ContentAlignment.MiddleRight;
+  bool down;
 }
 #endregion
 
@@ -737,8 +748,8 @@ public abstract class TextBoxBase : Control
   protected virtual void OnCaretPositionChanged(ValueChangedEventArgs e) { }
   protected virtual void OnCaretFlash() { }
   
-  protected override void OnGotFocus (EventArgs e) { withCaret=this; base.OnGotFocus(e); }
-  protected override void OnLostFocus(EventArgs e) { withCaret=null; base.OnLostFocus(e); }
+  protected override void OnGotFocus (EventArgs e) { WithCaret=this; base.OnGotFocus(e); }
+  protected override void OnLostFocus(EventArgs e) { WithCaret=null; base.OnLostFocus(e); }
 
   protected internal override void OnKeyPress(KeyEventArgs e)
   { if(e.KE.Char>=32)
@@ -928,7 +939,7 @@ public abstract class TextBoxBase : Control
   { get { return withCaret; }
     set
     { if(withCaret!=value)
-      { if(withCaret!=null && caretOn) { caretOn=false; withCaret.OnCaretFlash(); caretOn=true; }
+      { if(withCaret!=null) { bool on=caretOn; caretOn=false; withCaret.OnCaretFlash(); caretOn=on; }
         withCaret=value;
       }
     }
@@ -1018,7 +1029,7 @@ public class TextBox : TextBoxBase
       }
 
       int x = rect.X + font.CalculateSize(text.Substring(0, CaretPosition-start)).Width;
-      Primitives.VLine(e.Surface, x, rect.Top+2, rect.Bottom-3, CaretOn ? ForeColor : BackColor);
+      Primitives.VLine(e.Surface, x, rect.Top+2, rect.Bottom-3, CaretOn && HasCaret ? ForeColor : BackColor);
     }
   }
 
@@ -1061,7 +1072,7 @@ public class TextBox : TextBoxBase
     { Rectangle rect = DisplayRect;
       rect.Y += padding+2; rect.Height -= padding*2+4; rect.Width = 1;
       rect.X += font.CalculateSize(Text.Substring(start, CaretPosition-start)).Width + padding;
-      Primitives.VLine(desktop.Surface, rect.X, rect.Top, rect.Bottom-1, CaretOn ? ForeColor : BackColor);
+      Primitives.VLine(desktop.Surface, rect.X, rect.Top, rect.Bottom-1, CaretOn && HasCaret ? ForeColor : BackColor);
       desktop.AddUpdatedArea(rect);
       if(Events.Events.QueueSize==0) Events.Events.PushEvent(new Events.DesktopUpdatedEvent(desktop));
     }
@@ -1724,6 +1735,7 @@ public sealed class MessageBox : Form
           btn.Bounds = new Rectangle(x, y, sizes[i], btnHeight);
           btn.Click += new ClickEventHandler(btn_OnClick);
           btn.Tag    = i;
+          btn.TabIndex = i;
           x += sizes[i]+btnSpace;
           Controls.Add(btn);
         }

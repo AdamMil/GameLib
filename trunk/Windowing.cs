@@ -1623,22 +1623,12 @@ public class DesktopControl : ContainerControl, IDisposable
 }
 #endregion
 
-#region Utility class
-public class Utility
-{ private Utility() { }
-  
-  public static Point CalculateAlignment(Rectangle container, Size item, ContentAlignment align)
-  { Point ret = new Point();
-    if(AlignedLeft(align)) ret.X = container.X;
-    else if(AlignedCenter(align)) ret.X = container.X + (container.Width - item.Width)/2;
-    else ret.X = container.Right - item.Width;
-    
-    if(AlignedTop(align)) ret.Y = container.Y;
-    else if(AlignedMiddle(align)) ret.Y = container.Y + (container.Height - item.Height)/2;
-    else ret.Y = container.Bottom - item.Height;
-    return ret;
-  }
-  
+#region Helpers
+public enum BorderStyle { None, FixedFlat, Fixed3D, FixedThick, Resizeable };
+
+public class Helpers
+{ private Helpers() { }
+
   public static bool AlignedLeft(ContentAlignment align)
   { return align==ContentAlignment.TopLeft || align==ContentAlignment.MiddleLeft ||
            align==ContentAlignment.BottomLeft;
@@ -1662,6 +1652,65 @@ public class Utility
   public static bool AlignedBottom(ContentAlignment align)
   { return align==ContentAlignment.BottomLeft || align==ContentAlignment.BottomCenter ||
            align==ContentAlignment.BottomRight;
+  }
+
+  public static Point CalculateAlignment(Rectangle container, Size item, ContentAlignment align)
+  { Point ret = new Point();
+    if(AlignedLeft(align)) ret.X = container.X;
+    else if(AlignedCenter(align)) ret.X = container.X + (container.Width - item.Width)/2;
+    else ret.X = container.Right - item.Width;
+    
+    if(AlignedTop(align)) ret.Y = container.Y;
+    else if(AlignedMiddle(align)) ret.Y = container.Y + (container.Height - item.Height)/2;
+    else ret.Y = container.Bottom - item.Height;
+    return ret;
+  }
+  
+  public static void DrawBorder(Surface surface, Rectangle rect, BorderStyle border, bool depressed)
+  { switch(border)
+    { case BorderStyle.FixedFlat: DrawBorder(surface, rect, border, Color.Black, depressed); break;
+      case BorderStyle.Fixed3D: case BorderStyle.FixedThick: case BorderStyle.Resizeable:
+        DrawBorder(surface, rect, border, Color.FromArgb(212, 208, 200), depressed);
+        break;
+    }
+  }
+
+  public static void DrawBorder(Surface surface, Rectangle rect, BorderStyle border, Color color, bool depressed)
+  { switch(border)
+    { case BorderStyle.FixedFlat: DrawBorder(surface, rect, border, color, color, depressed); break;
+      case BorderStyle.Fixed3D: case BorderStyle.FixedThick: case BorderStyle.Resizeable:
+        DrawBorder(surface, rect, border,
+                   Color.FromArgb(color.R+(255-color.R)/2, color.G+(255-color.G)/2, color.B+(255-color.B)/2),
+                   Color.FromArgb(color.R*2/3, color.G*2/3, color.B*2/3), depressed);
+        break;
+    }
+  }
+
+  public static void DrawBorder(Surface surface, Rectangle rect, BorderStyle border, Color c1, Color c2, bool depressed)
+  { switch(border)
+    { case BorderStyle.FixedFlat: Primitives.Box(surface, rect, c1); break;
+      case BorderStyle.Fixed3D:
+        if(depressed) { Color t=c1; c1=c2; c2=t; }
+        Primitives.Line(surface, rect.X, rect.Y, rect.Right-1, rect.Y, c1);
+        Primitives.Line(surface, rect.X, rect.Y, rect.X, rect.Bottom-1, c1);
+        Primitives.Line(surface, rect.X, rect.Bottom-1, rect.Right-1, rect.Bottom-1, c2);
+        Primitives.Line(surface, rect.Right-1, rect.Y, rect.Right-1, rect.Bottom-1, c2);
+        break;
+      case BorderStyle.FixedThick: case BorderStyle.Resizeable:
+        Color c3, c4;
+        if(depressed) { c3=c2; c4=Color.White; c2=c1; c1=Color.Black; }
+        else { c4=c2; c2=Color.Black; c3=Color.White; }
+        Primitives.Line(surface, rect.X, rect.Y, rect.Right-1, rect.Y, c1);
+        Primitives.Line(surface, rect.X, rect.Y, rect.X, rect.Bottom-1, c1);
+        Primitives.Line(surface, rect.X, rect.Bottom-1, rect.Right-1, rect.Bottom-1, c2);
+        Primitives.Line(surface, rect.Right-1, rect.Y, rect.Right-1, rect.Bottom-1, c2);
+        rect.Inflate(-1, -1);
+        Primitives.Line(surface, rect.X, rect.Y, rect.Right-1, rect.Y, c3);
+        Primitives.Line(surface, rect.X, rect.Y, rect.X, rect.Bottom-1, c3);
+        Primitives.Line(surface, rect.X, rect.Bottom-1, rect.Right-1, rect.Bottom-1, c4);
+        Primitives.Line(surface, rect.Right-1, rect.Y, rect.Right-1, rect.Bottom-1, c4);
+        break;
+    }
   }
 }
 #endregion
