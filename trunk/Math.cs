@@ -293,7 +293,7 @@ public struct Fixed64 : IFormattable, IComparable, IConvertible
     else return new Fixed64(val&Trunc);
   }
 
-  public Fixed64 Sqrt() { throw new NotImplementedException(); }
+  public Fixed64 Sqrt() { return new Fixed64(Math.Sqrt(ToDouble())); }
 
   public Fixed64 Truncated()
   { if(val<0)
@@ -330,16 +330,16 @@ public struct Fixed64 : IFormattable, IComparable, IConvertible
 
   #region Trig functions, etc
   public static Fixed64 Abs(Fixed64 val) { return val.val<0 ? new Fixed64(-val.val) : val; }
-  public static Fixed64 Acos(Fixed64 val) { throw new NotImplementedException(); }
-  public static Fixed64 Asin(Fixed64 val) { throw new NotImplementedException(); }
-  public static Fixed64 Atan(Fixed64 val) { throw new NotImplementedException(); }
+  public static Fixed64 Acos(Fixed64 val) { return new Fixed64(Math.Acos(val.ToDouble())); }
+  public static Fixed64 Asin(Fixed64 val) { return new Fixed64(Math.Asin(val.ToDouble())); }
+  public static Fixed64 Atan(Fixed64 val) { return new Fixed64(Math.Atan(val.ToDouble())); }
   public static Fixed64 Ceiling(Fixed64 val) { return val.Ceiling(); }
-  public static Fixed64 Cos(Fixed64 val) { throw new NotImplementedException(); }
+  public static Fixed64 Cos(Fixed64 val) { return new Fixed64(Math.Cos(val.ToDouble())); }
   public static Fixed64 Floor(Fixed64 val) { return val.Floor(); }
   public static Fixed64 Round(Fixed64 val) { return val.Round(); }
-  public static Fixed64 Sin(Fixed64 val) { throw new NotImplementedException(); }
-  public static Fixed64 Sqrt(Fixed64 val) { return val.Sqrt(); }
-  public static Fixed64 Tan(Fixed64 val) { throw new NotImplementedException(); }
+  public static Fixed64 Sin(Fixed64 val) { return new Fixed64(Math.Sin(val.ToDouble())); }
+  public static Fixed64 Sqrt(Fixed64 val) { return new Fixed64(Math.Sqrt(val.ToDouble())); }
+  public static Fixed64 Tan(Fixed64 val) { return new Fixed64(Math.Tan(val.ToDouble())); }
   public static Fixed64 Truncate(Fixed64 val) { return val.Truncated(); }
   #endregion
 
@@ -506,6 +506,7 @@ public struct Fixed64 : IFormattable, IComparable, IConvertible
   public static readonly Fixed64 MinusOne = new Fixed64(Trunc);
   public static readonly Fixed64 One      = new Fixed64(OneVal);
   public static readonly Fixed64 PI       = new Fixed64(12884901888L + 608135817);
+  public static readonly Fixed64 PIover2  = new Fixed64((12884901888L + 608135817)/2);
   public static readonly Fixed64 Zero     = new Fixed64((long)0);
   #endregion
 
