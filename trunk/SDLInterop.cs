@@ -561,7 +561,7 @@ internal class SDL
 
   public static void RaiseError() // TODO: add parameter specifying type of exception to throw (instead of GameLibException)
   { string error = GetError();
-    if(error==null) throw new GameLibException("GameLib sez: Something bad happened, but SDL disagrees");
+    if(error==null) throw new GameLibException("GameLib says something bad happened, but SDL disagrees");
     ClearError();
     if(error.IndexOf("Surface was lost")!=-1) throw new SurfaceLostException(error);
     else throw new GameLibException(error);
