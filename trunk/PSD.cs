@@ -34,7 +34,7 @@ public class PSDLayer : IDisposable
   public PSDLayer(Surface surface, string name) : this(surface, surface.Bounds, name) { }
   public PSDLayer(Surface surface, Rectangle bounds) : this(surface, bounds, null) { }
   public PSDLayer(Surface surface, Rectangle bounds, string name)
-  { Surface=surface; Bounds=bounds; Name=name; Channels=surface.UsingAlpha ? 4 : 3;
+  { Surface=surface; Bounds=bounds; Name=name; Channels=surface.UsingAlpha ? 4 : 3; Blend="norm"; Opacity=255;
   }
   ~PSDLayer() { Dispose(true); }
   public void Dispose() { Dispose(false); GC.SuppressFinalize(this); }
@@ -44,8 +44,9 @@ public class PSDLayer : IDisposable
 
   public Rectangle Bounds;
   public Surface   Surface;
-  public string    Name;
+  public string    Name, Blend;
   public int       Channels;
+  public byte      Opacity, Clipping, Flags;
   
   protected void Dispose(bool destructing)
   { if(Surface!=null)
@@ -68,14 +69,11 @@ public class PSDLayer : IDisposable
     Channels = channels.Length;
 
     if(IOH.ReadString(stream, 4)!="8BIM") throw new ArgumentException("Unknown blend signature");
-    { string sval = IOH.ReadString(stream, 4);
-      if(sval!="norm")
-        throw new NotSupportedException(string.Format("Unsupported blend mode '{0}' for layer", sval));
-    }
-    int opacity = IOH.Read1(stream);
-    if(opacity != 255)
-      throw new NotSupportedException(string.Format("Unsupported opacity level {0} for layer", opacity));
-    IOH.Skip(stream, 3); // misc stuff
+    Blend    = IOH.ReadString(stream, 4);
+    Opacity  = IOH.Read1(stream);
+    Clipping = IOH.Read1(stream);
+    Flags    = IOH.Read1(stream);
+    IOH.Skip(stream, 1); // reserved
 
     int extraBytes = IOH.ReadBE4(stream); // extra layer data
     int bytes = IOH.ReadBE4(stream); // layer mask size
@@ -236,7 +234,8 @@ public class PSDCodec
         { ValidateChannels(layer.Channels);
           if(layer.Bounds.X<0 || layer.Bounds.Y<0 || layer.Bounds.Right>image.Width ||
              layer.Bounds.Bottom>image.Height)
-            throw new ArgumentException("Invalid layer bounds");
+            throw new ArgumentException("Invalid layer bounds: "+layer.Bounds.ToString());
+          if(layer.Blend.Length!=4) throw new ArgumentException("Invalid blend mode: "+layer.Blend);
         }
       if(!stream.CanSeek) throw new ArgumentException("A seekable stream is required for PSD writing", "stream");
 
@@ -271,11 +270,11 @@ public class PSDCodec
             IOH.WriteBE4(stream, 0);  // data length (to be filled later)
           }
           IOH.WriteString(stream, "8BIM"); // blend mode signature
-          IOH.WriteString(stream, "norm"); // blend mode
-          stream.WriteByte(255); // opacity (255=opaque)
-          stream.WriteByte(0);   // clipping (0=base)
-          stream.WriteByte(0);   // flags
-          stream.WriteByte(0);   // reserved
+          IOH.WriteString(stream, layer.Blend); // blend mode
+          stream.WriteByte(layer.Opacity);  // opacity (255=opaque)
+          stream.WriteByte(layer.Clipping); // clipping (0=base)
+          stream.WriteByte(layer.Flags);    // flags
+          stream.WriteByte(0); // reserved
           string name = layer.Name==null ? "Layer "+(i+1) : layer.Name;
           if(name.Length>255) name = name.Substring(0, 255);
           int extraLen = 8 + (name.Length+4)/4*4;
