@@ -787,7 +787,7 @@ public class TextBoxBase : Control
         e.Handled=true;
       }
     }
-    else if(e.KE.Key==Key.Delete)
+    else if(e.KE.Key==Key.Delete && !e.KE.HasAnyMod(KeyMod.Shift))
     { if(e.KE.KeyMods==KeyMod.None || e.KE.HasOnlyKeys(KeyMod.Ctrl))
       { if(selectLen!=0) { Modified=true; SelectedText=""; }
         else if(caret<Text.Length)
