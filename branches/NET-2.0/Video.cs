@@ -243,9 +243,8 @@ public sealed class GammaRamp
 /// of the video hardware, etc. <see cref="Video.Initialize"/> must be called before other methods or properties
 /// can be used.
 /// </summary>
-public sealed class Video
-{ private Video() { }
-
+public static class Video
+{ 
   #region VideoInfo
   /// <summary>This class contains informations about the video hardware.</summary>
   public class VideoInfo
@@ -704,10 +703,8 @@ public sealed class Video
 /// <summary>This class provides some support for communicating with the Windowing Manager, if running in a
 /// windowed video mode.
 /// </summary>
-public sealed class WM
-{ private WM() { }
-
-  /// <summary>Gets or sets the title displayed in the application's window.</summary>
+public static class WM
+{ /// <summary>Gets or sets the title displayed in the application's window.</summary>
   /// <value>A string containing the title displayed in the application's window.</value>
   /// <remarks>This should be set after the video mode is set for maximum compatibility.</remarks>
   public static string WindowTitle

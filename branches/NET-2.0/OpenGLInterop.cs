@@ -28,9 +28,8 @@ namespace GameLib.Interop.OpenGL
 /// </summary>
 /// <remarks>This class currently supports OpenGL through version 1.3.</remarks>
 [System.Security.SuppressUnmanagedCodeSecurity()]
-public sealed class GL
-{ private GL() { }
-
+public static class GL
+{ 
   #region OpenGL 1.1
   #region Flags, Enums, Defines, etc
   #region AccumOp
@@ -2991,9 +2990,8 @@ public sealed class GL
 /// information regarding these methods.
 /// </summary>
 [System.Security.SuppressUnmanagedCodeSecurity()]
-public sealed class GLU
-{ private GLU() { }
-  // TODO: add GLU objects (nurbs, etc)
+public static class GLU
+{ // TODO: add GLU objects (nurbs, etc)
 
   #region Enums & Constants
   public const uint GLU_VERSION    = 100800;

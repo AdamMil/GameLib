@@ -24,10 +24,8 @@ namespace GameLib.Interop.SDL
 {
 
 [System.Security.SuppressUnmanagedCodeSecurity()]
-internal sealed class SDL
-{
-
-  [CallConvCdecl] public unsafe delegate int SeekHandler(RWOps* ops, int offset, SeekType type);
+internal static class SDL
+{ [CallConvCdecl] public unsafe delegate int SeekHandler(RWOps* ops, int offset, SeekType type);
   [CallConvCdecl] public unsafe delegate int ReadHandler(RWOps* ops, byte* data, int size, int maxnum);
   [CallConvCdecl] public unsafe delegate int WriteHandler(RWOps* ops, byte* data, int size, int num);
   [CallConvCdecl] public unsafe delegate int CloseHandler(RWOps* ops);
@@ -562,7 +560,6 @@ internal sealed class SDL
 
   public static void Initialize(InitFlag sys)
   { if(sys==InitFlag.Nothing) return;
-
     int  i;
     bool done=false;
 
@@ -582,17 +579,18 @@ internal sealed class SDL
   { if(sys==InitFlag.Nothing) return;
 
     uint count=0;
-    for(int i=0; i<counts.Length; i++) count += counts[i];
-    if(count==0) throw new InvalidOperationException("Deinitialize called too many times!");
-
     for(int i=0; i<counts.Length; i++)
-      if((sys&inits[i])!=0)
-      { if(--counts[i]==0) QuitSubSystem(inits[i]);
+    { if((sys&inits[i])!=0)
+      { if(counts[i]==0) throw new InvalidOperationException("Deinitialize called too many times for "+sys+".");
+        if(--counts[i]==0) QuitSubSystem(inits[i]);
         sys &= ~inits[i];
         count--;
       }
-    if(sys!=InitFlag.Nothing) throw new ArgumentException("Invalid flag(s)", "sys");
+      count += counts[i];
+    }
+
     if(count==0) Quit();
+    if(sys!=InitFlag.Nothing) throw new ArgumentException("Invalid flag(s)", "sys");
   }
   #endregion
 

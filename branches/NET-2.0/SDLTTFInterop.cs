@@ -24,7 +24,7 @@ namespace GameLib.Interop.SDLTTF
 {
 
 [System.Security.SuppressUnmanagedCodeSecurity()]
-internal sealed class TTF
+internal static class TTF
 {
   #region General
 	[DllImport(Config.SDLTTFImportPath, ExactSpelling=true, EntryPoint="TTF_Init", CallingConvention=CallingConvention.Cdecl)]
@@ -93,16 +93,15 @@ internal sealed class TTF
   }
 
   public static void Initialize()
-  { if(initCount++==0)
-    { try { SDL.SDL.Initialize(SDL.SDL.InitFlag.Video); }
-      catch(Exception e) { initCount--; throw e; }
+  { if(initCount==0)
+    { SDL.SDL.Initialize(SDL.SDL.InitFlag.Video);
       int res = Init();
       if(res!=0)
-      { initCount--;
-        SDL.SDL.Deinitialize(SDL.SDL.InitFlag.Video);
+      { SDL.SDL.Deinitialize(SDL.SDL.InitFlag.Video);
         RaiseError();
       }
     }
+    initCount++;
   }
 
   public static void Deinitialize()

@@ -38,10 +38,8 @@ public class ValueChangedEventArgs : EventArgs
 }
 
 /// <summary>This class provides miscellaneous utilities that don't fit anywhere else.</summary>
-public sealed class Utility
-{ private Utility() { }
-
-  /// <summary>This field provides a global random number generator.</summary>
+public static class Utility
+{ /// <summary>This field provides a global random number generator.</summary>
   public static readonly Random Random = new Random();
 
   /// <summary>This method converts a directory path into a consistent format.</summary>

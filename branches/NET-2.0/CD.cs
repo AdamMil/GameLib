@@ -17,6 +17,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 using System;
+using System.Collections.Generic;
 using GameLib.Interop.SDL;
 
 namespace GameLib.CD
@@ -227,8 +228,11 @@ public unsafe sealed class Drive
 /// <remarks><see cref="Initialize"/> and <see cref="Deinitialize"/> must be called to initialize and deinitialize
 /// the CD-ROM subsystem.
 /// </remarks>
-public sealed class CD
-{ private CD() { }
+public static class CD
+{ public sealed class DriveCollection : ReadOnlyCollection<Drive>
+  { public DriveCollection() : base(new List<Drive>()) { }
+    internal IList<Drive> InnerList { get { return Items; } }
+  }
 
   /// <summary>Returns the number of frames in one second of CD audio.</summary>
   /// <value>The number of frames in one second of CD audio.</value>
@@ -238,7 +242,7 @@ public sealed class CD
   /// <summary>Gets an array of CD-ROM drives.</summary>
   /// <value>A <see cref="Drive"/> array holding the available drives.</value>
   /// <remarks>This property is invalid if <see cref="Initialize"/> has not been called.</remarks>
-  public static Drive[] Drives { get { return drives; } }
+  public static DriveCollection Drives { get { return drives; } }
 
   /// <summary>Initializes the CD-ROM subsystem.</summary>
   /// <remarks>This method can be called multiple times. The <see cref="Deinitialize"/> method should be called the
@@ -247,8 +251,8 @@ public sealed class CD
   public static void Initialize()
   { if(initCount++==0)
     { SDL.Initialize(SDL.InitFlag.CDRom);
-      drives = new Drive[SDL.CDNumDrives()];
-      for(int i=0; i<drives.Length; i++) drives[i] = new Drive(i);
+      int count = SDL.CDNumDrives();
+      for(int i=0; i<count; i++) drives.InnerList.Add(new Drive(i));
     }
   }
 
@@ -259,8 +263,8 @@ public sealed class CD
   public static void Deinitialize()
   { if(initCount==0) throw new InvalidOperationException("Deinitialize called too many times!");
     if(--initCount==0)
-    { for(int i=0; i<drives.Length; i++) drives[i].Dispose();
-      drives = null;
+    { foreach(Drive d in drives) d.Dispose();
+      drives.InnerList.Clear();
       SDL.Deinitialize(SDL.InitFlag.CDRom);
     }
   }
@@ -277,7 +281,7 @@ public sealed class CD
   /// </remarks>
   public static int SecondsToFrames(double seconds) { return (int)Math.Ceiling(seconds*FramesPerSecond); }
 
-  static Drive[] drives;
+  static DriveCollection drives = new DriveCollection();
   static uint initCount;
 }
 

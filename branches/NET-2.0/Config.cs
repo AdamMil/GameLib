@@ -23,10 +23,8 @@ namespace GameLib
 {
 
 /// <summary>This class contains all the compile-time configuration necessary to build GameLib.</summary>
-public sealed class Config
-{ private Config() { }
-
-  /// <summary>The <see cref="DllImportAttribute"/> path to the SDL_image library.</summary>
+public static class Config
+{ /// <summary>The <see cref="DllImportAttribute"/> path to the SDL_image library.</summary>
   public const string SDLImageImportPath  = "SDL_image";
   /// <summary>The <see cref="DllImportAttribute"/> path to the SDL_gfx library.</summary>
   public const string SDLGFXImportPath    = "sdlgfx";

@@ -244,9 +244,8 @@ public class StreamStream : Stream, IDisposable
 
 #region IOH
 /// <summary>This class provides helpers for stream, console, and buffer IO.</summary>
-public sealed class IOH
-{ private IOH() {}
-
+public static class IOH
+{ 
   #region Console input
   /// <summary>Returns true if console input is waiting to be read.</summary>
   public static bool KbHit { get { return GameLib.Interop.GLUtility.Utility.KbHit(); } }

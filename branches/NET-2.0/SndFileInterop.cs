@@ -24,7 +24,7 @@ namespace GameLib.Interop.SndFile
 {
 
 [System.Security.SuppressUnmanagedCodeSecurity()]
-internal sealed class SF
+internal static class SF
 { 
   [CallConvCdecl] public unsafe delegate long SeekHandler(IntPtr context, long offset, SeekType type);
   [CallConvCdecl] public unsafe delegate long ReadHandler(IntPtr context, byte* data, long size, long maxnum);

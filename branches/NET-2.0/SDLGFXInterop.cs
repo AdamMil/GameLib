@@ -25,7 +25,7 @@ namespace GameLib.Interop.SDLGFX
 {
 
 [System.Security.SuppressUnmanagedCodeSecurity()]
-internal sealed class GFX
+internal static class GFX
 {
   #region Pixels
   [DllImport(Config.SDLGFXImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Cdecl)]

@@ -25,6 +25,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Net;
 using System.Net.Sockets;
@@ -278,7 +279,7 @@ public sealed class MessageConverter
       }
 
       if(id>types.Count || types[(int)id-1]==null) throw new ArgumentException("Unregistered type id: "+id);
-      TypeInfo info = (TypeInfo)types[(int)id-1];
+      TypeInfo info = types[(int)id-1];
       Type type = info.Type;
 
       if(isArray)
@@ -374,7 +375,7 @@ public sealed class MessageConverter
 
       if(!typeIDs.Contains(type)) throw new ArgumentException(String.Format("{0} is not a registered type", type));
       uint id = (uint)typeIDs[type];
-      TypeInfo info = (TypeInfo)types[(int)id];
+      TypeInfo info = types[(int)id];
       byte[]   ret;
 
       if(isArray)
@@ -443,7 +444,7 @@ public sealed class MessageConverter
 
   enum MarshalType { Bad, Unsafe, Safe };
 
-  ArrayList types = new ArrayList();
+  List<TypeInfo> types = new List<TypeInfo>();
   HybridDictionary typeIDs = new HybridDictionary();
 
   static MarshalType GetMarshalType(Type type)
@@ -658,7 +659,7 @@ public class NetLink
     udp.Blocking = false;
 
     udpMax = 1450; // this is common for ethernet, but maybe too high for dialup (???)
-    recv = new Queue();
+    recv = new Queue<LinkMessage>();
     nextSize  = -1;
     this.tcp = tcp;
     this.udp = udp;
@@ -722,7 +723,7 @@ public class NetLink
   { if(recv==null) throw new InvalidOperationException("Link has not been opened");
     lock(recv)
     { if(recv.Count==0) ReceivePoll();
-      return recv.Count!=0 ? (LinkMessage)recv.Peek() : null;
+      return recv.Count==0 ? null : recv.Peek();
     }
   }
 
@@ -741,8 +742,7 @@ public class NetLink
   public byte[] Receive(int timeoutMs)
   { LinkMessage m = ReceiveMessage();
     if(m==null)
-    { if(timeoutMs!=0 && WaitForEvent(timeoutMs))
-        lock(recv) m = recv.Count==0 ? null : (LinkMessage)recv.Dequeue();
+    { if(timeoutMs!=0 && WaitForEvent(timeoutMs)) lock(recv) m = recv.Count==0 ? null : recv.Dequeue();
       if(m==null) return null;
     }
     return m.GetData();
@@ -754,7 +754,7 @@ public class NetLink
   { if(recv==null) throw new InvalidOperationException("Link has not been opened");
     lock(recv)
     { if(recv.Count==0) ReceivePoll();
-      return recv.Count!=0 ? (LinkMessage)recv.Dequeue() : null;
+      return recv.Count==0 ? null : recv.Dequeue();
     }
   }
 
@@ -788,17 +788,17 @@ public class NetLink
     if(length>65535) throw new DataTooLargeException(65535);
     if(index<0 || length<0 || index+length>data.Length) throw new ArgumentOutOfRangeException("index or length");
 
-    Queue queue;
+    Queue<LinkMessage> queue;
     if((flags&SendFlag.HighPriority)!=0)
-    { if(high==null) high=new Queue();
+    { if(high==null) high=new Queue<LinkMessage>();
       queue = high;
     }
     else if((flags&SendFlag.LowPriority)!=0)
-    { if(low==null) low=new Queue();
+    { if(low==null) low=new Queue<LinkMessage>();
       queue = low;
     }
     else
-    { if(norm==null) norm=new Queue();
+    { if(norm==null) norm=new Queue<LinkMessage>();
       queue = norm;
     }
 
@@ -934,13 +934,13 @@ public class NetLink
   public bool WaitForEvent(int timeoutMs)
   { if(!IsConnected) return true;
 
-    ArrayList read=new ArrayList(2), write=null;
+    List<Socket> read=new List<Socket>(2), write=null;
     uint start = timeoutMs>0 ? Timing.Msecs : 0;
     while(true)
     { read.Add(tcp);
       read.Add(udp);
       if(sendQueue!=0)
-      { if(write==null) write=new ArrayList(2);
+      { if(write==null) write=new List<Socket>(2);
         write.Add(tcp);
         write.Add(udp);
       }
@@ -973,7 +973,7 @@ public class NetLink
   /// <see cref="NoTimeout"/> is passed, the method will wait forever.
   /// </param>
   /// <returns>A list of <see cref="NetLink"/> objects that either have messages waiting or are disconnected.</returns>
-  public static IList WaitForEvent(ICollection links, int timeoutMs)
+  public static IList<NetLink> WaitForEvent(ICollection<NetLink> links, int timeoutMs)
   { if(links.Count==0)
     { if(timeoutMs==NoTimeout) throw new ArgumentException("Infinite timeout specified, but no links were passed.");
       Thread.Sleep(timeoutMs);
@@ -981,7 +981,8 @@ public class NetLink
     }
 
     ListDictionary dict=new ListDictionary();
-    ArrayList ret=null, read=new ArrayList(links.Count*2), write=null;
+    List<NetLink> ret=null;
+    List<Socket>  read=new List<Socket>(links.Count*2), write=null;
 
     uint start = timeoutMs>0 ? Timing.Msecs : 0;
     while(true)
@@ -990,12 +991,12 @@ public class NetLink
         { bool send;
           if(link.sendQueue==0) send=false;
           else
-          { if(write==null) write = new ArrayList();
+          { if(write==null) write = new List<Socket>();
             send=true;
           }
 
           if(!link.IsConnected || link.MessageWaiting)
-          { if(ret==null) ret = new ArrayList();
+          { if(ret==null) ret = new List<NetLink>();
             ret.Add(link);
           }
           else
@@ -1011,11 +1012,10 @@ public class NetLink
         { bool send;
           if(link.sendQueue==0) send=false;
           else
-          { if(write!=null) write = new ArrayList();
+          { if(write!=null) write = new List<Socket>();
             send=true;
           }
 
-          
           read.Add(link.tcp); read.Add(link.udp);
           if(send) { write.Add(link.tcp); write.Add(link.udp); }
         }
@@ -1030,7 +1030,7 @@ public class NetLink
         foreach(Socket sock in read)
         { NetLink link = (NetLink)dict[sock];
           if(link.MessageWaiting || !link.IsConnected)
-          { if(ret==null) ret = new ArrayList();
+          { if(ret==null) ret = new List<NetLink>();
             else if(!ret.Contains(link)) ret.Add(link);
           }
         }
@@ -1105,13 +1105,13 @@ public class NetLink
     if(recvBuf==null || recvBuf.Length<len) recvBuf=new byte[len];
   }
 
-  bool SendMessages(Queue queue, bool trySend)
+  bool SendMessages(Queue<LinkMessage> queue, bool trySend)
   { if(queue==null) return true;
     if(!connected) return false;
 
     lock(queue)
     { while(queue.Count!=0)
-      { LinkMessage msg = (LinkMessage)queue.Peek();
+      { LinkMessage msg = queue.Peek();
         if(Timing.Msecs<msg.lag) return true;
         if(msg.deadline!=0 && Timing.Msecs>msg.deadline) goto Remove;
         if(!trySend) return false;
@@ -1202,7 +1202,7 @@ public class NetLink
   internal uint sendQueue;
 
   Socket     tcp, udp;
-  Queue      low, norm, high, recv;
+  Queue<LinkMessage> low, norm, high, recv;
   byte[]     recvBuf, sendBuf;
   int        nextSize, nextIndex, udpMax;
   uint       lagAverage, lagVariance;
@@ -1259,12 +1259,9 @@ public delegate void ServerMessageHandler(Server sender, ServerPlayer player, ob
 public class Server
 { 
   /// <summary>This class implements a strongly-typed, read-only collection of <see cref="ServerPlayer"/> objects.</summary>
-  public class PlayerCollection : ReadOnlyCollectionBase
-  { public ServerPlayer this[int index] { get { return (ServerPlayer)InnerList[index]; } }
-    public void CopyTo(Array array, int index) { InnerList.CopyTo(array, index); }
-    public bool Contains(ServerPlayer player) { return InnerList.Contains(player); }
-    public int IndexOf(ServerPlayer player) { return InnerList.IndexOf(player); }
-    internal ArrayList Array { get { return InnerList; } }
+  public class PlayerCollection : ReadOnlyCollection<ServerPlayer>
+  { public PlayerCollection() : base(new List<ServerPlayer>()) { }
+    internal IList<ServerPlayer> InnerList { get { return base.Items; } }
   }
 
   /// <summary>Initializes a new <see cref="Server"/> instance.</summary>
@@ -1350,7 +1347,7 @@ public class Server
     StopListening();
     quit   = false;
     nextID = 1;
-    players.Array.Clear();
+    players.InnerList.Clear();
     links.Clear();
   }
 
@@ -1603,7 +1600,7 @@ public class Server
 
   void ThreadFunc()
   { try
-    { ArrayList disconnected = new ArrayList();
+    { List<ServerPlayer> disconnected = new List<ServerPlayer>();
       while(!quit)
       { bool did=false;
 
@@ -1617,7 +1614,7 @@ public class Server
                 p.Link.LagVariance     = lagVariance;
                 p.Link.MessageSent    += new LinkMessageHandler(OnMessageSent);
                 p.Link.RemoteReceived += new LinkMessageHandler(OnRemoteReceived);
-                players.Array.Add(p);
+                players.InnerList.Add(p);
                 links.Add(p.Link);
                 p.Link.Send(new byte[0], SendFlag.Reliable);
                 OnPlayerConnected(p);
@@ -1643,7 +1640,7 @@ public class Server
               { if(p.DelayedDrop && p.Link.sendQueue==0) p.Link.Close();
                 if(!p.Link.IsConnected)
                 { did=true;
-                  players.Array.RemoveAt(i);
+                  players.InnerList.RemoveAt(i);
                   links.RemoveAt(i);
                   i--;
                   disconnected.Add(p);
@@ -1672,7 +1669,7 @@ public class Server
   }
 
   PlayerCollection  players = new PlayerCollection();
-  ArrayList         links   = new ArrayList();
+  List<NetLink>     links   = new List<NetLink>();
   MessageConverter  cvt = new MessageConverter();
   TcpListener       server;
   Thread            thread;

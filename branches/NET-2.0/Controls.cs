@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // TODO: evaluate usage of base.Handler() and e.Handled
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Drawing;
 using GameLib.Fonts;
 using GameLib.Video;
@@ -1470,6 +1471,7 @@ public abstract class ListControl : ScrollableControl
   }
   #endregion
 
+  // TODO: change this to implement ICollection<int>
   #region SelectedIndexCollection
   public sealed class SelectedIndexCollection : ICollection
   { internal SelectedIndexCollection(ListControl list) { items=list.Items; version=items.Version-1; }
@@ -1523,12 +1525,12 @@ public abstract class ListControl : ScrollableControl
     { get
       { if(version!=items.Version)
         { ArrayList list = items.InnerGetList();
-          ArrayList sel  = new ArrayList();
+          List<int> sel  = new List<int>();
           for(int i=0; i<list.Count; i++)
           { Item it = (Item)list[i];
             if(it.Is(ItemState.Selected)) sel.Add(i);
           }
-          indices = (int[])sel.ToArray(typeof(int));
+          indices = sel.ToArray();
           version = items.Version;
         }
         return indices;

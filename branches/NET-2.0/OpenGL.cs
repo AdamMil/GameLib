@@ -30,12 +30,10 @@ namespace GameLib.Video
 #region OpenGL class
 /// <summary>This class provides some high-level support for interfacing with the OpenGL API.</summary>
 // TODO: add more methods
-public sealed class OpenGL
-{ private OpenGL() { }
-
-  /// <summary>Returns a collection of extensions supported by OpenGL.</summary>
+public static class OpenGL
+{ /// <summary>Returns a collection of extensions supported by OpenGL.</summary>
   /// <value>A collection of strings representing the extensions supported by OpenGL.</value>
-  public static System.Collections.ICollection Extensions
+  public static System.Collections.Generic.IList<string> Extensions
   { get { if(extensions==null) InitExtensions(); return extensions; }
   }
 

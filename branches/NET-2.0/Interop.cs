@@ -59,7 +59,7 @@ public sealed class DelegateMarshaller
 }
 
 /// <summary>This class provides methods to help when working with unsafe code.</summary>
-public sealed class Unsafe
+public static class Unsafe
 { 
   /// <summary>This method copies a block of memory to another location.</summary>
   /// <param name="src">A pointer to the beginning of the source block of memory.</param>
