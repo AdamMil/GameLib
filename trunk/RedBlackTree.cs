@@ -57,17 +57,8 @@ public abstract class RedBlackBase : ISerializable
   /// <summary>This class serves as a base for enumerators that want to iterate through a red-black tree.</summary>
   public class EnumeratorBase
   { internal EnumeratorBase(RedBlackBase tree)
-    { root = tree.Root;
-      if(root==Node.Null) GC.SuppressFinalize(this);
-      else
-      { handler = new TreeChangeHandler(OnTreeChanged);
-        tree.TreeChanged += handler;
-        this.tree=tree;
-      }
-      nodes = new Stack();
-      reset = true;
+    { this.tree=tree; root=tree.Root; version=tree.Version; nodes=new Stack(); reset=true;
     }
-    ~EnumeratorBase() { tree.TreeChanged -= handler; }
 
     /// <summary>Advances the enumerator to the next element of the collection.</summary>
     /// <remarks>See <see cref="IEnumerator.MoveNext"/> for more information. <seealso cref="IEnumerator.MoveNext"/></remarks>
@@ -103,20 +94,14 @@ public abstract class RedBlackBase : ISerializable
     }
 
     protected void AssertNotChanged()
-    { if(changed) throw new InvalidOperationException("The collection has changed");
-    }
-
-    void OnTreeChanged()
-    { changed=true;
-      tree.TreeChanged -= handler;
-      GC.SuppressFinalize(this);
+    { if(version!=tree.Version) throw new InvalidOperationException("The collection has changed");
     }
 
     RedBlackBase tree;
-    TreeChangeHandler handler;
     Node root;
     Stack nodes;
-    bool  reset, changed;
+    int   version;
+    bool  reset;
   }
   #endregion
 
@@ -132,8 +117,7 @@ public abstract class RedBlackBase : ISerializable
   /// <summary>Adds a node to the binary tree.</summary>
   /// <param name="node">The <see cref="Node"/> to add.</param>
   protected void Add(Node node)
-  { if(TreeChanged!=null) TreeChanged();
-    Node x=root, y=Node.Null, gp;
+  { Node x=root, y=Node.Null, gp;
 
     while(x!=Node.Null) { y=x; x=comparer.Compare(node.Value, x.Value)<0 ? x.Left : x.Right; }
     (x=node).Parent = y;
@@ -175,7 +159,7 @@ public abstract class RedBlackBase : ISerializable
     }
 
     root.Red=false;
-    count++;
+    count++; Version++;
   }
 
   /// <summary>Finds the node with the given value.</summary>
@@ -199,7 +183,7 @@ public abstract class RedBlackBase : ISerializable
   /// </param>
   protected void Remove(Node node)
   { if(node==Node.Null) return;
-    if(TreeChanged!=null) TreeChanged();
+
     Node w, x, y, p;
     y = node.Left==Node.Null || node.Right==Node.Null ? node : Successor(node);
     x = y.Left==Node.Null ? y.Right : y.Left;
@@ -264,11 +248,10 @@ public abstract class RedBlackBase : ISerializable
         }
       }
     x.Red=false;
-    count--;
+    count--; Version++;
   }
 
-  delegate void TreeChangeHandler();
-  event TreeChangeHandler TreeChanged;
+  int Version;
 
   void LeftRotate(Node x)
   { Node y=x.Right;
