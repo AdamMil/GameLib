@@ -15,6 +15,11 @@ LATEST (alpha/beta)
   rectangles to be cleared when the array was grown
 * Fixed a similar bug in the audio code that caused the channels array to
   be cleared when the array was resized
+* Added dead zones and saturation zones to the joystick code (with the
+  ability to set them on a per-axis basis).
+* Altered the Input sample to use dead zones and saturation zones to
+  eliminate jitter. Also added more joystick output to the input sample
+  (it might not fit in the window anymore if you have lots of joysticks)
 
 2004.05.02 (alpha/beta)
 -----------------------

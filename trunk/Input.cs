@@ -714,7 +714,10 @@ public sealed class Joystick : IDisposable
   }
 
   /// <summary>Occurs when a joystick axis is moved.</summary>
-  /// <remarks>This event is raised by the <see cref="Input.ProcessEvent"/> method.</remarks>
+  /// <remarks>This event will not be raised for joystick movement within the dead or saturation zones (see
+  /// <see cref="SetDeadZone"/> and <see cref="SetSaturationZone"/>).
+  /// This event is raised by the <see cref="Input.ProcessEvent"/> method.
+  /// </remarks>
   public event JoyMoveHandler JoyMove;
   /// <summary>Occurs when a joystick ball is moved.</summary>
   /// <remarks>This event is raised by the <see cref="Input.ProcessEvent"/> method.</remarks>
@@ -736,8 +739,12 @@ public sealed class Joystick : IDisposable
     hats    = new HatPosition[SDL.JoystickNumHats(joystick)];
     name    = SDL.JoystickName(number);
 
+    deadpoints = new int[axes.Length];
+    satpoints  = new int[axes.Length];
+    for(int i=0; i<satpoints.Length; i++) satpoints[i]=32768;
+
     SDL.JoystickUpdate();
-    for(int i=0; i<axes.Length; i++) axes[i] = SDL.JoystickGetAxis(joystick, i);
+    for(int i=0; i<axes.Length; i++) axes[i] = (short)SDL.JoystickGetAxis(joystick, i); // SDL returns out of range values (<-32k || >32k)
     for(int i=0; i<buttons.Length; i++) buttons[i] = SDL.JoystickGetButton(joystick, i)!=0;
     for(int i=0; i<hats.Length; i++) hats[i] = (HatPosition)SDL.JoystickGetHat(joystick, i);
 
@@ -749,6 +756,74 @@ public sealed class Joystick : IDisposable
   /// directly.
   /// </remarks>
   public void Dispose() { Dispose(false); GC.SuppressFinalize(this); }
+
+  /// <summary>Gets the size of an axis' dead zone.</summary>
+  /// <param name="axis">The axis whose dead zone will be returned.</param>
+  /// <returns>The size of the dead zone, as a percentage of the range on either side of the center.</returns>
+  /// <remarks>A dead zone can be used to set aside a portion of the joystick range that be clipped to a dead (zero)
+  /// value. This can be useful because most joysticks jitter and do not return zero even when the joystick is
+  /// centered on an axis. A dead zone of 10% will set all axis values within plus or minus 10% to zero. Additionally,
+  /// the <see cref="JoyMove"/> event will not be raised for joystick movement that occurs solely within the dead zone.
+  /// </remarks>
+  public int GetDeadZone(int axis) { return (deadpoints[axis]*100+16384)/32768; }
+  /// <summary>Sets the size of an axis' dead zone, which determines the percentage of the axis' ranges of motion that
+  /// is set to zero. <seealso cref="SetSaturationZone"/>
+  /// </summary>
+  /// <param name="axis">The axis whose dead zone will be changed.</param>
+  /// <param name="value">The percentage of the axis' range of motion from the center that will be converted to zero.</param>
+  /// <remarks>A dead zone can be used to set aside a portion of the joystick range that be clipped to a dead (zero)
+  /// value. This can be useful because most joysticks jitter and do not return zero even when the joystick is
+  /// centered on an axis. A dead zone of 10% will set all axis values within plus or minus 10% to zero. Additionally,
+  /// the <see cref="JoyMove"/> event will not be raised for joystick movement that occurs solely within the dead zone.
+  /// </remarks>
+  /// <exception cref="ArgumentOutOfRangeException">Thrown if <paramref name="value"/> is less than 0 or greater than
+  /// 100.
+  /// </exception>
+  public void SetDeadZone(int axis, int value)
+  { if(value<0 || value>100) throw new ArgumentOutOfRangeException("DeadZone", value, "must be from 0-100");
+    deadpoints[axis] = 32768*value/100;
+    if(axes[axis]<0)
+    { if(axes[axis]>-deadpoints[axis]) axes[axis]=0;
+    }
+    else if(axes[axis]<deadpoints[axis]) axes[axis]=0;
+  }
+
+  /// <summary>Gets the size of an axis' saturation zone.</summary>
+  /// <param name="axis">The axis whose saturation zone will be returned.</param>
+  /// <returns>The size of the saturation zone, as a percentage of the range from the minimum and maximum values.</returns>
+  /// <remarks>A saturation zone can be used to set aside a portion of the joystick range that be set to the
+  /// maximum distance from the center. This can be useful because most joysticks jitter and do not consistently
+  /// return the maximum even when fully pressed to one side. A saturation zone of 5% will set all axis values within
+  /// 5% of the maximum or minimum values to the maximum or minimum values, respectively. This is
+  /// especially useful for throttle controls. Additionally, the <see cref="JoyMove"/> event will not be raised for
+  /// joystick movement that occurs solely within the saturation zone.
+  /// </remarks>
+  public int GetSaturationZone(int axis) { return 100-(satpoints[axis]*100+16384)/32768; }
+  /// <summary>Sets the size of an axis' saturation zone, which determines the percentage of the axis' ranges of
+  /// motion that is set to the maximum value. <seealso cref="SetDeadZone"/>
+  /// </summary>
+  /// <param name="axis">The axis whose saturation zone will be changed.</param>
+  /// <param name="value">The percentage of the axis' range of motion from the edges that will be
+  /// converted to the maximum distance from the center.
+  /// </param>
+  /// <remarks>A saturation zone can be used to set aside a portion of the joystick range that be set to the
+  /// maximum distance from the center. This can be useful because most joysticks jitter and do not consistently
+  /// return the maximum even when fully pressed to one side. A saturation zone of 5% will set all axis values within
+  /// 5% of the maximum or minimum values to the maximum or minimum values, respectively. This is
+  /// especially useful for throttle controls. Additionally, the <see cref="JoyMove"/> event will not be raised for
+  /// joystick movement that occurs solely within the saturation zone.
+  /// </remarks>
+  /// <exception cref="ArgumentOutOfRangeException">Thrown if <paramref name="value"/> is less than 0 or greater than
+  /// 100.
+  /// </exception>
+  public void SetSaturationZone(int axis, int value)
+  { if(value<0 || value>100) throw new ArgumentOutOfRangeException("SaturationZone", value, "must be from 0-100");
+    satpoints[axis] = 32768*(100-value)/100;
+    if(axes[axis]<0)
+    { if(axes[axis]<-satpoints[axis]) axes[axis]=short.MinValue;
+    }
+    else if(axes[axis]>satpoints[axis]) axes[axis]=short.MaxValue;
+  }
 
   /// <summary>Gets an array of this joystick's ball positions.</summary>
   /// <value>A <see cref="Ball"/> array holding the ball positions.</value>
@@ -765,7 +840,7 @@ public sealed class Joystick : IDisposable
   /// <remarks>Elements of the returned array can be safely modified.</remarks>
   public bool[] Buttons { get { return buttons; } }
   /// <summary>Gets an array of this joystick's axis positions.</summary>
-  /// <value>An integer array holding positions of the joystick axes.</value>
+  /// <value>An integer array holding positions of the joystick axes. Each axis ranges from -32768 to 32767 in value.</value>
   /// <remarks>Elements of the returned array can be safely modified.</remarks>
   public int[] Axes { get { return axes; } }
   /// <summary>Gets the human-readable name of this joystick device.</summary>
@@ -774,8 +849,15 @@ public sealed class Joystick : IDisposable
   public int Number { get { return number; } }
 
   internal void OnJoyMove(JoyMoveEvent e)
-  { axes[e.Axis] = e.Position;
-    if(JoyMove!=null) JoyMove(this, e);
+  { int old = axes[e.Axis];
+    if(e.Position<0)
+    { if(e.Position>-deadpoints[e.Axis]) e.Position=0;
+      else if(e.Position<-satpoints[e.Axis]) e.Position=short.MinValue;
+    }
+    else if(e.Position<deadpoints[e.Axis]) e.Position=0;
+    else if(e.Position>satpoints[e.Axis]) e.Position=short.MaxValue;
+    axes[e.Axis] = e.Position;
+    if(old!=e.Position && JoyMove!=null) JoyMove(this, e);
   }
 
   internal void OnJoyBall(JoyBallEvent e)
@@ -803,7 +885,7 @@ public sealed class Joystick : IDisposable
   }
 
   IntPtr        joystick;
-  int[]         axes;
+  int[]         axes, deadpoints, satpoints;
   Ball[]        balls;
   bool[]        buttons;
   HatPosition[] hats;
@@ -835,8 +917,8 @@ public sealed class Input
 
   /// <summary>Enables or disables joystick support.</summary>
   /// <remarks>Joysticks cannot be used unless joystick support is enabled. The input system must be initialized
-  /// before this property can be used. Due to some small overhead associated with joystick handling, you should not
-  /// enable joystick support unless it's needed.
+  /// before this property can be used. Due to the fact that some joysticks constantly jitter, sending an endless
+  /// stream of events through the event system, you should not enable joystick support unless it's needed.
   /// </remarks>
   public static bool UseJoysticks
   { get { return joysticks!=null; }
@@ -872,8 +954,8 @@ public sealed class Input
   /// <remarks>This method can be called multiple times. If called while already initialized, the joystick support
   /// will not be altered. The <see cref="Deinitialize"/> method should be called the same number of times to
   /// finally deinitialize the system. Joystick support can be enabled or disabled later with
-  /// <see cref="UseJoysticks"/>. Due to some small overhead associated with joystick handling, you should not enable
-  /// joystick support unless it's needed.
+  /// <see cref="UseJoysticks"/>. Due to the fact that some joysticks constantly jitter, sending an endless
+  /// stream of events through the event system, you should not enable joystick support unless it's needed.
   /// </remarks>
   public static void Initialize(bool useJoysticks)
   { if(initCount++==0)
