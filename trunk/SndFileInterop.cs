@@ -77,6 +77,13 @@ internal sealed class SF
     W64          = 0x0B0000,     /* Sonic Foundry's 64 bit RIFF/WAV */
     MAT4         = 0x0C0000,     /* Matlab (tm) V4.2 / GNU Octave 2.0 */
     MAT5         = 0x0D0000,     /* Matlab (tm) V5.0 / GNU Octave 2.1 */
+	  PVF          = 0x0E0000,     /* Portable Voice Format */
+	  XI           = 0x0F0000,     /* Fasttracker 2 Extended Instrument */
+	  HTK          = 0x100000,     /* HMM Tool Kit format */
+	  SDS          = 0x110000,     /* Midi Sample Dump Standard */
+	  AVR          = 0x120000,     /* Audio Visual Research */
+	  WAVEX        = 0x130000,     /* MS WAVE with WAVEFORMATEX */
+	  SD2          = 0x160000,     /* Sound Designer 2 */
 
     /* Subtypes from here on. */
 
@@ -143,8 +150,7 @@ internal sealed class SF
 
   public static void RaiseError(IntPtr sndfile)
   { string error = GetError(sndfile);
-    if(error==null) throw new GameLibException("GameLib sez: Something bad happened, but SF disagrees");
-    else throw new GameLibException(error);
+    throw new GameLibException(error!=null ? error : "GameLib sez: Something bad happened, but SF disagrees");
   }
 }
 
