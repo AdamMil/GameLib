@@ -543,10 +543,14 @@ int GLM_ConvertAcc(void *dest, Sint32 *src, Uint32 samples, Uint16 destFormat)
     i=0;
     if(OPPEND(destFormat)) /* opposite endianness */
     { Uint16 *dbuf = (Uint16*)dest;
+      Sint32  tv;
       if(SIGNED(destFormat)) /* 16bit signed OE */
         for(; i<samples; i++) dbuf[i] = SWAPEND(sbuf[i]);
       else /* 16bit unsigned OE */
-        for(; i<samples; i++) dbuf[i] = (Uint16)(SWAPEND(sbuf[i])+32768);
+        for(; i<samples; i++)
+        { tv = sbuf[i]+32768;
+          dbuf[i] = (Uint16)SWAPEND(tv);
+        }
     }
     else /* same endianness */
     { Sint16 *dbuf = (Sint16*)dest;
