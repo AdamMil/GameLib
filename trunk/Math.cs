@@ -1968,7 +1968,7 @@ public class Polygon : ICloneable, ISerializable
   /// <returns>The requested <see cref="Point"/>.</returns>
   /// <remarks>This method treats the list of points as circular, and allows negative indexes and indexes greater
   /// than or equal to <see cref="Length"/>, as long as the index is from -<see cref="Length"/> to
-  /// <see cref="Length"/>*2-1. So if <see cref="Length"/> is 4, indexes of -4 and 7 are okay (they'll return point 0
+  /// <see cref="Length"/>*2-1. So if <see cref="Length"/> is 4, indexes of -4 and 7 are okay (they'll return points 0
   /// and 3 respectively), but -5 and 8 are not.
   /// </remarks>
   public Point GetPoint(int index)
