@@ -17,6 +17,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 using System;
+using GameLib.Input;
 using GameLib.Interop.SDL;
 
 namespace GameLib.Events
@@ -256,55 +257,46 @@ public class KeyboardEvent : Event
   public KeyboardEvent() : base(EventType.Keyboard) { }
 
   internal KeyboardEvent(ref SDL.KeyboardEvent evt) : base(EventType.Keyboard)
-  { Key  = (Input.Key)evt.Key.Sym;
-    Mods = (Input.KeyMod)evt.Key.Mod;
+  { Key  = (Key)evt.Key.Sym;
+    Mods = (KeyMod)evt.Key.Mod;
     Char = evt.Key.Unicode;
     Scan = evt.Key.Scan;
     Down = evt.Down!=0;
   }
 
   /// <summary>Evaluates to true if the key pressed or released was a modifier key (Ctrl, Alt, etc).</summary>
-  public bool IsModKey { get { return Input.Keyboard.IsModKey(Key); } }
+  public bool IsModKey { get { return Keyboard.IsModKey(Key); } }
   /// <summary>Gets the key modifiers that were in effect when the event occurred.</summary>
-  /// <value>A set of <see cref="Input.KeyMod"/> values, ORed together, that were in effect when the event occurred.
+  /// <value>A set of <see cref="KeyMod"/> values, ORed together, that were in effect when the event occurred.
   /// </value>
   /// <remarks>Key modifiers only include modifier keys such as Ctrl, Alt, etc., which were depressed when the
   /// event occurred.
   /// </remarks>
-  public Input.KeyMod KeyMods { get { return Mods&Input.KeyMod.KeyMask; } }
+  public KeyMod KeyMods { get { return Mods&KeyMod.KeyMask; } }
   /// <summary>Gets the status modifiers that were in effect when the event occurred.</summary>
-  /// <value>A set of <see cref="Input.KeyMod"/> values, ORed together, that were in effect when the event occurred.
+  /// <value>A set of <see cref="KeyMod"/> values, ORed together, that were in effect when the event occurred.
   /// </value>
   /// <remarks>Status modifiers only include modifiers such as NumLock, CapsLock, etc., which were enabled when the
   /// event occurred.
   /// </remarks>
-  public Input.KeyMod StatusMods { get { return Mods&Input.KeyMod.StatusMask; } }
+  public KeyMod StatusMods { get { return Mods&KeyMod.StatusMask; } }
 
   /// <summary>Returns true if any of the given modifiers were in effect when the event occurred.</summary>
-  /// <param name="mod">A set of <see cref="Input.KeyMod"/> modifiers, ORed together.</param>
+  /// <param name="mod">A set of <see cref="KeyMod"/> modifiers, ORed together.</param>
   /// <returns>True if any of the given modifiers were in effect when the event occurred, and false
   /// otherwise.
   /// </returns>
-  public bool HasAnyMod(Input.KeyMod mod) { return (Mods&mod)!=Input.KeyMod.None; }
+  public bool HasAnyMod(KeyMod mod) { return (Mods&mod)!=KeyMod.None; }
   /// <summary>Returns true if all of the given modifiers were in effect when the event occurred.</summary>
-  /// <param name="mod">A set of <see cref="Input.KeyMod"/> modifiers, ORed together.</param>
+  /// <param name="mod">A set of <see cref="KeyMod"/> modifiers, ORed together.</param>
   /// <returns>True if all of the given modifiers were in effect when the event occurred, and false
   /// otherwise.
   /// </returns>
-  public bool HasAllMods(Input.KeyMod mod) { return (Mods&mod)==mod; }
-  /// <summary>Returns true if all of the given key modifiers were in effect when the event occurred.</summary>
-  /// <param name="mod">A set of <see cref="Input.KeyMod"/> modifiers, ORed together.</param>
-  /// <returns>True if all of the given key modifiers were in effect when the event occurred, and false
-  /// otherwise.
-  /// </returns>
-  /// <remarks>Key modifiers only include modifier keys such as Ctrl, Alt, etc., which were depressed when the
-  /// event occurred.
-  /// </remarks>
-  public bool HasAllKeys(Input.KeyMod mod) { return (KeyMods&mod)==mod; }
+  public bool HasAllMods(KeyMod mod) { return (Mods&mod)==mod; }
   /// <summary>Returns true if any of the given key modifiers were in effect when the event occurred, and no
   /// others.
   /// </summary>
-  /// <param name="mod">A set of <see cref="Input.KeyMod"/> modifiers, ORed together.</param>
+  /// <param name="mod">A set of <see cref="KeyMod"/> modifiers, ORed together.</param>
   /// <returns>True if any of the given key modifiers were in effect when the event occurred, and no
   /// others.
   /// </returns>
@@ -312,31 +304,31 @@ public class KeyboardEvent : Event
   /// event occurred. To check whether all (instead of any) of the given key modifiers were in effect, and no others,
   /// simply compare the desired set of flags to see whether it equals <see cref="KeyMods"/>.
   /// </remarks>
-  public bool HasOnlyKeys(Input.KeyMod mod)
-  { Input.KeyMod mods = KeyMods;
-    return (mods&mod)!=Input.KeyMod.None && (mods&~mod)==Input.KeyMod.None;
+  public bool HasOnlyKeys(KeyMod mod)
+  { KeyMod mods = KeyMods;
+    return (mods&mod)!=KeyMod.None && (mods&~mod)==KeyMod.None;
   }
 
   /// <summary>The virtual key that was pressed/released.</summary>
-  /// <value>The <see cref="Input.Key"/> that was pressed/released.</value>
+  /// <value>The <see cref="Key"/> that was pressed/released.</value>
   /// <remarks>This is a virtual key, which means that it may not map to a key actually present on the keyboard.
   /// The operating system can use combinations of keys on the keyboard or other criteria to allow more key values
   /// than are present on the physical keyboard. This is comparatively rare, however. The values
-  /// in the <see cref="Input.Key"/> enumeration are named assuming a QWERTY layout, but depending on the operating
+  /// in the <see cref="Key"/> enumeration are named assuming a QWERTY layout, but depending on the operating
   /// system, may only denote the given position on the keyboard, so you should not use this field to get character
-  /// input. Use <see cref="Char"/> for that. This field only presents the key on the virtual keyboard as
+  ///  Use <see cref="Char"/> for that. This field only presents the key on the virtual keyboard as
   /// recognized by the operating system.
   /// </remarks>
-  public Input.Key Key;
+  public Key Key;
 
   /// <summary>The modifiers that were in effect when the event occurred.</summary>
-  /// <value>A set of <see cref="Input.KeyMod"/> values, ORed together, representing the modifiers that were
+  /// <value>A set of <see cref="KeyMod"/> values, ORed together, representing the modifiers that were
   /// in effect when the event occurred.
   /// </value>
   /// <remarks>This field combines both key modifiers and status modifiers. Use the <see cref="KeyMods"/> and
   /// <see cref="StatusMods"/> properties to separate them.
   /// </remarks>
-  public Input.KeyMod Mods;
+  public KeyMod Mods;
 
   /// <summary>The character that was generated by the keypress.</summary>
   /// <value>The actual character that was generated, taking into account keyboard mapping and modifier keys.</value>
@@ -351,7 +343,7 @@ public class KeyboardEvent : Event
   /// <remarks>The scancode of the key is the location of the key on the physical keyboard as reported by the
   /// hardware. Generally, this field should not be used as most systems have keys mapped to a virtual keyboard.
   /// The <see cref="Key"/> field should be used to get the virtual key code and the <see cref="Char"/> field should
-  /// be used to get character input.
+  /// be used to get character 
   /// </remarks>
   public byte Scan;
 
@@ -373,22 +365,22 @@ public class MouseMoveEvent : Event
   }
 
   /// <summary>Returns true if only the specified mouse button was depressed when the event occurred.</summary>
-  /// <param name="button">The <see cref="Input.MouseButton"/> to check for.</param>
+  /// <param name="button">The <see cref="MouseButton"/> to check for.</param>
   /// <returns>True if only the specified button was depressed when the event occurred.</returns>
-  public bool OnlyPressed(Input.MouseButton button) { return Buttons==(1<<(byte)button); }
+  public bool OnlyPressed(MouseButton button) { return Buttons==(1<<(byte)button); }
 
   /// <summary>Returns true if the specified mouse button was depressed when the event occurred.</summary>
-  /// <param name="button">The <see cref="Input.MouseButton"/> to check for.</param>
+  /// <param name="button">The <see cref="MouseButton"/> to check for.</param>
   /// <returns>True if the specified mouse button was depressed when the event occurred.</returns>
-  public bool Pressed(Input.MouseButton button) { return (Buttons&(1<<(byte)button))!=0; }
+  public bool Pressed(MouseButton button) { return (Buttons&(1<<(byte)button))!=0; }
 
   /// <summary>Alters the <see cref="Buttons"/> field, setting the specified button to be marked as pressed or not.</summary>
-  /// <param name="button">The <see cref="Input.MouseButton"/> to mark as pressed/released.</param>
+  /// <param name="button">The <see cref="MouseButton"/> to mark as pressed/released.</param>
   /// <param name="down">If true, the specified button is marked as pressed. Otherwise, it's marked as released.</param>
   /// <remarks>This method alters the <see cref="Buttons"/> field, which has the effect of altering the return values
   /// of the <see cref="OnlyPressed"/> and <see cref="Pressed"/> methods as well.
   /// </remarks>
-  public void SetPressed(Input.MouseButton button, bool down)
+  public void SetPressed(MouseButton button, bool down)
   { if(down) Buttons|=(byte)(1<<(byte)button); else Buttons&=(byte)~(1<<(byte)button);
   }
 
@@ -425,15 +417,15 @@ public class MouseClickEvent : Event
   /// <summary>Initializes this event.</summary>
   public MouseClickEvent() : base(EventType.MouseClick) { }
   internal MouseClickEvent(ref SDL.MouseButtonEvent evt) : base(EventType.MouseClick)
-  { Button=(Input.MouseButton)(evt.Button-1); Down=(evt.Down!=0); X=(int)evt.X; Y=(int)evt.Y;
+  { Button=(MouseButton)(evt.Button-1); Down=(evt.Down!=0); X=(int)evt.X; Y=(int)evt.Y;
   }
 
   /// <summary>Returns true if this event was caused by the mouse wheel being moved.</summary>
-  /// <remarks>This works by checking whether <see cref="Button"/> is equal to <see cref="Input.MouseButton.WheelUp"/>
-  /// or <see cref="Input.MouseButton.WheelDown"/>.
+  /// <remarks>This works by checking whether <see cref="Button"/> is equal to <see cref="MouseButton.WheelUp"/>
+  /// or <see cref="MouseButton.WheelDown"/>.
   /// </remarks>
   public bool MouseWheel
-  { get { return Button==Input.MouseButton.WheelDown || Button==Input.MouseButton.WheelUp; }
+  { get { return Button==MouseButton.WheelDown || Button==MouseButton.WheelUp; }
   }
   /// <summary>Gets the position of the mouse cursor at the time the button event was recorded.</summary>
   public System.Drawing.Point Point
@@ -446,7 +438,7 @@ public class MouseClickEvent : Event
   /// <summary>The Y coordinate of the point the mouse cursor was at when the button event was recorded.</summary>
   public int Y;
   /// <summary>The mouse button which was pressed or released.</summary>
-  public Input.MouseButton Button;
+  public MouseButton Button;
   /// <summary>True if the mouse button was pressed and false if it was released.</summary>
   public bool Down;
 }
@@ -467,7 +459,7 @@ public class JoyMoveEvent : Event
   /// <summary>The index of the axis that was moved.</summary>
   /// <remarks>While the meanings of the axes are not defined anywhere, it's a safe bet that 0 is the X axis and
   /// 1 is the Y axis. 2 and 3 may be the Z axis and throttle, but not necessarily in that order. This can be used
-  /// to index into <see cref="Input.Joystick.Axes"/>.
+  /// to index into <see cref="Joystick.Axes"/>.
   /// </remarks>
   public byte Axis;
   /// <summary>The joystick that caused this event.</summary>
@@ -494,7 +486,7 @@ public class JoyBallEvent : Event
   /// <summary>The distance the ball was moved along the Y axis since the last event regarding this ball.</summary>
   public int Yrel;
   /// <summary>The index of the ball that was moved.</summary>
-  /// <remarks>This can be used to index into <see cref="Input.Joystick.Balls"/>.</remarks>
+  /// <remarks>This can be used to index into <see cref="Joystick.Balls"/>.</remarks>
   public byte Ball;
   /// <summary>The joystick that caused this event.</summary>
   /// <remarks> This field can be used to index into <see cref="Input.Input.Joysticks"/>.</remarks>
@@ -513,7 +505,7 @@ public class JoyHatEvent : Event
   /// <summary>The new position of the POV hat.</summary>
   public HatPosition Position;
   /// <summary>The index of the hat that was moved.</summary>
-  /// <remarks>This can be used to index into <see cref="Input.Joystick.Hats"/>.</remarks>
+  /// <remarks>This can be used to index into <see cref="Joystick.Hats"/>.</remarks>
   public byte Hat;
   /// <summary>The joystick that caused this event.</summary>
   /// <remarks> This field can be used to index into <see cref="Input.Input.Joysticks"/>.</remarks>
@@ -533,7 +525,7 @@ public class JoyButtonEvent : Event
   /// <remarks> This field can be used to index into <see cref="Input.Input.Joysticks"/>.</remarks>
   public byte Device;
   /// <summary>The index of the button that caused this event.</summary>
-  /// <remarks> This field can be used to index into <see cref="Input.Joystick.Buttons"/>.</remarks>
+  /// <remarks> This field can be used to index into <see cref="Joystick.Buttons"/>.</remarks>
   public byte Button;
   /// <summary>True if the button was pressed and false if it was released.</summary>
   public bool Down;
@@ -725,7 +717,8 @@ public sealed class Events
   /// </remarks>
   public static void Initialize()
   { if(initCount++==0)
-    { SDL.Initialize(SDL.InitFlag.Video);
+    { mods = (KeyMod)SDL.GetModState();
+      SDL.Initialize(SDL.InitFlag.Video);
       SDL.Initialize(SDL.InitFlag.EventThread); // SDL quirk: this must be done AFTER video
       SDL.EnableUNICODE(1); // SDL quirk: must be AFTER Initialize(EventThread)
     }
@@ -1004,8 +997,41 @@ public sealed class Events
   
   static unsafe Event ConvertEvent(ref SDL.Event evt)
   { switch(evt.Type)
-    { case SDL.EventType.Active: return new FocusEvent(ref evt.Active);
-      case SDL.EventType.KeyDown: case SDL.EventType.KeyUp: return new KeyboardEvent(ref evt.Keyboard);
+    { case SDL.EventType.Active:
+      { FocusEvent e = new FocusEvent(ref evt.Active);
+        // unset keyboard mods when regaining application focus, to prevent mod keys from seeming stuck
+        if(e.Focused && (e.FocusType==FocusType.Application || e.FocusType==FocusType.Input)) mods &= ~KeyMod.KeyMask;
+        return e;
+      }
+      case SDL.EventType.KeyDown: case SDL.EventType.KeyUp:
+      { KeyboardEvent e = new KeyboardEvent(ref evt.Keyboard);
+        mods = mods & ~KeyMod.StatusMask | e.StatusMods;
+        if(e.Down) // SDL's mod handling is quirky, so i'll do it myself
+        { switch(e.Key)
+          { case Key.LShift: mods |= KeyMod.LShift; break;
+            case Key.RShift: mods |= KeyMod.RShift; break;
+            case Key.LCtrl:  mods |= KeyMod.LCtrl;  break;
+            case Key.RCtrl:  mods |= KeyMod.RCtrl;  break;
+            case Key.LAlt:   mods |= KeyMod.LAlt;   break;
+            case Key.RAlt:   mods |= KeyMod.RAlt;   break;
+            case Key.LMeta:  mods |= KeyMod.LMeta;  break;
+            case Key.RMeta:  mods |= KeyMod.RMeta;  break;
+          }
+        }
+        else
+        { switch(e.Key)
+          { case Key.LShift: mods &= ~KeyMod.LShift; break;
+            case Key.RShift: mods &= ~KeyMod.RShift; break;
+            case Key.LCtrl:  mods &= ~KeyMod.LCtrl;  break;
+            case Key.RCtrl:  mods &= ~KeyMod.RCtrl;  break;
+            case Key.LAlt:   mods &= ~KeyMod.LAlt;   break;
+            case Key.RAlt:   mods &= ~KeyMod.RAlt;   break;
+            case Key.LMeta:  mods &= ~KeyMod.LMeta;  break;
+            case Key.RMeta:  mods &= ~KeyMod.RMeta;  break;
+          }
+        }
+        return e;
+      }
       case SDL.EventType.MouseMove: return new MouseMoveEvent(ref evt.MouseMove);
       case SDL.EventType.MouseDown: case SDL.EventType.MouseUp: return new MouseClickEvent(ref evt.MouseButton);
       case SDL.EventType.JoyAxis: return new JoyMoveEvent(ref evt.JoyAxis);
@@ -1029,6 +1055,7 @@ public sealed class Events
   static UserEvent userEvent = new UserEventPushed();
   static uint initCount;
   static int  max=128;
+  internal static KeyMod mods;
   static bool waiting, quit;
 }
 #endregion

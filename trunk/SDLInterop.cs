@@ -495,8 +495,8 @@ internal sealed class SDL
   public static extern string JoystickName(int index);
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_JoystickOpen", CallingConvention=CallingConvention.Cdecl)]
   public static extern IntPtr JoystickOpen(int index);
-  [DllImport(Config.SDLImportPath, EntryPoint="SDL_JoystickIndex", CallingConvention=CallingConvention.Cdecl)]
-  public static extern int JoystickIndex(IntPtr joystick);
+  [DllImport(Config.SDLImportPath, EntryPoint="SDL_JoystickUpdate", CallingConvention=CallingConvention.Cdecl)]
+  public static extern void JoystickUpdate();
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_JoystickNumAxes", CallingConvention=CallingConvention.Cdecl)]
   public static extern int JoystickNumAxes(IntPtr joystick);
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_JoystickNumBalls", CallingConvention=CallingConvention.Cdecl)]
@@ -505,6 +505,12 @@ internal sealed class SDL
   public static extern int JoystickNumHats(IntPtr joystick);
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_JoystickNumButtons", CallingConvention=CallingConvention.Cdecl)]
   public static extern int JoystickNumButtons(IntPtr joystick);
+  [DllImport(Config.SDLImportPath, EntryPoint="SDL_JoystickGetAxis", CallingConvention=CallingConvention.Cdecl)]
+  public static extern int JoystickGetAxis(IntPtr joystick, int axis);
+  [DllImport(Config.SDLImportPath, EntryPoint="SDL_JoystickGetButton", CallingConvention=CallingConvention.Cdecl)]
+  public static extern byte JoystickGetButton(IntPtr joystick, int button);
+  [DllImport(Config.SDLImportPath, EntryPoint="SDL_JoystickGetHat", CallingConvention=CallingConvention.Cdecl)]
+  public static extern HatPos JoystickGetHat(IntPtr joystick, int hat);
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_JoystickClose", CallingConvention=CallingConvention.Cdecl)]
   public static extern void JoystickClose(IntPtr joystick);
   #endregion

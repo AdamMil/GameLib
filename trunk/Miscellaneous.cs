@@ -21,34 +21,30 @@ using System;
 namespace GameLib
 {
 
+/// <summary>This delegate is used to provide notification of when a value changes and allow the application to see
+/// the old value.
+/// </summary>
 public delegate void ValueChangedEventHandler(object sender, ValueChangedEventArgs e);
+/// <summary>This class is used along with <see cref="ValueChangedEventHandler"/> to provide notification of when a
+/// value changes and allow the application to see the old value.
+/// </summary>
 public class ValueChangedEventArgs : EventArgs
 { public ValueChangedEventArgs(object old) { OldValue=old; }
   public object OldValue;
 }
 
-public struct Pair // TODO: look through code and find places this could be used
-{ public Pair(object a, object b) { First=a; Second=b; }
-
-  public bool IsType(Type type) { return IsType(type, false); }
-  public bool IsType(Type type, bool allowNull)
-  { return allowNull ? (First==null || First.GetType()==type) && (Second==null || Second.GetType()==type) :
-                       First!=null && First.GetType()==type && Second!=null && Second.GetType()==type;
-  }
-  public void CheckType(Type type) { CheckType(type, false); }
-  public void CheckType(Type type, bool allowNull)
-  { if(!IsType(type, allowNull))
-      throw new ArgumentException(String.Format("Expected a pair of {0} (nulls {1}allowed)", type,
-                                                allowNull ? "" : "not "));
-  }
-
-  public object First, Second;
-}
-
+/// <summary>This class provides miscellaneous utilities that don't fit anywhere else.</summary>
 public sealed class Utility
 { private Utility() { }
-  public static Random Random = new Random();
 
+  /// <summary>This field provides a global random number generator.</summary>
+  public static readonly Random Random = new Random();
+
+  /// <summary>This method converts a directory path into a consistent format.</summary>
+  /// <param name="path">A path to a directory.</param>
+  /// <returns>A path to the directory using '/' as the directory separation character and ending with a trailing
+  /// slash. For instance, passing "c:\code\test" returns "c:/code/test/".
+  /// </returns>
   public static string NormalizeDir(string path)
   { path = path.Replace('\\', '/');
     if(path[path.Length-1] != '/') path += '/';

@@ -23,6 +23,10 @@ namespace GameLib.Interop.OpenGL
 {
 
 #region OpenGL
+/// <summary>This class provides access to the native, low-level OpenGL API. See the official OpenGL documentation for
+/// information regarding these methods.
+/// </summary>
+/// <remarks>This class currently supports OpenGL through version 1.3.</remarks>
 [System.Security.SuppressUnmanagedCodeSecurity()]
 public sealed class GL
 { private GL() { }
@@ -2979,6 +2983,10 @@ public sealed class GL
 }
 #endregion
 
+#region GLU
+/// <summary>This class provides access to the native, low-level GLU API. See the official GLU documentation for
+/// information regarding these methods.
+/// </summary>
 [System.Security.SuppressUnmanagedCodeSecurity()]
 public sealed class GLU
 { private GLU() { }
@@ -3035,5 +3043,6 @@ public sealed class GLU
   public unsafe static extern int gluBuild2DMipmaps(uint target, int components, int width, int height, uint format, uint type, byte[] data);
   #endregion
 }
+#endregion
 
 } // namespace GameLib.Interop.OpenGL

@@ -100,8 +100,11 @@ Legend
 ! Renamed TrueTypeFont.CacheSize to TrueTypeFont.MaxCacheSize
 * Improved the implementation of shaded fonts with regards to color
 ! Made BitmapFont take vertical spacing instead of line skip
-+ Added some more documentation (for CD.cs, Events.cs, Fonts.cs, Surface.cs,
-  and Video.cs).
+! Removed the Keyboard.Press and Keyboard.Release methods
+! Made Joystick.Ball report absolute coordinates rather than relative ones
+* Fixed bug where joysticks wouldn't query their initial state
++ Added some more documentation (for CD.cs, Events.cs, Fonts.cs, Input.cs,
+  OpenGL.cs, OpenGLInterop.cs, Surface.cs, and Video.cs).
 * A couple bugfixes I forgot to add to the changelog
 
 2004.02.07 (alpha/beta)
