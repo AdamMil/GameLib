@@ -21,6 +21,7 @@ public class SineTable
   public static readonly double[] Sines = new double[256];
 }
 
+// TODO: once generics become available, use them to implement this in a generic fashion
 public struct VectorF
 { public VectorF(float x, float y) { X=x; Y=y; Z=0; }
   public VectorF(float x, float y, float z) { X=x; Y=y; Z=z; }
