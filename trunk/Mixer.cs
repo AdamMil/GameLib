@@ -8,7 +8,6 @@ using GameLib.Interop.GLMixer;
 
 namespace GameLib.Audio
 {
-// TODO: check return values for calls into GLMixer
 
 [Flags]
 public enum SampleFormat : ushort
@@ -19,7 +18,7 @@ public enum SampleFormat : ushort
   U8BE=U8|BigEndian, U16BE=U16|BigEndian, S8BE=S8|BigEndian, S16BE=S16|BigEndian,
   U8Sys=GLMixer.Format.U8Sys, U16Sys=GLMixer.Format.U16Sys, S8Sys=GLMixer.Format.S8Sys, S16Sys=GLMixer.Format.S16Sys,
   
-  Default=S16Sys, MixerFormat=GLMixer.Format.MixerFormat
+  Default=S16Sys
 }
 
 public enum Speakers : byte { Mono=1, Stereo=2 }
@@ -85,8 +84,26 @@ public abstract class AudioSource
       }
   }
 
+  protected byte[] ReadAllUL()
+  { byte[] buf = new byte[16384];
+    int toRead=buf.Length, index=0, read = ReadBytes(buf, index, toRead), length;
+    while(read!=0 && read==toRead)
+    { index = buf.Length;
+      byte[] nb = new byte[buf.Length*2];
+      Array.Copy(buf, nb, buf.Length);
+      buf = nb;
+      read = ReadBytes(buf, index, index);
+    }
+    length = index+read;
+    if(length==buf.Length) return buf;
+    byte[] ret = new byte[length];
+    Array.Copy(buf, ret, length);
+    return ret;
+  }
+
   public abstract byte[] ReadAll();
-  public abstract int ReadBytes(byte[] buf, int length);
+  public int ReadBytes(byte[] buf, int length) { return ReadBytes(buf, 0, length); }
+  public abstract int ReadBytes(byte[] buf, int index, int length);
   public unsafe int ReadFrames(int* buffer, int frames) { return ReadFrames(buffer, frames, -1); }
   public abstract unsafe int ReadFrames(int* buffer, int frames, int volume);
   
@@ -114,13 +131,13 @@ public abstract class StreamSource : AudioSource
         if(ReadBytes(buf, Length)!=Length) throw new EndOfStreamException();
         return buf;
       }
-      else throw new NotImplementedException("no implementation for ReadAll() on streams with an unknown length"); // TODO: implement me (and others)
+      else return ReadAllUL();
     }
   }
 
-  public override int ReadBytes(byte[] buf, int length)
+  public override int ReadBytes(byte[] buf, int index, int length)
   { lock(this)
-    { int read = stream.Read(buf, 0, length);
+    { int read = stream.Read(buf, index, length);
       if(read>=0) curPos += read;
       return read;
     }
@@ -130,15 +147,11 @@ public abstract class StreamSource : AudioSource
   { lock(this)
     { int shift=format.FrameSize>>1, toRead=Math.Min(length-curPos, frames<<shift), read, readSamps;
       if(buffer==null || toRead>buffer.Length) buffer = new byte[toRead];
-      read = stream.Read(buffer, 0, toRead); // FIXME: assumes stream is reliable
+      read = stream.Read(buffer, 0, toRead);
       readSamps = (read>>shift)*format.Channels;
       fixed(byte* src = buffer)
-        if(format.Format==SampleFormat.MixerFormat)
-          if(volume>=0) GLMixer.Mix(dest, (int*)src, (uint)readSamps, (ushort)volume);
-          else GLMixer.Copy(dest, (int*)src, (uint)readSamps);
-        else
-          GLMixer.ConvertMix(dest, src, (uint)readSamps, (ushort)format.Format,
-                             (ushort)(volume<0 ? Mixer.MaxVolume : volume));
+        GLMixer.Check(GLMixer.ConvertMix(dest, src, (uint)readSamps, (ushort)format.Format,
+                                          (ushort)(volume<0 ? Mixer.MaxVolume : volume)));
       curPos += read;
       return read>>shift;
     }
@@ -221,16 +234,16 @@ public class SoundFileSource : AudioSource
         if(ReadBytes(buf, buf.Length)!=buf.Length) throw new EndOfStreamException();
         return buf;
       }
-      else throw new NotImplementedException("no implementation for ReadAll() on streams with an unknown length"); // TODO: implement me (and others)
+      else return ReadAllUL();
     }
   }
 
-  public override int ReadBytes(byte[] buf, int length)
+  public override int ReadBytes(byte[] buf, int index, int length)
   { int frames = length/format.FrameSize;
     if(frames*format.FrameSize != length) throw new ArgumentException("length must be multiple of framesize");
     lock(this)
     { int read;
-      unsafe { fixed(byte* pbuf = buf) read=(int)SF.ReadShorts(sndfile, (short*)pbuf, frames); }
+      unsafe { fixed(byte* pbuf = buf) read=(int)SF.ReadShorts(sndfile, (short*)(pbuf+index), frames); }
       if(read>=0) curPos += read;
       return read*format.FrameSize;
     }
@@ -238,15 +251,14 @@ public class SoundFileSource : AudioSource
 
   public override unsafe int ReadFrames(int *dest, int frames, int volume)
   { lock(this)
-    { if(volume<0) return (int)SF.ReadInts(sndfile, dest, frames);
-      else
-      { int samples = frames*format.Channels;
-        short* buf = stackalloc short[samples];
-        int read = (int)SF.ReadShorts(sndfile, buf, frames);
-        GLMixer.Check(GLMixer.ConvertMix(dest, buf, (uint)samples, (ushort)format.Format, (ushort)volume));
+    { short* buf = stackalloc short[frames*format.Channels];
+      int read = (int)SF.ReadShorts(sndfile, buf, frames);
+      if(read>0)
+      { GLMixer.Check(GLMixer.ConvertMix(dest, buf, (uint)(read*format.Channels), (ushort)format.Format,
+                                         (ushort)(volume<0 ? Mixer.MaxVolume : volume)));
         curPos += read;
-        return read;
       }
+      return read;
     }
   }
 
@@ -299,17 +311,14 @@ public class SampleSource : AudioSource
 
   public SampleSource(AudioSource stream) : this(stream, true) { }
   public SampleSource(AudioSource stream, bool mixerFormat)
-  { if(stream.Length>=0)
-    { data   = stream.ReadAll();
-      format = stream.Format;
+  { data   = stream.ReadAll();
+    format = stream.Format;
 
-      if(mixerFormat)
-      { data = Mixer.Convert(data, format, Mixer.Format).Shrunk;
-        format = Mixer.Format;
-      }
-      length = data.Length;
+    if(mixerFormat)
+    { data = Mixer.Convert(data, format, Mixer.Format).Shrunk;
+      format = Mixer.Format;
     }
-    else throw new NotImplementedException("SampleSource can't handle streams of unknown length");
+    length = data.Length;
   }
 
   public SampleSource(AudioSource stream, AudioFormat convertTo)
@@ -319,10 +328,10 @@ public class SampleSource : AudioSource
 
   public override byte[] ReadAll() { return (byte[])data.Clone(); }
 
-  public override int ReadBytes(byte[] buf, int length)
+  public override int ReadBytes(byte[] buf, int index, int length)
   { lock(this)
     { int toRead = Math.Min(length, this.length-curPos);
-      Array.Copy(data, curPos, buf, 0, toRead);
+      Array.Copy(data, curPos, buf, index, toRead);
       curPos += toRead;
       return toRead;
     }
@@ -333,12 +342,8 @@ public class SampleSource : AudioSource
     { int shift=format.FrameSize>>1, toRead=Math.Min(length-curPos, frames<<shift),
           readFrames=toRead>>shift, samples=readFrames*format.Channels;
       fixed(byte* src = data)
-        if(format.Format==SampleFormat.MixerFormat)
-          if(volume>=0) GLMixer.Mix(dest, (int*)(src+curPos), (uint)samples, (ushort)volume);
-          else GLMixer.Copy(dest, (int*)(src+curPos), (uint)samples);
-        else
-          GLMixer.ConvertMix(dest, src+curPos, (uint)samples, (ushort)format.Format,
-                             (ushort)(volume<0 ? Mixer.MaxVolume : volume));
+        GLMixer.Check(GLMixer.ConvertMix(dest, src+curPos, (uint)samples, (ushort)format.Format,
+                                          (ushort)(volume<0 ? Mixer.MaxVolume : volume)));
       curPos += toRead;
       return readFrames;
     }
@@ -395,8 +400,9 @@ public sealed class Channel
       this.loops    = loops;
       this.fade     = fade;
       this.timeout  = timeoutMs;
+      if(source.CanRewind) source.Rewind();
       priority  = source.Priority;
-      position  = 0;
+      position  = source.Position;
       paused    = false;
       startTime = Timing.Ticks;
       source.playing++;
@@ -426,9 +432,10 @@ public sealed class Channel
   internal unsafe void Mix(int* stream, int frames, MixFilter filters)
   { if(source==null || paused) return;
     lock(source)
-    { AudioFormat format = source.Format;
+    { if(source.Length==0) return;
+      AudioFormat format = source.Format;
       float rate = EffectiveRate;
-      int volume = EffectiveVolume, read, toRead;
+      int volume = EffectiveVolume, read, toRead, samples;
       bool convert = this.convert;
 
       if(timeout!=Mixer.Infinite && Age>timeout)
@@ -448,63 +455,83 @@ public sealed class Channel
 
       if(source.CanSeek) source.Position = position;
       if(convert || rate!=1f)
-      { int len = frames*Mixer.Format.FrameSize;
-        if(rate==1f) toRead = len*sdDiv/sdMul;
+      { int index=0, mustWrite = frames*Mixer.Format.FrameSize, framesRead;
+        bool stop=false;
+        if(rate==1f) toRead = mustWrite*sdDiv/sdMul;
         else
-        { int shift = format.FrameSize;
-          THIS IS A HACK, FIX ME
-          format.Frequency = (uint)(format.Frequency*rate)/50*50;
+        { int shift = format.FrameSize>>1;
+          format.Frequency = (uint)(format.Frequency*rate);
           if(format.Frequency==0) return;
-          convert=true;
+          convert = true;
           GLMixer.AudioCVT cvt = Mixer.SetupCVT(format, Mixer.Format);
-          toRead = (len*cvt.lenDiv/cvt.lenMul+shift)>>shift<<shift;
+          toRead = (mustWrite*cvt.lenDiv/cvt.lenMul+shift)>>shift<<shift;
         }
-        len = Math.Max(toRead, len);
+        int len = Math.Max(toRead, mustWrite);
         if(convBuf==null || convBuf.Length<len) convBuf = new byte[len];
-      }
-      else toRead = frames;
 
-      while(true)
-      { if(convert)
-        { read = source.ReadBytes(convBuf, toRead);
-          Mixer.SizedArray sa = Mixer.Convert(convBuf, format, Mixer.Format, read);
-          if(sa.Array!=convBuf) convBuf = sa.Array;
-          int framesRead = sa.Length/Mixer.Format.FrameSize, samples = framesRead*Mixer.Format.Channels;
-          if(Filters==null && filters==null)
-          { fixed(byte* src = convBuf)
-                  GLMixer.Check(GLMixer.ConvertMix(stream, src, (uint)samples,
-                                                  (ushort)Mixer.Format.Format, (ushort)volume));
+        while(index<toRead)
+        { read = source.ReadBytes(convBuf, index, toRead);
+          if(read==0)
+          { if(loops==0)
+            { Array.Clear(convBuf, index, toRead);
+              stop = true;
+              break;
+            }
+            else
+            { source.Rewind();
+              position = source.Position;
+              if(loops!=Mixer.Infinite) loops--;
+            }
           }
-          else
-          { int* buffer = stackalloc int[samples];
-            fixed(byte* src = convBuf)
-              GLMixer.Check(GLMixer.ConvertMix(buffer, src, (uint)samples,
-                                              (ushort)Mixer.Format.Format, (ushort)Mixer.MaxVolume));
-            if(Filters!=null) Filters(buffer, framesRead, Mixer.Format);
-            if(filters!=null) filters(buffer, framesRead, Mixer.Format);
-            GLMixer.Check(GLMixer.Mix(stream, buffer, (uint)samples, (ushort)volume));
-          }
+          index += read;
         }
+        Mixer.SizedArray sa = Mixer.Convert(convBuf, format, Mixer.Format, toRead, mustWrite);
+        if(sa.Array!=convBuf) convBuf = sa.Array;
+        framesRead = sa.Length/Mixer.Format.FrameSize;
+        samples    = framesRead*Mixer.Format.Channels;
+        if(Filters==null && filters==null)
+          fixed(byte* src = convBuf)
+                GLMixer.Check(GLMixer.ConvertMix(stream, src, (uint)samples,
+                                                (ushort)Mixer.Format.Format, (ushort)volume));
         else
-        { if(Filters==null && filters==null) read=source.ReadFrames(stream, toRead, volume);
+        { int* buffer = stackalloc int[samples];
+          fixed(byte* src = convBuf)
+            GLMixer.Check(GLMixer.ConvertMix(buffer, src, (uint)samples,
+                                            (ushort)Mixer.Format.Format, (ushort)Mixer.MaxVolume));
+          if(Filters!=null) Filters(buffer, framesRead, Mixer.Format);
+          if(filters!=null) filters(buffer, framesRead, Mixer.Format);
+          GLMixer.Check(GLMixer.Mix(stream, buffer, (uint)samples, (ushort)volume));
+        }
+        
+        if(stop) { StopPlaying(); return; }
+      }
+      else
+      { toRead=frames;
+        while(true)
+        { if(Filters==null && filters==null)
+          { read=source.ReadFrames(stream, toRead, volume);
+            samples=read*Mixer.Format.Channels;
+          }
           else
           { int* buffer = stackalloc int[toRead];
-            read = source.ReadFrames(buffer, toRead, -1);
+            read    = source.ReadFrames(buffer, toRead, -1);
+            samples = read*Mixer.Format.Channels;
             if(read>0)
             { if(Filters!=null) Filters(buffer, read, format);
               if(filters!=null) filters(buffer, read, format);
-              GLMixer.Check(GLMixer.Mix(stream, buffer, (uint)(read*Mixer.Format.Channels), (ushort)volume));
+              GLMixer.Check(GLMixer.Mix(stream, buffer, (uint)samples, (ushort)volume));
             }
           }
-        }
-        toRead -= read;
-        if(toRead<=0) break;
-        if(read==0)
-        { if(loops==0) { StopPlaying(); return; }
-          else
-          { source.Rewind();
-            position = 0;
-            if(loops!=Mixer.Infinite) loops--;
+          toRead -= read;
+          if(toRead<=0) break;
+          stream += samples;
+          if(read==0)
+          { if(loops==0) { StopPlaying(); return; }
+            else
+            { source.Rewind();
+              position = source.Position;
+              if(loops!=Mixer.Infinite) loops--;
+            }
           }
         }
       }
@@ -579,7 +606,7 @@ public class Mixer
     uint freq, bytes;
     ushort form;
     byte   chan;
-    SDL.Check(GLMixer.GetFormat(out freq, out form, out chan, out bytes));
+    GLMixer.Check(GLMixer.GetFormat(out freq, out form, out chan, out bytes));
     Mixer.format = new AudioFormat(freq, (SampleFormat)form, chan);
     
     SDL.PauseAudio(0);
@@ -843,19 +870,13 @@ public class Mixer
   internal static GLMixer.AudioCVT SetupCVT(AudioFormat srcFormat, AudioFormat destFormat)
   { GLMixer.AudioCVT cvt = new GLMixer.AudioCVT();
     if(srcFormat.Equals(destFormat)) { cvt.lenMul=cvt.lenDiv=1; }
-    if(srcFormat.Format==SampleFormat.MixerFormat && destFormat.Format==SampleFormat.MixerFormat)
-      throw new NotImplementedException("Can't convert between two different mixer formats"); // FIXME: lift this restriction
-    if(srcFormat.Format==SampleFormat.MixerFormat) { cvt.lenMul=destFormat.SampleSize; cvt.lenDiv=4; }
-    else if(destFormat.Format==SampleFormat.MixerFormat) { cvt.lenMul=4; cvt.lenDiv=destFormat.SampleSize; }
-    else
-    { cvt.srcRate    = (int)srcFormat.Frequency;
-      cvt.srcFormat  = (ushort)srcFormat.Format;
-      cvt.srcChans   = srcFormat.Channels;
-      cvt.destRate   = (int)destFormat.Frequency;
-      cvt.destFormat = (ushort)destFormat.Format;
-      cvt.destChans  = destFormat.Channels;
-      GLMixer.Check(GLMixer.SetupCVT(ref cvt));
-    }
+    cvt.srcRate    = (int)srcFormat.Frequency;
+    cvt.srcFormat  = (ushort)srcFormat.Format;
+    cvt.srcChans   = srcFormat.Channels;
+    cvt.destRate   = (int)destFormat.Frequency;
+    cvt.destFormat = (ushort)destFormat.Format;
+    cvt.destChans  = destFormat.Channels;
+    GLMixer.Check(GLMixer.SetupCVT(ref cvt));
     return cvt;
   }
 
@@ -865,55 +886,17 @@ public class Mixer
   internal static SizedArray Convert(byte[] srcData, AudioFormat srcFormat, SampleFormat destFormat, int length)
   { AudioFormat df = srcFormat;
     df.Format = destFormat;
-    return Convert(srcData, srcFormat, df, length);
+    return Convert(srcData, srcFormat, df, length, -1);
   }
   internal static SizedArray Convert(byte[] srcData, AudioFormat srcFormat, AudioFormat destFormat)
-  { return Convert(srcData, srcFormat, destFormat, -1);
+  { return Convert(srcData, srcFormat, destFormat, -1, -1);
   }
   internal static SizedArray Convert(byte[] srcData, AudioFormat srcFormat, AudioFormat destFormat, int length)
+  { return Convert(srcData, srcFormat, destFormat, -1, -1);
+  }
+  internal static SizedArray Convert(byte[] srcData, AudioFormat srcFormat, AudioFormat destFormat,
+                                     int length, int mustWrite)
   { if(srcFormat.Equals(destFormat)) return new SizedArray(srcData);
-    if(length>=0)
-    { if(srcFormat.Format==SampleFormat.MixerFormat || destFormat.Format==SampleFormat.MixerFormat)
-        throw new NotSupportedException("Can't convert to or from a mixer format inline");
-      // FIXME: remove this restriction --^
-    }
-    else
-    { if(srcFormat.Format==SampleFormat.MixerFormat && destFormat.Format==SampleFormat.MixerFormat)
-        throw new NotSupportedException("Can't convert between two different mixer formats");
-      // FIXME: remove this retriction --^
-      if(srcFormat.Format==SampleFormat.MixerFormat)
-      { int samples = srcData.Length/4;
-        byte[] ret  = new byte[samples*destFormat.SampleSize];
-        unsafe
-        { fixed(byte* src = srcData)
-            fixed(byte* dest = ret)
-              GLMixer.Check(GLMixer.ConvertAcc(dest, (int*)src, (uint)samples, (ushort)destFormat.Format));
-        }
-        if(srcFormat.Channels!=destFormat.Channels || srcFormat.Frequency!=destFormat.Frequency)
-        { AudioFormat format = srcFormat;
-          format.Format = destFormat.Format;
-          return Convert(ret, format, destFormat);
-        }
-        return new SizedArray(ret);
-      }
-      else if(destFormat.Format==SampleFormat.MixerFormat)
-      { if(srcFormat.Channels!=Mixer.Format.Channels || srcFormat.Frequency!=Mixer.Format.Frequency)
-        { SizedArray sa = Convert(srcData, srcFormat, Mixer.Format);
-          srcData = sa.Array;
-          length  = sa.Length;
-          srcFormat = Mixer.Format;
-        }
-        else length = srcData.Length;
-        int samples = length/srcFormat.SampleSize;
-        byte[] ret = new byte[samples*4];
-        unsafe
-        { fixed(byte* src = srcData)
-            fixed(byte* dest = ret)
-              GLMixer.Check(GLMixer.ConvertMix((int*)dest, src, (uint)samples, (ushort)srcFormat.Format, MaxVolume));
-        }
-        return new SizedArray(ret);
-      }
-    }
     unsafe
     { GLMixer.AudioCVT cvt = new GLMixer.AudioCVT();
       if(length<0) length = srcData.Length;
@@ -926,6 +909,7 @@ public class Mixer
       cvt.len        = length;
 
       GLMixer.Check(GLMixer.SetupCVT(ref cvt));
+      if(mustWrite!=-1) cvt.lenCvt=mustWrite;
 
       if(srcData.Length>=cvt.lenCvt)
       { fixed(byte* buf = srcData)
@@ -963,7 +947,7 @@ public class Mixer
   { lock(callback)
     { for(int i=0; i<chans.Length; i++) lock(chans[i]) chans[i].Mix(stream, (int)frames, eFilters);
       if(ePostFilters!=null) ePostFilters(stream, (int)frames, format);
-      if(MixPolicy==MixPolicy.Divide) GLMixer.DivideAccumulator(chans.Length);
+      if(MixPolicy==MixPolicy.Divide) GLMixer.Check(GLMixer.DivideAccumulator(chans.Length));
     }
   }
 
