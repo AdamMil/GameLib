@@ -986,11 +986,10 @@ public sealed class Events
     if(evt==userEvent) return true;
     if(EventFilter!=null)
     { Delegate[] list = EventFilter.GetInvocationList();
-      foreach(EventFilter ef in list)
-        switch(ef(evt))
-        { case FilterAction.Drop:  return false;
-          case FilterAction.Queue: break;
-        }
+      foreach(EventFilter ef in list) switch(ef(evt))
+      { case FilterAction.Drop:  return false;
+        case FilterAction.Queue: break;
+      }
     }
     return true;
   }
@@ -1006,28 +1005,26 @@ public sealed class Events
       case SDL.EventType.KeyDown: case SDL.EventType.KeyUp:
       { KeyboardEvent e = new KeyboardEvent(ref evt.Keyboard);
         mods = mods & ~KeyMod.StatusMask | e.StatusMods;
-        if(e.Down) // SDL's mod handling is quirky, so i'll do it myself
-          switch(e.Key)
-          { case Key.LShift: mods |= KeyMod.LShift; break;
-            case Key.RShift: mods |= KeyMod.RShift; break;
-            case Key.LCtrl:  mods |= KeyMod.LCtrl;  break;
-            case Key.RCtrl:  mods |= KeyMod.RCtrl;  break;
-            case Key.LAlt:   mods |= KeyMod.LAlt;   break;
-            case Key.RAlt:   mods |= KeyMod.RAlt;   break;
-            case Key.LMeta:  mods |= KeyMod.LMeta;  break;
-            case Key.RMeta:  mods |= KeyMod.RMeta;  break;
-          }
-        else
-          switch(e.Key)
-          { case Key.LShift: mods &= ~KeyMod.LShift; break;
-            case Key.RShift: mods &= ~KeyMod.RShift; break;
-            case Key.LCtrl:  mods &= ~KeyMod.LCtrl;  break;
-            case Key.RCtrl:  mods &= ~KeyMod.RCtrl;  break;
-            case Key.LAlt:   mods &= ~KeyMod.LAlt;   break;
-            case Key.RAlt:   mods &= ~KeyMod.RAlt;   break;
-            case Key.LMeta:  mods &= ~KeyMod.LMeta;  break;
-            case Key.RMeta:  mods &= ~KeyMod.RMeta;  break;
-          }
+        if(e.Down) switch(e.Key) // SDL's mod handling is quirky, so i'll do it myself
+        { case Key.LShift: mods |= KeyMod.LShift; break;
+          case Key.RShift: mods |= KeyMod.RShift; break;
+          case Key.LCtrl:  mods |= KeyMod.LCtrl;  break;
+          case Key.RCtrl:  mods |= KeyMod.RCtrl;  break;
+          case Key.LAlt:   mods |= KeyMod.LAlt;   break;
+          case Key.RAlt:   mods |= KeyMod.RAlt;   break;
+          case Key.LMeta:  mods |= KeyMod.LMeta;  break;
+          case Key.RMeta:  mods |= KeyMod.RMeta;  break;
+        }
+        else switch(e.Key)
+        { case Key.LShift: mods &= ~KeyMod.LShift; break;
+          case Key.RShift: mods &= ~KeyMod.RShift; break;
+          case Key.LCtrl:  mods &= ~KeyMod.LCtrl;  break;
+          case Key.RCtrl:  mods &= ~KeyMod.RCtrl;  break;
+          case Key.LAlt:   mods &= ~KeyMod.LAlt;   break;
+          case Key.RAlt:   mods &= ~KeyMod.RAlt;   break;
+          case Key.LMeta:  mods &= ~KeyMod.LMeta;  break;
+          case Key.RMeta:  mods &= ~KeyMod.RMeta;  break;
+        }
         e.Mods = mods;
         return e;
       }

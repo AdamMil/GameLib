@@ -318,11 +318,10 @@ public sealed class IOH
         else if(c=='s' || c=='p') { prefix = -1; }
         else
         { prefix=1;
-          if(allParms)
-            switch(c)
-            { case 'x': case 'A': case 'U': case '<': case '>': case '=': break;
-              default: j++; break;
-            }
+          if(allParms) switch(c)
+          { case 'x': case 'A': case 'U': case '<': case '>': case '=': break;
+            default: j++; break;
+          }
         }
 
         switch(c)
