@@ -699,10 +699,12 @@ byte[] output = IOH.Write("dfp?d", parms);
       <see cref="System.Drawing.Point"/>, simply register the <see cref="System.Drawing.Point"/> class.
       However, note that serialization of arrays with more than one dimension is not supported.
       </para>
-      <para>You can serialize non-blittable types and multi-dimensional arrays using the
-      <see cref="INetSerializable"/> interface. Any type that implements the <see cref="INetSerializable"/>
-      interface can be serialized by this code. However, for deserialization, an object implementing that interface
-      must provide a default constructor (that is, a constructor that takes no arguments).
+      <para>You can serialize non-blittable types and multi-dimensional arrays in one of two ways. First, you can
+      use the <see cref="System.Runtime.InteropServices.MarshalAsAttribute">MarshalAs</see> attribute to convert
+      non-blittable fields to blittable types. Or, you can use the <see cref="INetSerializable"/> interface.
+      Any type that implements the <see cref="INetSerializable"/> interface can be serialized by this code.
+      However, for deserialization, an object implementing that interface must provide a default constructor
+      (that is, a constructor that takes no arguments).
       </para>
       <para>If you are using multiple instances of the <see cref="MessageConverter"/> class, (for instance, one for
       serialization and one for deserialization), all instances must have the same types registered in the same

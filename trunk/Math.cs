@@ -2251,8 +2251,7 @@ public struct Vector
   /// <param name="angle">The angle to rotate by, in radians.</param>
   /// <returns>A copy of this vector, rotated around the given axis.</returns>
   public Vector Rotated(Vector vector, double angle)
-  { angle *= 0.5;
-    Quaternion a = new Quaternion(Math.Cos(angle), vector*Math.Sin(angle)), b = new Quaternion(this);
+  { Quaternion a = new Quaternion(vector, angle), b = new Quaternion(this);
     return (a*b*a.Conjugate).V;
   }
 
@@ -2482,6 +2481,10 @@ public struct Quaternion
 { public Quaternion(Vector v) { W=0; V=v; }
   public Quaternion(double w, Vector v) { W=w; V=v; }
   public Quaternion(double w, double x, double y, double z) { W=w; V=new Vector(x, y, z); }
+  public Quaternion(Vector axis, double angle)
+  { angle *= 0.5;
+    W=Math.Cos(angle); V=axis*Math.Sin(angle);
+  }
 
   public Quaternion Conjugate { get { return new Quaternion(W, -V); } }
 
@@ -2498,7 +2501,17 @@ public struct Quaternion
 
   public override bool Equals(object obj) { return obj is Quaternion ? (Quaternion)obj==this : false; }
   public bool Equals(Quaternion q, double epsilon) { return Math.Abs(W-q.W)<=epsilon && V.Equals(q.V, epsilon); }
-  
+
+  public void GetAxisAngle(out Vector axis, out double angle)
+  { double scale = V.LengthSqr;
+    if(scale==0) { axis=new Vector(0, 0, 1); angle=0; }
+    else
+    { scale = Math.Sqrt(scale);
+      axis  = new Vector(V.X/scale, V.Y/scale, V.Z/scale);
+      angle = Math.Acos(W)*2;
+    }
+  }
+
   public unsafe override int GetHashCode()
   { fixed(double* dp=&W) { int *p=(int*)dp; return *p ^ *(p+1) ^ V.GetHashCode(); }
   }
