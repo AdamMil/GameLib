@@ -143,8 +143,10 @@ public abstract class RedBlackBase : ISerializable
     else y.Right=x; // equal values go to the right
 
     while(x!=root && x.Parent.Red)
-      if(x.Parent==(gp=x.Parent.Parent).Left)
-        if((y=gp.Right).Red)
+    { gp=x.Parent.Parent;
+      if(x.Parent==gp.Left)
+      { y=gp.Right;
+        if(y.Red)
         { x.Parent.Red = y.Red = false;
           gp.Red = true;
           x = gp;
@@ -155,8 +157,10 @@ public abstract class RedBlackBase : ISerializable
           (gp=x.Parent.Parent).Red = true;
           RightRotate(gp);
         }
+      }
       else
-        if((y=gp.Left).Red)
+      { y=gp.Left;
+        if(y.Red)
         { x.Parent.Red = y.Red = false;
           gp.Red = true;
           x = gp;
@@ -167,6 +171,9 @@ public abstract class RedBlackBase : ISerializable
           (gp=x.Parent.Parent).Red = true;
           LeftRotate(gp);
         }
+      }
+    }
+
     root.Red=false;
     count++;
   }
@@ -204,7 +211,8 @@ public abstract class RedBlackBase : ISerializable
     if(y!=node) node.Value=y.Value;
     if(!y.Red)
       while(x!=root && !x.Red)
-        if(x==(p=x.Parent).Left)
+      { p=x.Parent;
+        if(x==p.Left)
         { w=p.Right;
           if(w.Red)
           { w.Red=false;
@@ -230,7 +238,8 @@ public abstract class RedBlackBase : ISerializable
           }
         }
         else
-        { if((w=p.Left).Red)
+        { w=p.Left;
+          if(w.Red)
           { w.Red=false;
             p.Red=true;
             RightRotate(p);
@@ -253,6 +262,7 @@ public abstract class RedBlackBase : ISerializable
             break;
           }
         }
+      }
     x.Red=false;
     count--;
   }

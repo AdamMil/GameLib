@@ -360,18 +360,18 @@ internal sealed class SDL
   public static extern uint GetTicks();
 
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_RWFromFile", CallingConvention=CallingConvention.Cdecl)]
-  public static extern RWOps* RWFromFile(string file, string mode);
+  public unsafe static extern RWOps* RWFromFile(string file, string mode);
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_RWFromMem", CallingConvention=CallingConvention.Cdecl)]
-  public static extern RWOps* RWFromMem(byte[] mem, int size);
+  public unsafe static extern RWOps* RWFromMem(byte[] mem, int size);
   #endregion
 
   #region Video
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_VideoModeOK", CallingConvention=CallingConvention.Cdecl)]
   public static extern int VideoModeOK(int width, int height, int depth, uint flags);
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_GetVideoInfo", CallingConvention=CallingConvention.Cdecl)]
-  public static extern VideoInfo* GetVideoInfo();
+  public unsafe static extern VideoInfo* GetVideoInfo();
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_SetVideoMode", CallingConvention=CallingConvention.Cdecl)]
-  public static extern Surface* SetVideoMode(int width, int height, int depth, uint flags);
+  public unsafe static extern Surface* SetVideoMode(int width, int height, int depth, uint flags);
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_FreeSurface", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern void FreeSurface(Surface* surface);
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_Flip", CallingConvention=CallingConvention.Cdecl)]
@@ -391,11 +391,11 @@ internal sealed class SDL
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_WarpMouse", CallingConvention=CallingConvention.Cdecl)]
   public static extern void WarpMouse(ushort x, ushort y);
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_CreateRGBSurface", CallingConvention=CallingConvention.Cdecl)]
-  public static extern Surface* CreateRGBSurface(uint flags, int width, int height, int depth, uint Rmask, uint Gmask, uint Bmask, uint Amask);
+  public unsafe static extern Surface* CreateRGBSurface(uint flags, int width, int height, int depth, uint Rmask, uint Gmask, uint Bmask, uint Amask);
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_UpperBlit", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern int BlitSurface(Surface* src, Rect* srcrect, Surface* dest, Rect* destrect);
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_GetVideoSurface", CallingConvention=CallingConvention.Cdecl)]
-  public static extern Surface* GetVideoSurface();
+  public unsafe static extern Surface* GetVideoSurface();
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_SetPalette", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern int SetPalette(Surface* surface, uint flags, Color* colors, int firstColor, int numColors);
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_SetGamma", CallingConvention=CallingConvention.Cdecl)]

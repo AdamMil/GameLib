@@ -62,7 +62,7 @@ public sealed class Config
   public const int EMSGSIZE     = 10040;
   #elif LINUX
   /// <summary>The system constant for the EWOULDBLOCK error.</summary>
-  public const int EWOULDBLOCK  = 11
+  public const int EWOULDBLOCK  = 11;
   /// <summary>The system constant for the EMSGSIZE error.</summary>
   public const int EMSGSIZE     = 90;
   #endif
