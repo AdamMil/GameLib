@@ -57,6 +57,11 @@ public class GammaRamp
   ushort[] red = new ushort[256], green = new ushort[256], blue = new ushort[256];
 }
 
+public class GLOptions
+{ public sbyte Red=-1, Green=-1, Blue=-1, Alpha=-1, AccumRed=-1, AccumGreen=-1, AccumBlue=-1, AccumAlpha=-1;
+  public sbyte DoubleBuffer=-1, Frame=-1, Depth=-1, Stencil=-1;
+}
+
 public delegate void ModeChangedHandler();
 
 [System.Security.SuppressUnmanagedCodeSecurity()]
@@ -83,7 +88,9 @@ public sealed class Video
 
   public static event ModeChangedHandler ModeChanged;
 
-  public bool Initialized { get { return initCount>0; } }
+  public static bool Initialized { get { return initCount>0; } }
+  public static int        Width  { get { return display.Width; } }
+  public static int        Height { get { return display.Height; } }
   public static VideoInfo   Info { get { CheckInit(); return info; } }
   public static Surface     DisplaySurface { get { return display; } }
   public static PixelFormat DisplayFormat { get { return display.Format; } }
@@ -121,7 +128,7 @@ public sealed class Video
     if(--initCount==0) SDL.Deinitialize(SDL.InitFlag.Video);
   }
 
-  public static void Flip() { DisplaySurface.Flip(); }
+  public static void Flip() { if(usingGL) SDL.SwapBuffers(); else DisplaySurface.Flip(); }
 
   public unsafe static Rectangle[] GetModes(PixelFormat format, SurfaceFlag flags)
   { CheckInit();
@@ -143,17 +150,40 @@ public sealed class Video
     return (byte)SDL.VideoModeOK(width, height, depth, (uint)flags);
   }
   
-  public unsafe static void SetMode(int width, int height, byte depth)
+  public static void SetMode(int width, int height, byte depth)
   { SetMode(width, height, depth, SurfaceFlag.None);
   }
-  public unsafe static void SetMode(int width, int height, byte depth, SurfaceFlag flags)
+  public static void SetMode(int width, int height, byte depth, SurfaceFlag flags)
   { CheckInit();
-    SDL.Surface* surface = SDL.SetVideoMode(width, height, depth, (uint)flags);
-    if(surface==null) SDL.RaiseError();
-    if(display!=null) display.Dispose();
-    display = new Surface(surface, false);
-    UpdateInfo();
-    if(ModeChanged!=null) ModeChanged();
+    flags &= ~SurfaceFlag.OpenGL;
+    SetMode(width, height, depth, (uint)flags);
+  }
+
+  public static void SetGLMode(int width, int height, byte depth)
+  { SetGLMode(width, height, depth, SurfaceFlag.None, null);
+  }
+  public static void SetGLMode(int width, int height, byte depth, GLOptions opts)
+  { SetGLMode(width, height, depth, SurfaceFlag.None, opts);
+  }
+  public static void SetGLMode(int width, int height, byte depth, SurfaceFlag flags)
+  { SetGLMode(width, height, depth, flags, null);
+  }
+  public unsafe static void SetGLMode(int width, int height, byte depth, SurfaceFlag flags, GLOptions opts)
+  { if(opts!=null)
+    { if(opts.Red  !=-1) SDL.SetAttribute(SDL.Attribute.RedSize,   opts.Red);
+      if(opts.Green!=-1) SDL.SetAttribute(SDL.Attribute.GreenSize, opts.Green);
+      if(opts.Blue !=-1) SDL.SetAttribute(SDL.Attribute.BlueSize,  opts.Blue);
+      if(opts.Alpha!=-1) SDL.SetAttribute(SDL.Attribute.AlphaSize, opts.Alpha);
+      if(opts.DoubleBuffer!=-1) SDL.SetAttribute(SDL.Attribute.DoubleBuffer, opts.DoubleBuffer);
+      if(opts.Frame!=-1) SDL.SetAttribute(SDL.Attribute.FrameDepth, opts.Frame);
+      if(opts.Depth!=-1) SDL.SetAttribute(SDL.Attribute.DepthDepth, opts.Depth);
+      if(opts.AccumRed  !=-1) SDL.SetAttribute(SDL.Attribute.AccumRedSize,   opts.AccumRed);
+      if(opts.AccumGreen!=-1) SDL.SetAttribute(SDL.Attribute.AccumGreenSize, opts.AccumGreen);
+      if(opts.AccumBlue !=-1) SDL.SetAttribute(SDL.Attribute.AccumBlueSize,  opts.AccumBlue);
+      if(opts.AccumAlpha!=-1) SDL.SetAttribute(SDL.Attribute.AccumAlphaSize, opts.AccumAlpha);
+    }
+    SetMode(width, height, depth, (uint)(flags|SurfaceFlag.OpenGL));
+    usingGL = true;
   }
   
   public static void GetGamma(out float red, out float green, out float blue)
@@ -196,6 +226,14 @@ public sealed class Video
   { return DisplaySurface.SetPalette(colors, startIndex, startColor, numColors, type);
   }
 
+  static unsafe void SetMode(int width, int height, int depth, uint flags)
+  { SDL.Surface* surface = SDL.SetVideoMode(width, height, depth, flags);
+    if(surface==null) SDL.RaiseError();
+    if(display!=null) display.Dispose();
+    display = new Surface(surface, false);
+    UpdateInfo();
+    if(ModeChanged!=null) ModeChanged();
+  }
   static unsafe void UpdateInfo() { info = new VideoInfo(SDL.GetVideoInfo()); }
   static void Check(int result) { if(result!=0) SDL.RaiseError(); }
   static void CheckInit() { if(initCount==0) throw new InvalidOperationException("Not initialized"); }
@@ -207,6 +245,7 @@ public sealed class Video
   static float     redGamma=1.0f, blueGamma=1.0f, greenGamma=1.0f;
   static uint      initCount;
   static VideoInfo info;
+  static bool      usingGL;
 }
 
 } // namespace GameLib.Video

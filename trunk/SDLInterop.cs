@@ -80,6 +80,10 @@ internal class SDL
     Resizable   = 0x00000010, NoFrame   = 0x00000020, RLEAccel     = 0x00004000,
     SrcColorKey = 0x00001000, SrcAlpha  = 0x00010000,
   }
+  public enum Attribute : int
+  { RedSize, GreenSize, BlueSize, AlphaSize, FrameDepth, DoubleBuffer, DepthDepth, StencilDepth,
+    AccumRedSize, AccumGreenSize, AccumBlueSize, AccumAlphaSize
+  }
   public enum EventType : byte
   { None, Active, KeyDown, KeyUp, MouseMove, MouseDown, MouseUp, JoyAxis, JoyBall, JoyHat, JoyDown, JoyUp,
     Quit, SysWMEvent, VideoResize=16, VideoExposed, UserEvent0=24, NumEvents=32
@@ -355,7 +359,7 @@ internal class SDL
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_GetVideoInfo", CallingConvention=CallingConvention.Cdecl)]
   public static extern VideoInfo* GetVideoInfo();
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_SetVideoMode", CallingConvention=CallingConvention.Cdecl)]
-  public static extern Surface* SetVideoMode(int width, int height, uint depth, uint flags);
+  public static extern Surface* SetVideoMode(int width, int height, int depth, uint flags);
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_FreeSurface", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern void FreeSurface(Surface* surface);
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_Flip", CallingConvention=CallingConvention.Cdecl)]
@@ -490,9 +494,9 @@ internal class SDL
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_GL_SwapBuffers", CallingConvention=CallingConvention.Cdecl)]
   public static extern void SwapBuffers();
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_GL_SetAttribute", CallingConvention=CallingConvention.Cdecl)]
-  public static extern int SetAttribute(int attribute, int value);
+  public static extern int SetAttribute(Attribute attribute, int value);
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_GL_GetAttribute", CallingConvention=CallingConvention.Cdecl)]
-  public static extern int GetAttribute(int attribute, out int value);
+  public static extern int GetAttribute(Attribute attribute, out int value);
   #endregion
 
   #region CDROM

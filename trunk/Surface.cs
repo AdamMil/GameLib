@@ -20,7 +20,7 @@ public enum SurfaceFlag : uint
   RLE = SDL.VideoFlag.RLEAccel, SrcAlpha=SDL.VideoFlag.SrcAlpha,
   // display surfaces only
   DoubleBuffer = SDL.VideoFlag.DoubleBuffer, Fullscreen = SDL.VideoFlag.FullScreen,
-  OpenGL       = SDL.VideoFlag.OpenGL,       OpenGLBlit = SDL.VideoFlag.OpenGLBlit,
+  OpenGL       = SDL.VideoFlag.OpenGL,       /* DEPRECATED OpenGLBlit = SDL.VideoFlag.OpenGLBlit,*/
   NoFrame      = SDL.VideoFlag.NoFrame,      Resizeable = SDL.VideoFlag.Resizable,
   // display surface creation only
   AnyFormat = SDL.VideoFlag.AnyFormat

@@ -7,7 +7,7 @@ using GameLib.Interop.GLMixer;
 using GameLib.Interop.SndFile;
 using GameLib.Interop.OggVorbis;
 
-// TODO: find out why vorbis is unstable
+// TODO: find out why/if vorbis is unstable
 
 namespace GameLib.Audio
 {
@@ -503,12 +503,14 @@ public class VorbisSource : AudioSource
 
   protected void Dispose(bool destructor)
   { if(open)
-    { base.Dispose();
-      Ogg.Close(ref file);
-      open=false;
-    }
+      lock(this)
+      { base.Dispose();
+        Ogg.Close(ref file);
+        cvtBuf = null;
+        open = false;
+      }
   }
-  
+
   void Init(bool autoClose, AudioFormat format)
   { if(CanSeek)
     { length = 0;
