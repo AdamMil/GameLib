@@ -655,7 +655,7 @@ public struct Fixed64 : IFormattable, IComparable, IConvertible
   public static Fixed64 operator-(Fixed64 lhs, Fixed64 rhs) { return new Fixed64(lhs.val-rhs.val); }
 
   public static Fixed64 operator*(Fixed64 lhs, Fixed64 rhs)
-  { long a=lhs.ToInt(), b=(uint)lhs.val, c=rhs.ToInt(), d=(uint)rhs.val;
+  { long a=lhs.val>>32, b=(uint)lhs.val, c=rhs.val>>32, d=(uint)rhs.val;
     return new Fixed64(((a*c)<<32) + b*c + a*d + ((b*d)>>32));
   }
 
