@@ -14,38 +14,59 @@ public abstract class Font
 { public Font()
   { handler = new Video.ModeChangedHandler(DisplayFormatChanged);
     Video.Video.ModeChanged += handler;
+    Color = Color.White;
+    BackColor = Color.Black;
   }
 
   public abstract int Height { get; }
   public abstract int LineSkip { get; }
+  public abstract Color Color { get; set; }
+  public abstract Color BackColor { get; set; }
 
   public abstract Size CalculateSize(string text);
 
   public int Render(Surface dest, string text, Point pt) { return Render(dest, text, pt.X, pt.Y); }
   public abstract int Render(Surface dest, string text, int x, int y);
 
-  public Point Render(Surface dest, string text, Rectangle rect) { return Render(dest, text, rect, 0, 0, breakers); }
-  public Point Render(Surface dest, string text, Rectangle rect, Point start)
-  { return Render(dest, text, rect, start.X, start.Y, breakers);
+  public Point Render(Surface dest, string text, Rectangle rect)
+  { return Render(dest, text, rect, ContentAlignment.TopLeft, 0, 0, breakers);
   }
-  public Point Render(Surface dest, string text, Rectangle rect, Point start, char[] breakers)
-  { return Render(dest, text, rect, start.X, start.Y, breakers);
+  public Point Render(Surface dest, string text, Rectangle rect, ContentAlignment align)
+  { return Render(dest, text, rect, align, 0, 0, breakers);
   }
   public Point Render(Surface dest, string text, Rectangle rect, int startx, int starty)
-  { return Render(dest, text, rect, startx, starty, breakers);
+  { return Render(dest, text, rect, ContentAlignment.TopLeft, startx, starty, breakers);
   }
-  public virtual Point Render(Surface dest, string text, Rectangle rect, int startx, int starty, char[] breakers)
-  { int[] lines = WordWrap(text, rect, startx, starty, breakers);
-    int start=0, x=rect.X+startx, y=rect.Y+starty, length=0;
+  public virtual Point Render(Surface dest, string text, Rectangle rect, ContentAlignment align,
+                              int startx, int starty, char[] breakers)
+  { if(align!=ContentAlignment.TopLeft && (startx!=0 || starty!=0))
+      throw new ArgumentException("'startx' and 'starty' can only be used with 'align'==TopLeft");
+    if(startx<0 || starty<0) throw new ArgumentException("'startx' and 'starty' must be positive");
+
+    int[] lines = WordWrap(text, rect, startx, starty, breakers);
+
+    int  start=0, x=rect.X+startx, y=rect.Y+starty, length=0, horz;
     if(lines.Length==0) return new Point(x, y);
+
+    horz = Forms.Utility.AlignedLeft(align) ? 0 : Forms.Utility.AlignedCenter(align) ? 1 : 2;
+    if(Forms.Utility.AlignedMiddle(align)) y = rect.Y + (rect.Height-lines.Length*LineSkip)/2;
+    else if(Forms.Utility.AlignedBottom(align)) y = rect.Bottom-lines.Length*LineSkip;
     y-=LineSkip;
+
     for(int i=0; i<lines.Length; i++)
     { if(i==1) { x=rect.X; y=rect.Y; }
       y += LineSkip;
-      length = Render(dest, text.Substring(start, lines[i]), x, y);
+      string chunk = text.Substring(start, lines[i]);
+      if(horz==0) length = Render(dest, chunk, x, y);
+      else
+      { length = CalculateSize(chunk).Width;
+        if(horz==1) Render(dest, chunk, rect.X+(rect.Width-length)/2, y);
+        else Render(dest, chunk, rect.Right-length, y);
+      }
       start += lines[i];
     }
-    return new Point(length + (lines.Length==1 ? startx : 0), y);
+    return align==ContentAlignment.TopLeft ? new Point(length + (lines.Length==1 ? startx : 0), y)
+                                           : new Point(-1, -1);
   }
   
   public void Center(Surface dest, string text) { CenterOff(dest, text, 0, 0); }
@@ -139,8 +160,6 @@ public enum FontStyle : byte
 }
 public abstract class NonFixedFont : Font
 { public abstract FontStyle Style { get; set; }
-  public abstract Color     Color { get; set; }
-  protected void Init() { Color=Color.White; Style=FontStyle.Normal; }
 }
 #endregion
 
@@ -160,6 +179,8 @@ public class BitmapFont : Font, IDisposable
   
   public override int Height   { get { return font.Height; } }
   public override int LineSkip { get { return height; } }
+  public override Color Color  { get { return Color.White; } set { } }
+  public override Color BackColor { get { return Color.Black; } set { } }
 
   public override Size CalculateSize(string text)
   { if(text.Length==0) return new Size(Height, 0);
@@ -229,9 +250,15 @@ public class TrueTypeFont : NonFixedFont, IDisposable
       fstyle = (FontStyle)TTF.GetFontStyle(font);
     }
   }
-  public RenderStyle RenderStyle { get { return rstyle;  } set { rstyle=value;  } }
-  public override Color Color    { get { return color;   } set { color=value; sdlColor=new SDL.Color(value); } }
-  public Color    BackColor      { get { return bgColor; } set { bgColor=value; sdlBgColor=new SDL.Color(value); } }
+  public RenderStyle RenderStyle  { get { return rstyle;  } set { rstyle=value;  } }
+  public override Color Color
+  { get { return color; }
+    set { if(color!=value) { color=value; sdlColor=new SDL.Color(value); } }
+  }
+  public override Color BackColor
+  { get { return bgColor; }
+    set { if(bgColor!=value) { bgColor=value; sdlBgColor=new SDL.Color(value); } }
+  }
 
   public override int Height { get { return TTF.FontHeight(font); } }
   public override int LineSkip { get { return TTF.FontLineSkip(font); } }
@@ -364,10 +391,8 @@ public class TrueTypeFont : NonFixedFont, IDisposable
     base.Deinit();
   }
   
-  protected new void Init()
+  protected void Init()
   { unsafe { if(font.ToPointer()==null) { TTF.Deinitialize(); TTF.RaiseError(); } }
-    base.Init();
-    BackColor   = Color.Black;
     RenderStyle = RenderStyle.Solid;
   }
 
