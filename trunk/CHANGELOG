@@ -21,6 +21,8 @@ LATEST (alpha/beta)
   eliminate jitter. Also added more joystick output to the input sample
   (it might not fit in the window anymore if you have lots of joysticks)
 * Lowered the default audio buffer size (latency) from 100 to 50 milliseconds
+* Fixed a bug in RedBlackTree that caused the Count property to be wrong
+  after Clear() was called
 
 2004.05.02 (alpha/beta)
 -----------------------

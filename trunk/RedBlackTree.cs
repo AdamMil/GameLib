@@ -113,7 +113,7 @@ public abstract class RedBlackBase
   public int Count { get { return count; } }
 
   /// <summary>Removes all elements from the collection.</summary>
-  public void Clear() { root=Node.Null; }
+  public void Clear() { root=Node.Null; count=0; }
 
   /// <summary>Gets the root node of the binary tree.</summary>
   protected Node Root { get { return root; } }
