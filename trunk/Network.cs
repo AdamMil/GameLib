@@ -324,7 +324,7 @@ public sealed class NetLink
 
     LinkMessage m = new LinkMessage(buf, 0, buf.Length, flags, timeoutMs, tag);
     if(lagAverage>0 || lagVariance>0)
-    { int lag = Global.Rand.Next((int)lagVariance*2)+(int)lagAverage-(int)lagVariance;
+    { int lag = Utility.Random.Next((int)lagVariance*2)+(int)lagAverage-(int)lagVariance;
       if(lag>0) { m.lag = Timing.Msecs+(uint)lag; m.deadline += m.lag; }
     }
 
