@@ -63,14 +63,14 @@ public sealed class LinkedList : ICollection, IEnumerable
   /// <summary>This class represents a node in the linked list.</summary>
   public sealed class Node
   { internal Node(object data) { this.data=data; }
-    internal Node(object data, Node prev, Node next) { this.data=data; Prev=prev; Next=next; }
+    internal Node(object data, Node prev, Node next) { this.data=data; this.prev=prev; this.next=next; }
     /// <summary>Returns the previous node in the linked list or null if there is no previous node.</summary>
-    public Node PrevNode { get { return Prev; } }
+    public Node Previous { get { return prev; } }
     /// <summary>Returns the next node in the linked list or null if there is no next node.</summary>
-    public Node NextNode { get { return Next; } }
+    public Node Next { get { return next; } }
     /// <summary>Gets the data associated with this node.</summary>
     public object Data { get { return data; } set { data=value; } }
-    internal Node Prev, Next;
+    internal Node prev, next;
     object data;
   }
 
@@ -123,7 +123,7 @@ public sealed class LinkedList : ICollection, IEnumerable
         reset = false;
         return true;
       }
-      cur = cur.Next;
+      cur = cur.next;
       return cur!=null;
     }
 
@@ -137,7 +137,7 @@ public sealed class LinkedList : ICollection, IEnumerable
 
     LinkedList list;
     Node  head, cur;
-    int   version;
+    uint  version;
     bool  reset;
   }
 
@@ -201,12 +201,12 @@ public sealed class LinkedList : ICollection, IEnumerable
   public Node Append(Node newNode)
   { 
     #if DEBUG
-    if(newNode.Next!=null || newNode.Prev!=null)
+    if(newNode.next!=null || newNode.prev!=null)
       throw new ArgumentException("The given node is already part of a linked list.");
     #endif
     if(tail==null)
     { count=1;
-      newNode.Next=newNode.Prev=null;
+      newNode.next=newNode.prev=null;
       return head=tail=newNode;
     }
     else return InsertAfter(tail, newNode);
@@ -217,12 +217,12 @@ public sealed class LinkedList : ICollection, IEnumerable
   public Node Prepend(Node newNode)
   { 
     #if DEBUG
-    if(newNode.Next!=null || newNode.Prev!=null)
+    if(newNode.next!=null || newNode.prev!=null)
       throw new ArgumentException("The given node is already part of a linked list.");
     #endif
     if(head==null)
     { count=1;
-      newNode.Next=newNode.Prev=null;
+      newNode.next=newNode.prev=null;
       return head=tail=newNode;
     }
     else return InsertBefore(head, newNode);
@@ -242,7 +242,7 @@ public sealed class LinkedList : ICollection, IEnumerable
   /// </returns>
   /// <remarks>The <see cref="IComparer"/> given to the constructor is used to find <paramref name="o"/>.</remarks>
   public Node Find(object o, Node start)
-  { while(start!=null && cmp.Compare(start.Data, o)!=0) start=start.Next;
+  { while(start!=null && cmp.Compare(start.Data, o)!=0) start=start.next;
     return start;
   }
   /// <summary>Finds the <see cref="Node"/> associated with the given object, searching backwards from the end of the
@@ -268,14 +268,14 @@ public sealed class LinkedList : ICollection, IEnumerable
   /// works backwards through the list.
   /// </remarks>
   public Node FindLast(object o, Node end)
-  { while(end!=null && cmp.Compare(end.Data, o)!=0) end=end.Prev;
+  { while(end!=null && cmp.Compare(end.Data, o)!=0) end=end.prev;
     return end;
   }
   /// <summary>Returns true if the list contains the specified node.</summary>
   /// <param name="node">The <see cref="Node"/> to search for.</param>
   /// <returns>True if the list contains the given node and false otherwise.</returns>
   public bool Contains(Node node)
-  { for(Node test=head; test!=null; test=test.Next) if(test==node) return true;
+  { for(Node test=head; test!=null; test=test.next) if(test==node) return true;
     return false;
   }
   /// <summary>Inserts the given object after the specified <see cref="Node"/>.</summary>
@@ -290,15 +290,15 @@ public sealed class LinkedList : ICollection, IEnumerable
   public Node InsertAfter(Node node, Node newNode)
   { 
     #if DEBUG
-    if(newNode.Next!=null || newNode.Prev!=null)
+    if(newNode.next!=null || newNode.prev!=null)
       throw new ArgumentException("The given node is already part of a linked list.");
     #endif
     if(node==null || newNode==null) throw new ArgumentNullException();
-    newNode.Prev = node;
-    newNode.Next = node.Next;
-    node.Next    = newNode;
+    newNode.prev = node;
+    newNode.next = node.next;
+    node.next    = newNode;
     if(node==tail) tail=newNode;
-    else newNode.Next.Prev=newNode;
+    else newNode.next.prev=newNode;
     count++; Version++;
     return newNode;
   }
@@ -314,15 +314,15 @@ public sealed class LinkedList : ICollection, IEnumerable
   public Node InsertBefore(Node node, Node newNode)
   { 
     #if DEBUG
-    if(newNode.Next!=null || newNode.Prev!=null)
+    if(newNode.next!=null || newNode.prev!=null)
       throw new ArgumentException("The given node is already part of a linked list.");
     #endif
     if(node==null || newNode==null) throw new ArgumentNullException();
-    newNode.Prev = node.Prev;
-    newNode.Next = node;
-    node.Prev    = newNode;
+    newNode.prev = node.prev;
+    newNode.next = node;
+    node.prev    = newNode;
     if(node==head) head=newNode;
-    else newNode.Prev.Next=newNode;
+    else newNode.prev.next=newNode;
     count++; Version++;
     return newNode;
   }
@@ -330,19 +330,19 @@ public sealed class LinkedList : ICollection, IEnumerable
   /// <param name="node">The <see cref="Node"/> to remove from the linked list.</param>
   public void Remove(Node node)
   { if(node==null) return;
-    if(node==head) head=node.Next;
-    else node.Prev.Next=node.Next;
-    if(node==tail) tail=node.Prev;
-    else node.Next.Prev=node.Prev;
+    if(node==head) head=node.next;
+    else node.prev.next=node.next;
+    if(node==tail) tail=node.prev;
+    else node.next.prev=node.prev;
     count--; Version++;
     #if DEBUG
-    node.Next = node.Prev = null;
+    node.next = node.prev = null;
     #endif
   }
   /// <summary>Removes all elements from the linked list.</summary>
   public void Clear() { head=tail=null; count=0; }
 
-  internal int Version;
+  internal uint Version;
 
   IComparer cmp;
   Node head, tail;

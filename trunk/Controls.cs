@@ -111,7 +111,7 @@ public class ScrollableControl : Control
         { Controls.Remove(horz);
           horz = null;
         }
-        OnContentSizeChanged(new EventArgs());
+        OnContentSizeChanged(EventArgs.Empty);
       }
     }
   }
@@ -129,7 +129,7 @@ public class ScrollableControl : Control
         { Controls.Remove(vert);
           vert = null;
         }
-        OnContentSizeChanged(new EventArgs());
+        OnContentSizeChanged(EventArgs.Empty);
       }
     }
   }
@@ -289,7 +289,7 @@ public abstract class ButtonBase : LabelBase
     set
     { if(value!=pressed)
       { pressed=value;
-        OnPressedChanged(new EventArgs());
+        OnPressedChanged(EventArgs.Empty);
       }
     }
   }
@@ -400,7 +400,7 @@ public abstract class CheckBoxBase : ButtonBase
     set
     { if(value!=this.value)
       { this.value=value;
-        OnCheckedChanged(new EventArgs());
+        OnCheckedChanged(EventArgs.Empty);
       }
     }
   }
@@ -408,7 +408,7 @@ public abstract class CheckBoxBase : ButtonBase
   public event EventHandler CheckedChanged;
 
   protected virtual void OnCheckedChanged(EventArgs e)
-  { if(CheckedChanged!=null) CheckedChanged(this, new EventArgs());
+  { if(CheckedChanged!=null) CheckedChanged(this, EventArgs.Empty);
   }
 
   protected override void OnClick(ClickEventArgs e)
@@ -615,10 +615,10 @@ public abstract class ScrollBarBase : Control, IDisposable
         }
       }
       if(!repeated) switch(FindPlace(e.CE.Point))
-      { case Place.Down: OnDown(eventArgs); break;
-        case Place.PageDown: OnPageDown(eventArgs); break;
-        case Place.PageUp: OnPageUp(eventArgs); break;
-        case Place.Up: OnUp(eventArgs); break;
+      { case Place.Down: OnDown(EventArgs.Empty); break;
+        case Place.PageDown: OnPageDown(EventArgs.Empty); break;
+        case Place.PageUp: OnPageUp(EventArgs.Empty); break;
+        case Place.Up: OnUp(EventArgs.Empty); break;
       }
       e.Handled = true;
     }
@@ -668,19 +668,19 @@ public abstract class ScrollBarBase : Control, IDisposable
   }
   protected internal override void OnCustomEvent(Events.WindowEvent e)
   { if(e is ClickRepeat) switch(((ClickRepeat)e).Place)
-    { case Place.Down: OnDown(eventArgs); break;
-      case Place.PageDown: OnPageDown(eventArgs); break;
-      case Place.PageUp: OnPageUp(eventArgs); break;
-      case Place.Up: OnUp(eventArgs); break;
+    { case Place.Down: OnDown(EventArgs.Empty); break;
+      case Place.PageDown: OnPageDown(EventArgs.Empty); break;
+      case Place.PageUp: OnPageUp(EventArgs.Empty); break;
+      case Place.Up: OnUp(EventArgs.Empty); break;
       default: base.OnCustomEvent(e); break;
     }
   }
   protected internal override void OnKeyDown(KeyEventArgs e)
   { if(!e.Handled) switch(e.KE.Key)
-    { case Key.PageDown: OnPageUp(eventArgs); break;
-      case Key.PageUp: OnPageDown(eventArgs); break;
-      case Key.Down: case Key.Right: OnUp(eventArgs); break;
-      case Key.Up: case Key.Left: OnDown(eventArgs); break;
+    { case Key.PageDown: OnPageUp(EventArgs.Empty); break;
+      case Key.PageUp: OnPageDown(EventArgs.Empty); break;
+      case Key.Down: case Key.Right: OnUp(EventArgs.Empty); break;
+      case Key.Up: case Key.Left: OnDown(EventArgs.Empty); break;
     }
     base.OnKeyDown(e);
   }
@@ -758,7 +758,6 @@ public abstract class ScrollBarBase : Control, IDisposable
   System.Threading.Timer crTimer;
   ClickRepeat repeatEvent;
   ThumbEventArgs thumbArgs = new ThumbEventArgs();
-  EventArgs eventArgs = new EventArgs();
   ValueChangedEventArgs valChange = new ValueChangedEventArgs(null);
   int  value, min, max=100, smallInc=1, pageInc=10, endSize=16, thumbSize=16, dragOff=-1;
   uint crDelay, crRate=50;
@@ -870,7 +869,7 @@ public abstract class TextBoxBase : Control
     set
     { if(value!=modified)
       { modified=value;
-        OnModifiedChanged(new EventArgs());
+        OnModifiedChanged(EventArgs.Empty);
       }
     }
   }
@@ -1743,7 +1742,7 @@ public abstract class ListBoxBase : ListControl
         }
         else SetSelected(newValue, true, true);
 
-        OnSelectedIndexChanged(new EventArgs());
+        OnSelectedIndexChanged(EventArgs.Empty);
         if(Text!=text) OnTextChanged(new ValueChangedEventArgs(text));
       }
     }
@@ -2512,7 +2511,7 @@ public abstract class MenuBase : ContainerControl
     Visible = false;
     Parent  = desktop;
     Bounds  = new Rectangle(source.WindowToAncestor(position, desktop), Size);
-    OnPopup(new EventArgs());
+    OnPopup(EventArgs.Empty);
     BringToFront();
     Visible = true;
     SetModal(true);
@@ -2596,7 +2595,7 @@ public abstract class MenuBase : ContainerControl
   }
 
   void Click(MenuItemBase item)
-  { item.OnClick(new EventArgs());
+  { item.OnClick(EventArgs.Empty);
     Close();
   }
 
@@ -3121,7 +3120,7 @@ public abstract class FormBase : ContainerControl
     System.ComponentModel.CancelEventArgs e = new System.ComponentModel.CancelEventArgs();
     OnClosing(e);
     if(!e.Cancel)
-    { OnClosed(new EventArgs());
+    { OnClosed(EventArgs.Empty);
       Parent = null;
     }
   }
