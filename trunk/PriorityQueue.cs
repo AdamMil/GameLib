@@ -93,10 +93,19 @@ public sealed class PriorityQueue : ICollection
   /// <exception cref="InvalidOperationException">Thrown if the collection is empty.</exception>
   public object DequeueMaximum()
   { if(Count==0) throw new InvalidOperationException("The collection is empty.");
-    object max = array[0];
-    array[0] = array[Count-1];
-    array.RemoveAt(Count-1);
-    Heapify(0);
+    object max = array[0], tmp;
+    int i=0, li=1, ri=2, count=Count-1, largest;
+
+    array[0] = array[count];
+    array.RemoveAt(count);
+    
+    while(true) // heapify 'array'
+    { largest = li<count && cmp.Compare(array[li], array[i])>0 ? li : i;
+      if(ri<count && cmp.Compare(array[ri], array[largest])>0) largest=ri;
+      if(largest==i) break;
+      tmp=array[i]; array[i]=array[largest]; array[largest]=tmp;
+      i=largest; ri=(i+1)*2; li=ri-1; // i=largest, ri=Right(i), li=Left(i)
+    }
     return max;
   }
   
@@ -105,8 +114,8 @@ public sealed class PriorityQueue : ICollection
   public void Enqueue(object value)
   { array.Add(value);
     int i = Count, ip;
-    while(i>1)
-    { ip=i/2; // i=Parent(i)
+    while(i>1) // heapify 'array'
+    { ip=i/2;  // i=Parent(i)
       if(cmp.Compare(array[ip-1], value)>=0) break;
       array[i-1]=array[ip-1]; i=ip;
     }
