@@ -122,7 +122,7 @@ public class Line : Control
 #endregion
 
 #region LabelBase
-public class LabelBase : Control
+public abstract class LabelBase : Control
 { public IBlittable Image
   { get { return image; }
     set
@@ -288,7 +288,7 @@ public class Button : ButtonBase
 #endregion
 
 #region CheckBoxBase
-public class CheckBoxBase : ButtonBase
+public abstract class CheckBoxBase : ButtonBase
 { public bool Checked
   { get { return value; }
     set
@@ -318,7 +318,7 @@ public class CheckBoxBase : ButtonBase
 #endregion
 
 #region ScrollBarBase
-public class ScrollBarBase : Control, IDisposable
+public abstract class ScrollBarBase : Control, IDisposable
 { public ScrollBarBase()
   { Style = ControlStyle.Clickable|ControlStyle.Draggable|ControlStyle.CanFocus;
     ClickRepeatDelay = 300;
@@ -610,7 +610,7 @@ public class ScrollBar : ScrollBarBase // TODO: replace with image-based scrollb
 
 #region TextBoxBase
 // TODO: support multi-line edit controls
-public class TextBoxBase : Control
+public abstract class TextBoxBase : Control
 { public TextBoxBase() { Style=ControlStyle.CanFocus; }
   static TextBoxBase() { CaretFlashRate=600; }
 
@@ -1070,7 +1070,7 @@ public class TextBox : TextBoxBase
 #endregion
 
 #region MenuItemBase
-public class MenuItemBase : Control
+public abstract class MenuItemBase : Control
 { public KeyCombo GlobalHotKey { get { return globalHotKey; } set { globalHotKey=value; } }
   public char HotKey { get { return hotKey; } set { hotKey=char.ToUpper(value); } }
   public MenuBase Menu { get { return (MenuBase)Parent; } }
@@ -1088,8 +1088,22 @@ public class MenuItemBase : Control
 
 #region MenuBase
 // TODO: add arrow key support
-public class MenuBase : ContainerControl
+public abstract class MenuBase : ContainerControl
 { public MenuBase() { Style |= ControlStyle.Clickable|ControlStyle.CanFocus; }
+
+  public KeyCombo GlobalHotKey { get { return globalHotKey; } set { globalHotKey=value; } }
+
+  public bool IsOpen { get { return source!=null; } }
+
+  public bool PullDown
+  { get { return pullDown; }
+    set
+    { if(value!=pullDown)
+      { pullDown=value;
+        if(!pullDown) Capture=true;
+      }
+    }
+  }
 
   public Control SourceControl { get { return source; } }
 
@@ -1098,12 +1112,23 @@ public class MenuBase : ContainerControl
   public MenuItemBase Add(MenuItemBase item) { Controls.Add(item); return item; }
   public void Clear() { Controls.Clear(); }
 
-  public void Show(Control source, Point position) { Show(source, position, true); }
-  public void Show(Control source, Point position, bool wait)
+  public void Close()
+  { if(source!=null)
+    { MenuBarBase bar = source as MenuBarBase;
+      if(bar!=null) bar.OnMenuClosed(this);
+      Parent=null;
+      source=null;
+    }
+  }
+
+  public void Show(Control source, Point position) { Show(source, position, false, true); }
+  public void Show(Control source, Point position, bool pullDown) { Show(source, position, pullDown, true); }
+  public void Show(Control source, Point position, bool pullDown, bool wait)
   { if(source==null) throw new ArgumentNullException("source");
     DesktopControl desktop = source.Desktop;
     if(desktop==null) throw new InvalidOperationException("The source control is not part of a desktop");
     this.source = source;
+    this.pullDown = pullDown;
     Location = source.WindowToAncestor(position, desktop);
     Visible = false;
     Parent  = desktop;
@@ -1138,6 +1163,21 @@ public class MenuBase : ContainerControl
     }
   }
 
+  protected internal override void OnMouseUp(ClickEventArgs e)
+  { if(!e.Handled && pullDown)
+    { if(!WindowRect.Contains(e.CE.Point)) Close();
+      else
+      { pullDown = false;
+        foreach(MenuItemBase item in Controls)
+          if(item.Bounds.Contains(e.CE.Point)) { PostClickEvent(item); Close(); goto done; }
+        Capture = true;
+      }
+      done:
+      e.Handled = true;
+    }
+    base.OnMouseUp(e);
+  }
+
   protected internal override void OnMouseClick(ClickEventArgs e)
   { if(!e.Handled)
     { foreach(MenuItemBase item in Controls)
@@ -1152,8 +1192,16 @@ public class MenuBase : ContainerControl
   { if(e is ItemClickedEvent) Click(((ItemClickedEvent)e).Item);
     base.OnCustomEvent(e);
   }
+  
+  protected override void OnTextChanged(ValueChangedEventArgs e)
+  { MenuBarBase bar = Parent as MenuBarBase;
+    if(bar!=null) bar.Relayout();
+    base.OnTextChanged(e);
+  }
 
-  protected void PostClickEvent(MenuItemBase item) { Events.Events.PushEvent(new ItemClickedEvent(this, item)); }
+  internal protected void PostClickEvent(MenuItemBase item)
+  { if(Events.Events.Initialized) Events.Events.PushEvent(new ItemClickedEvent(this, item));
+  }
 
   class ItemClickedEvent : Events.WindowEvent
   { public ItemClickedEvent(Control menu, MenuItemBase item) : base(menu) { Item=item; }
@@ -1165,14 +1213,210 @@ public class MenuBase : ContainerControl
     Close();
   }
 
-  void Close()
-  { if(source!=null)
-    { Parent=null;
-      source=null;
+  Control  source;
+  KeyCombo globalHotKey;
+  bool     pullDown;
+}
+#endregion
+
+#region MenuBarBase
+public abstract class MenuBarBase : Control
+{ public MenuBarBase() { Style |= ControlStyle.Clickable; menus=new MenuCollection(this); }
+
+  #region MenuCollection
+  /// <summary>This class provides a strongly-typed collection of <see cref="Control"/> objects.</summary>
+  public class MenuCollection : CollectionBase
+  { internal MenuCollection(MenuBarBase parent) { this.parent=parent; }
+
+    public MenuBase this[int index] { get { return (MenuBase)List[index]; } }
+
+    public int Add(MenuBase menu) { return List.Add(menu); }
+    public int IndexOf(MenuBase menu) { return List.IndexOf(menu); }
+    public MenuBase Find(string text)
+    { foreach(MenuBase menu in List) if(menu.Text==text) return menu;
+      return null;
+    }
+
+    public void Insert(int index, MenuBase menu) { List.Insert(index, menu); }
+    public void Remove(MenuBase menu) { List.Remove(menu); }
+
+    protected override void OnClearComplete()
+    { parent.Relayout();
+      base.OnClearComplete();
+    }
+    protected override void OnInsert(int index, object value)
+    { if(!(value is MenuBase))
+        throw new ArgumentException("Only classed derived from MenuBase are allowed in this collection");
+      base.OnInsert(index, value);
+    }
+    protected override void OnInsertComplete(int index, object value)
+    { parent.Relayout();
+      base.OnInsertComplete(index, value);
+    }
+    protected override void OnRemoveComplete(int index, object value)
+    { parent.Relayout();
+      base.OnRemoveComplete(index, value);
+    }
+    protected override void OnSet(int index, object oldValue, object newValue)
+    { if(!(newValue is MenuBase))
+        throw new ArgumentException("Only classed derived from MenuBase are allowed in this collection");
+      base.OnSet(index, oldValue, newValue);
+    }
+    protected override void OnSetComplete(int index, object oldValue, object newValue)
+    { parent.Relayout();
+      base.OnSetComplete(index, oldValue, newValue);
+    }
+
+    MenuBarBase parent;
+  }
+  #endregion
+  
+  public MenuCollection Menus { get { return menus; } }
+
+  public int OuterPadding
+  { get { return outerPadding; }
+    set
+    { if(value<0) throw new ArgumentOutOfRangeException("OuterPadding", value, "must be >=0");
+      outerPadding=value;
+      Relayout();
     }
   }
 
-  Control source;
+  public MenuBase Add(MenuBase item) { Menus.Add(item); return item; }
+
+  public bool HandleKey(Events.KeyboardEvent e)
+  { for(int i=0; i<buttons.Length; i++) if(buttons[i].Menu.GlobalHotKey.Matches(e)) { Open(i); return true; }
+    foreach(MenuBase menu in menus)
+      foreach(MenuItemBase item in menu.Controls)
+        if(item.GlobalHotKey.Matches(e)) { menu.PostClickEvent(item); return true; }
+    return false;
+  }
+
+  protected internal override void OnMouseDown(ClickEventArgs e)
+  { if(e.CE.Button==0)
+    { for(int i=0; i<buttons.Length; i++)
+      { if(buttons[i].Area.Contains(e.CE.Point)) Open(i);
+        else if(buttons[i].State!=ButtonState.Normal) Close(i);
+      }
+      e.Handled=true;
+    }
+    base.OnMouseDown(e);
+  }
+
+  protected internal override void OnMouseUp(ClickEventArgs e)
+  { if(e.CE.Button==0)
+    { int open=-1;
+      for(int i=0; i<buttons.Length; i++)
+      { if(buttons[i].State==ButtonState.Open)
+        { open=i;
+          if(buttons[i].Area.Contains(e.CE.Point))
+          { buttons[i].Menu.PullDown = false;
+            goto done;
+          }
+        }
+      }
+      if(open!=-1)
+      { DesktopControl desktop = Desktop;
+        e.CE.Point = desktop.WindowToChild(WindowToAncestor(e.CE.Point, desktop), buttons[open].Menu);
+        buttons[open].Menu.OnMouseUp(e);
+      }
+      done:
+      e.Handled=true;
+    }
+    base.OnMouseDown(e);
+  }
+
+  protected internal override void OnMouseMove(GameLib.Events.MouseMoveEvent e)
+  { int over=-1, oldOver=-1;
+    for(int i=0; i<buttons.Length; i++)
+    { if(buttons[i].Over || buttons[i].State!=ButtonState.Normal) oldOver=i;
+      buttons[i].Over = buttons[i].Area.Contains(e.Point);
+      if(buttons[i].Over) over=i;
+    }
+    if(over!=oldOver)
+    { ButtonState oldState=ButtonState.Over;
+      if(oldOver==-1) oldState=ButtonState.Over;
+      else if(over!=-1 || buttons[oldOver].State==ButtonState.Over)
+      { oldState=buttons[oldOver].State;
+        buttons[oldOver].State = ButtonState.Normal;
+        buttons[oldOver].Menu.Close();
+        Invalidate(buttons[oldOver].Area);
+      }
+      if(over!=-1)
+      { buttons[over].State = oldState;
+        if(oldState==ButtonState.Open) Open(over);
+        Invalidate(buttons[over].Area);
+      }
+    }
+    base.OnMouseMove(e);
+  }
+
+  protected internal override void OnMouseLeave(EventArgs e)
+  { int oldOver=-1;
+    for(int i=0; i<buttons.Length; i++)
+      if(buttons[i].Over || buttons[i].State!=ButtonState.Normal) { oldOver=i; break; }
+    if(oldOver!=-1)
+    { buttons[oldOver].Over=false;
+      if(buttons[oldOver].State==ButtonState.Over)
+      { buttons[oldOver].State = ButtonState.Normal;
+        Invalidate(buttons[oldOver].Area);
+      }
+    }    
+    base.OnMouseLeave(e);
+  }
+
+  protected override void OnParentChanged(ValueChangedEventArgs e) { Relayout(); base.OnParentChanged(e); }
+  protected override void OnFontChanged(ValueChangedEventArgs e) { Relayout(); base.OnFontChanged(e); }
+  protected override void OnResize(EventArgs e) { Relayout(); base.OnResize(e); }
+
+  protected abstract Size MeasureItem(MenuBase menu);
+
+  protected enum ButtonState { Normal, Over, Open };
+  protected struct MenuButton
+  { public MenuButton(MenuBase menu, Rectangle area) { Menu=menu; Area=area; State=ButtonState.Normal; Over=false; }
+    public MenuBase  Menu;
+    public Rectangle Area;
+    public ButtonState State;
+    public bool Over;
+  }
+  protected MenuButton[] Buttons { get { return buttons; } }
+
+  internal void OnMenuClosed(MenuBase menu)
+  { for(int i=0; i<buttons.Length; i++)
+      if(buttons[i].Menu==menu && buttons[i].State!=ButtonState.Normal) { Close(i); break; }
+  }
+
+  internal void Relayout()
+  { GameLib.Fonts.Font font = Font;
+    if(font==null) { buttons = new MenuButton[0]; return; }
+
+    buttons = new MenuButton[menus.Count];
+    for(int i=0,x=outerPadding; i<menus.Count; i++)
+    { MenuBase menu = (MenuBase)menus[i];
+      Size size = MeasureItem(menu);
+      buttons[i] = new MenuButton(menu, new Rectangle(x, (Height-size.Height)/2, size.Width, size.Height));
+      x += size.Width+outerPadding;
+    }
+    Invalidate();
+  }
+
+  void Open(int menu)
+  { buttons[menu].State = ButtonState.Open;
+    buttons[menu].Menu.Show(this, new Point(buttons[menu].Area.X, buttons[menu].Area.Bottom), true, false);
+    Capture = true;
+    Invalidate(buttons[menu].Area);
+  }
+  
+  void Close(int menu)
+  { buttons[menu].State = ButtonState.Normal;
+    buttons[menu].Menu.Close();
+    Invalidate(buttons[menu].Area);
+    Capture = false;
+  }
+
+  MenuCollection menus;
+  MenuButton[] buttons;
+  int outerPadding=1;
 }
 #endregion
 
@@ -1257,8 +1501,13 @@ public class MenuItem : MenuItemBase
 #endregion
 
 #region Menu
+// TODO: make sure this handles font/text changes, etc
 public class Menu : MenuBase
-{ public Color SelectedBackColor { get { return selBack; } set { selBack=value; } }
+{ public Menu() { }
+  public Menu(string text) { Text=text; }
+  public Menu(string text, KeyCombo globalHotKey) { Text=text; GlobalHotKey=globalHotKey; }
+
+  public Color SelectedBackColor { get { return selBack; } set { selBack=value; } }
   public Color SelectedForeColor { get { return selFore; } set { selFore=value; } }
 
   protected override void OnPopup(EventArgs e)
@@ -1284,9 +1533,59 @@ public class Menu : MenuBase
 }
 #endregion
 
+#region MenuBar
+public class MenuBar : MenuBarBase
+{ public int HorizontalPadding
+  { get { return horzPadding; }
+    set
+    { if(value<1) throw new ArgumentOutOfRangeException("HorizontalPadding", value, "must be >=1");
+      horzPadding=value;
+      Relayout();
+    }
+  }
+
+  public int VerticalPadding
+  { get { return vertPadding; }
+    set
+    { if(value<1) throw new ArgumentOutOfRangeException("VerticalPadding", value, "must be >=1");
+      vertPadding=value;
+      Relayout();
+    }
+  }
+
+  protected internal override void OnPaintBackground(PaintEventArgs e)
+  { base.OnPaintBackground(e);
+    foreach(MenuButton button in Buttons)
+    { if(button.Area.IntersectsWith(e.WindowRect))
+      { if(button.State!=ButtonState.Normal)
+          Helpers.DrawBorder(e.Surface, WindowToDisplay(button.Area), BorderStyle.Fixed3D, false);
+      }
+    }
+  }
+
+  protected internal override void OnPaint(PaintEventArgs e)
+  { base.OnPaint(e);
+    GameLib.Fonts.Font font = Font;
+    if(font==null) return;
+    foreach(MenuButton button in Buttons)
+    { if(button.Area.IntersectsWith(e.WindowRect))
+        font.Render(e.Surface, button.Menu.Text, WindowToDisplay(button.Area), ContentAlignment.MiddleCenter);
+    }
+  }
+
+  protected override Size MeasureItem(MenuBase menu)
+  { Size size = Font.CalculateSize(menu.Text);
+    size.Width += horzPadding*2; size.Height += vertPadding*2;
+    return size;
+  }
+
+  int horzPadding=6, vertPadding=2;
+}
+#endregion
+
 #region FormBase
-// TODO: implement resizing
-public class FormBase : ContainerControl
+// TODO: implement resizing using the mouse
+public abstract class FormBase : ContainerControl
 { public FormBase() { Style |= ControlStyle.CanFocus; }
 
   public object DialogResult { get { return returnValue; } set { returnValue=value; } }
@@ -1324,6 +1623,7 @@ public class FormBase : ContainerControl
 #endregion
 
 #region Form
+// TODO: add caption bar and menu bar
 public class Form : FormBase
 { public Form() { ForeColor=Color.Black; BackColor=Color.FromArgb(212, 208, 200); }
 

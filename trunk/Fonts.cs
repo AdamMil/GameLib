@@ -292,9 +292,14 @@ public class TrueTypeFont : NonFixedFont, IDisposable
   }
   
   public override Size CalculateSize(string text)
-  { int width, height;
-    TTF.SizeUNICODE(font, text, out width, out height);
-    return new Size(width, height);
+  { /*int width, height; -- DOESN'T WORK CONSISTENTLY
+    TTF.SizeUNICODE(font, text, out width, out height);*/
+    Size size = new Size(0, Height);
+    for(int i=0; i<text.Length; i++)
+    { CachedChar c = GetChar(text[i]);
+      size.Width += i==text.Length-1 ? c.Width : c.Advance;
+    }
+    return size;
   }
 
   public override int HowManyFit(string text, int pixels)
@@ -302,7 +307,7 @@ public class TrueTypeFont : NonFixedFont, IDisposable
     for(int i=0; i<text.Length; i++)
     { CachedChar c = GetChar(text[i]);
       width += i>0 ? c.Advance : 0;
-      if(width+c.OffsetX+c.Surface.Width > pixels) return i;
+      if(width+c.Width > pixels) return i;
     }
     return text.Length;
   }
@@ -311,7 +316,12 @@ public class TrueTypeFont : NonFixedFont, IDisposable
   { int start = x;
     for(int i=0; i<text.Length; i++)
     { CachedChar c = GetChar(text[i]);
-      c.Surface.Blit(dest, x+c.OffsetX, y+c.OffsetY);
+      if(i==0 && c.OffsetX<0)
+      { Rectangle rect = c.Surface.Bounds;
+        rect.X -= c.OffsetX; rect.Width += c.OffsetX;
+        c.Surface.Blit(dest, rect, x, y+c.OffsetY);
+      }
+      else c.Surface.Blit(dest, x+c.OffsetX, y+c.OffsetY);
       x += c.Advance;
     }
     return x-start;
@@ -347,8 +357,9 @@ public class TrueTypeFont : NonFixedFont, IDisposable
     
     public CacheIndex Index;
     public Surface Surface;
-    public int     OffsetX, OffsetY, Advance;
+    public int     OffsetX, OffsetY, Width, Advance;
     public char    Char;
+    public bool    Compatible;
     
     void Dispose(bool destructor) { Surface.Dispose(); }
   }
@@ -357,14 +368,23 @@ public class TrueTypeFont : NonFixedFont, IDisposable
   protected CachedChar GetChar(char c)
   { CacheIndex ind = new CacheIndex(c, color, bgColor, fstyle, rstyle);
     LinkedList.Node node = (LinkedList.Node)tree[ind];
-    if(node!=null) return (CachedChar)node.Data;
+    CachedChar cc;
+    if(node!=null)
+    { cc = (CachedChar)node.Data;
+      if(!cc.Compatible && Video.Video.DisplaySurface!=null)
+      { cc.Surface = cc.Surface.CloneDisplay();
+        cc.Compatible = true;
+      }
+      return cc;
+    }
 
-    CachedChar cc = new CachedChar(c);
+    cc = new CachedChar(c);
     int minx, maxx, miny, maxy, advance;
     TTF.Check(TTF.GlyphMetrics(font, c, out minx, out maxx, out miny, out maxy, out advance));
     cc.Index   = ind;
-    cc.OffsetX = Math.Max(minx, 0);
+    cc.OffsetX = minx;
     cc.OffsetY = Ascent-maxy;
+    cc.Width   = maxx-minx;
     cc.Advance = advance;
     unsafe
     { SDL.Surface* surface=null;
@@ -374,7 +394,11 @@ public class TrueTypeFont : NonFixedFont, IDisposable
         case RenderStyle.Blended: surface = TTF.RenderGlyph_Blended(font, c, sdlColor); break;
       }
       if(surface==null) TTF.RaiseError();
-      cc.Surface = new Surface(surface, true).CloneDisplay();
+      cc.Surface = new Surface(surface, true);
+      if(Video.Video.DisplaySurface!=null)
+      { cc.Surface = cc.Surface.CloneDisplay();
+        cc.Compatible = true;
+      }
     }
 
     if(cacheMax!=0)
