@@ -1168,8 +1168,8 @@ public struct Rectangle
   }
   
   public void Unite(Rectangle rect)
-  { if(X>rect.X) X=rect.X;
-    if(Y>rect.Y) Y=rect.Y;
+  { if(X>rect.X) { Width += X-rect.X; X=rect.X; }
+    if(Y>rect.Y) { Height += Y-rect.Y; Y=rect.Y; }
     if(Right<rect.Right)   Width  += rect.Right-Right;
     if(Bottom<rect.Bottom) Height += rect.Bottom-Bottom;
   }
