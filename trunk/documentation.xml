@@ -275,7 +275,7 @@ byte[] output = IOH.Write("dfp?d", parms);
    </BinaryFormat>
   </IOH>
  </IO>
- 
+
  <Mathematics>
   <GLMath>
    <AngleBetween>
@@ -316,7 +316,7 @@ byte[] output = IOH.Write("dfp?d", parms);
     <remarks>See <see cref="Double.ToString(string)"/> for information on the available formatting codes.</remarks>
    </ToString2>
   </Fixed>
-  
+
   <Line>
    <Line>
     <summary>Initializes this line from a point and a vector.</summary>
@@ -406,7 +406,7 @@ byte[] output = IOH.Write("dfp?d", parms);
     <returns>Returns true if <paramref name="point"/> equals this point, within the given margin of error.</returns>
    </Equals3>
   </Point>
-  
+
   <Vector>
    <DotProduct>
     <summary>Returns the dot product of this vector with another vector.</summary>

@@ -42,10 +42,10 @@ internal sealed class TTF
 	public unsafe static extern IntPtr OpenFontIndexRW(SDL.SDL.RWOps* ops, int freesrc, int ptsize, int index);
 	[DllImport(Config.SDLTTFImportPath, EntryPoint="TTF_CloseFont", CallingConvention=CallingConvention.Cdecl)]
 	public static extern void CloseFont(IntPtr font);
-	
+
 	public static string GetError() { return SDL.SDL.GetError(); }
   #endregion
-  
+
   #region Font properties
 	[DllImport(Config.SDLTTFImportPath, EntryPoint="TTF_SetFontStyle", CallingConvention=CallingConvention.Cdecl)]
 	public static extern void SetFontStyle(IntPtr font, int style);
@@ -68,7 +68,7 @@ internal sealed class TTF
   [DllImport(Config.SDLTTFImportPath, EntryPoint="TTF_FontFaceStyleName", CallingConvention=CallingConvention.Cdecl)]
   public static extern string FontFaceStyleName(IntPtr font);
 	#endregion
-	
+
 	#region Rendering
 	[DllImport(Config.SDLTTFImportPath, EntryPoint="TTF_SizeUNICODE", CharSet=CharSet.Unicode, CallingConvention=CallingConvention.Cdecl)]
 	public static extern int SizeUNICODE(IntPtr font, string text, out int width, out int height);
@@ -85,13 +85,13 @@ internal sealed class TTF
 	[DllImport(Config.SDLTTFImportPath, EntryPoint="TTF_RenderGlyph_Blended", CharSet=CharSet.Unicode, CallingConvention=CallingConvention.Cdecl)]
 	public unsafe static extern SDL.SDL.Surface* RenderGlyph_Blended(IntPtr font, char ch, SDL.SDL.Color fg);
 	#endregion
-	
+
 	#region Non-TTF helper functions
   public static void Check(int res) { if(res!=0) RaiseError(); }
   public static void RaiseError()
   { SDL.SDL.RaiseError(); // TODO: make use of exception type parameter (see SDL.RaiseError)
   }
-  
+
   public static void Initialize()
   { if(initCount++==0)
     { try { SDL.SDL.Initialize(SDL.SDL.InitFlag.Video); }

@@ -174,7 +174,7 @@ public class RedBlackBase
     }
     return n;
   }
-  
+
   /// <summary>Removes a node from the binary tree.</summary>
   /// <param name="node">The <see cref="Node"/> to remove. If this parameter is <see cref="Node.Null"/>, this method
   /// will return immediately.
@@ -185,11 +185,11 @@ public class RedBlackBase
     Node w, x, y, p;
     y = node.Left==Node.Null || node.Right==Node.Null ? node : Successor(node);
     x = y.Left==Node.Null ? y.Right : y.Left;
-    
+
     if((x.Parent=y.Parent)==Node.Null) root=x;
     else if(y==y.Parent.Left) y.Parent.Left=x;
     else y.Parent.Right=x;
-    
+
     if(y!=node) node.Value=y.Value;
     if(!y.Red)
       while(x!=root && !x.Red)
@@ -270,7 +270,7 @@ public class RedBlackBase
     else root=x;
     x.Right=y; y.Parent=x;
   }
-  
+
   Node Successor(Node x)
   { Node y;
     if(x.Right!=Node.Null) for(y=x.Right; y.Left!=Node.Null; y=y.Left);
@@ -363,7 +363,7 @@ public sealed class Map : RedBlackBase, IDictionary
       return array;
     }
   }
-  
+
   /// <summary>Adds an element with the provided key and value to the map.</summary>
   /// <remarks>See <see cref="IDictionary.Add"/> for more information.<seealso cref="IDictionary.Add"/></remarks>
   public void Add(object key, object value)
@@ -570,9 +570,9 @@ public sealed class Map : RedBlackBase, IDictionary
     IComparer cmp;
     public static readonly EntryComparer Default = new EntryComparer(Comparer.Default);
   }
-  
+
   void AssertNotEmpty() { if(base.Count==0) throw new InvalidOperationException("The collection is empty"); }
-  
+
   Node FindKey(object key) { return base.Find(new Entry(key, null)); }
 
   Entry Maximum()
@@ -729,7 +729,7 @@ public sealed class BinaryTree : RedBlackBase, ICollection
   }
 
   void AssertNotEmpty() { if(base.Count==0) throw new InvalidOperationException("The collection is empty"); }
-  
+
   Node Maximum()
   { AssertNotEmpty();
     Node n=Root;

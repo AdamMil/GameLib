@@ -35,7 +35,7 @@ internal sealed class SDL
   #region Constants
   public const uint CDFramesPerSecond=75;
   #endregion
-  
+
   #region Enums
   #region Key enum
   public enum Key : int
@@ -72,7 +72,7 @@ internal sealed class SDL
     RMeta=309, LMeta=310, LSuper=311, RSuper=312, Mode=313, Compose=314,
 
     Help=315, Print=316, Sysreq=317, Break=318, Menu=319, Power=320, Euro=321, Undo=322,
-    
+
     NumKeys=323
   }
   #endregion
@@ -121,7 +121,7 @@ internal sealed class SDL
   { Hardware=0x0001, WindowManager=0x0002, HH=0x0200, HHKeyed=0x0400, HHAlpha=0x0800,
     SH=0x1000, SHKeyed=0x2000, SHAlpha=0x4000, Fills=0x8000
   }
-  
+
   public enum AudioStatus : int { Stopped, Playing, Paused }
   public enum JoystickMode : int { Query=-1, Poll=0, Events=1 }
   public enum GrabMode : int { Query=-1, Off=0, On=1 }
@@ -340,7 +340,7 @@ internal sealed class SDL
     int    filter_index;
   }
   #endregion
-  
+
   #region General
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_Init", CallingConvention=CallingConvention.Cdecl)]
   private static extern int Init(InitFlag flags);
@@ -446,7 +446,7 @@ internal sealed class SDL
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_CloseAudio", CallingConvention=CallingConvention.Cdecl)]
   public static extern void CloseAudio();
   #endregion
-  
+
   #region Events
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_PollEvent", CallingConvention=CallingConvention.Cdecl)]
   public static extern int PollEvent(ref Event evt);
@@ -455,7 +455,7 @@ internal sealed class SDL
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_PushEvent", CallingConvention=CallingConvention.Cdecl)]
   public static extern int PushEvent(ref Event evt);
   #endregion
-  
+
   #region Input
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_EnableUNICODE", CallingConvention=CallingConvention.Cdecl)]
   public static extern int EnableUNICODE(int enable);
@@ -485,7 +485,7 @@ internal sealed class SDL
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_WM_GrabInput", CallingConvention=CallingConvention.Cdecl)]
   public static extern GrabMode WM_GrabInput(GrabMode mode);
   #endregion
-  
+
   #region Joysticks
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_JoystickEventState", CallingConvention=CallingConvention.Cdecl)]
   public static extern void JoystickEventState(JoystickMode mode);
@@ -548,7 +548,7 @@ internal sealed class SDL
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_CDClose", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern void CDClose(CD* cdrom);
   #endregion
-  
+
   #region Non-SDL helper functions
   public static void Check(int result) { if(result<0) SDL.RaiseError(); }
 
@@ -559,10 +559,10 @@ internal sealed class SDL
     if(error.IndexOf("Surface was lost")!=-1) throw new Video.SurfaceLostException(); // assumptions about text == bad
     else throw new GameLibException(error);
   }
-  
+
   public static void Initialize(InitFlag sys)
   { if(sys==InitFlag.Nothing) return;
-  
+
     int  i;
     bool done=false;
 
@@ -595,7 +595,7 @@ internal sealed class SDL
     if(count==0) Quit();
   }
   #endregion
-  
+
   static readonly InitFlag[] inits = new InitFlag[6]
   { InitFlag.Timer, InitFlag.Audio, InitFlag.Video, InitFlag.CDRom, InitFlag.Joystick, InitFlag.EventThread
   };
@@ -620,7 +620,7 @@ internal class StreamRWOps : StreamCallbackSource
   unsafe int OnRead(SDL.RWOps* ops, byte* data, int size, int maxnum) { return (int)Read(data, size, maxnum); }
   unsafe int OnWrite(SDL.RWOps* ops, byte* data, int size, int num) { return (int)Write(data, size, num); }
   unsafe int OnClose(SDL.RWOps* ops) { MaybeClose(); return 0; }
-  
+
   internal SDL.RWOps ops;
   DelegateMarshaller seek, read, write, close;
 }

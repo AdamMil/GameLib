@@ -260,7 +260,7 @@ public sealed class Surface : IDisposable
   public Surface(int width, int height, PixelFormat format, SurfaceFlag flags)
   { InitFromFormat(width, height, format, flags);
   }
-  
+
   /// <summary>Initializes this surface by loading an image from a file.</summary>
   /// <param name="filename">The path to the image file to load.</param>
   /// <remarks>This constructor will attempt to detect the type of the image, but it is recommended that you use
@@ -480,7 +480,7 @@ public sealed class Surface : IDisposable
       else SDL.Check(SDL.SetAlpha(surface, (uint)(UsingRLE ? SDL.VideoFlag.RLEAccel : 0), 255));
     }
   }
-  
+
   /// <summary>Enables/disables use of the color key during blit operations.</summary>
   /// <value>A boolean indicating whether the color key will be used during blit operations.</value>
   /// <remarks>See <see cref="Blit(Surface,Rectangle,int,int)"/> to see how this property affects blits.</remarks>
@@ -515,7 +515,7 @@ public sealed class Surface : IDisposable
   /// details about how the check is performed.
   /// </remarks>
   public bool IsCompatible() { return Format.IsCompatible(Video.DisplayFormat); }
-  
+
   /// <summary>Fills the surface with black.</summary>
   public void Fill() { Fill(Bounds, MapColor(Color.Black)); }
   /// <summary>Fills the surface with the specified color.</summary>
@@ -737,7 +737,7 @@ public sealed class Surface : IDisposable
     }
     finally { Unlock(); }
   }
-  
+
   /// <summary>Sets the raw pixel value of the pixel at the specified point.</summary>
   /// <param name="point">The point whose raw pixel value will be set.</param>
   /// <param name="color">The value to set the pixel to.</param>
@@ -1133,7 +1133,7 @@ public sealed class Surface : IDisposable
     finally { bmp.UnlockBits(bd); }
     return bmp;
   }
-  
+
   unsafe void Init()
   { format = new PixelFormat(surface->Format);
     rawKey = surface->Format->Key;
@@ -1266,7 +1266,7 @@ public sealed class Surface : IDisposable
     IOH.WriteLE2(stream, (short)bpp); // bytes per plane line
     IOH.WriteLE2(stream, 1);          // palette type. 1 = color
     stream.Write(pbuf, 0, 58);        // filler
-    
+
     Lock();
     unsafe
     { try
@@ -1338,7 +1338,7 @@ public sealed class Surface : IDisposable
       finally { Unlock(); }
     }
   }
-  
+
   unsafe void Dispose(bool finalizing)
   { if(autoFree && surface!=null)
     { SDL.FreeSurface(surface);

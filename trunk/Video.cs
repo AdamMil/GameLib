@@ -245,14 +245,14 @@ public sealed class GammaRamp
 /// </summary>
 public sealed class Video
 { private Video() { }
-  
+
   #region VideoInfo
   /// <summary>This class contains informations about the video hardware.</summary>
   public class VideoInfo
   { internal unsafe VideoInfo(SDL.VideoInfo* info)
     { flags=info->flags; videoMem=info->videoMem; format=info->format==null ? null : new PixelFormat(info->format);
     }
-    
+
     /// <summary>Returns a value indicating whether hardware surfaces can be created.</summary>
     /// <value>A boolean indicating whether hardware surfaces can be created.</value>
     public bool Hardware { get { return (flags&SDL.InfoFlag.Hardware)!=0; } }
@@ -446,7 +446,7 @@ public sealed class Video
   { AssertInit();
     return SDL.VideoModeOK(width, height, depth, (uint)flags);
   }
-  
+
   /// <summary>Sets the video mode.</summary>
   /// <param name="width">The width of the video mode to set.</param>
   /// <param name="height">The height of the video mode to set.</param>
@@ -552,7 +552,7 @@ public sealed class Video
     SetMode(width, height, depth, (uint)(flags|SurfaceFlag.OpenGL));
     usingGL = true;
   }
-  
+
   /// <summary>This function returns the current gamma settings.</summary>
   /// <param name="red">An output parameter to which the red gamma multiplier will be written.</param>
   /// <param name="green">An output parameter to which the green gamma multiplier will be written.</param>
@@ -578,7 +578,7 @@ public sealed class Video
     Check(SDL.SetGamma(red, green, blue));
     redGamma=red; greenGamma=green; blueGamma=blue;
   }
-  
+
   /// <summary>Makes sure the given area is updated on the display.</summary>
   /// <param name="rect">A <see cref="Rectangle"/> holding the bounds of the area to update. The rectangle must be
   /// within the screen boundaries. If it is not, the behavior of this method is undefined.
@@ -718,7 +718,7 @@ public sealed class WM
     }
     set { SDL.WM_SetCaption(value, null); }
   }
-  
+
   /// <summary>Gets or sets whether the mouse cursor will be bounded to the window when in a windowed video mode.
   /// </summary>
   /// <value>A boolean indicating whether the mouse cursor will be bounded to the window when in a windowed video
@@ -731,7 +731,7 @@ public sealed class WM
     }
     set { SDL.WM_GrabInput(value ? SDL.GrabMode.On : SDL.GrabMode.Off); }
   }
-  
+
   /// <summary>Sets the icon in use for the window.</summary>
   /// <remarks>The surface used for the icon currently must be 32x32 for compatibility.</remarks>
   public static void SetIcon(Surface icon)

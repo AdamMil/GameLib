@@ -125,7 +125,7 @@ public sealed class PSDLayer
   /// <see cref="PSDCodec"/> class. The default is zero.
   /// </remarks>
   public byte Flags;
-  
+
   internal PSDLayer(Stream stream)
   { int y=IOH.ReadBE4(stream), x=IOH.ReadBE4(stream), y2=IOH.ReadBE4(stream), x2=IOH.ReadBE4(stream), chans;
     Bounds = new Rectangle(x, y, x2-x, y2-y);
@@ -489,7 +489,7 @@ public sealed class PSDCodec
 
       IOH.WriteBE4(stream, 0); // color data section
       IOH.WriteBE4(stream, 0); // psd resources section
-      
+
       if(image.Layers!=null && image.Layers.Length>0)
       { savedPos = (int)stream.Position;
         IOH.WriteBE4(stream, 0); // size of the miscellaneous info section (to be filled later)
@@ -579,7 +579,7 @@ public sealed class PSDCodec
     image.Flattened = surface;
     Write(image, stream, autoClose);
   }
-  
+
   /// <summary>Writes the flattened image.</summary>
   /// <param name="surface">A <see cref="Surface"/> containing the flattened image to write.</param>
   /// <remarks>This method requires all layers to have been written. This can be done with <see cref="WriteLayer"/>.</remarks>
@@ -771,7 +771,7 @@ public sealed class PSDCodec
     if(image.Layers==null || layer>=image.Layers.Length)
       throw new InvalidOperationException("All the layers have already been read!");
   }
-  
+
   void AssertLayerWrite()
   { AssertWriting();
     if(state!=State.Header) throw new InvalidOperationException("Invalid codec state.");
@@ -782,10 +782,10 @@ public sealed class PSDCodec
   { if(state!=State.Nothing)
       throw new InvalidOperationException("A read or write operation is currently in progress");
   }
-  
+
   void AssertReading() { if(!Reading) throw new InvalidOperationException("A read operation is not in progress."); }
   void AssertWriting() { if(!Writing) throw new InvalidOperationException("A write operation is not in progress."); }
-  
+
   Surface ReadImageData()
   { PSDChannel[] channels = new PSDChannel[image.Channels];
     for(int i=0,id=channels.Length==4 ? -1 : 0; id<3; i++,id++) channels[i] = (PSDChannel)id;
@@ -1013,7 +1013,7 @@ public sealed class PSDCodec
 
         src += yinc;
       }
-    
+
     int pos = (int)stream.Position;
     stream.Position = table;
     for(int y=0; y<surface.Height; y++) IOH.WriteBE2U(stream, lengths[y]);

@@ -98,7 +98,7 @@ public sealed class PriorityQueue : ICollection
 
     array[0] = array[count];
     array.RemoveAt(count);
-    
+
     while(true) // heapify 'array'
     { largest = li<count && cmp.Compare(array[li], array[i])>0 ? li : i;
       if(ri<count && cmp.Compare(array[ri], array[largest])>0) largest=ri;
@@ -113,7 +113,7 @@ public sealed class PriorityQueue : ICollection
   /// <returns>The element in the queue with the highest priority.</returns>
   /// <exception cref="InvalidOperationException">Thrown if the collection is empty.</exception>
   public object DequeueMaximum() { return Dequeue(); }
-  
+
   /// <summary>Adds an object to the queue.</summary>
   /// <param name="value">The object to add to the queue.</param>
   public void Enqueue(object value)

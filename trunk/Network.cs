@@ -17,7 +17,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
  // TODO: implement remote received notification
- 
+
 using System;
 using System.Collections;
 using System.Net;
@@ -49,9 +49,9 @@ public struct QueueStats
 public enum SendFlag
 { None=0, Reliable=1, Sequential=2, NotifySent=4, NotifyReceived=8, NoCopy=16,
   LowPriority=32, HighPriority=64,
-  
+
   ReliableSequential = Reliable|Sequential,
-  
+
   // these are not for Send(). they're used for GetQueueStats().
   NormalPriority=128, ReceiveQueue=256, SendStats=LowPriority|NormalPriority|HighPriority,
   AllStats=SendStats|ReceiveQueue
@@ -87,7 +87,7 @@ public sealed class MessageConverter
     typeIDs.Remove(type);
     types[index] = null;
   }
-  
+
   public object ToObject(LinkMessage msg)
   { if(types.Count==0)
     { if(msg.Length==msg.Data.Length) return msg.Data;
@@ -311,7 +311,7 @@ public sealed class NetLink
     if(length>65535) throw new DataTooLargeException(65535);
     if(index<0 || length<0 || index+length>data.Length) throw new ArgumentOutOfRangeException("index or length");
     Queue queue = (flags&SendFlag.HighPriority)!=0 ? high : (flags&SendFlag.LowPriority)!=0 ? low : norm;
-    
+
     byte[] buf = new byte[length+HeaderSize];         // add header (NoCopy is currently unimplemented)
     IOH.WriteLE2(buf, 0, (short)length);              // TODO: implement NoCopy
     buf[2] = (byte)(flags&~(SendFlag)HeadFlag.Mask);
@@ -409,7 +409,7 @@ public sealed class NetLink
           OnMessageReceived(m);
         }
   }
-  
+
   public void SendPoll()
   { if(tcp!=null) System.Threading.Monitor.Enter(tcp);
     if(udp!=null) System.Threading.Monitor.Enter(udp);
@@ -460,7 +460,7 @@ public sealed class NetLink
   [Flags]
   enum HeadFlag : byte { Ack=32, Mask=0xE0 }
   const int HeaderSize=4, SeqMax=1024;
-  
+
   void OnMessageReceived(LinkMessage msg)
   { if(MessageReceived==null) lock(recv) recv.Enqueue(msg);
     else
@@ -478,7 +478,7 @@ public sealed class NetLink
 
   bool SendMessages(Queue queue, bool trySend)
   { if(!connected) return false;
-    
+
     lock(queue)
     { while(queue.Count>0)
       { LinkMessage msg = (LinkMessage)queue.Peek();
@@ -492,7 +492,7 @@ public sealed class NetLink
         if((msg.Flags&SendFlag.Reliable)!=0 && msg.Length<=udpMax && udp!=null) useTcp=false;
         else if(tcp==null || !connected) goto Remove;
         else useTcp=true;
-        
+
         Retry:
         try
         { sent = (useTcp?tcp:udp).Send(msg.Data, msg.Index+msg.sent, msg.Length-msg.sent, SocketFlags.None);
@@ -512,7 +512,7 @@ public sealed class NetLink
             return false;
           }
         }
-        
+
         msg.sent += sent;
         if(msg.sent!=msg.Length && useTcp) return false;
         if(!useTcp && sent>udpMax) udpMax=sent;
@@ -525,7 +525,7 @@ public sealed class NetLink
       return true;
     }
   }
-  
+
   void Disconnect()
   { connected = false;
     tcp.Shutdown(SocketShutdown.Send);
@@ -547,7 +547,7 @@ public sealed class NetLink
 #region Server class and supporting types
 public class ServerPlayer
 { internal ServerPlayer(NetLink link, uint id) { Link=link; ID=id; }
-  
+
   public object     Data;
   public IPEndPoint EndPoint { get { return Link.RemoteEndPoint; } }
 
@@ -643,7 +643,7 @@ public class Server
   { listening = false;
     server.Stop();
   }
-  
+
   public QueueStats GetQueueStats(ServerPlayer p, SendFlag flags) { lock(this) return p.Link.GetQueueStats(flags); }
   public QueueStats GetQueueStats(SendFlag flags)
   { QueueStats qs = new QueueStats(), pqs;
@@ -944,7 +944,7 @@ public class Client
 
   void OnMessageSent(NetLink link, LinkMessage msg) { lock(this) if(eMessageSent!=null) eMessageSent(this, msg.Tag); }
   void OnRemoteReceived(NetLink link, LinkMessage msg) { if(RemoteReceived==null) RemoteReceived(this, msg.Tag); }
-  
+
   MessageConverter  cvt = new MessageConverter();
   ClientSentHandler eMessageSent;
   NetLink  link;

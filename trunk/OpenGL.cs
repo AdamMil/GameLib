@@ -172,7 +172,7 @@ public sealed class OpenGL
         return true;
       }
     }
-    
+
     pf = new PixelFormat(usingAlpha ? 32 : 24);
     #if BIGENDIAN
     pf.RedMask=0xFF000000; pf.GreenMask=0xFF0000; pf.BlueMask=0xFF00; pf.AlphaMask=(pf.Depth==32 ? 0xFF : 0);
@@ -209,7 +209,7 @@ public sealed class OpenGL
     return true;
   }
   #endregion
-  
+
   #region WillTextureFit
   /// <include file="documentation.xml" path="//Video/OpenGL/WillTextureFit/*"/>
   public static bool WillTextureFit(uint internalFormat, int width, int height)
@@ -233,7 +233,7 @@ public sealed class OpenGL
     return fits!=0;
   }
   #endregion
-  
+
   static void InitExtensions()
   { string str = GL.glGetString(GL.GL_EXTENSIONS);
     if(str==null) throw new InvalidOperationException("OpenGL not initialized yet!");
@@ -336,7 +336,7 @@ public class GLTexture2D : IDisposable
       imgSize.Width = value;
     }
   }
-  
+
   /// <summary>Evaluates to true if a texture has been loaded.</summary>
   public bool Initialized { get { return texture!=0; } }
 
@@ -358,11 +358,11 @@ public class GLTexture2D : IDisposable
   /// require that texture dimensions be powers of two.
   /// </remarks>
   public int TexWidth { get { return size.Width; } }
-  
+
   /// <summary>Binds this texture as the current OpenGL texture.</summary>
   /// <remarks>This method calls <see cref="GL.glBindTexture"/> to bind this texture.</remarks>
   public void Bind() { AssertInit(); GL.glBindTexture(GL.GL_TEXTURE_2D, texture); }
-  
+
   /// <summary>Loads this texture from an image file on disk.</summary>
   /// <param name="filename">The path to the image file.</param>
   /// <returns>True if the texture could be loaded and false otherwise.</returns>

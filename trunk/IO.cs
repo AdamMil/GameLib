@@ -222,13 +222,13 @@ public class StreamStream : Stream, IDisposable
   /// <summary>Gets the underlying stream.</summary>
   /// <value>The underlying <see cref="Stream"/> object, or null if this stream is closed.</value>
   protected Stream InnerStream { get { return stream; } }
-  
+
   /// <summary>Throws an exception if the stream is not open.</summary>
   /// <exception cref="InvalidOperationException">Thrown if this stream has been closed.</exception>
   protected void AssertOpen()
   { if(stream==null) throw new InvalidOperationException("The inner stream was already closed.");
   }
-  
+
   /// <summary>Disposes resources used by this stream.</summary>
   /// <param name="finalizing">True if this method is being called from a finalizer and false otherwise.</param>
   /// <remarks>If overriden in a derived class, remember to call the base implementation.</remarks>
@@ -525,7 +525,7 @@ public sealed class IOH
   public static string ReadString(Stream stream, int length, System.Text.Encoding encoding)
   { return encoding.GetString(Read(stream, length));
   }
-  
+
   /// <summary>Reads the next byte from a stream.</summary>
   /// <param name="stream">The stream to read from.</param>
   /// <returns>The byte value read from the stream.</returns>
@@ -573,7 +573,7 @@ public sealed class IOH
   public static int ReadLE4(Stream stream)
   { return (int)(Read1(stream)|(Read1(stream)<<8)|(Read1(stream)<<16)|(Read1(stream)<<24));
   }
-  
+
   /// <summary>Reads a little-endian integer (4 bytes) from a byte array.</summary>
   /// <param name="buf">The byte array to read from.</param>
   /// <param name="index">The index from which to begin reading.</param>
@@ -608,7 +608,7 @@ public sealed class IOH
   { byte[] buf = Read(stream, 8);
     return ReadLE4U(buf, 0)|((long)ReadLE4(buf, 4)<<32);
   }
-  
+
   /// <summary>Reads a little-endian long (8 bytes) from a byte array.</summary>
   /// <param name="buf">The byte array to read from.</param>
   /// <param name="index">The index from which to begin reading.</param>
@@ -684,7 +684,7 @@ public sealed class IOH
   public static uint ReadBE4U(Stream stream)
   { return (uint)((Read1(stream)<<24)|(Read1(stream)<<16)|(Read1(stream)<<8)|Read1(stream));
   }
-  
+
   /// <summary>Reads a big-endian unsigned integer (4 bytes) from a byte array.</summary>
   /// <param name="buf">The byte array to read from.</param>
   /// <param name="index">The index from which to begin reading.</param>
@@ -702,7 +702,7 @@ public sealed class IOH
   { byte[] buf = Read(stream, 8);
     return ReadLE4U(buf, 0)|((ulong)ReadLE4U(buf, 4)<<32);
   }
-  
+
   /// <summary>Reads a little-endian unsigned long (8 bytes) from a byte array.</summary>
   /// <param name="buf">The byte array to read from.</param>
   /// <param name="index">The index from which to begin reading.</param>
@@ -1320,7 +1320,7 @@ public sealed class IOH
     Array.Copy(sbuf, 0, buf, index, sbuf.Length);
     return sbuf.Length;
   }
-  
+
   /// <summary>Writes a little-endian short (2 bytes) to a stream.</summary>
   /// <param name="stream">The stream to write to.</param>
   /// <param name="val">The value to write.</param>
@@ -1337,7 +1337,7 @@ public sealed class IOH
   { buf[index]   = (byte)val;
     buf[index+1] = (byte)(val>>8);
   }
-  
+
   /// <summary>Writes a big-endian short (2 bytes) to a stream.</summary>
   /// <param name="stream">The stream to write to.</param>
   /// <param name="val">The value to write.</param>
@@ -1345,7 +1345,7 @@ public sealed class IOH
   { stream.WriteByte((byte)(val>>8));
     stream.WriteByte((byte)val);
   }
-  
+
   /// <summary>Writes a big-endian short (2 bytes) to a byte array.</summary>
   /// <param name="buf">The byte array to which the value will be written.</param>
   /// <param name="index">The index from which to begin writing.</param>
@@ -1354,7 +1354,7 @@ public sealed class IOH
   { buf[index]   = (byte)(val>>8);
     buf[index+1] = (byte)val;
   }
-  
+
   /// <summary>Writes a little-endian integer (4 bytes) to a stream.</summary>
   /// <param name="stream">The stream to write to.</param>
   /// <param name="val">The value to write.</param>
@@ -1375,7 +1375,7 @@ public sealed class IOH
     buf[index+2] = (byte)(val>>16);
     buf[index+3] = (byte)(val>>24);
   }
-  
+
   /// <summary>Writes a big-endian integer (4 bytes) to a stream.</summary>
   /// <param name="stream">The stream to write to.</param>
   /// <param name="val">The value to write.</param>
@@ -1413,7 +1413,7 @@ public sealed class IOH
   { WriteLE4(buf, index, (int)val);
     WriteLE4(buf, index+4, (int)(val>>32));
   }
-  
+
   /// <summary>Writes a big-endian long (8 bytes) to a stream.</summary>
   /// <param name="stream">The stream to write to.</param>
   /// <param name="val">The value to write.</param>
@@ -1430,7 +1430,7 @@ public sealed class IOH
   { WriteBE4(buf, index, (int)(val>>32));
     WriteBE4(buf, index+4, (int)val);
   }
-  
+
   /// <summary>Writes a little-endian unsigned short (2 bytes) to a stream.</summary>
   /// <param name="stream">The stream to write to.</param>
   /// <param name="val">The value to write.</param>
@@ -1447,7 +1447,7 @@ public sealed class IOH
   { buf[index]   = (byte)val;
     buf[index+1] = (byte)(val>>8);
   }
-  
+
   /// <summary>Writes a big-endian unsigned short (2 bytes) to a stream.</summary>
   /// <param name="stream">The stream to write to.</param>
   /// <param name="val">The value to write.</param>
@@ -1455,7 +1455,7 @@ public sealed class IOH
   { stream.WriteByte((byte)(val>>8));
     stream.WriteByte((byte)val);
   }
-  
+
   /// <summary>Writes a big-endian unsigned short (2 bytes) to a byte array.</summary>
   /// <param name="buf">The byte array to which the value will be written.</param>
   /// <param name="index">The index from which to begin writing.</param>
@@ -1464,7 +1464,7 @@ public sealed class IOH
   { buf[index]   = (byte)(val>>8);
     buf[index+1] = (byte)val;
   }
-  
+
   /// <summary>Writes a little-endian unsigned integer (4 bytes) to a stream.</summary>
   /// <param name="stream">The stream to write to.</param>
   /// <param name="val">The value to write.</param>
@@ -1485,7 +1485,7 @@ public sealed class IOH
     buf[index+2] = (byte)(val>>16);
     buf[index+3] = (byte)(val>>24);
   }
-  
+
   /// <summary>Writes a big-endian unsigned integer (4 bytes) to a stream.</summary>
   /// <param name="stream">The stream to write to.</param>
   /// <param name="val">The value to write.</param>
@@ -1523,7 +1523,7 @@ public sealed class IOH
   { WriteLE4U(buf, index, (uint)val);
     WriteLE4U(buf, index+4, (uint)(val>>32));
   }
-  
+
   /// <summary>Writes a big-endian unsigned long (8 bytes) to a stream.</summary>
   /// <param name="stream">The stream to write to.</param>
   /// <param name="val">The value to write.</param>
@@ -1565,7 +1565,7 @@ public sealed class IOH
     fixed(byte* pbuf=buf) *(double*)pbuf = val;
     stream.Write(buf, 0, sizeof(double));
   }
-  
+
   /// <summary>Writes an IEEE754 double (8 bytes) to a byte array.</summary>
   /// <param name="buf">The byte array to which the value will be written.</param>
   /// <param name="index">The index from which to begin writing.</param>

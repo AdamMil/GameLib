@@ -122,7 +122,7 @@ public sealed class LinkedList : ICollection, IEnumerable
         return cur.Data;
       }
     }
-    
+
     /// <summary>Advances the enumerator to the next element of the collection.</summary>
     /// <remarks>See <see cref="IEnumerator.MoveNext"/> for more information. <seealso cref="IEnumerator.MoveNext"/></remarks>
     public bool MoveNext()
@@ -140,7 +140,7 @@ public sealed class LinkedList : ICollection, IEnumerable
     /// <summary>Sets the enumerator to its initial position, which is before the first element in the collection.</summary>
     /// <remarks>See <see cref="IEnumerator.Reset"/> for more information. <seealso cref="IEnumerator.Reset"/></remarks>
     public void Reset() { AssertNotChanged(); cur=null; reset=true; }
-    
+
     void AssertNotChanged() { if(changed) throw new InvalidOperationException("The collection has changed"); }
 
     void OnListChanged()
@@ -154,7 +154,7 @@ public sealed class LinkedList : ICollection, IEnumerable
     Node  head, cur;
     bool  reset, changed;
   }
-  
+
   /// <summary>Returns an enumerator that can iterate through the linked list.</summary>
   /// <returns>An <see cref="IEnumerator"/> that can be used to iterate through the list.</returns>
   IEnumerator IEnumerable.GetEnumerator() { return new Enumerator(this); }
@@ -162,7 +162,7 @@ public sealed class LinkedList : ICollection, IEnumerable
   internal delegate void ListChangeHandler();
   internal event ListChangeHandler ListChanged;
   #endregion
-  
+
   /// <summary>Gets the node at the head (beginning) of the linked list or null if the list is empty.</summary>
   public Node Head { get { return head; } }
   /// <summary>Gets the node at the tail (end) of the linked list or null if the list is empty.</summary>
