@@ -508,9 +508,9 @@ public sealed class Input
   public static bool UseJoysticks
   { get { return joysticks!=null; }
     set
-    { if(initCount==0) throw new InvalidOperationException("The input system has not been initialized!");
-      if(value!=UseJoysticks)
-      { if(value)
+    { if(value!=UseJoysticks)
+      { if(initCount==0) throw new InvalidOperationException("The input system has not been initialized!");
+        if(value)
         { SDL.Initialize(SDL.InitFlag.Joystick);
           SDL.JoystickEventState(SDL.JoystickMode.Events);
           joysticks = new Joystick[SDL.NumJoysticks()];

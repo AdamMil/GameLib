@@ -38,7 +38,7 @@ public interface IBlittable
 }
 
 public enum ImageType
-{ BMP, PNM, XPM, XCF, PCX, GIF, JPG, TIF, PNG, LBM
+{ BMP, PNM, XPM, XCF, PCX, GIF, JPG, TIF, PNG, LBM, PSD
 }
 
 [Flags]
@@ -61,7 +61,7 @@ public enum SurfaceFlag : uint
 public class Surface : IBlittable, IDisposable
 { public Surface(Bitmap bitmap)
   { System.Drawing.Imaging.PixelFormat format;
-    byte depth;
+    int depth;
     switch(bitmap.PixelFormat)
     { case System.Drawing.Imaging.PixelFormat.Format1bppIndexed:
       case System.Drawing.Imaging.PixelFormat.Format4bppIndexed:
@@ -105,14 +105,14 @@ public class Surface : IBlittable, IDisposable
     }
     catch { Dispose(); }
   }
-  public Surface(int width, int height, byte depth) : this(width, height, depth, SurfaceFlag.None) { }
-  public Surface(int width, int height, byte depth, SurfaceFlag flags)
+  public Surface(int width, int height, int depth) : this(width, height, depth, SurfaceFlag.None) { }
+  public Surface(int width, int height, int depth, SurfaceFlag flags)
   { InitFromFormat(width, height, new PixelFormat(depth, (flags&SurfaceFlag.SrcAlpha)!=0), flags);
   }
 
-  public Surface(int width, int height, byte depth, uint Rmask, uint Gmask, uint Bmask, uint Amask)
+  public Surface(int width, int height, int depth, uint Rmask, uint Gmask, uint Bmask, uint Amask)
     : this(width, height, depth, Rmask, Gmask, Bmask, Amask, SurfaceFlag.None) { }
-  public unsafe Surface(int width, int height, byte depth,
+  public unsafe Surface(int width, int height, int depth,
                         uint Rmask, uint Gmask, uint Bmask, uint Amask, SurfaceFlag flags)
   { InitFromSurface(SDL.CreateRGBSurface((uint)flags, width, height, depth, Rmask, Gmask, Bmask, Amask));
   }
@@ -122,22 +122,35 @@ public class Surface : IBlittable, IDisposable
   { InitFromFormat(width, height, format, flags);
   }
   
-  public unsafe Surface(string filename) { InitFromSurface(Interop.SDLImage.Image.Load(filename)); }
+  public unsafe Surface(string filename)
+  { if(filename.Length>4 && filename.ToLower().LastIndexOf(".psd")==filename.Length-4)
+      InitFromSurface(PSDCodec.ReadComposite(filename));
+    else InitFromSurface(Interop.SDLImage.Image.Load(filename));
+  }
   public unsafe Surface(string filename, ImageType type)
-  { SDL.RWOps* ops = SDL.RWFromFile(filename, "rb");
-    if(ops==null) throw new System.IO.FileNotFoundException("The file could not be opened", filename);
-    InitFromSurface(Interop.SDLImage.Image.LoadTyped_RW(ops, 1, Interop.SDLImage.Image.Type.Types[(int)type]));
+  { if(type==ImageType.PSD) InitFromSurface(PSDCodec.ReadComposite(filename));
+    else
+    { SDL.RWOps* ops = SDL.RWFromFile(filename, "rb");
+      if(ops==null) throw new System.IO.FileNotFoundException("The file could not be opened", filename);
+      InitFromSurface(Interop.SDLImage.Image.LoadTyped_RW(ops, 1, Interop.SDLImage.Image.Type.Types[(int)type]));
+    }
   }
   public unsafe Surface(System.IO.Stream stream) : this(stream, true) { }
   public unsafe Surface(System.IO.Stream stream, bool autoClose)
-  { SeekableStreamRWOps ss = new SeekableStreamRWOps(stream, autoClose);
-    fixed(SDL.RWOps* ops = &ss.ops) InitFromSurface(Interop.SDLImage.Image.Load_RW(ops, 0));
+  { if(PSDCodec.IsPSD(stream)) InitFromSurface(PSDCodec.ReadComposite(stream, autoClose));
+    else
+    { SeekableStreamRWOps ss = new SeekableStreamRWOps(stream, autoClose);
+      fixed(SDL.RWOps* ops = &ss.ops) InitFromSurface(Interop.SDLImage.Image.Load_RW(ops, 0));
+    }
   }
   public unsafe Surface(System.IO.Stream stream, ImageType type) : this(stream, type, true) { }
   public unsafe Surface(System.IO.Stream stream, ImageType type, bool autoClose)
-  { SeekableStreamRWOps ss = new SeekableStreamRWOps(stream, autoClose);
-    fixed(SDL.RWOps* ops = &ss.ops)
-      InitFromSurface(Interop.SDLImage.Image.LoadTyped_RW(ops, 0, Interop.SDLImage.Image.Type.Types[(int)type]));
+  { if(type==ImageType.PSD) InitFromSurface(PSDCodec.ReadComposite(stream, autoClose));
+    else
+    { SeekableStreamRWOps ss = new SeekableStreamRWOps(stream, autoClose);
+      fixed(SDL.RWOps* ops = &ss.ops)
+        InitFromSurface(Interop.SDLImage.Image.LoadTyped_RW(ops, 0, Interop.SDLImage.Image.Type.Types[(int)type]));
+    }
   }
 
   internal unsafe Surface(SDL.Surface* surface, bool autoFree)
@@ -151,13 +164,13 @@ public class Surface : IBlittable, IDisposable
 
   public unsafe int Width  { get { return surface->Width; } }
   public unsafe int Height { get { return surface->Height; } }
+  public int  Depth { get { return format.Depth; } }
   public bool StaticImage  { get { return true; } }
   public bool ImageChanged { get { return false; } }
-  public byte Depth  { get { return format.Depth; } }
   public Size Size   { get { return new Size(Width, Height); } }
   public Rectangle Bounds { get { return new Rectangle(0, 0, Width, Height); } }
 
-  public unsafe uint Pitch  { get { return surface->Pitch; } }
+  public unsafe int Pitch  { get { return surface->Pitch; } }
   public unsafe void* Data     { get { return surface->Pixels; } }
   public PixelFormat  Format   { get { return format; } }
 
@@ -438,6 +451,7 @@ public class Surface : IBlittable, IDisposable
   { Bitmap bitmap=null;
     switch(type)
     { case ImageType.PCX: WritePCX(stream); break;
+      case ImageType.PSD: PSDCodec.WritePSD(this, stream); break;
       case ImageType.BMP: (bitmap=ToBitmap()).Save(stream, System.Drawing.Imaging.ImageFormat.Bmp);  break;
       case ImageType.GIF: (bitmap=ToBitmap()).Save(stream, System.Drawing.Imaging.ImageFormat.Gif);  break;
       case ImageType.JPG: (bitmap=ToBitmap()).Save(stream, System.Drawing.Imaging.ImageFormat.Jpeg); break;
@@ -478,6 +492,12 @@ public class Surface : IBlittable, IDisposable
         return;
       }
     throw new CodecNotFoundException("JPEG");
+  }
+
+  internal unsafe void InitFromSurface(Surface surface)
+  { InitFromSurface(surface.surface);
+    surface.surface=null;
+    surface.Dispose();
   }
 
   internal unsafe void InitFromSurface(SDL.Surface* surface)

@@ -22,7 +22,6 @@ using System.IO;
 namespace GameLib.IO
 {
 
-// TODO: add unsigned writing
 // TODO: add nifty high-level IO
 
 public class IOH
@@ -297,6 +296,74 @@ public class IOH
     WriteLE4(buf, index+4, (int)val);
   }
   
+  public static void WriteLE2U(Stream stream, ushort val)
+  { stream.WriteByte((byte)val);
+    stream.WriteByte((byte)(val>>8));
+  }
+
+  public static void WriteLE2U(byte[] buf, int index, ushort val)
+  { buf[index]   = (byte)val;
+    buf[index+1] = (byte)(val>>8);
+  }
+  
+  public static void WriteBE2U(Stream stream, ushort val)
+  { stream.WriteByte((byte)(val>>8));
+    stream.WriteByte((byte)val);
+  }
+  
+  public static void WriteBE2U(byte[] buf, int index, ushort val)
+  { buf[index]   = (byte)(val>>8);
+    buf[index+1] = (byte)val;
+  }
+  
+  public static void WriteLE4U(Stream stream, uint val)
+  { stream.WriteByte((byte)val);
+    stream.WriteByte((byte)(val>>8));
+    stream.WriteByte((byte)(val>>16));
+    stream.WriteByte((byte)(val>>24));
+  }
+
+  public static void WriteLE4U(byte[] buf, int index, uint val)
+  { buf[index]   = (byte)val;
+    buf[index+1] = (byte)(val>>8);
+    buf[index+2] = (byte)(val>>16);
+    buf[index+3] = (byte)(val>>24);
+  }
+  
+  public static void WriteBE4U(Stream stream, uint val)
+  { stream.WriteByte((byte)(val>>24));
+    stream.WriteByte((byte)(val>>16));
+    stream.WriteByte((byte)(val>>8));
+    stream.WriteByte((byte)val);
+  }
+
+  public static void WriteBE4U(byte[] buf, int index, uint val)
+  { buf[index]   = (byte)(val>>24);
+    buf[index+1] = (byte)(val>>16);
+    buf[index+2] = (byte)(val>>8);
+    buf[index+3] = (byte)val;
+  }
+
+  public static void WriteLE8U(Stream stream, ulong val)
+  { WriteLE4U(stream, (uint)val);
+    WriteLE4U(stream, (uint)(val>>32));
+  }
+
+  public static void WriteLE8U(byte[] buf, int index, ulong val)
+  { WriteLE4U(buf, index, (uint)val);
+    WriteLE4U(buf, index+4, (uint)(val>>32));
+  }
+  
+  public static void WriteBE8U(Stream stream, ulong val)
+  { WriteLE4U(stream, (uint)(val>>32));
+    WriteLE4U(stream, (uint)val);
+  }
+
+  public static void WriteBE8U(byte[] buf, int index, ulong val)
+  { WriteLE4U(buf, index, (uint)(val>>32));
+    WriteLE4U(buf, index+4, (uint)val);
+  }
+
   public static void WriteFloat(Stream stream, float val)
   { unsafe
     { byte[] buf = new byte[sizeof(float)];

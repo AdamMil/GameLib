@@ -45,15 +45,15 @@ public delegate void ModeChangedHandler();
 #region PixelFormat
 public class PixelFormat
 { public PixelFormat() { }
-  public PixelFormat(byte depth) : this(depth, false) { }
-  public PixelFormat(byte depth, bool withAlpha) { Depth=depth; GenerateDefaultMasks(withAlpha); }
+  public PixelFormat(int depth) : this(depth, false) { }
+  public PixelFormat(int depth, bool withAlpha) { Depth=depth; GenerateDefaultMasks(withAlpha); }
   internal unsafe PixelFormat(SDL.PixelFormat* pf) { format = *pf; }
 
-  public byte Depth
+  public int Depth
   { get { return format.BitsPerPixel; }
     set
     { if(value!=8 && value!=16 && value!=24 && value!=32) throw new VideoException("Unknown depth: "+value);
-      format.BitsPerPixel=value; format.BytesPerPixel=(byte)(value/8);
+      format.BitsPerPixel=(byte)value; format.BytesPerPixel=(byte)(value/8);
     }
   }
 
