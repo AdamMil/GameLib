@@ -3,6 +3,12 @@ using System;
 namespace GameLib
 {
 
+public delegate void ValueChangedEventHandler(object sender, ValueChangedEventArgs e);
+public class ValueChangedEventArgs : EventArgs
+{ public ValueChangedEventArgs(object old) { OldValue=old; }
+  public object OldValue;
+}
+
 public struct Pair // TODO: look through code and find places this could be used
 { public Pair(object a, object b) { First=a; Second=b; }
 

@@ -8,12 +8,15 @@ namespace GameLib.Events
 [Flags]
 public enum EventType
 { Focus, Keyboard, MouseMove, MouseClick, JoyMove, JoyBall, JoyHat, JoyButton, Quit,
-  Resize, Repaint, Exception, UserDefined
+  Resize, Repaint, Exception, Window, UserDefined
 }
+
 public enum FilterAction { Continue, Drop, Queue }
+
 public enum FocusType
 { Mouse=SDL.FocusType.MouseFocus, Input=SDL.FocusType.InputFocus, Application=SDL.FocusType.AppActive
 };
+
 public enum HatPosition : byte
 { Center=SDL.HatPos.Centered, Up=SDL.HatPos.Up, Down=SDL.HatPos.Down, Left=SDL.HatPos.Left, Right=SDL.HatPos.Right,
   UpLeft=SDL.HatPos.UpLeft, UpRight=SDL.HatPos.UpRight, DownLeft=SDL.HatPos.DownLeft, DownRight=SDL.HatPos.DownRight
@@ -26,6 +29,7 @@ public abstract class Event
   public EventType Type { get { return type; } }
   public EventType type;
 }
+
 public class FocusEvent : Event
 { public FocusEvent() : base(EventType.Focus) { }
   internal FocusEvent(ref SDL.ActiveEvent evt) : base(EventType.Focus)
@@ -34,6 +38,7 @@ public class FocusEvent : Event
   public FocusType FocusType;
   public bool      Focused;
 }
+
 public class KeyboardEvent : Event
 { public KeyboardEvent() : base(EventType.Keyboard) { }
   internal KeyboardEvent(ref SDL.KeyboardEvent evt) : base(EventType.Keyboard)
@@ -52,6 +57,7 @@ public class KeyboardEvent : Event
   public byte Scan;
   public bool Down;
 }
+
 public class MouseMoveEvent : Event
 { public MouseMoveEvent() : base(EventType.MouseMove) { }
   internal MouseMoveEvent(ref SDL.MouseMoveEvent evt) : base(EventType.MouseMove)
@@ -65,6 +71,7 @@ public class MouseMoveEvent : Event
   public int X, Y, Xrel, Yrel;
   public byte Buttons;
 }
+
 public class MouseClickEvent : Event
 { public MouseClickEvent() : base(EventType.MouseClick) { }
   internal MouseClickEvent(ref SDL.MouseButtonEvent evt) : base(EventType.MouseClick)
@@ -74,6 +81,7 @@ public class MouseClickEvent : Event
   public bool Down;
   public int  X, Y;
 }
+
 public class JoyMoveEvent : Event
 { public JoyMoveEvent() : base(EventType.JoyMove) { }
   internal JoyMoveEvent(ref SDL.JoyAxisEvent evt) : base(EventType.JoyMove)
@@ -82,6 +90,7 @@ public class JoyMoveEvent : Event
   public byte Device, Axis;
   public int  Position;
 }
+
 public class JoyBallEvent : Event
 { public JoyBallEvent() : base(EventType.JoyBall) { }
   internal JoyBallEvent(ref SDL.JoyBallEvent evt) : base(EventType.JoyBall)
@@ -90,6 +99,7 @@ public class JoyBallEvent : Event
   public byte Device, Ball;
   public int  Xrel, Yrel;
 }
+
 public class JoyHatEvent : Event
 { public JoyHatEvent() : base(EventType.JoyHat) { }
   internal JoyHatEvent(ref SDL.JoyHatEvent evt) : base(EventType.JoyHat)
@@ -98,6 +108,7 @@ public class JoyHatEvent : Event
   public byte Device, Hat;
   public HatPosition Position;
 }
+
 public class JoyButtonEvent : Event
 { public JoyButtonEvent() : base(EventType.JoyButton) { }
   internal JoyButtonEvent(ref SDL.JoyButtonEvent evt) : base(EventType.JoyButton)
@@ -106,9 +117,11 @@ public class JoyButtonEvent : Event
   public byte Device, Button;
   public bool Down;
 }
+
 public class QuitEvent : Event
 { public QuitEvent() : base(EventType.Quit) { }
 }
+
 public class ResizeEvent : Event
 { public ResizeEvent() : base(EventType.Resize) { }
   internal ResizeEvent(ref SDL.ResizeEvent evt) : base(EventType.Resize)
@@ -116,13 +129,22 @@ public class ResizeEvent : Event
   }
   public int Width, Height;
 }
+
 public class RepaintEvent : Event
 { public RepaintEvent() : base(EventType.Repaint) { }
 }
+
+public class WindowEvent : Event
+{ public WindowEvent(GameLib.Forms.Control control) : base(EventType.Window) { Control=control; }
+  public GameLib.Forms.Control Control;
+}
+
 public class UserEvent : Event
 { public UserEvent() : base(EventType.UserDefined) { }
 }
-public enum ExceptionLocation { Unknown, AudioThread };
+
+public enum ExceptionLocation { Unknown, AudioThread }; // TODO: is this being used?
+
 public class ExceptionEvent : Event
 { public ExceptionEvent(ExceptionLocation loc, Exception e) : base(EventType.Exception) { location=loc; ex=e; }
   

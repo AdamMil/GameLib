@@ -121,7 +121,7 @@ public abstract class Font
     return (int[])list.ToArray(typeof(int));
   }
 
-  protected abstract void DisplayFormatChanged();
+  protected virtual void DisplayFormatChanged() { }
   protected void Deinit()
   { if(handler!=null)
     { Video.Video.ModeChanged -= handler;
@@ -146,14 +146,14 @@ public abstract class NonFixedFont : Font
 
 #region BitmapFont class
 public class BitmapFont : Font, IDisposable
-{ public BitmapFont(Surface font, string charset, int charWidth) : this(font, charset, charWidth, 1, font.Height+2) { }
-  public BitmapFont(Surface font, string charset, int charWidth, int xAdd, int lineSkip)
+{ public BitmapFont(IBlittable font, string charset, int charWidth) : this(font, charset, charWidth, 1, font.Height+2) { }
+  public BitmapFont(IBlittable font, string charset, int charWidth, int xAdd, int lineSkip)
   { orig   = font;
     width  = charWidth;
     height = lineSkip;
     this.xAdd    = xAdd;
-    this.font    = orig.CloneDisplay();
     this.charset = charset;
+    DisplayFormatChanged();
   }
   ~BitmapFont() { Dispose(true); }
   public void Dispose() { Dispose(false); GC.SuppressFinalize(this); }
@@ -177,16 +177,16 @@ public class BitmapFont : Font, IDisposable
     return x-start;
   }
 
-  protected override void DisplayFormatChanged() { font=orig.CloneDisplay(); }
-  protected void Dispose(bool destructor)
-  { font.Dispose();
-    orig.Dispose();
-    base.Deinit();
+  protected override void DisplayFormatChanged()
+  { IBlittable compatible = orig.CreateCompatible();
+    font = compatible==null ? orig : compatible;
   }
 
-  Surface font, orig;
-  string  charset;
-  int     width, height, xAdd;
+  protected void Dispose(bool destructor) { base.Deinit(); }
+
+  IBlittable font, orig;
+  string charset;
+  int    width, height, xAdd;
 }
 #endregion
 

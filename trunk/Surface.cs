@@ -8,6 +8,15 @@ using GameLib.Interop.SDL;
 namespace GameLib.Video
 {
 
+public interface IBlittable
+{ int Width  { get; }
+  int Height { get; }
+
+  void Blit(Surface dest, int dx, int dy);
+  void Blit(Surface dest, Rectangle src, int dx, int dy);
+  IBlittable CreateCompatible();
+}
+
 public enum ImageType
 { BMP, PNM, XPM, XCF, PCX, GIF, JPG, TIF, PNG, LBM
 }
@@ -29,7 +38,7 @@ public enum SurfaceFlag : uint
 }
 
 [System.Security.SuppressUnmanagedCodeSecurity()]
-public class Surface : IDisposable
+public class Surface : IBlittable, IDisposable
 { public Surface(Bitmap bitmap)
   { System.Drawing.Imaging.PixelFormat format;
     byte depth;
@@ -122,8 +131,8 @@ public class Surface : IDisposable
 
   public unsafe int Width  { get { return surface->Width; } }
   public unsafe int Height { get { return surface->Height; } }
-  public Size Size   { get { return new Size(Width, Height); } }
   public byte Depth  { get { return format.Depth; } }
+  public Size Size   { get { return new Size(Width, Height); } }
   public Rectangle Bounds { get { return new Rectangle(0, 0, Width, Height); } }
 
   public unsafe uint Pitch  { get { return surface->Pitch; } }
@@ -364,6 +373,7 @@ public class Surface : IDisposable
     return new Surface(ret, true);
   }
 
+  public IBlittable CreateCompatible() { return CloneDisplay(); }
   public unsafe Surface CloneDisplay() { return CloneDisplay(Format.AlphaMask!=0); }
   public unsafe Surface CloneDisplay(bool alphaChannel)
   { SDL.Surface* ret = alphaChannel ? SDL.DisplayFormatAlpha(surface) : SDL.DisplayFormat(surface);
