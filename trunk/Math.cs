@@ -84,7 +84,8 @@ public struct Point
   public static Vector operator-(Point lhs, Point rhs)  { return new Vector(lhs.X-rhs.X, lhs.Y-rhs.Y); }
   public static Point  operator-(Point lhs, Vector rhs) { return new Point(lhs.X-rhs.X, lhs.Y-rhs.Y); }
   public static Point  operator+(Point lhs, Vector rhs) { return new Point(lhs.X+rhs.X, lhs.Y+rhs.Y); }
-  
+  public static implicit operator Point(System.Drawing.Point point) { return new Point(point.X, point.Y); }
+
   public float X, Y;
 }
 #endregion
@@ -344,7 +345,7 @@ public sealed class Polygon
         }
 
         if(poly.length<3) continue;
-        // remove corners with coincident edges.
+        // remove corners with coincident/parallel edges.
         for(int ci=poly.length-2; ci>=1; ci--) if(poly.GetCorner(ci).CrossZ==0) poly.RemovePoint(ci);
         if(poly.length<3) continue;
 
@@ -371,13 +372,13 @@ public sealed class Polygon
                 if(d2<d)   { d=d2; ept=1; } // 'ept' references which point gets moved to do the extension
                 if(d<dist) { dist=d; splitEdge=sei; extPoint=ept; splitPoint=lint.Point; }
               }
-              if(splitEdge!=-1) // take the first one we can find
+              if(splitEdge!=-1) // if we could split it with this edge, do it. don't bother trying the other edge
               { poly.InsertPoint(splitPoint, ++splitEdge); // insert the split point
                 Polygon new1 = new Polygon(), new2 = new Polygon();
                 int extended = poly.Clip(ci-1+ei+extPoint), other=poly.Clip(extended+(extPoint==0 ? 1 : -1));
                 int npi = splitEdge;
                 if(extended>=splitEdge) { extended++; other++; }
-                // 'extended' is the point that was extended. 'other' is the other point in the edge being extended
+                // 'extended' is the point that was extended. 'other' is the other side of the edge being extended
                 do // circle around the polygon, starting at the new point, adding points until we hit 'extended'
                 { new1.AddPoint(poly.points[npi]);
                   // if this polygon contains the edge being extended, then it must not contain the point being extended

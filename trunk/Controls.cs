@@ -181,8 +181,8 @@ public abstract class ButtonBase : LabelBase
     }
   }
 
-  public void PerformClick() { PerformClick(0); }
-  public void PerformClick(byte button)
+  public void PerformClick() { PerformClick(MouseButton.Left); }
+  public void PerformClick(MouseButton button)
   { ClickEventArgs e = new ClickEventArgs();
     e.CE.Button = button;
     e.CE.Down   = true;
@@ -201,7 +201,7 @@ public abstract class ButtonBase : LabelBase
   }
 
   protected internal override void OnMouseClick(ClickEventArgs e)
-  { if(e.CE.Button==0 && !e.Handled)
+  { if(e.CE.Button==MouseButton.Left && !e.Handled)
     { if(WindowRect.Contains(e.CE.Point)) OnClick(e);
       e.Handled = true;
     }
@@ -297,7 +297,7 @@ public abstract class CheckBoxBase : ButtonBase
   }
   
   protected override void OnClick(ClickEventArgs e)
-  { if(e.CE.Button==0 && !e.Handled)
+  { if(e.CE.Button==MouseButton.Left && !e.Handled)
     { Checked   = !value;
       e.Handled = true;
     }
@@ -477,7 +477,7 @@ public abstract class ScrollBarBase : Control, IDisposable
   }
 
   protected internal override void OnMouseDown(ClickEventArgs e)
-  { if(!e.Handled && e.CE.Button==0)
+  { if(!e.Handled && e.CE.Button==MouseButton.Left)
     { if(crTimer!=null)
       { Place p = FindPlace(e.CE.Point);
         if(p != Place.Thumb)
@@ -497,7 +497,7 @@ public abstract class ScrollBarBase : Control, IDisposable
     }
   }
   protected internal override void OnMouseUp(ClickEventArgs e)
-  { if(e.CE.Button==0 && repeatEvent!=null)
+  { if(e.CE.Button==MouseButton.Left && repeatEvent!=null)
     { crTimer.Change(System.Threading.Timeout.Infinite, System.Threading.Timeout.Infinite);
       repeatEvent = null;
       repeated    = false;
@@ -1076,7 +1076,7 @@ public class TextBox : TextBoxBase
   }
 
   protected internal override void OnMouseClick(ClickEventArgs e)
-  { if(e.CE.Button==0)
+  { if(e.CE.Button==MouseButton.Left)
     { Select(PointToPos(e.CE.X), 0);
       e.Handled = true;
     }
@@ -1362,7 +1362,7 @@ public abstract class MenuBarBase : Control
   }
 
   protected internal override void OnMouseDown(ClickEventArgs e)
-  { if(e.CE.Button==0)
+  { if(e.CE.Button==MouseButton.Left)
     { for(int i=0; i<buttons.Length; i++)
       { if(buttons[i].Area.Contains(e.CE.Point)) Open(i);
         else if(buttons[i].State!=ButtonState.Normal) Close(i);
@@ -1373,7 +1373,7 @@ public abstract class MenuBarBase : Control
   }
 
   protected internal override void OnMouseUp(ClickEventArgs e)
-  { if(e.CE.Button==0)
+  { if(e.CE.Button==MouseButton.Left)
     { int open=-1;
       for(int i=0; i<buttons.Length; i++)
       { if(buttons[i].State==ButtonState.Open)

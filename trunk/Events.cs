@@ -85,9 +85,10 @@ public class MouseMoveEvent : Event
   internal MouseMoveEvent(ref SDL.MouseMoveEvent evt) : base(EventType.MouseMove)
   { X=(int)evt.X; Y=(int)evt.Y; Xrel=(int)evt.Xrel; Yrel=(int)evt.Yrel; Buttons=evt.State;
   }
-  public bool Pressed(byte button) { return (Buttons&(1<<button))!=0; }
-  public void SetPressed(byte button, bool down)
-  { if(down) Buttons|=(byte)(1<<button); else Buttons&=(byte)~(1<<button);
+  public bool OnlyPressed(Input.MouseButton button) { return Buttons==(byte)button; }
+  public bool Pressed(Input.MouseButton button) { return (Buttons&(1<<(byte)button))!=0; }
+  public void SetPressed(Input.MouseButton button, bool down)
+  { if(down) Buttons|=(byte)(1<<(byte)button); else Buttons&=(byte)~(1<<(byte)button);
   }
   public System.Drawing.Point Point
   { get { return new System.Drawing.Point(X, Y); }
@@ -105,13 +106,16 @@ public class MouseMoveEvent : Event
 public class MouseClickEvent : Event
 { public MouseClickEvent() : base(EventType.MouseClick) { }
   internal MouseClickEvent(ref SDL.MouseButtonEvent evt) : base(EventType.MouseClick)
-  { Button=(byte)(evt.Button-1); Down=(evt.Down!=0); X=(int)evt.X; Y=(int)evt.Y;
+  { Button=(Input.MouseButton)(evt.Button-1); Down=(evt.Down!=0); X=(int)evt.X; Y=(int)evt.Y;
+  }
+  public bool MouseWheel
+  { get { return Button==Input.MouseButton.WheelDown || Button==Input.MouseButton.WheelUp; }
   }
   public System.Drawing.Point Point
   { get { return new System.Drawing.Point(X, Y); }
     set { X=value.X; Y=value.Y; }
   }
-  public byte Button;
+  public Input.MouseButton Button;
   public bool Down;
   public int  X, Y;
 }

@@ -41,18 +41,32 @@ public delegate void ControlEventHandler(object sender, ControlEventArgs e);
 /// <summary>This class is used in events that refer to the mouse cursor being dragged over a control.</summary>
 public class DragEventArgs : EventArgs
 {
+  /// <summary>This method checks whether only the specified button was depressed at the time the drag was started.
+  /// </summary>
+  /// <param name="button">The mouse button to check for</param>
+  /// <returns>Returns true if only the specified button was depressed at the time the drag was started.</returns>
+  public bool OnlyPressed(Input.MouseButton button) { return Buttons==(byte)button; }
   /// <summary>This method checks whether the specified button was depressed at the time the drag was started.
   /// </summary>
-  /// <param name="button">The mouse button to check for (0-7; 0=left, 1=middle, 2=right)</param>
+  /// <param name="button">The mouse button to check for</param>
   /// <returns>Returns true if the specified button was depressed at the time the drag was started.</returns>
-  public bool Pressed(byte button) { return (Buttons&(1<<button))!=0; }
+  public bool Pressed(Input.MouseButton button) { return (Buttons&(1<<(byte)button))!=0; }
   /// <summary>
   /// This method sets or clears a bit in the <see cref="Buttons"/> field corresponding to the specified button.
   /// </summary>
-  /// <param name="button">The mouse button to set (0-7; 0=left, 1=middle, 2=right)</param>
+  /// <param name="button">The mouse button to set</param>
   /// <param name="down">The button bit will be set if this is true and cleared if false.</param>
-  public void SetPressed(byte button, bool down)
-  { if(down) Buttons|=(byte)(1<<button); else Buttons&=(byte)~(1<<button);
+  public void SetPressed(Input.MouseButton button, bool down)
+  { if(down) Buttons|=(byte)(1<<(byte)button); else Buttons&=(byte)~(1<<(byte)button);
+  }
+  /// <summary>This property returns a rectangle that represents the area through which the mouse was dragged.
+  /// </summary>
+  public Rectangle Rectangle
+  { get
+    { int x=Math.Min(Start.X, End.X), x2=Math.Max(Start.X, End.X);
+      int y=Math.Min(Start.Y, End.Y), y2=Math.Max(Start.Y, End.Y);
+      return new Rectangle(x, y, x2-x+1, y2-y+1);
+    }
   }
   /// <summary>
   /// This field holds the beginning of the drag, in window coordinates. It is valid during all of the drag events.
@@ -1439,7 +1453,7 @@ public class DesktopControl : ContainerControl, IDisposable
         if(c==null) break;
         if(!passModal && c==modal[modal.Count-1]) passModal=true;
         at = p.WindowToChild(at, c);
-        if(focus==AutoFocus.Click && ea.CE.Down && c.CanFocus && passModal) c.Focus();
+        if(focus==AutoFocus.Click && ea.CE.Down && c.CanFocus && passModal && !ea.CE.MouseWheel) c.Focus();
         p = c;
       }
       if(p==this) // if p=='this', the desktop was clicked
@@ -1486,7 +1500,7 @@ public class DesktopControl : ContainerControl, IDisposable
       done:
       // lastClicked is used to track if the button release occurred over the same control it was pressed over
       // this allows you to press the mouse on a control, then drag off and release to avoid the MouseClick event
-      if(!ea.CE.Down && ea.CE.Button<8) lastClicked[ea.CE.Button] = null;
+      if(!ea.CE.Down && (byte)ea.CE.Button<8) lastClicked[(byte)ea.CE.Button] = null;
       return FilterAction.Drop;
     }
     #endregion
@@ -1573,21 +1587,25 @@ public class DesktopControl : ContainerControl, IDisposable
     { target.OnMouseDown(e);
       if(e.Handled) { clickStatus ^= ClickStatus.UpDown; e.Handled=false; }
     }
-    if(target.HasStyle(ControlStyle.NormalClick) && (clickStatus&ClickStatus.Click)!=0 && e.CE.Button<8)
-    { if(e.CE.Down) lastClicked[e.CE.Button] = target;
-      else
-      { if(lastClicked[e.CE.Button]==target)
-        { if(target.HasStyle(ControlStyle.DoubleClickable) && time-target.lastClickTime<=dcDelay)
-            target.OnDoubleClick(e);
-          else target.OnMouseClick(e);
-          target.lastClickTime = time;
-          if(e.Handled) { clickStatus ^= ClickStatus.Click; e.Handled=false; }
-          lastClicked[e.CE.Button]=target.Parent; // allow the check to be done for the parent, too // TODO: make sure this is okay with captured/dragged controls
+    if(!e.CE.MouseWheel && (byte)e.CE.Button<8)
+    { if(target.HasStyle(ControlStyle.NormalClick) && (clickStatus&ClickStatus.Click)!=0)
+      { if(e.CE.Down) lastClicked[(byte)e.CE.Button] = target;
+        else
+        { if(lastClicked[(byte)e.CE.Button]==target)
+          { if(target.HasStyle(ControlStyle.DoubleClickable) && time-target.lastClickTime<=dcDelay)
+              target.OnDoubleClick(e);
+            else target.OnMouseClick(e);
+            target.lastClickTime = time;
+            if(e.Handled) { clickStatus ^= ClickStatus.Click; e.Handled=false; }
+            lastClicked[(byte)e.CE.Button]=target.Parent; // allow the check to be done for the parent, too // TODO: make sure this is okay with captured/dragged controls
+          }
         }
       }
+      else clickStatus ^= ClickStatus.Click;
     }
     if(!e.CE.Down && (clickStatus&ClickStatus.UpDown) != 0)
-    { target.OnMouseUp(e);
+    { if(e.CE.MouseWheel) e.Handled=true;
+      else target.OnMouseUp(e);
       if(e.Handled) { clickStatus ^= ClickStatus.UpDown; e.Handled=false; }
     } 
     return clickStatus!=ClickStatus.None;
@@ -1619,6 +1637,7 @@ public class DesktopControl : ContainerControl, IDisposable
   void Init()
   { Events.Events.Initialize();
     Input.Input.Initialize(false);
+    Input.Keyboard.DisableKeyRepeat();
     init = true;
     drag = new DragEventArgs();
     modeChanged = new ModeChangedHandler(UpdateBackingSurfaces);
