@@ -24,8 +24,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #define BYTES(fmt) (BITS(fmt)>>3)
 #define DIVISIBLE(n, d) ((n)/(d)*(d)==(n))
 #define SIGNED(fmt) ((fmt)&0x8000)
+#define FLOAT(fmt)  ((fmt)&0x4000)
 #define SWAPEND(v) (((v)<<8)|((v)>>8))
-#define MAXALLOCA 20000
+#define MAXALLOCA 60000
 
 #if SDL_BYTEORDER == SDL_LIL_ENDIAN
   #define OPPEND(fmt) ((fmt)&0x1000)
@@ -75,7 +76,7 @@ static void StereoToMono(GLM_AudioCVT *cvt)
       for(; i; src+=2,i--) *dest++ = (src[0]+src[1])/2;
     }
   }
-  else
+  else if(BITS(sfmt)==16)
   { i=cvt->len/4;
     if(OPPEND(sfmt)) /* opposite endianness */
     { Uint16 *src = (Uint16*)cvt->buf;
@@ -106,18 +107,38 @@ static void StereoToMono(GLM_AudioCVT *cvt)
       }
     }
   }
+  else if(FLOAT(sfmt)) /* floating point */
+  { if(BITS(sfmt)==32)
+    { float *src = (float*)cvt->buf, *dest = src;
+      i=cvt->len/8;
+      for(; i;  src+=2,i--) *dest++ = (src[0]+src[1])/2;
+    }
+    else if(BITS(sfmt)==64)
+    { double *src = (double*)cvt->buf, *dest = src;
+      i=cvt->len/16;
+      for(; i;  src+=2,i--) *dest++ = (src[0]+src[1])/2;
+    }
+  }
   cvt->len/=2; cvt->srcChans=1;
 }
 
 static void MonoToStereo(GLM_AudioCVT *cvt)
 { int i;
   if(BITS(cvt->srcFormat)==8) /* 8bit */
-  { Uint8 *src = cvt->buf+cvt->len-1, *dest = cvt->buf+cvt->len*2-2;
+  { Uint8 *src = (cvt->buf+cvt->len)-1, *dest = (cvt->buf+cvt->len*2)-2;
     for(i=cvt->len; i; dest-=2,i--) dest[0]=dest[1]=*src--;
   }
-  else /* 16bit */
+  else if(BITS(cvt->srcFormat)==16) /* 16bit */
   { Uint16 *src = (Uint16*)(cvt->buf+cvt->len)-1, *dest = (Uint16*)(cvt->buf+cvt->len*2)-2;
     for(i=cvt->len/2; i; dest-=2,i--) dest[0]=dest[1]=*src--;
+  }
+  else if(BITS(cvt->srcFormat)==32)
+  { Uint32 *src = (Uint32*)(cvt->buf+cvt->len)-1, *dest = (Uint32*)(cvt->buf+cvt->len*2)-2;
+    for(i=cvt->len/4; i; dest-=2,i--) dest[0]=dest[1]=*src--;
+  }
+  else if(BITS(cvt->srcFormat)==64)
+  { double *src = (double*)(cvt->buf+cvt->len)-1, *dest = (double*)(cvt->buf+cvt->len*2)-2;
+    for(i=cvt->len/4; i; dest-=2,i--) dest[0]=dest[1]=*src--;
   }
   cvt->len*=2; cvt->srcChans=2;
 }
@@ -209,11 +230,196 @@ static void SixteenToEight(GLM_AudioCVT *cvt)
   cvt->srcFormat = (cvt->srcFormat&~0x80FF)|(cvt->destFormat&0x80FF);
 }
 
+static void IntegerToFloat(GLM_AudioCVT *cvt)
+{ int i;
+  if(BITS(cvt->destFormat)==32) /* to 32-bit floating point */
+  { if(BITS(cvt->srcFormat)==8) /* from 8-bit */
+    { float *dest = (float*)(cvt->buf+cvt->len*4-4);
+      i=cvt->len;
+
+      if(SIGNED(cvt->srcFormat)) /* from 8-bit signed */
+      { Sint8 *src = (Sint8*)(cvt->buf+cvt->len-1);
+        for(; i; i--) *dest-- = (float)*src-- / 128.0f;
+      }
+      else /* from 8-bit unsigned */
+      { Uint8 *src = (Uint8*)(cvt->buf+cvt->len-1);
+        for(; i; i--) *dest-- = (float)(*src-- - 128) / 128.0f;
+      }
+      cvt->len*=4;
+    }
+    else if(BITS(cvt->srcFormat)==16) /* from 16-bit */
+    { float *dest = (float*)(cvt->buf+cvt->len*2-4);
+      i=cvt->len/2;
+      if(OPPEND(cvt->srcFormat)) /* from 16-bit opposite endianness */
+      { Uint16 *src = (Uint16*)(cvt->buf+cvt->len-2);
+        if(SIGNED(cvt->srcFormat)) for(; i; src--,i--) *dest-- = (Sint16)SWAPEND(*src) / 32768.0f; /* from 16-bit signed OE */
+        else for(; i; src--,i--) *dest-- = ((Sint16)SWAPEND(*src)-32768) / 32768.0f; /* from 16-bit unsigned OE */
+      }
+      else /* from 16-bit same endianness */
+      { if(SIGNED(cvt->srcFormat)) /* from 16-bit signed SE */
+        { Sint16 *src = (Sint16*)(cvt->buf+cvt->len-2);
+          for(; i; i--) *dest-- = *src-- / 32768.0f;
+        }
+        else /* from 16-bit unsigned SE */
+        { Uint16 *src = (Uint16*)(cvt->buf+cvt->len-2);
+          for(; i; i--) *dest-- = (Sint16)(*src-- - 32768) / 32768.0f;
+        }
+      }
+      cvt->len*=2;
+    }
+  }
+  else if(BITS(cvt->destFormat)==64) /* to 64-bit floating point */
+  { if(BITS(cvt->srcFormat)==8) /* from 8-bit */
+    { double *dest = (double*)(cvt->buf+cvt->len*8-8);
+      i=cvt->len;
+
+      if(SIGNED(cvt->srcFormat)) /* from 8-bit signed */
+      { Sint8 *src = (Sint8*)(cvt->buf+cvt->len-1);
+        for(; i; i--) *dest-- = (float)*src-- / 128.0;
+      }
+      else /* from 8-bit unsigned */
+      { Uint8 *src = (Uint8*)(cvt->buf+cvt->len-1);
+        for(; i; i--) *dest-- = (float)(*src-- - 128) / 128.0;
+      }
+      cvt->len*=8;
+    }
+    else if(BITS(cvt->srcFormat)==16) /* from 16-bit */
+    { double *dest = (double*)(cvt->buf+cvt->len*4-8);
+      i=cvt->len/2;
+      if(OPPEND(cvt->srcFormat)) /* from 16-bit opposite endianness */
+      { Uint16 *src = (Uint16*)(cvt->buf+cvt->len/2-2);
+        if(SIGNED(cvt->srcFormat)) for(; i; src--,i--) *dest-- = (Sint16)SWAPEND(*src) / 32768.0; /* from 16-bit signed OE */
+        else for(; i; src--,i--) *dest-- = ((Sint16)SWAPEND(*src)-32768) / 32768.0; /* from 16-bit unsigned OE */
+      }
+      else /* from 16-bit same endianness */
+      { if(SIGNED(cvt->srcFormat)) /* from 16-bit signed SE */
+        { Sint16 *src = (Sint16*)(cvt->buf+cvt->len/2-2);
+          for(; i; i--) *dest-- = *src-- / 32768.0;
+        }
+        else /* from 16-bit unsigned SE */
+        { Uint16 *src = (Uint16*)(cvt->buf+cvt->len/2-2);
+          for(; i; i--) *dest-- = (Sint16)(*src-- - 32768) / 32768.0;
+        }
+      }
+      cvt->len*=4;
+    }
+  }
+  cvt->srcFormat = cvt->destFormat;
+}
+
+static void FloatToInteger(GLM_AudioCVT *cvt)
+{ int i;
+  if(BITS(cvt->srcFormat)==32) /* from 32-bit float */
+  { float *src = (float*)cvt->buf;
+
+    if(BITS(cvt->destFormat)==8) /* to 8-bit */
+    { i = cvt->len/=4;
+      if(SIGNED(cvt->destFormat)) /* to 8-bit signed */
+      { Sint8 *dest = (Sint8*)cvt->buf;
+        for(; i; i--) *dest++ = (Sint8)(*src++ * 127);
+      }
+      else /* to 8-bit unsigned */
+      { Uint8 *dest = (Uint8*)(cvt->buf+cvt->len/4-1);
+        for(; i; i--) *dest++ = (Uint8)(*src++ * 127)+128;
+      }
+    }
+    else if(BITS(cvt->destFormat)==16) /* to 16-bit */
+    { i = cvt->len/=2;
+      if(OPPEND(cvt->destFormat)) /* opposite endianness */
+      { Uint16 *dest = (Uint16*)cvt->buf;
+        Uint16  dv;
+        if(SIGNED(cvt->destFormat)) /* 16-bit signed OE */
+          for(; i; i--)
+          { dv = (Uint16)(Sint16)(*src++ * 32767);
+            *dest++ = SWAPEND(dv);
+          }
+        else /* 16-bit unsigned OE */
+          for(; i; i--)
+          { dv = (Uint16)(*src++ * 32767) + 32768;
+            *dest++ = SWAPEND(dv);
+          }
+      }
+      else /* same endianness */
+      { if(SIGNED(cvt->destFormat)) /* 16-bit signed */
+        { Sint16 *dest = (Sint16*)cvt->buf;
+          for(; i; i--) *dest++ = (Sint16)(*src++ * 32767);
+        }
+        else
+        { Uint16 *dest = (Uint16*)cvt->buf;
+          for(; i; i--) *dest++ = (Uint16)(*src++ * 32767) + 32768;
+        }
+      }
+    }
+  }
+  else /* 64-bit floating point */
+  { double *src = (double*)cvt->buf;
+
+    if(BITS(cvt->destFormat)==8) /* to 8-bit */
+    { i = cvt->len/=8;
+      if(SIGNED(cvt->destFormat)) /* to 8-bit signed */
+      { Sint8 *dest = (Sint8*)cvt->buf;
+        for(; i; i--) *dest++ = (Sint8)(*src++ * 127);
+      }
+      else /* to 8-bit unsigned */
+      { Uint8 *dest = (Uint8*)(cvt->buf+cvt->len/4-1);
+        for(; i; i--) *dest++ = (Uint8)(*src++ * 127)+128;
+      }
+    }
+    else if(BITS(cvt->destFormat)==16) /* to 16-bit */
+    { i = cvt->len/=4;
+      if(OPPEND(cvt->destFormat)) /* opposite endianness */
+      { Uint16 *dest = (Uint16*)cvt->buf;
+        Uint16  dv;
+        if(SIGNED(cvt->destFormat)) /* 16-bit signed OE */
+          for(; i; i--)
+          { dv = (Uint16)(Sint16)(*src++ * 32767);
+            *dest++ = SWAPEND(dv);
+          }
+        else /* 16-bit unsigned OE */
+          for(; i; i--)
+          { dv = (Uint16)(*src++ * 32767) + 32768;
+            *dest++ = SWAPEND(dv);
+          }
+      }
+      else /* same endianness */
+      { if(SIGNED(cvt->destFormat)) /* 16-bit signed */
+        { Sint16 *dest = (Sint16*)cvt->buf;
+          for(; i; i--) *dest++ = (Sint16)(*src++ * 32767);
+        }
+        else
+        { Uint16 *dest = (Uint16*)cvt->buf;
+          for(; i; i--) *dest++ = (Uint16)(*src++ * 32767) + 32768;
+        }
+      }
+    }
+  }
+}
+
+static void FloatToFloat(GLM_AudioCVT *cvt)
+{ register i;
+
+  if(BITS(cvt->srcFormat)==BITS(cvt->destFormat)) return;
+  else if(BITS(cvt->srcFormat) < BITS(cvt->destFormat)) /* 32-bit to 64-bit */
+  { float  *src  = (float*)cvt->buf;
+    double *dest = (double*)cvt->buf;
+    i = cvt->len/4-1;
+    for(; i>=0; i--) dest[i]=src[i];
+    cvt->len*=2;
+  }
+  else /* 64-bit to 32-bit */
+  { double *src  = (double*)cvt->buf;
+    float  *dest = (float*)cvt->buf;
+    i = cvt->len/8-1;
+    for(; i>=0; i--) dest[i] = (float)src[i];
+    cvt->len/=2;
+  }
+}
+
 static void ConvertRate(GLM_AudioCVT *cvt, int destLen)
 { int i, srate=cvt->srcRate, drate=cvt->destRate;
   if(cvt->len<=BYTES(cvt->srcFormat)) return; /* no conversion if <=1 sample */
 
-  if(srate/drate==2) /* halving the rate */
+  if(drate*2==srate) /* halving the rate */
   { 
     #define HALVE for(; i; src+=2,i--) *dest++ = (src[0]+src[1])/2;
     if(BITS(cvt->srcFormat)==16) /* 16bit */
@@ -227,7 +433,7 @@ static void ConvertRate(GLM_AudioCVT *cvt, int destLen)
         HALVE
       }
     }
-    else /* 8bit */
+    else if(BITS(cvt->srcFormat)==8) /* 8bit */
     { i = destLen;
       if(SIGNED(cvt->srcFormat)) /* 8bit signed */
       { Sint8 *src = (Sint8*)cvt->buf, *dest = src;
@@ -238,10 +444,24 @@ static void ConvertRate(GLM_AudioCVT *cvt, int destLen)
         HALVE
       }
     }
+    else if(BITS(cvt->srcFormat)==32) /* 32bit */
+    { i = destLen/4;
+      if(FLOAT(cvt->srcFormat))
+      { float *src = (float*)cvt->buf, *dest = src;
+        HALVE
+      }
+    }
+    else if(BITS(cvt->srcFormat)==64) /* 64bit */
+    { i = destLen/8;
+      if(FLOAT(cvt->srcFormat))
+      { double *src = (double*)cvt->buf, *dest = src;
+        HALVE
+      }
+    }
     #undef HALVE
     cvt->len/=2;
   }
-  else /* any rate, length must be >1 sample. */
+  else /* any rate, length must be >1 sample. */ /* TODO: add the ability to select fast or high quality */
   { 
 #define SE(s) SWAPEND((Uint16)s)
 #define CVTRATE_SE                            \
@@ -296,68 +516,87 @@ static void ConvertRate(GLM_AudioCVT *cvt, int destLen)
     }                                          \
   }
 
-    int sic=0, sid, sinc, si, slen=cvt->len, dlen=destLen, s0, s1, diff, s2, s3, diff2, t;
+    int sic=0, sid, sinc, si, slen=cvt->len, dlen=destLen;
     void *dbuf = srate>drate ? cvt->buf : destLen>MAXALLOCA ? malloc(destLen) : alloca(destLen);
     cvt->len = dlen;
-    if(BITS(cvt->srcFormat)==16) /* 16bit */
-    { slen/=2, dlen/=2;
-      sinc=slen, sid=dlen; while(sid>32768) { sid>>=1, sinc>>=1; } /* prevent integer overflow */
-      if(cvt->srcChans==2)
-      { i=si=2;
-        if(SIGNED(cvt->srcFormat))
-        { Sint16 *src = (Sint16*)cvt->buf, *dest=(Sint16*)dbuf;
-          if(OPPEND(cvt->srcFormat)) CVTRATE2_OE /* 16bit signed OE */
-          else CVTRATE2_SE /* 16 bit signed SE */
+    i = si = cvt->srcChans;
+
+    if(FLOAT(cvt->srcFormat))
+    { if(BITS(cvt->srcFormat)==32) /* 32-bit floating point */
+      { float s0, s1, diff, s2, s3, diff2, *src=(float*)cvt->buf, *dest=(float*)dbuf;
+        slen/=4, dlen/=4;
+        sinc=slen, sid=dlen;
+
+        CVTRATE2_SE
+      }
+      else if(BITS(cvt->srcFormat)==64) /* 64-bit floating point */
+      { double s0, s1, diff, s2, s3, diff2, *src=(double*)cvt->buf, *dest=(double*)dbuf;
+        slen/=8, dlen/=8;
+        sinc=slen, sid=dlen;
+
+        CVTRATE2_SE
+      }
+    }
+    else
+    { int s0, s1, diff, s2, s3, diff2, t;
+      if(BITS(cvt->srcFormat)==16) /* 16bit */
+      { slen/=2, dlen/=2;
+        sinc=slen, sid=dlen; while(sid>32768) { sid>>=1, sinc>>=1; } /* prevent integer overflow */
+        if(cvt->srcChans==2)
+        { if(SIGNED(cvt->srcFormat))
+          { Sint16 *src = (Sint16*)cvt->buf, *dest=(Sint16*)dbuf;
+            if(OPPEND(cvt->srcFormat)) CVTRATE2_OE /* 16bit signed OE */
+            else CVTRATE2_SE /* 16 bit signed SE */
+          }
+          else
+          { Uint16 *src = (Uint16*)cvt->buf, *dest=(Uint16*)dbuf;
+            if(OPPEND(cvt->srcFormat)) CVTRATE2_OE /* 16bit unsigned OE */
+            else CVTRATE2_SE
+          }
         }
         else
-        { Uint16 *src = (Uint16*)cvt->buf, *dest=(Uint16*)dbuf;
-          if(OPPEND(cvt->srcFormat)) CVTRATE2_OE /* 16bit unsigned OE */
-          else CVTRATE2_SE
+        { if(SIGNED(cvt->srcFormat))
+          { Sint16 *src = (Sint16*)cvt->buf, *dest=(Sint16*)dbuf;
+            if(OPPEND(cvt->srcFormat)) CVTRATE_OE /* 16bit signed OE */
+            else CVTRATE_SE /* 16 bit signed SE */
+          }
+          else
+          { Uint16 *src = (Uint16*)cvt->buf, *dest=(Uint16*)dbuf;
+            if(OPPEND(cvt->srcFormat)) CVTRATE_OE /* 16bit unsigned OE */
+            else CVTRATE_SE
+          }
         }
       }
-      else
-      { i=si=1;
-        if(SIGNED(cvt->srcFormat))
-        { Sint16 *src = (Sint16*)cvt->buf, *dest=(Sint16*)dbuf;
-          if(OPPEND(cvt->srcFormat)) CVTRATE_OE /* 16bit signed OE */
-          else CVTRATE_SE /* 16 bit signed SE */
+      else if(BITS(cvt->srcFormat)==8) /* 8bit */
+      { sinc=slen, sid=dlen; while(sid>8388608) { sid>>=1, sinc>>=1; } /* prevent integer overflow */
+        if(cvt->srcChans==2)
+        { if(SIGNED(cvt->srcFormat))
+          { Sint8 *src = (Sint8*)cvt->buf, *dest = (Sint8*)dbuf;
+            CVTRATE2_SE
+          }
+          else
+          { Uint8 *src = cvt->buf, *dest = (Uint8*)dbuf;
+            CVTRATE2_SE
+          }
         }
         else
-        { Uint16 *src = (Uint16*)cvt->buf, *dest=(Uint16*)dbuf;
-          if(OPPEND(cvt->srcFormat)) CVTRATE_OE /* 16bit unsigned OE */
-          else CVTRATE_SE
+        { if(SIGNED(cvt->srcFormat))
+          { Sint8 *src = (Sint8*)cvt->buf, *dest = (Sint8*)dbuf;
+            CVTRATE_SE
+          }
+          else
+          { Uint8 *src = cvt->buf, *dest = (Uint8*)dbuf;
+            CVTRATE_SE
+          }
         }
       }
     }
-    else /* 8bit */
-    { sinc=slen, sid=dlen; while(sid>8388608) { sid>>=1, sinc>>=1; } /* prevent integer overflow */
-      if(cvt->srcChans==2)
-      { i=si=2;
-        if(SIGNED(cvt->srcFormat))
-        { Sint8 *src = (Sint8*)cvt->buf, *dest = (Sint8*)dbuf;
-          CVTRATE2_SE
-        }
-        else
-        { Uint8 *src = cvt->buf, *dest = (Uint8*)dbuf;
-          CVTRATE2_SE
-        }
-      }
-      else
-      { i=si=1;
-        if(SIGNED(cvt->srcFormat))
-        { Sint8 *src = (Sint8*)cvt->buf, *dest = (Sint8*)dbuf;
-          CVTRATE_SE
-        }
-        else
-        { Uint8 *src = cvt->buf, *dest = (Uint8*)dbuf;
-          CVTRATE_SE
-        }
-      }
-    }
+
     if(dbuf!=cvt->buf)
     { memcpy(cvt->buf, dbuf, destLen);
       if(destLen>MAXALLOCA) free(dbuf);
     }
+
     #undef SE
     #undef CVTRATE_SE
     #undef CVTRATE_OE
@@ -367,101 +606,142 @@ static void ConvertRate(GLM_AudioCVT *cvt, int destLen)
 }
 
 static void ConvertMixMono(Sint32 *dest, void* data, Uint32 samples, Uint16 srcFormat, int vol)
-{ register Uint32 i=0;
-  if(BITS(srcFormat)==8) /* 8bit */
-  { if(SIGNED(srcFormat))  /* 8bit signed */
-    { Sint8 *src = (Sint8*)data;
-      if(vol>=256) for(; i<samples; i++) dest[i]+=src[i];
-      else for(; i<samples; i++) dest[i]+=(src[i]*vol)>>8;
+{ if(FLOAT(srcFormat))
+  { GLM_AudioCVT cvt;
+    int len = samples*BYTES(srcFormat);
+    cvt.len = len;
+    cvt.buf = len>MAXALLOCA ? malloc(len) : alloca(len);
+    cvt.srcFormat  = srcFormat;
+    cvt.destFormat = mixFormat.format;
+
+    memcpy(cvt.buf, data, len);
+    if(BITS(srcFormat)==32)
+    { float *fdata = (float*)cvt.buf;
+      Uint32 i;
+      for(i=0; i<samples; i++) if(fdata[i]>1) fdata[i]=1; else if(fdata[i]<-1) fdata[i]=-1;
     }
-    else /* 8bit unsigned */
-    { Uint8 *src = (Uint8*)data;
-      if(vol>=256) for(; i<samples; i++) dest[i]+=src[i]-128;
-      else for(; i<samples; i++) dest[i]+=((Sint8)(src[i]-128)*vol)>>8;
+    else
+    { double *fdata = (double*)cvt.buf;
+      Uint32 i;
+      for(i=0; i<samples; i++) if(fdata[i]>1) fdata[i]=1; else if(fdata[i]<-1) fdata[i]=-1;
     }
+
+    FloatToInteger(&cvt);
+    ConvertMixMono(dest, cvt.buf, samples, cvt.destFormat, vol);
+    if(len>MAXALLOCA) free(cvt.buf);
   }
-  else /* 16bit */
-  { if(OPPEND(srcFormat)) /* opposite endianness */
-    { Uint16 *src = (Uint16*)data;
-      if(SIGNED(srcFormat)) /* 16bit signed OE */
-      { if(vol>=256) for(; i<samples; i++) dest[i]+=(Sint16)SWAPEND(src[i]);
-        else for(; i<samples; i++) dest[i]+=((Sint16)SWAPEND(src[i])*vol)>>8;
-      }
-      else /* 16bit unsigned OE */
-      { if(vol>=256) for(; i<samples; i++) dest[i]+=(Sint16)SWAPEND(src[i])-32768;
-        else for(; i<samples; i++) dest[i]+=(((Sint16)SWAPEND(src[i])-32768)*vol)>>8;
-      }
-    }
-    else /* same endianness */
-    { if(SIGNED(srcFormat)) /* 16bit signed SE */
-      { Sint16 *src = (Sint16*)data;
+  else
+  { register Uint32 i=0;
+    if(BITS(srcFormat)==8) /* 8bit */
+    { if(SIGNED(srcFormat))  /* 8bit signed */
+      { Sint8 *src = (Sint8*)data;
         if(vol>=256) for(; i<samples; i++) dest[i]+=src[i];
         else for(; i<samples; i++) dest[i]+=(src[i]*vol)>>8;
       }
-      else /* 16bit unsigned SE */
+      else /* 8bit unsigned */
+      { Uint8 *src = (Uint8*)data;
+        if(vol>=256) for(; i<samples; i++) dest[i]+=src[i]-128;
+        else for(; i<samples; i++) dest[i]+=((Sint8)(src[i]-128)*vol)>>8;
+      }
+    }
+    else /* 16bit */
+    { if(OPPEND(srcFormat)) /* opposite endianness */
       { Uint16 *src = (Uint16*)data;
-        if(vol>=256) for(; i<samples; i++) dest[i]+=src[i]-32768;
-        else for(; i<samples; i++) dest[i]+=((Sint16)(src[i]-32768)*vol)>>8;
+        if(SIGNED(srcFormat)) /* 16bit signed OE */
+        { if(vol>=256) for(; i<samples; i++) dest[i]+=(Sint16)SWAPEND(src[i]);
+          else for(; i<samples; i++) dest[i]+=((Sint16)SWAPEND(src[i])*vol)>>8;
+        }
+        else /* 16bit unsigned OE */
+        { if(vol>=256) for(; i<samples; i++) dest[i]+=(Sint16)SWAPEND(src[i])-32768;
+          else for(; i<samples; i++) dest[i]+=(((Sint16)SWAPEND(src[i])-32768)*vol)>>8;
+        }
+      }
+      else /* same endianness */
+      { if(SIGNED(srcFormat)) /* 16bit signed SE */
+        { Sint16 *src = (Sint16*)data;
+          if(vol>=256) for(; i<samples; i++) dest[i]+=src[i];
+          else for(; i<samples; i++) dest[i]+=(src[i]*vol)>>8;
+        }
+        else /* 16bit unsigned SE */
+        { Uint16 *src = (Uint16*)data;
+          if(vol>=256) for(; i<samples; i++) dest[i]+=src[i]-32768;
+          else for(; i<samples; i++) dest[i]+=((Sint16)(src[i]-32768)*vol)>>8;
+        }
       }
     }
   }
 }
 
 static void ConvertMixStereo(Sint32 *dest, void* data, Uint32 samples, Uint16 srcFormat, int left, int right)
-{ register Uint32 i=0;
-  if(BITS(srcFormat)==8) /* 8bit */
-  { if(SIGNED(srcFormat))  /* 8bit signed */
-    { Sint8 *src = (Sint8*)data;
-      if(left>=256 && right>=256) for(; i<samples; i++) dest[i]+=src[i];
-      else
-        for(; i<samples; )
-        { dest[i]+=(src[i]*left)>>8;  i++;
-          dest[i]+=(src[i]*right)>>8; i++;
-        }
-    }
-    else /* 8bit unsigned */
-    { Uint8 *src = (Uint8*)data;
-      if(left>=256 && right>=256) for(; i<samples; i++) dest[i]+=src[i]-128;
-      else
-        for(; i<samples;)
-        { dest[i]+=((Sint8)(src[i]-128)*left )>>8; i++;
-          dest[i]+=((Sint8)(src[i]-128)*right)>>8; i++;
-        }
-    }
+{ if(FLOAT(srcFormat))
+  { GLM_AudioCVT cvt;
+    int len = samples*BYTES(srcFormat);
+    cvt.len = len;
+    cvt.buf = len>MAXALLOCA ? malloc(len) : alloca(len);
+    cvt.srcFormat  = srcFormat;
+    cvt.destFormat = mixFormat.format;
+
+    memcpy(cvt.buf, data, len);
+    FloatToInteger(&cvt);
+    ConvertMixStereo(dest, cvt.buf, samples, cvt.destFormat, left, right);
+    if(len>MAXALLOCA) free(cvt.buf);
   }
-  else /* 16bit */
-  { if(OPPEND(srcFormat)) /* opposite endianness */
-    { Uint16 *src = (Uint16*)data;
-      if(SIGNED(srcFormat)) /* 16bit signed OE */
-      { if(left>=256 && right>=256) for(; i<samples; i++) dest[i]+=(Sint16)SWAPEND(src[i]);
-        else for(; i<samples;)
-        { dest[i]+=((Sint16)SWAPEND(src[i])*left )>>8; i++;
-          dest[i]+=((Sint16)SWAPEND(src[i])*right)>>8; i++;
-        }
+  else
+  { register Uint32 i=0;
+    if(BITS(srcFormat)==8) /* 8bit */
+    { if(SIGNED(srcFormat))  /* 8bit signed */
+      { Sint8 *src = (Sint8*)data;
+        if(left>=256 && right>=256) for(; i<samples; i++) dest[i]+=src[i];
+        else
+          for(; i<samples; )
+          { dest[i]+=(src[i]*left)>>8;  i++;
+            dest[i]+=(src[i]*right)>>8; i++;
+          }
       }
-      else /* 16bit unsigned OE */
-      { if(left>=256 && right>=256) for(; i<samples; i++) dest[i]+=(Sint16)SWAPEND(src[i])-32768;
-        else for(; i<samples;)
-        { dest[i]+=(((Sint16)SWAPEND(src[i])-32768)*left )>>8; i++;
-          dest[i]+=(((Sint16)SWAPEND(src[i])-32768)*right)>>8; i++;
-        }
+      else /* 8bit unsigned */
+      { Uint8 *src = (Uint8*)data;
+        if(left>=256 && right>=256) for(; i<samples; i++) dest[i]+=src[i]-128;
+        else
+          for(; i<samples;)
+          { dest[i]+=((Sint8)(src[i]-128)*left )>>8; i++;
+            dest[i]+=((Sint8)(src[i]-128)*right)>>8; i++;
+          }
       }
     }
-    else /* same endianness */
-    { if(SIGNED(srcFormat)) /* 16bit signed SE */
-      { Sint16 *src = (Sint16*)data;
-        if(left>=256 && right>=256) for(; i<samples; i++) dest[i]+=src[i];
-        else for(; i<samples;)
-        { dest[i]+=(src[i]*left )>>8; i++;
-          dest[i]+=(src[i]*right)>>8; i++;
+    else /* 16bit */
+    { if(OPPEND(srcFormat)) /* opposite endianness */
+      { Uint16 *src = (Uint16*)data;
+        if(SIGNED(srcFormat)) /* 16bit signed OE */
+        { if(left>=256 && right>=256) for(; i<samples; i++) dest[i]+=(Sint16)SWAPEND(src[i]);
+          else for(; i<samples;)
+          { dest[i]+=((Sint16)SWAPEND(src[i])*left )>>8; i++;
+            dest[i]+=((Sint16)SWAPEND(src[i])*right)>>8; i++;
+          }
+        }
+        else /* 16bit unsigned OE */
+        { if(left>=256 && right>=256) for(; i<samples; i++) dest[i]+=(Sint16)SWAPEND(src[i])-32768;
+          else for(; i<samples;)
+          { dest[i]+=(((Sint16)SWAPEND(src[i])-32768)*left )>>8; i++;
+            dest[i]+=(((Sint16)SWAPEND(src[i])-32768)*right)>>8; i++;
+          }
         }
       }
-      else /* 16bit unsigned SE */
-      { Uint16 *src = (Uint16*)data;
-        if(left>=256 && right>=256) for(; i<samples; i++) dest[i]+=src[i]-32768;
-        else for(; i<samples;)
-        { dest[i]+=((Sint16)(src[i]-32768)*left )>>8; i++;
-          dest[i]+=((Sint16)(src[i]-32768)*right)>>8; i++;
+      else /* same endianness */
+      { if(SIGNED(srcFormat)) /* 16bit signed SE */
+        { Sint16 *src = (Sint16*)data;
+          if(left>=256 && right>=256) for(; i<samples; i++) dest[i]+=src[i];
+          else for(; i<samples;)
+          { dest[i]+=(src[i]*left )>>8; i++;
+            dest[i]+=(src[i]*right)>>8; i++;
+          }
+        }
+        else /* 16bit unsigned SE */
+        { Uint16 *src = (Uint16*)data;
+          if(left>=256 && right>=256) for(; i<samples; i++) dest[i]+=src[i]-32768;
+          else for(; i<samples;)
+          { dest[i]+=((Sint16)(src[i]-32768)*left )>>8; i++;
+            dest[i]+=((Sint16)(src[i]-32768)*right)>>8; i++;
+          }
         }
       }
     }
@@ -523,6 +803,7 @@ void GLM_SetMixVolume(Uint16 volume)
 { mixVolume = volume>256 ? 256 : volume;
 }
 
+/* convert the accumulator format into some other format, performing clipping */
 int GLM_ConvertAcc(void *dest, Sint32 *src, Uint32 samples, Uint16 destFormat)
 { Uint32 i=0;
   if(!dest || !src)
@@ -530,14 +811,29 @@ int GLM_ConvertAcc(void *dest, Sint32 *src, Uint32 samples, Uint16 destFormat)
     return -1;
   }
 
-  if(BITS(destFormat)==8) /* 8bit */  /* convert the accumulator into the proper format for the audio stream */
+  if(FLOAT(destFormat))
+  { GLM_AudioCVT cvt;
+    int    len = samples*sizeof(Sint32);
+    void *data = len>MAXALLOCA ? malloc(len) : alloca(len);
+
+    GLM_ConvertAcc(data, src, samples, mixFormat.format);
+    cvt.len = samples*BYTES(mixFormat.format);
+    cvt.buf = dest;
+    cvt.srcFormat  = mixFormat.format;
+    cvt.destFormat = destFormat;
+    memcpy(cvt.buf, data, cvt.len);
+    if(len>MAXALLOCA) free(data);
+
+    IntegerToFloat(&cvt);
+  }
+  else if(BITS(destFormat)==8) /* 8 bit */
   { Uint8 *dbuf = (Uint8*)dest;
     for(; i<samples; i++) if(src[i]<-128) src[i]=-128; else if(src[i]>127) src[i]=127;
     i=0;
     if(SIGNED(destFormat)) for(; i<samples; i++) dbuf[i] = (Uint8)src[i];
     else for(; i<samples; i++) dbuf[i] = (Uint8)((Uint32)src[i]+128);
   }
-  else /* 16 bit */
+  else if(BITS(destFormat)==16) /* 16 bit */
   { Uint32 *sbuf = (Uint32*)src;
     for(; i<samples; i++) if(src[i]<-32768) src[i]=-32768; else if(src[i]>32767) src[i]=32767;
     i=0;
@@ -605,7 +901,12 @@ int GLM_Convert(GLM_AudioCVT *cvt)
 
   if(cvt->srcChans>cvt->destChans) StereoToMono(cvt);
 
-  if(BITS(sfmt)<BITS(dfmt)) EightToSixteen(cvt);
+  if(FLOAT(sfmt))
+  { if(FLOAT(dfmt)) FloatToFloat(cvt);
+    else FloatToInteger(cvt);
+  }
+  else if(FLOAT(dfmt)) IntegerToFloat(cvt);
+  else if(BITS(sfmt)<BITS(dfmt)) EightToSixteen(cvt);
   else if(BITS(sfmt)>BITS(dfmt)) SixteenToEight(cvt);
   else if(SIGNED(sfmt)!=SIGNED(dfmt)) /* if bit size is different, then sign conversion has already been done */
   { int len=cvt->len;
@@ -623,7 +924,7 @@ int GLM_Convert(GLM_AudioCVT *cvt)
   }
 
   if(cvt->srcRate!=cvt->destRate) ConvertRate(cvt, cvt->srcChans<cvt->destChans ? cvt->len_cvt/2 : cvt->len_cvt);
-  
+
   if(cvt->srcChans<cvt->destChans) MonoToStereo(cvt);
   cvt->len = olen;
   return 0;
@@ -698,28 +999,33 @@ int GLM_Mix(Sint32 *dest, Sint32 *src, Uint32 samples, Uint16 leftVolume, Uint16
   return 0;
 }
 
-int GLM_ConvertMix(Sint32 *dest, void* data, Uint32 samples, Uint16 srcFormat, Uint16 leftVolume, Uint16 rightVolume)
+int GLM_ConvertMix(Sint32 *dest, void* data, Uint32 samples, Uint16 srcFormat,
+                   Uint16 channels, Uint16 leftVolume, Uint16 rightVolume)
 { if(!dest || !data)
   { SDL_SetError("NULL pointer passed");
     return -1;
   }
-  if(mixFormat.channels==1) ConvertMixMono(dest, data, samples, srcFormat, ((int)leftVolume+(int)rightVolume)>>1);
-  else ConvertMixStereo(dest, data, samples, srcFormat, leftVolume, rightVolume);
+  if(channels==1) ConvertMixMono(dest, data, samples, srcFormat, ((int)leftVolume+(int)rightVolume)>>1);
+  else if(channels==2) ConvertMixStereo(dest, data, samples, srcFormat, leftVolume, rightVolume);
+  else
+  { SDL_SetError("Unsupported number of channels.");
+    return -1;
+  }
   return 0;
 }
 
 int GLM_DivideAccumulator(Sint32 divisor)
 { int i=0, len=mixAccSize;
   if(divisor<2) return 0;
-  switch(divisor) /* i wonder if this switch is worthwhile? */
-  { case 256: for(; i<len; i++) mixAcc[i]>>=8; break;
-    case 128: for(; i<len; i++) mixAcc[i]>>=7; break;
-    case  64: for(; i<len; i++) mixAcc[i]>>=6; break;
-    case  32: for(; i<len; i++) mixAcc[i]>>=5; break;
-    case  16: for(; i<len; i++) mixAcc[i]>>=4; break;
-    case   8: for(; i<len; i++) mixAcc[i]>>=3; break;
+  switch(divisor)
+  { case   2: for(; i<len; i++) mixAcc[i]>>=1; break;
     case   4: for(; i<len; i++) mixAcc[i]>>=2; break;
-    case   2: for(; i<len; i++) mixAcc[i]>>=1; break;
+    case   8: for(; i<len; i++) mixAcc[i]>>=3; break;
+    case  16: for(; i<len; i++) mixAcc[i]>>=4; break;
+    case  32: for(; i<len; i++) mixAcc[i]>>=5; break;
+    case  64: for(; i<len; i++) mixAcc[i]>>=6; break;
+    case 128: for(; i<len; i++) mixAcc[i]>>=7; break;
+    case 256: for(; i<len; i++) mixAcc[i]>>=8; break;
     default:  for(; i<len; i++) mixAcc[i]/=divisor; break;
   }
   return 0;
