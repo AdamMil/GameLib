@@ -252,6 +252,10 @@
                     SubType = "Code"
                     BuildAction = "Compile"
                 />
+                <File
+                    RelPath = "Windowing.cs"
+                    BuildAction = "Compile"
+                />
             </Include>
         </Files>
     </CSHARP>
