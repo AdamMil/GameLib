@@ -7,6 +7,10 @@ Legend
 
 DEVELOPMENT (alpha/beta)
 + Added IOH.KbHit, which returns true if console input is waiting
++ Ported the three C libraries to *nix (well, Linux at least)
+* Tweaked many of the files in order to work around bugs in the Mono
+  compiler (mcs) -- now it all compiles under mcs except for one line
+* Merged my changes to libsndfile into the latest version (1.0.11)
 
 2004.06.28 (alpha/beta)
 -------------------
