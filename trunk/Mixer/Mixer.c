@@ -12,11 +12,21 @@ static void GLM_callback(void *userdata, Uint8 *stream, int bytes)
 { int samples;
   if(!mixCallback) return;
 
-  samples = bytes/((mixFormat.format&0xFF)>>3);
-  memset(mixAcc, 0, samples*sizeof(Sint32)); /* zero the accumulator */
   if(mixVolume>0)
-  { mixCallback(mixAcc, samples, userdata);  /* call the user callback to mix in the audio */
+  { samples = bytes/((mixFormat.format&0xFF)>>3);
+    memset(mixAcc, 0, samples*sizeof(Sint32)); /* zero the accumulator */
+    mixCallback(mixAcc, samples, userdata);  /* call the user callback to mix in the audio */
     GLM_VolumeScale(mixAcc, samples, mixVolume);
+    GLM_ConvertAcc(stream, mixAcc, samples, mixFormat.format);
+  }
+  else
+  { if(mixFormat.format&0x8000) memset(stream, 0, bytes);
+    else if((mixFormat.format&0xFF)==8) memset(stream, 128, bytes);
+    else
+    { Uint16 *buf = (Uint16*)stream;
+      int     i, len = bytes/2;
+      for(i=0; i<len; i++) buf[i]=32768;
+    }
   }
 }
 

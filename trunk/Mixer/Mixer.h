@@ -10,7 +10,7 @@
 extern "C" {
 #endif
 
-typedef void (*MixCallback)(Sint32 *stream, Uint32 samples, void *context);
+typedef void (__stdcall *MixCallback)(Sint32 *stream, Uint32 samples, void *context);
 
 extern DECLSPEC int  SDLCALL GLM_Init(Uint32 freq, Uint16 format, Uint8 channels, Uint32 bufferMs,
                                       MixCallback callback, void *context);
