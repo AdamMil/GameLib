@@ -5,13 +5,13 @@ Legend
 *  Alteration/other
 !  Alteration/Removal/other that breaks backwards compatibility
 
-2004.04.11 (beta)
+2004.04.11 (alpha/beta)
 -------
 * Made Asteroids example use the CD drive better
 * Fixed a bug in which OnControlRemoved/OnControlAdded could be fired before
   the control was actually removed from its parent's control array. This was
   almost never a real problem, but it could cause an exception if multiple
-  modal windows were opened.
+  modal windows were opened simultaneously.
 * Added the Control.DrawSurface property
 * Whoops -- the audio quality in the Audio example was set to low. Changed
   it back to the default.
@@ -68,8 +68,27 @@ Legend
   documentation!)
 ! Removed Surface.Flip
 ! Greatly simplified the color key and surface alpha interface
-+ Added some more documentation (for Video.cs and Surface.cs).
++ Added code to convert seconds to CD frames and to return the number of
+  frames per second
++ Added code to allow playing CDs with real time offsets rather than just
+  frames
+! Removed the ID property of the Drive (cd-rom drive) class
+* Made GameLib and the example programs use the Type property of the event
+  class instead of checking the type dynamically.
+! Made the type field of the Event class private (it was never supposed to
+  be public)
++ Added joystick support to the Input example
++ Added an Offset property to the JoyBallEvent class
+* Fixed a bug that can occur when deinitializing joysticks
+! The SubType property of the WindowEvent class is now read-only
+! Made several WindowEvent-derived classes internal (they shouldn't be
+  used in user code)
+! Removed the Events.UpdateQueue method and the Events.SyncRoot property.
+  They were basically unnecessary.
++ Added some more documentation (for CD.cs, Events.cs, Surface.cs, and
+  Video.cs).
+* A couple bugfixes I forgot to add to the changelog
 
-2004.02.07 (beta)
+2004.02.07 (alpha/beta)
 -----------------
 * First public release

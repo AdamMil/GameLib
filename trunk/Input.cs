@@ -535,15 +535,15 @@ public sealed class Input
       { if(initCount==0) throw new InvalidOperationException("The input system has not been initialized!");
         if(value)
         { SDL.Initialize(SDL.InitFlag.Joystick);
-          SDL.JoystickEventState(SDL.JoystickMode.Events);
           joysticks = new Joystick[SDL.NumJoysticks()];
           for(int i=0; i<joysticks.Length; i++) joysticks[i] = new Joystick(i);
+          SDL.JoystickEventState(SDL.JoystickMode.Events);
         }
         else
-        { for(int i=0; i<joysticks.Length; i++) joysticks[i].Dispose();
-          SDL.JoystickEventState(SDL.JoystickMode.Poll);
-          SDL.Deinitialize(SDL.InitFlag.Joystick);
+        { SDL.JoystickEventState(SDL.JoystickMode.Poll);
+          for(int i=0; i<joysticks.Length; i++) joysticks[i].Dispose();
           joysticks = null;
+          SDL.Deinitialize(SDL.InitFlag.Joystick);
         }
       }
     }
@@ -561,10 +561,11 @@ public sealed class Input
 
   public static void Deinitialize()
   { if(initCount==0) throw new InvalidOperationException("Deinitialize called too many times!");
-    if(--initCount==0)
+    if(initCount==1)
     { UseJoysticks = false;
       Events.Events.Deinitialize();
     }
+    initCount--;
   }
   
   public static bool ProcessEvent(Event e)

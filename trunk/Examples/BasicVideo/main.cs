@@ -49,7 +49,7 @@ class App
     Events.Initialize();
     while(true)
     { Event e = Events.NextEvent();
-      if(e is KeyboardEvent)
+      if(e.Type==EventType.Keyboard)
       { KeyboardEvent ke = (KeyboardEvent)e;
         if(ke.Down && ke.Key==Key.Escape) break;
         // alt-enter to toggle fullscreen
@@ -59,8 +59,8 @@ class App
           Draw();
         }
       }
-      else if(e is QuitEvent) break; // or when the system tells us to
-      else if(e is RepaintEvent) Video.Flip(); // repaint the screen when necessary
+      else if(e.Type==EventType.Quit) break; // or when the system tells us to
+      else if(e.Type==EventType.Repaint) Video.Flip(); // repaint the screen when necessary
     }
     
     Video.Deinitialize();

@@ -64,11 +64,11 @@ class App
     { Event e;
       while((e=Events.NextEvent(0)) != null)
       { Input.ProcessEvent(e);
-        if(e is KeyboardEvent)
+        if(e.Type==EventType.Keyboard)
         { KeyboardEvent ke = (KeyboardEvent)e;
           if(ke.Down && ke.Key==GameLib.Input.Key.Escape) goto done;
         }
-        else if(e is QuitEvent) goto done;
+        else if(e.Type==EventType.Quit) goto done;
       }
       float time = (float)Timing.Seconds;
       UpdateParticles(time - lastTime);

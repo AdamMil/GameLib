@@ -2491,7 +2491,7 @@ public class DesktopControl : ContainerControl, IDisposable
   { if(!passToInput || Input.Input.ProcessEvent(e))
     { 
       #region Mouse moves
-      if(moves && e is MouseMoveEvent)
+      if(moves && e.Type==EventType.MouseMove)
       { MouseMoveEvent ea = (MouseMoveEvent)e;
         Point at = ea.Point;
         // if the cursor is not within the desktop area, ignore it (unless dragging or capturing)
@@ -2573,7 +2573,7 @@ public class DesktopControl : ContainerControl, IDisposable
       }
       #endregion
       #region Keyboard
-      else if(keys && e is KeyboardEvent)
+      else if(keys && e.Type==EventType.Keyboard)
       { if(FocusedControl!=null || KeyPreview)
         { KeyEventArgs ea = new KeyEventArgs((KeyboardEvent)e);
           ea.KE.Mods = Input.Keyboard.Mods;
@@ -2603,7 +2603,7 @@ public class DesktopControl : ContainerControl, IDisposable
       }
       #endregion
       #region Mouse clicks
-      else if(clicks && e is MouseClickEvent)
+      else if(clicks && e.Type==EventType.MouseClick)
       { ClickEventArgs ea = new ClickEventArgs((MouseClickEvent)e);
         Point  at = ea.CE.Point;
         // if the click is not within the desktop area, ignore it (unless dragging or capturing)
@@ -2671,7 +2671,7 @@ public class DesktopControl : ContainerControl, IDisposable
       #endregion
     }
     #region WindowEvent
-    else if(e is WindowEvent)
+    else if(e.Type==EventType.Window)
     { WindowEvent we = (WindowEvent)e;
       DesktopControl desktop = we.Control.Desktop;
       if(we.SubType==WindowEvent.MessageType.Custom && (desktop==this || desktop==null))
@@ -2971,7 +2971,7 @@ public enum BorderStyle
   Resizeable
 };
 
-public class Helpers
+public sealed class Helpers
 { private Helpers() { }
 
   /// <summary>The direction an arrow points.<seealso cref="DrawArrow"/></summary>
