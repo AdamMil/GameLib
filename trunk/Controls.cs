@@ -590,7 +590,7 @@ public abstract class ScrollBarBase : Control, IDisposable
   }
   #endregion
   
-  protected void Dispose(bool destructor)
+  protected void Dispose(bool destructing)
   { if(crTimer!=null)
     { crTimer.Dispose();
       crTimer=null;

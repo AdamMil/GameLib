@@ -23,9 +23,11 @@ namespace GameLib.IO
 {
 
 #region StreamStream
-public class StreamStream : Stream
-{ public StreamStream(Stream stream, long start, long length) : this(stream, start, length, false) { }
+public class StreamStream : Stream, IDisposable
+{ public StreamStream(Stream stream, long start, long length) : this(stream, start, length, false, false) { }
   public StreamStream(Stream stream, long start, long length, bool shared)
+    : this(stream, start, length, shared, false) { }
+  public StreamStream(Stream stream, long start, long length, bool shared, bool closeInner)
   { if(!stream.CanSeek && (stream.Position!=start || shared))
       throw new ArgumentException("If using an unseekable stream, 'start' must equal 'stream.Position' and "+
                                   "shared must be false");
@@ -34,33 +36,42 @@ public class StreamStream : Stream
     this.stream=stream; this.start=start; this.length=length; this.shared=shared;
     this.position=start;
   }
+  ~StreamStream() { Dispose(true); }
+  public void Dispose() { Dispose(false); GC.SuppressFinalize(this); }
 
-  public override bool CanRead { get { return stream.CanRead; } }
-  public override bool CanSeek { get { return stream.CanSeek; } }
-  public override bool CanWrite { get { return stream.CanWrite; } }
+  public override bool CanRead { get { AssertOpen(); return stream.CanRead; } }
+  public override bool CanSeek { get { AssertOpen(); return stream.CanSeek; } }
+  public override bool CanWrite { get { AssertOpen(); return stream.CanWrite; } }
 
-  public override long Length { get { return length; } }
-  public override long Position { get { return position; } set { Seek(value, SeekOrigin.Begin); } }
+  public override long Length { get { AssertOpen(); return length; } }
+  public override long Position { get { AssertOpen(); return position; } set { Seek(value, SeekOrigin.Begin); } }
 
-  public override void Close() { stream.Close(); }
-  public override void Flush() { stream.Flush(); }
+  public override void Close()
+  { if(stream==null) return;
+    if(closeInner) stream.Close();
+    stream=null;
+  }
+  public override void Flush() { AssertOpen(); stream.Flush(); }
 
   public override int Read(byte[] buffer, int offset, int count)
-  { if(shared) stream.Position = position+start;
+  { AssertOpen();
+    if(shared) stream.Position = position+start;
     int ret = stream.Read(buffer, offset, count);
     position += ret;
     return ret;
   }
 
   public override int ReadByte()
-  { if(shared) stream.Position = position+start;
+  { AssertOpen();
+    if(shared) stream.Position = position+start;
     int ret = stream.ReadByte();
     if(ret!=-1) position++;
     return ret;
   }
 
   public override long Seek(long offset, SeekOrigin origin)
-  { switch(origin)
+  { AssertOpen();
+    switch(origin)
     { case SeekOrigin.Current: offset+=position; break;
       case SeekOrigin.End: offset=length-offset; break;
     }
@@ -70,28 +81,37 @@ public class StreamStream : Stream
   }
 
   public override void SetLength(long value)
-  { if(value>length) throw new NotSupportedException("Cannot increase length of a StreamStream");
+  { AssertOpen();
+    if(value>length) throw new NotSupportedException("Cannot increase length of a StreamStream");
     length=value;
     if(position>length) Position=length;
   }
 
   public override void Write(byte[] buffer, int offset, int count)
-  { if(count>length-position) throw new ArgumentException("Cannot write past the end of a StreamStream");
+  { AssertOpen();
+    if(count>length-position) throw new ArgumentException("Cannot write past the end of a StreamStream");
     if(shared) stream.Position = position+start;
     stream.Write(buffer, offset, count);
     position = stream.Position-start;
   }
 
   public override void WriteByte(byte value)
-  { if(position==length) throw new ArgumentException("Cannot write past the end of a StreamStream");
+  { AssertOpen();
+    if(position==length) throw new ArgumentException("Cannot write past the end of a StreamStream");
     if(shared) stream.Position = position+start;
     stream.WriteByte(value);
     position++;
   }
 
+  protected void AssertOpen()
+  { if(stream==null) throw new ObjectDisposedException("Stream", "The inner stream was already closed.");
+  }
+  
+  protected void Dispose(bool destructing) { Close(); }
+
   Stream stream;
   long start, length, position;
-  bool shared;
+  bool shared, closeInner;
 }
 #endregion
 
