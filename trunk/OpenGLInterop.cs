@@ -1500,7 +1500,7 @@ public sealed class GL
   public unsafe static void glGenTextures(uint[] textures, int index, int length)
   { fixed(uint* p=textures) glGenTextures(length, p+index);
   }
-  public unsafe static void glGenTexture(out uint texture) { fixed(uint* pt=&texture) glGenTextures(1, pt); }
+  public unsafe static void glGenTexture(out uint texture) { fixed(uint* tp=&texture) glGenTextures(1, tp); }
   [DllImport(Config.OpenGLImportPath, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glGetBooleanv(uint pname, byte* parms);
   [DllImport(Config.OpenGLImportPath, CallingConvention=CallingConvention.Winapi)]
