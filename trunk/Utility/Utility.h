@@ -39,6 +39,7 @@ extern DECLSPEC void   SDLCALL GLU_ResetTimer();
 
 extern DECLSPEC wchar_t SDLCALL GLU_Getch();
 extern DECLSPEC wchar_t SDLCALL GLU_Getche();
+extern DECLSPEC Uint8   SDLCALL GLU_KbHit();
 
 extern DECLSPEC void SDLCALL GLU_MemCopy(void *src, void *dest, int length);
 extern DECLSPEC void SDLCALL GLU_MemFill(void *dest, Uint8 value, int length);

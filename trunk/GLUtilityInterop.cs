@@ -47,6 +47,8 @@ internal sealed class Utility
   public static extern char Getch();
   [DllImport(Config.GLUtilityImportPath, EntryPoint="GLU_Getche", CallingConvention=CallingConvention.Cdecl)]
   public static extern char Getche();
+  [DllImport(Config.GLUtilityImportPath, EntryPoint="GLU_KbHit", CallingConvention=CallingConvention.Cdecl)]
+  public static extern bool KbHit();
 
   [DllImport(Config.GLUtilityImportPath, EntryPoint="GLU_MemCopy", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern void MemCopy(void *src, void *dest, int length);
