@@ -29,6 +29,7 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Runtime.InteropServices;
 using System.Reflection;
+using System.Security.Permissions;
 using GameLib.IO;
 
 namespace GameLib.Network
@@ -59,7 +60,7 @@ public interface INetSerializable
   /// than can be used, where N is the value obtained by calling <see cref="SizeOf"/>.
   /// </remarks>
   void SerializeTo(byte[] buf, int index);
-  
+
   /// <summary>Deserializes an object from a byte array.</summary>
   /// <param name="buf">The byte array from which the object should be deserialized.</param>
   /// <param name="index">The index into <paramref name="buf"/> from which data should be read.</param>
@@ -68,7 +69,12 @@ public interface INetSerializable
   /// N bytes at <paramref name="index"/> than can be used, where N was the value obtained by calling <see
   /// cref="SizeOf"/> during the serialization process.
   /// </remarks>
-  void DeserializeFrom(byte[] buf, int index);
+  /// <returns>The number of bytes read from <paramref name="buf"/>. The return value is used when deserializing
+  /// arrays of objects that implement <see cref="INetSerializable"/>. Since each object can be a different size,
+  /// the return value is used to find the offset of the next item in the array. This should be the same as the
+  /// value that <see cref="SizeOf"/> returned during serialization.
+  /// </returns>
+  int DeserializeFrom(byte[] buf, int index);
 }
 
 /// <summary>This represents the status of a send and/or receive queue.</summary>
@@ -170,7 +176,7 @@ public enum QueueStat
 /// <see cref="System.Byte"/>), and furthermore, must be registered in the same order in order to be deserialized
 /// by an instance of this class. This means that that for an application using Client and Server, the same types
 /// must be registered in the Client and Server in the same order, or else they will not be able to communicate
-/// successfully.
+/// successfully. See <see cref="RegisterType"/> for more information. <seealso cref="RegisterType"/>
 /// </remarks>
 public sealed class MessageConverter
 { 
@@ -193,24 +199,37 @@ public sealed class MessageConverter
 
   /// <summary>Registers a list of types.</summary>
   /// <param name="types">An array of <see cref="System.Type"/> holding types to be registered.</param>
+  /// <include file="documentation.xml" path="//Network/MessageConverter/RegisterType/*"/>
   public void RegisterTypes(params Type[] types) { foreach(Type type in types) RegisterType(type); }
 
   /// <summary>Registers a given type, allowing it to be serialized and deserialized by this class.</summary>
   /// <param name="type">The <see cref="System.Type"/> to be registered.</param>
+  /// <include file="documentation.xml" path="//Network/MessageConverter/RegisterType/*"/>
   public void RegisterType(Type type)
-  { if(typeIDs.Contains(type)) throw new ArgumentException(type.ToString()+" has already been registered.");
+  { if(type==null) throw new ArgumentNullException("type");
+    if(typeIDs.Contains(type)) throw new ArgumentException(type.ToString()+" has already been registered.", "type");
+    if(type.IsArray) throw new ArgumentException("Arrays types cannot be registered. Instead, register the element type of the array. For instance, if you want to send an array of System.Double, register the System.Double type.", "type");
+    if(type.HasElementType) throw new ArgumentException("Pointer/reference types cannot be registered.", "type");
 
     TypeInfo info;
     if(type.GetInterface("GameLib.Network.INetSerializable")!=null)
     { ConstructorInfo cons = type.GetConstructor(Type.EmptyTypes);
-      if(cons==null) throw new ArgumentException(String.Format("Type {0} has no parameterless constructor", type));
+      if(cons==null) throw new ArgumentException(type.ToString()+" {0} has no default constructor.");
       info = new TypeInfo(type, cons);
     }
-    else info = new TypeInfo(type, null);
+    else
+    { info = new TypeInfo(type, null);
+
+      try
+      { if(!IsBlittable(type)) throw new ArgumentException("Non-blittable types (types containing reference fields, or unformatted classes) cannot be serialized unless they implement the INetSerializable interface.", "type");
+      }
+      catch(System.Security.SecurityException) { info.Unsafe=true; }
+    }
+
     int  i;
     for(i=0; i<types.Count; i++) if(types[i]==null) break;
     if(i==types.Count) types.Add(info); else types[i] = info;
-    typeIDs[type] = i;
+    typeIDs[type] = (uint)i;
   }
 
   /// <summary>Unregisters a list of types.</summary>
@@ -221,9 +240,9 @@ public sealed class MessageConverter
   /// <param name="type">The <see cref="System.Type"/> to unregister.</param>
   public void UnregisterType(Type type)
   { if(!typeIDs.Contains(type)) throw new ArgumentException(type.ToString()+" is not a registered type");
-    int index = (int)typeIDs[type];
+    uint index = (uint)typeIDs[type];
     typeIDs.Remove(type);
-    types[index] = null;
+    types[(int)index] = null;
   }
 
   /// <summary>Deserializes an object contained in a <see cref="LinkMessage"/>.</summary>
@@ -236,7 +255,7 @@ public sealed class MessageConverter
   /// <param name="index">The index into <paramref name="data"/> at which the object data begins.</param>
   /// <param name="length">The length of the object data to be used for deserialization.</param>
   /// <returns>An object by created by deserializing the data from the array.</returns>
-  public object Deserialize(byte[] data, int index, int length)
+  public unsafe object Deserialize(byte[] data, int index, int length)
   { if(!AltersByteArray)
     { if(length==data.Length) return data;
       else
@@ -246,22 +265,51 @@ public sealed class MessageConverter
       }
     }
     else
-    { int id = IOH.ReadLE4(data, index);
+    { uint id = IOH.ReadBE4U(data, index);
+      bool isArray = (id&0x80000000)!=0;
+      if(isArray) id &= 0x7FFFFFFF;
+
       if(id==0)
       { byte[] buf = new byte[length-4];
         Array.Copy(data, index+4, buf, 0, length-4);
         return buf;
       }
-      else
-      { if(id<1 || id>types.Count || types[id-1]==null) return null;
-        TypeInfo info = (TypeInfo)types[id-1];
-        if(info.ConsInterface!=null)
-        { INetSerializable ns = (INetSerializable)info.ConsInterface.Invoke(null);
-          ns.DeserializeFrom(data, index+4);
-          return ns;
+
+      if(id>types.Count || types[(int)id-1]==null) throw new ArgumentException("Unregistered type id: "+id);
+      TypeInfo info = (TypeInfo)types[(int)id-1];
+      Type type = info.Type;
+
+      if(isArray)
+      { if(info.ConsInterface!=null)
+        { ArrayList objects = new ArrayList();
+          for(int i=4; i<data.Length; )
+          { INetSerializable ns = (INetSerializable)info.ConsInterface.Invoke(null);
+            i += ns.DeserializeFrom(data, i);
+            objects.Add(ns);
+          }
+          return objects.ToArray(type);
         }
-        else unsafe { fixed(byte* buf=data) return Marshal.PtrToStructure(new IntPtr(buf+index+4), info.Type); }
+
+        int size = Marshal.SizeOf(type);
+        Array arr = Array.CreateInstance(type, (length-4)/size);
+
+        if(arr.Length!=0)
+          fixed(byte* src=data)
+          { GCHandle handle = GCHandle.Alloc(arr, GCHandleType.Pinned);
+            try
+            { IntPtr dest = Marshal.UnsafeAddrOfPinnedArrayElement(arr, 0);
+              Interop.Unsafe.Copy(src+index+4, dest.ToPointer(), arr.Length*size);
+            }
+            finally { handle.Free(); }
+          }
+        return arr;
       }
+      else if(info.ConsInterface!=null)
+      { INetSerializable ns = (INetSerializable)info.ConsInterface.Invoke(null);
+        ns.DeserializeFrom(data, index+4);
+        return ns;
+      }
+      else fixed(byte* src=data) return Marshal.PtrToStructure(new IntPtr(src+index+4), type);
     }
   }
 
@@ -309,27 +357,79 @@ public sealed class MessageConverter
   /// <remarks>If the object is not an array of <see cref="System.Byte"/>, the object's type must be registered
   /// (using <see cref="RegisterType"/>) before you can serialize it.
   /// </remarks>
-  public byte[] Serialize(object obj)
+  public unsafe byte[] Serialize(object obj)
   { if(obj==null) throw new ArgumentNullException("obj");
     if(obj is byte[]) return Serialize((byte[])obj);
+
     if(typeIDs.Count==0)
       throw new ArgumentException("If no types are registered, only byte[] can be sent.");
     else
     { Type type = obj.GetType();
+      bool isArray = type.IsArray;
+
+      if(isArray)
+      { if(type.GetArrayRank()!=1) throw new ArgumentException("Can't automatically serialize arrays with more than one dimension. Wrap them in an object that implements INetSerializable.");
+        type=type.GetElementType();
+      }
+
       if(!typeIDs.Contains(type)) throw new ArgumentException(String.Format("{0} is not a registered type", type));
-      int id = (int)typeIDs[type];
-      TypeInfo info = (TypeInfo)types[id];
+      uint id = (uint)typeIDs[type];
+      TypeInfo info = (TypeInfo)types[(int)id];
       byte[]   ret;
-      if(info.ConsInterface!=null)
+
+      if(isArray)
+      { Array arr = (Array)obj;
+
+        if(info.ConsInterface!=null)
+        { int i=0, j=0;
+          unsafe
+          { int* sizes = stackalloc int[arr.Length];
+            foreach(INetSerializable ns in arr) { sizes[i]=ns.SizeOf(); j += sizes[i++]; }
+            ret = new byte[j+4];
+            i=0; j=4;
+            foreach(INetSerializable ns in arr) { ns.SerializeTo(ret, j); j += sizes[i++]; }
+          }
+        }
+        else
+        { int size = Marshal.SizeOf(type);
+          ret = new byte[arr.Length*size+4];
+
+          if(arr.Length!=0)
+            fixed(byte* dest=ret)
+              if(info.Unsafe)
+                for(int i=0,j=4; i<arr.Length; j+=size,i++)
+                { IntPtr dp = new IntPtr(dest+j);
+                  Marshal.StructureToPtr(arr.GetValue(i), dp, false);
+                  Marshal.DestroyStructure(dp, type);
+                }
+              else
+              { GCHandle handle = GCHandle.Alloc(arr, GCHandleType.Pinned);
+                try
+                { IntPtr src = Marshal.UnsafeAddrOfPinnedArrayElement(arr, 0);
+                  Interop.Unsafe.Copy(src.ToPointer(), dest+4, ret.Length-4);
+                }
+                finally { handle.Free(); }
+              }
+        }
+      }
+      else if(info.ConsInterface!=null)
       { INetSerializable ns = (INetSerializable)obj;
         ret = new byte[ns.SizeOf()+4];
         ns.SerializeTo(ret, 4);
       }
       else
-      { ret = new byte[Marshal.SizeOf(type)+4];
-        unsafe { fixed(byte* ptr = ret) Marshal.StructureToPtr(obj, new IntPtr(ptr+4), false); }
+      { int size = Marshal.SizeOf(type);
+        ret = new byte[size+4];
+        fixed(byte* dest=ret)
+        { IntPtr dp = new IntPtr(dest+4);
+          Marshal.StructureToPtr(obj, dp, false);
+          if(info.Unsafe) Marshal.DestroyStructure(dp, type);
+        }
       }
-      IOH.WriteLE4(ret, 0, id+1);
+
+      id++;
+      if(isArray) id |= 0x80000000;
+      IOH.WriteBE4U(ret, 0, id);
       return ret;
     }
   }
@@ -338,10 +438,32 @@ public sealed class MessageConverter
   { public TypeInfo(Type type, ConstructorInfo cons) { Type=type; ConsInterface=cons; }
     public Type Type;
     public ConstructorInfo ConsInterface;
+    public bool Unsafe;
   }
 
   ArrayList types = new ArrayList();
   HybridDictionary typeIDs = new HybridDictionary();
+
+  static bool IsBlittable(Type type)
+  { if(type.IsPrimitive) return true;
+    if(!type.IsValueType && !type.IsLayoutSequential && !type.IsExplicitLayout) return false;
+    new ReflectionPermission(ReflectionPermissionFlag.TypeInformation).Demand();
+    return IsBlittable(type, null);
+  }
+
+  static bool IsBlittable(Type type, ArrayList saw)
+  { foreach(FieldInfo fi in type.GetFields(BindingFlags.Instance|BindingFlags.NonPublic|BindingFlags.Public))
+    { Type ft = fi.FieldType;
+      if(ft.IsPrimitive) continue;
+      if(!ft.IsValueType && !ft.IsLayoutSequential && !ft.IsExplicitLayout) return false;
+      if(saw==null) saw = new ArrayList();
+      if(!saw.Contains(ft))
+      { saw.Add(ft);
+        if(!IsBlittable(ft, saw)) return false;
+      }
+    }
+    return true;
+  }
 }
 #endregion
 
@@ -838,7 +960,7 @@ public sealed class NetLink
         { bool send;
           if(link.sendQueue==0) send=false;
           else
-          { if(write!=null) write = new ArrayList();
+          { if(write==null) write = new ArrayList();
             send=true;
           }
 
