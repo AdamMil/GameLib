@@ -1,10 +1,12 @@
 // TODO: implement more controls (checkbox, editbox, listbox, dropdown)
 // TODO: implement a form (dialog) control
+// TODO: have controls display differently when disabled
 using System;
 using System.Collections;
 using System.Drawing;
 using GameLib.Fonts;
 using GameLib.Video;
+using GameLib.Input;
 
 namespace GameLib.Forms
 {
@@ -17,10 +19,11 @@ public class ContainerControl : Control
   { for(int i=Controls.Count-1; i>=0; i--) // we count backwards because the first element is on top
     { Control c = Controls[i];
       if(c.Visible)
-      { Rectangle paint = Rectangle.Intersect(c.ParentRect, e.ClientRect);
+      { Rectangle paint = Rectangle.Intersect(c.ParentRect, e.WindowRect);
         if(paint.Width>0)
         { paint.X -= c.Left; paint.Y -= c.Top;
-          c.Refresh(paint);
+          c.AddInvalidRect(paint);
+          c.Update();
         }
       }
     }
@@ -140,14 +143,14 @@ public abstract class ButtonBase : LabelBase
 
   protected internal override void OnMouseClick(ClickEventArgs e)
   { if(e.CE.Button==0 && !e.Handled)
-    { if(ClientRect.Contains(e.CE.Point)) OnClick(e);
+    { if(WindowRect.Contains(e.CE.Point)) OnClick(e);
       e.Handled = true;
     }
     base.OnMouseClick(e);
   }
   
   protected internal override void OnKeyDown(KeyEventArgs e)
-  { if((e.KE.Key==Input.Key.Return || e.KE.Key==Input.Key.Space || e.KE.Key==Input.Key.KpEnter) && !e.Handled)
+  { if((e.KE.Key==Key.Return || e.KE.Key==Key.Space || e.KE.Key==Key.KpEnter) && !e.Handled)
       OnClick(new ClickEventArgs());
   }
 
@@ -336,12 +339,23 @@ public class ScrollBarBase : Control
   }
 
   protected internal override void OnMouseDown(ClickEventArgs e)
-  { if(e.CE.Button==0 && crTimer!=null)
-    { Place p = FindPlace(e.CE.Point);
-      if(p != Place.Thumb)
-      { repeatEvent = new ClickRepeat(this, p);
-        crTimer.Change(crDelay, crRate);
+  { if(!e.Handled && e.CE.Button==0)
+    { if(crTimer!=null)
+      { Place p = FindPlace(e.CE.Point);
+        if(p != Place.Thumb)
+        { repeatEvent = new ClickRepeat(this, p);
+          crTimer.Change(crDelay, crRate);
+        }
       }
+      if(!repeated)
+      { switch(FindPlace(e.CE.Point))
+        { case Place.Down: OnDown(eventArgs); break;
+          case Place.PageDown: OnPageDown(eventArgs); break;
+          case Place.PageUp: OnPageUp(eventArgs); break;
+          case Place.Up: OnUp(eventArgs); break;
+        }
+      }
+      e.Handled = true;
     }
   }
   protected internal override void OnMouseUp(ClickEventArgs e)
@@ -357,18 +371,6 @@ public class ScrollBarBase : Control
       repeatEvent = null;
       repeated    = false;
     }
-  }
-  protected internal override void OnMouseClick(ClickEventArgs e)
-  { if(!repeated && !e.Handled && e.CE.Button==0)
-    { switch(FindPlace(e.CE.Point))
-      { case Place.Down: OnDown(eventArgs); break;
-        case Place.PageDown: OnPageDown(eventArgs); break;
-        case Place.PageUp: OnPageUp(eventArgs); break;
-        case Place.Up: OnUp(eventArgs); break;
-      }
-      e.Handled = true;
-    }
-    base.OnMouseClick(e);
   }
   protected internal override void OnDragStart(DragEventArgs e)
   { if(!repeated && e.Pressed(0) && FindPlace(e.Start)==Place.Thumb)
@@ -395,21 +397,23 @@ public class ScrollBarBase : Control
     base.OnDragEnd(e);
   }
   protected internal override void OnCustomEvent(Events.WindowEvent e)
-  { switch(((ClickRepeat)e).Place)
-    { case Place.Down: OnDown(eventArgs); break;
-      case Place.PageDown: OnPageDown(eventArgs); break;
-      case Place.PageUp: OnPageUp(eventArgs); break;
-      case Place.Up: OnUp(eventArgs); break;
+  { if(e is ClickRepeat)
+    { switch(((ClickRepeat)e).Place)
+      { case Place.Down: OnDown(eventArgs); break;
+        case Place.PageDown: OnPageDown(eventArgs); break;
+        case Place.PageUp: OnPageUp(eventArgs); break;
+        case Place.Up: OnUp(eventArgs); break;
+      }
     }
     base.OnCustomEvent(e);
   }
   protected internal override void OnKeyDown(KeyEventArgs e)
   { if(!e.Handled)
       switch(e.KE.Key)
-      { case Input.Key.PageDown: OnPageUp(eventArgs); break;
-        case Input.Key.PageUp: OnPageDown(eventArgs); break;
-        case Input.Key.Down: case Input.Key.Right: OnUp(eventArgs); break;
-        case Input.Key.Up: case Input.Key.Left: OnDown(eventArgs); break;
+      { case Key.PageDown: OnPageUp(eventArgs); break;
+        case Key.PageUp: OnPageDown(eventArgs); break;
+        case Key.Down: case Key.Right: OnUp(eventArgs); break;
+        case Key.Up: case Key.Left: OnDown(eventArgs); break;
       }
     base.OnKeyDown(e);
   }
@@ -450,10 +454,10 @@ public class ScrollBarBase : Control
     { if(position>Width) position=Width-1;
     }
     else if(position>Height) position=Height-1;
-    return (position-endSize)*(max-min)/Space;
+    return (position-endSize)*(max-min)/Space+min;
   }
     
-  protected int ValueToThumb(int value) { return value*Space/(max-min)+endSize; }
+  protected int ValueToThumb(int value) { return (value-min)*Space/(max-min)+endSize; }
 
   protected Place FindPlace(Point click)
   { int size = horizontal ? Width : Height;
@@ -528,8 +532,15 @@ public class TextBoxBase : Control
     set
     { if(value!=caret)
       { if(value<0 || value>Text.Length) throw new ArgumentOutOfRangeException("CaretPosition");
+        int oldlen = selectLen;
         ValueChangedEventArgs e = new ValueChangedEventArgs(caret);
         caret = value;
+        if(selectLen>0)
+        { if(caret+selectLen>Text.Length) selectLen = Text.Length-caret;
+        }
+        else if(caret-selectLen<0) selectLen = -caret;
+        caretOn = true;
+        if(oldlen!=0 && (Focused || !hideSelection)) Invalidate();
         OnCaretPositionChanged(e);
       }
     }
@@ -572,36 +583,45 @@ public class TextBoxBase : Control
     set { if(value) throw new NotImplementedException("MultiLine text boxes not implemented"); }
   }
 
-  public int SelectionStart
-  { get { return selectStart; }
+  public string SelectedText
+  { get
+    { return selectLen<0 ? Text.Substring(caret+selectLen, -selectLen) : Text.Substring(caret, selectLen);
+    }
     set
-    { if(value!=selectStart)
-      { if(value<0 || value>=Text.Length) throw new ArgumentOutOfRangeException("SelectionStart");
-        selectStart = value;
-        if(selectStart+selectLen>Text.Length) selectLen = Text.Length-selectStart;
-        if(Focused || !hideSelection) Invalidate();
-      }
+    { if(value==null) throw new ArgumentNullException("SelectedText");
+      int start=caret, end=caret;
+      if(selectLen<0) start += selectLen;
+      else end += selectLen;
+      Select(start, value.Length);
+      Text = Text.Substring(0, start) + value + Text.Substring(end, Text.Length-end);
     }
   }
+
+  public int SelectionEnd { get { return selectLen<0 ? caret : caret+selectLen; } }
 
   public int SelectionLength
   { get { return selectLen; }
     set
     { if(value!=selectLen)
-      { if(value<0 || value>Text.Length) throw new ArgumentOutOfRangeException("SelectionLength");
+      { if(value<-Text.Length || value>Text.Length) throw new ArgumentOutOfRangeException("SelectionLength");
         selectLen = value;
         if(Focused || !hideSelection) Invalidate();
       }
     }
   }
   
-  public string SelectedText
-  { get { return Text.Substring(selectStart, selectLen); }
-    set
-    { if(value==null) throw new ArgumentNullException("SelectedText");
-      int selectEnd = selectStart+selectLen;
-      selectLen = value.Length;
-      Text = Text.Substring(0, selectStart) + value + Text.Substring(selectEnd, Text.Length-selectEnd);
+  public int SelectionStart { get { return selectLen<0 ? caret+selectLen : caret; } }
+
+  public override string Text
+  { set
+    { if(caret>value.Length)
+      { if(selectLen<0)
+        { if(-selectLen > value.Length) Select(value.Length, -value.Length);
+        }
+        else Select(value.Length, 0);
+      }
+      else if(caret+selectLen>value.Length) Select(caret, value.Length-caret);
+      base.Text = value;
     }
   }
 
@@ -614,6 +634,9 @@ public class TextBoxBase : Control
   protected virtual void OnCaretPositionChanged(ValueChangedEventArgs e) { }
   protected virtual void OnCaretFlash() { }
   
+  protected override void OnGotFocus (EventArgs e) { withCaret=this; base.OnGotFocus(e); }
+  protected override void OnLostFocus(EventArgs e) { withCaret=null; base.OnLostFocus(e); }
+
   protected internal override void OnKeyPress(KeyEventArgs e)
   { if(e.KE.Char>=32)
     { if(maxLength==-1 || Text.Length<maxLength) { Modified=true; InsertText(e.KE.Char.ToString()); }
@@ -623,54 +646,67 @@ public class TextBoxBase : Control
   }
   
   protected internal override void OnKeyDown(KeyEventArgs e)
-  { if(e.KE.Key==Input.Key.Left)
-    { if(caret>0)
-      { if(e.KE.KeyMods==Input.KeyMod.None) { CaretPosition--; e.Handled=true; }
-        else if(e.KE.HasOnlyKeys(Input.KeyMod.Shift))
-        { if(caret<selectStart) Select(selectStart-1, selectLen+1);
-          else Select(selectStart, selectLen-1);
-          e.Handled=true;
-        }
-      }
-    }
-    else if(e.KE.Key==Input.Key.Right)
-    { if(caret>0)
-      { if(e.KE.KeyMods==Input.KeyMod.None) { CaretPosition--; e.Handled=true; }
-        else if(e.KE.HasOnlyKeys(Input.KeyMod.Shift))
-        { if(caret<selectStart) Select(selectStart-1, selectLen+1);
-          else Select(selectStart, selectLen-1);
-          e.Handled=true;
-        }
-      }
-    }
-    else if(e.KE.Key==Input.Key.Backspace)
-    { if(e.KE.KeyMods==Input.KeyMod.None)
+  { char c=e.KE.Char;
+    // TODO: implement ctrl-arrow
+    if(e.KE.Key==Key.Left)
+    { if(e.KE.KeyMods==KeyMod.None || e.KE.HasOnlyKeys(KeyMod.Shift))
       { if(caret>0)
-        { Modified=true;
-          CaretPosition--;
-          Text = Text.Substring(0, caret) + Text.Substring(caret+1, Text.Length-caret-1);
-          e.Handled=true;
+        { if(e.KE.KeyMods!=KeyMod.None) Select(caret-1, selectLen+1);
+          else Select(caret-1, 0);
         }
+        else if(e.KE.KeyMods==KeyMod.None) SelectionLength=0;
+        e.Handled=true;
       }
     }
-    else if(e.KE.Key==Input.Key.Home)
-    { if(e.KE.KeyMods==Input.KeyMod.None) { CaretPosition=0; e.Handled=true; }
+    else if(e.KE.Key==Key.Right)
+    { if(e.KE.KeyMods==KeyMod.None || e.KE.HasOnlyKeys(KeyMod.Shift))
+      { if(caret<Text.Length)
+        { if(e.KE.KeyMods!=KeyMod.None) Select(caret+1, selectLen-1);
+          else Select(caret+1, 0);
+        }
+        else if(e.KE.KeyMods==KeyMod.None) SelectionLength=0;
+        e.Handled=true;
+      }
     }
-    else if(e.KE.Key==Input.Key.End)
-    { if(e.KE.KeyMods==Input.KeyMod.None) { CaretPosition=Text.Length; e.Handled=true; }
+    else if(e.KE.Key==Key.Backspace)
+    { if(e.KE.KeyMods==KeyMod.None)
+      { if(selectLen!=0) { Modified=true; SelectedText=""; }
+        else if(caret>0)
+        { Modified=true;
+          Select(caret-1, 0);
+          Text = Text.Substring(0, caret) + Text.Substring(caret+1, Text.Length-caret-1);
+        }
+        e.Handled=true;
+      }
     }
-    else if(e.KE.HasOnlyKeys(Input.KeyMod.Ctrl) && (e.KE.Key==Input.Key.C || e.KE.Key==Input.Key.Insert))
+    else if(e.KE.Key==Key.Delete && e.KE.KeyMods==KeyMod.None)
+    { if(selectLen!=0) { Modified=true; SelectedText=""; }
+      else if(caret<Text.Length)
+      { Modified=true;
+        Text = Text.Substring(0, caret) + Text.Substring(caret+1, Text.Length-caret-1);
+      }
+      e.Handled=true;
+    }
+    else if(e.KE.Key==Key.Home)
+    { if(e.KE.KeyMods==KeyMod.None) { Select(0, 0); e.Handled=true; }
+      else if(e.KE.HasOnlyKeys(KeyMod.Shift)) { Select(0, caret); e.Handled=true; }
+    }
+    else if(e.KE.Key==Key.End)
+    { if(e.KE.KeyMods==KeyMod.None) { Select(Text.Length, 0); e.Handled=true; }
+      else if(e.KE.HasOnlyKeys(KeyMod.Shift)) { Select(caret, Text.Length-caret); e.Handled=true; }
+    }
+    else if(e.KE.HasOnlyKeys(KeyMod.Ctrl) && (c=='C'-64 || e.KE.Key==Key.Insert))
     { Copy();
       e.Handled=true;
     }
-    else if(e.KE.Key==Input.Key.X      && e.KE.HasOnlyKeys(Input.KeyMod.Ctrl) ||
-            e.KE.Key==Input.Key.Delete && e.KE.HasOnlyKeys(Input.KeyMod.Shift))
-    { if(selectLen>0) Modified=true;
-      Cut();
+    else if(c=='X'-64 && e.KE.HasOnlyKeys(KeyMod.Ctrl) || e.KE.Key==Key.Delete && e.KE.HasOnlyKeys(KeyMod.Shift))
+    { if(selectLen!=0)
+      { Modified=true;
+        Cut();
+      }
       e.Handled=true;
     }
-    else if(e.KE.Key==Input.Key.V      && e.KE.HasOnlyKeys(Input.KeyMod.Ctrl) ||
-            e.KE.Key==Input.Key.Insert && e.KE.HasOnlyKeys(Input.KeyMod.Shift))
+    else if(c=='V'-64 && e.KE.HasOnlyKeys(KeyMod.Ctrl) || e.KE.Key==Key.Insert && e.KE.HasOnlyKeys(KeyMod.Shift))
     { if(maxLength==-1 || Text.Length<maxLength)
       { Modified=true;
         if(maxLength==-1) Paste();
@@ -681,6 +717,7 @@ public class TextBoxBase : Control
       }
       e.Handled=true;
     }
+    else if(c=='A'-64 && e.KE.HasOnlyKeys(KeyMod.Ctrl)) { SelectAll(); e.Handled=true; }
   }
   #endregion
 
@@ -692,7 +729,7 @@ public class TextBoxBase : Control
   public void Paste() { InsertText(clipboard); }
 
   public void InsertText(string text)
-  { if(selectLen>0) SelectedText=text;
+  { if(selectLen!=0) { SelectedText = text; Select(caret+selectLen, 0); }
     else if(text.Length>0)
     { Text = Text.Substring(0, caret) + text + Text.Substring(caret, Text.Length-caret);
       CaretPosition += text.Length;
@@ -701,11 +738,13 @@ public class TextBoxBase : Control
 
   public void ScrollToCaret() { }
 
-  public void Select(int start, int length) { SelectionStart=start; SelectionLength=length; }
-  public void SelectAll() { SelectionStart=0; SelectionLength=Text.Length; }
+  public void Select(int start, int length) { CaretPosition=start; SelectionLength=length; }
+  public void SelectAll() { CaretPosition=Text.Length; SelectionLength=-Text.Length; }
   #endregion
   
-  int  caret, maxLength=-1, selectStart, selectLen;
+  protected bool HasCaret { get { return withCaret==this; } }
+
+  int  caret, selectLen, maxLength=-1;
   bool hideSelection, modified, wordWrap;
 
   #region Statics
@@ -759,6 +798,98 @@ public class TextBoxBase : Control
 public class TextBox : TextBoxBase
 { 
 }
+#endregion
+
+#region FormBase
+/*
+public class FormBase : ContainerControl
+{ public bool Modal { get; set; }
+  
+  public void Close()
+  { if(Parent!=null) return;
+    System.ComponentModel.CancelEventArgs e;
+    OnClosing(e);
+    if(!e.Cancel)
+    { OnClosed(new EventArgs());
+      Parent = null;
+    }
+  }
+
+  #region Events
+  public event System.ComponentModel.CancelEventHandler Closing;
+  public event EventHandler Closed;
+  
+  protected virtual void OnClosing(System.ComponentModel.CancelEventHandler e)
+  { if(Closing!=null) Closing(this, e);
+  }
+  protected virtual void OnClosed(EventArgs e) { if(Closed) Closed(this, e); }
+
+  protected virtual void OnNcMouseDown(ClickEventArgs e) { }
+  protected virtual void OnNcMouseUp(ClickEventArgs e) { }
+  protected virtual void OnNcMouseClick(ClickEventArgs e) { }
+  
+  protected virtual void OnNcDragStart(DragEventArgs e) { }
+  protected virtual void OnNcDragMove(DragEventArgs e) { }
+  protected virtual void OnNcDragEnd(DragEventArgs e) { }
+  
+  protected virtual void OnNcPaint(PaintEventArgs e) { }
+  
+  protected internal virtual void OnMouseDown(ClickEventArgs e)
+  { if(NonClientRect.Contains(e.CE.Point)) OnNcMouseDown(e);
+    e.Handled = true;
+    base.OnMouseDown(e);
+  }
+  
+  protected internal virtual void OnMouseUp(ClickEventArgs e)
+  { if(NonClientRect.Contains(e.CE.Point)) OnNcMouseUp(e);
+    e.Handled = true;
+    base.OnMouseUp(e);
+  }
+  
+  protected internal virtual void OnMouseClick(ClickEventArgs e)
+  { if(NonClientRect.Contains(e.CE.Point)) OnNcMouseClick(e);
+    e.Handled = true;
+    base.OnMouseClick(e);
+  }
+  
+  protected internal virtual void OnDragStart(DragEventArgs e)
+  { if(NonClientRect.Contains(e.Start)) OnNcDragStart(e);
+    base.OnDragStart(e);
+  }
+  
+  protected internal virtual void OnDragMove(DragEventArgs e)
+  { if(NonClientRect.Contains(e.End)) OnNcDragMove(e);
+    base.OnDragMove(e);
+  }
+
+  protected internal virtual void OnDragEnd(DragEventArgs e)
+  { if(NonClientRect.Contains(e.End)) OnNcDragEnd(e);
+    base.OnDragEnd(e);
+  }
+  
+  protected internal virtual void OnPaint(PaintEventArgs e);
+  { base.OnPaint(e);
+
+    //Rectangle displayRect = e.DisplayRect, windowRect = e.WindowRect;
+    //e.DisplayRect.Intersect(ncRect);
+    //if(e.DisplayRect.Width>0)
+    //{ e.WindowRect = RectToWindow(e.DisplayRect);
+    //  OnNcPaint(e);
+    //}
+  }
+  #endregion
+  
+  protected Rectangle NonClientRect { get { return ncRect; } set { ncRect=value; } }
+  
+  protected Point WindowToNonClient(Point windowPoint);
+  protected Point NonClientToWindow(Point ncPoint);
+
+  protected Rectangle WindowToNonClient(Rectangle windowRect);
+  protected Rectangle NonClientToWindow(Rectangle ncRect);
+
+  Rectangle ncRect;
+}
+*/
 #endregion
 
 } // namespace GameLib.Forms
