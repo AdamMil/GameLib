@@ -64,7 +64,7 @@ public enum FocusType
   /// window.
   /// </summary>
   Mouse=SDL.FocusType.MouseFocus,
-  /// <summary>Input focus was gained or lost. Typically this occurs when the moves into the foreground or
+  /// <summary>Input focus was gained or lost. Typically this occurs when the application moves into the foreground or
   /// background.
   /// </summary>
   Input=SDL.FocusType.InputFocus,
@@ -74,11 +74,12 @@ public enum FocusType
   Application=SDL.FocusType.AppActive
 };
 
-/// <summary>This enum holds values specifying the position of a joystick hat.</summary>
+/// <summary>This enum holds values specifying the position of a joystick POV hat.</summary>
+[Flags]
 public enum HatPosition : byte
 { 
   /// <summary>The hat is centered (not pushed in any position).</summary>
-  Center=SDL.HatPos.Centered,
+  Center=0,
   /// <summary>The hat is pushed upwards.</summary>
   Up=SDL.HatPos.Up,
   /// <summary>The hat is pushed downwards.</summary>
@@ -88,13 +89,13 @@ public enum HatPosition : byte
   /// <summary>The hat is pushed to the right.</summary>
   Right=SDL.HatPos.Right,
   /// <summary>The hat is pushed to the upper left.</summary>
-  UpLeft=SDL.HatPos.UpLeft,
+  UpLeft=Up|Left,
   /// <summary>The hat is pushed to the upper right.</summary>
-  UpRight=SDL.HatPos.UpRight,
+  UpRight=Up|Right,
   /// <summary>The hat is pushed to the lower left.</summary>
-  DownLeft=SDL.HatPos.DownLeft,
+  DownLeft=Down|Left,
   /// <summary>The hat is pushed to the lower right.</summary>
-  DownRight=SDL.HatPos.DownRight
+  DownRight=Down|Right
 }
 
 /// <summary>This enum contains values specifying from where an exception was thrown.</summary>
@@ -104,11 +105,23 @@ public enum ExceptionLocation
   Unknown,
   /// <summary>The exception was thrown from the audio thread.</summary>
   AudioThread,
-  /// <summary>The exception was thrown from the network thread.</summary>
+  /// <summary>The exception was thrown from a network thread.</summary>
   NetworkThread,
   /// <summary>The exception occurred in a user thread.</summary>
   UserThread
 };
+/// <summary>This enum contains values that can be returned from an event filter to tell the <see cref="Events"/>
+/// class what to do with the event.
+/// </summary>
+public enum FilterAction
+{ 
+  /// <summary>The event should be passed onto the next filter, or queued (accepted) if there are no other filters.</summary>
+  Continue,
+  /// <summary>The event should be dropped (rejected) immediately.</summary>
+  Drop,
+  /// <summary>The event should be queued (accepted) immediately.</summary>
+  Queue
+}
 #endregion
 
 #region System, base, and miscellaneous event classes
@@ -129,12 +142,16 @@ public abstract class Event
 
 /// <summary>This event occurs when the application gains or loses focus.</summary>
 /// <remarks>See the <see cref="FocusType"/> enumeration to see under what circumstances this event is triggered.
-/// This event is not guaranteed to be triggered when the application is first started.
+/// This event will not be triggered when the application is first started.
 /// </remarks>
 public class FocusEvent : Event
 { 
   /// <summary>Initializes this event.</summary>
   public FocusEvent() : base(EventType.Focus) { }
+
+  internal FocusEvent(ref SDL.ActiveEvent evt) : base(EventType.Focus)
+  { FocusType=(FocusType)evt.State; Focused=(evt.Focused!=0);
+  }
   
   /// <summary>The type of focus event.</summary>
   /// <value>The <see cref="FocusType"/> of this event.</value>
@@ -143,16 +160,13 @@ public class FocusEvent : Event
   /// <summary>Specifies whether focus was gained or lost.</summary>
   /// <value>If true, focus was gained. If false, focus was lost.</value>
   public bool Focused;
-
-  internal FocusEvent(ref SDL.ActiveEvent evt) : base(EventType.Focus)
-  { FocusType=(FocusType)evt.State; Focused=(evt.Focused!=0);
-  }
 }
 
 /// <summary>This event occurs when the system reports that the application should close.</summary>
-/// <remarks>Typically this event event occurs when the user closes the main application window.
-/// This event can be pushed onto the event queue manually. This allows the quitting code to be centralized in the
-/// application event handler. The event can be ignored to prevent the user from closing the window normally.
+/// <remarks>Typically this event event occurs when the user closes the main application window, or when the system
+/// is shutting down. This event can also be pushed onto the event queue manually. This allows the quitting code
+/// to be centralized in the event handler. The event can be ignored to prevent the user from closing the window
+/// normally.
 /// </remarks>
 public class QuitEvent : Event
 { 
@@ -163,13 +177,15 @@ public class QuitEvent : Event
 /// <summary>This event occurs when the application window is resized.</summary>
 /// <remarks>This event signifies that the user has resized the application window. When this happens, you should
 /// call <see cref="Video.Video.SetMode"/> or <see cref="Video.Video.SetGLMode"/> to set the video mode to the
-/// new size. This event is not triggered when the window is initially created.
+/// new size. This event is not triggered when the video mode is set.
 /// </remarks>
 public class ResizeEvent : Event
 { 
   /// <summary>Initializes this event.</summary>
   public ResizeEvent() : base(EventType.Resize) { }
 
+  /// <summary>Gets the size of the new window.</summary>
+  public System.Drawing.Size Size { get { return new System.Drawing.Size(Width, Height); } }
   /// <summary>The width of the new window.</summary>
   public int Width;
   /// <summary>The height of the new window.</summary>
@@ -180,7 +196,7 @@ public class ResizeEvent : Event
   }
 }
 
-/// <summary>This event ocurs when the application window needs to be redrawn.</summary>
+/// <summary>This event occurs when the application window needs to be redrawn.</summary>
 /// <remarks>This is normally caused by interactions with overlapping windows in the window manager, or by
 /// the application window being minimized (iconified) and restored. Generally, a simple
 /// <see cref="Video.Video.Flip"/> is sufficient to accomplish the redraw.
@@ -197,6 +213,7 @@ public class RepaintEvent : Event
 public abstract class UserEvent : Event
 { 
   /// <summary>Initializes this event.</summary>
+  /// <remarks>This constructor sets <see cref="Event.Type"/> to <see cref="EventType.UserDefined"/>.</remarks>
   public UserEvent() : base(EventType.UserDefined) { }
 }
 
@@ -209,20 +226,25 @@ public abstract class UserEvent : Event
 public class ExceptionEvent : Event
 { 
   /// <summary>Initializes this event.</summary>
-  /// <param name="loc">The location in which the exception occurred.</param>
   /// <param name="e">The exception that occurred.</param>
-  public ExceptionEvent(ExceptionLocation loc, Exception e) : base(EventType.Exception) { location=loc; ex=e; }
-  
+  /// <remarks>This constructor sets <see cref="Location"/> to <see cref="ExceptionLocation.UserThread"/>.</remarks>
+  public ExceptionEvent(Exception e) : this(ExceptionLocation.UserThread, e) { }
+
+  internal ExceptionEvent(ExceptionLocation loc, Exception e) : base(EventType.Exception)
+  { location=loc; exception=e;
+  }
+
   /// <summary>Gets the location where the exception was thrown.</summary>
   /// <remarks>The <see cref="ExceptionLocation"/> that determines where the exception was thrown.</remarks>
   public ExceptionLocation Location { get { return location; } }
 
   /// <summary>Gets the exception that occurred.</summary>
   /// <remarks>The exception that occurred.</remarks>
-  public Exception Exception { get { return ex; } }
-  
-  protected ExceptionLocation location;
-  protected Exception ex;
+  public Exception Exception { get { return exception; } }
+
+  /// <summary>The exception that occurred.</summary>
+  protected Exception exception;
+  ExceptionLocation location;
 }
 #endregion
 
@@ -287,8 +309,8 @@ public class KeyboardEvent : Event
   /// others.
   /// </returns>
   /// <remarks>Key modifiers only include modifier keys such as Ctrl, Alt, etc., which were depressed when the
-  /// event occurred. To check whether all of the given key modifiers were in effect, and no others, simply compare
-  /// the desired set of flags to see whether it equals <see cref="KeyMods"/>.
+  /// event occurred. To check whether all (instead of any) of the given key modifiers were in effect, and no others,
+  /// simply compare the desired set of flags to see whether it equals <see cref="KeyMods"/>.
   /// </remarks>
   public bool HasOnlyKeys(Input.KeyMod mod)
   { Input.KeyMod mods = KeyMods;
@@ -302,7 +324,7 @@ public class KeyboardEvent : Event
   /// than are present on the physical keyboard. This is comparatively rare, however. The values
   /// in the <see cref="Input.Key"/> enumeration are named assuming a QWERTY layout, but depending on the operating
   /// system, may only denote the given position on the keyboard, so you should not use this field to get character
-  /// input. Use <see cref="Char"/> for that. This field only presents the keys on the virtual keyboard as
+  /// input. Use <see cref="Char"/> for that. This field only presents the key on the virtual keyboard as
   /// recognized by the operating system.
   /// </remarks>
   public Input.Key Key;
@@ -316,19 +338,20 @@ public class KeyboardEvent : Event
   /// </remarks>
   public Input.KeyMod Mods;
 
-  /// <summary>The character that was pressed.</summary>
-  /// <value>The actual character that was pressed, taking into account keyboard mapping and modifier keys.</value>
-  /// <remarks>This field does not always contain a valid character, in which case it will be set to zero. For
-  /// instance, on the event associated with the press of a shift key, it's unlikely that a character will be
-  /// generated. Also, no characters are generated when a key is released. For reading text input, this is the
+  /// <summary>The character that was generated by the keypress.</summary>
+  /// <value>The actual character that was generated, taking into account keyboard mapping and modifier keys.</value>
+  /// <remarks>This field does not always contain a valid character, in which case it will be set to zero (The NUL
+  /// character. For instance, on the event associated with the press of a shift key, it's unlikely that a character
+  /// will be generated. Also, no characters are generated when a key is released. For reading text input, this is the
   /// field that should be used.
   /// </remarks>
   public char Char;
 
   /// <summary>The scancode of the key that was pressed.</summary>
   /// <remarks>The scancode of the key is the location of the key on the physical keyboard as reported by the
-  /// hardware. Generally, this field should not be used as most systems have keys mapped. The <see cref="Key"/>
-  /// field should be used to get the virtual key code and the <see cref="Char"/> field to get character input.
+  /// hardware. Generally, this field should not be used as most systems have keys mapped to a virtual keyboard.
+  /// The <see cref="Key"/> field should be used to get the virtual key code and the <see cref="Char"/> field should
+  /// be used to get character input.
   /// </remarks>
   public byte Scan;
 
@@ -349,19 +372,22 @@ public class MouseMoveEvent : Event
   { X=(int)evt.X; Y=(int)evt.Y; Xrel=(int)evt.Xrel; Yrel=(int)evt.Yrel; Buttons=evt.State;
   }
 
-  /// <summary>Returns true if only the specified button was depressed when the event occurred.</summary>
+  /// <summary>Returns true if only the specified mouse button was depressed when the event occurred.</summary>
   /// <param name="button">The <see cref="Input.MouseButton"/> to check for.</param>
   /// <returns>True if only the specified button was depressed when the event occurred.</returns>
   public bool OnlyPressed(Input.MouseButton button) { return Buttons==(1<<(byte)button); }
 
-  /// <summary>Returns true if the specified button was depressed when the event occurred.</summary>
+  /// <summary>Returns true if the specified mouse button was depressed when the event occurred.</summary>
   /// <param name="button">The <see cref="Input.MouseButton"/> to check for.</param>
-  /// <returns>True if the specified button was depressed when the event occurred.</returns>
+  /// <returns>True if the specified mouse button was depressed when the event occurred.</returns>
   public bool Pressed(Input.MouseButton button) { return (Buttons&(1<<(byte)button))!=0; }
 
-  /// <summary>Alters the <see cref="Buttons"/> field, setting the specified button to be pressed or not.</summary>
+  /// <summary>Alters the <see cref="Buttons"/> field, setting the specified button to be marked as pressed or not.</summary>
   /// <param name="button">The <see cref="Input.MouseButton"/> to mark as pressed/released.</param>
   /// <param name="down">If true, the specified button is marked as pressed. Otherwise, it's marked as released.</param>
+  /// <remarks>This method alters the <see cref="Buttons"/> field, which has the effect of altering the return values
+  /// of the <see cref="OnlyPressed"/> and <see cref="Pressed"/> methods as well.
+  /// </remarks>
   public void SetPressed(Input.MouseButton button, bool down)
   { if(down) Buttons|=(byte)(1<<(byte)button); else Buttons&=(byte)~(1<<(byte)button);
   }
@@ -386,14 +412,14 @@ public class MouseMoveEvent : Event
   public int Xrel;
   /// <summary>This field holds the distance the mouse was moved on the Y axis since the last event.</summary>
   public int Yrel;
-  /// <summary>This field holds a bitfield specifying which buttons were depressed at the time the event occurred.</summary>
-  /// <remarks>The bitfield is packed so the first mouse button is in the low bit, the next mouse button is in the
+  /// <summary>This field is a bitfield specifying which buttons were depressed at the time the event occurred.</summary>
+  /// <remarks>The bitfield is packed so the first mouse button is in the low bit, the second mouse button is in the
   /// next bit, etc.
   /// </remarks>
   public byte Buttons;
 }
 
-/// <summary>Occurs when a mouse button is pressed or released, or the mouse wheel is moved.</summary>
+/// <summary>Occurs when a mouse button is pressed or released or the mouse wheel is moved.</summary>
 public class MouseClickEvent : Event
 { 
   /// <summary>Initializes this event.</summary>
@@ -403,6 +429,9 @@ public class MouseClickEvent : Event
   }
 
   /// <summary>Returns true if this event was caused by the mouse wheel being moved.</summary>
+  /// <remarks>This works by checking whether <see cref="Button"/> is equal to <see cref="Input.MouseButton.WheelUp"/>
+  /// or <see cref="Input.MouseButton.WheelDown"/>.
+  /// </remarks>
   public bool MouseWheel
   { get { return Button==Input.MouseButton.WheelDown || Button==Input.MouseButton.WheelUp; }
   }
@@ -412,15 +441,14 @@ public class MouseClickEvent : Event
     set { X=value.X; Y=value.Y; }
   }
 
-  /// <summary>The mouse button which was pressed or released.</summary>
-  public Input.MouseButton Button;
-
-  /// <summary>True if the mouse button was pressed and false if it was released.</summary>
-  public bool Down;
   /// <summary>The X coordinate of the point the mouse cursor was at when the button event was recorded.</summary>
   public int X;
   /// <summary>The Y coordinate of the point the mouse cursor was at when the button event was recorded.</summary>
   public int Y;
+  /// <summary>The mouse button which was pressed or released.</summary>
+  public Input.MouseButton Button;
+  /// <summary>True if the mouse button was pressed and false if it was released.</summary>
+  public bool Down;
 }
 #endregion
 
@@ -436,19 +464,20 @@ public class JoyMoveEvent : Event
 
   /// <summary>The new position along the axis.</summary>
   public int Position;
-  /// <summary>The joystick that caused this event.</summary>
-  /// <remarks> This field can be used to index into <see cref="Input.Input.Joysticks"/></remarks>
-  public byte Device;
   /// <summary>The index of the axis that was moved.</summary>
   /// <remarks>While the meanings of the axes are not defined anywhere, it's a safe bet that 0 is the X axis and
   /// 1 is the Y axis. 2 and 3 may be the Z axis and throttle, but not necessarily in that order. This can be used
   /// to index into <see cref="Input.Joystick.Axes"/>.
   /// </remarks>
   public byte Axis;
+  /// <summary>The joystick that caused this event.</summary>
+  /// <remarks> This field can be used to index into <see cref="Input.Input.Joysticks"/>.</remarks>
+  public byte Device;
 }
 
 /// <summary>Occurs when a joystick ball is moved.</summary>
-/// <remarks>Some joysticks have trackball-like devices embedded in them. This event allows those to be read.</remarks>
+/// <remarks>Some joysticks have trackball-like devices embedded in them. This event occurs when one of those is moved.
+/// </remarks>
 public class JoyBallEvent : Event
 { 
   /// <summary>Initializes this event.</summary>
@@ -460,16 +489,16 @@ public class JoyBallEvent : Event
   /// <summary>Gets the distance the ball was moved since the last event regarding this ball.</summary>
   public System.Drawing.Size Offset { get { return new System.Drawing.Size(Xrel, Yrel); } }
 
-  /// <summary>The distance the ball was moved along the X axis since the last event regarding this ball</summary>
+  /// <summary>The distance the ball was moved along the X axis since the last event regarding this ball.</summary>
   public int Xrel;
-  /// <summary>The distance the ball was moved along the Y axis since the last event regarding this ball</summary>
+  /// <summary>The distance the ball was moved along the Y axis since the last event regarding this ball.</summary>
   public int Yrel;
-  /// <summary>The joystick that caused this event.</summary>
-  /// <remarks> This field can be used to index into <see cref="Input.Input.Joysticks"/></remarks>
-  public byte Device;
   /// <summary>The index of the ball that was moved.</summary>
   /// <remarks>This can be used to index into <see cref="Input.Joystick.Balls"/>.</remarks>
   public byte Ball;
+  /// <summary>The joystick that caused this event.</summary>
+  /// <remarks> This field can be used to index into <see cref="Input.Input.Joysticks"/>.</remarks>
+  public byte Device;
 }
 
 /// <summary>Occurs when a joystick POV hat is moved.</summary>
@@ -483,12 +512,12 @@ public class JoyHatEvent : Event
 
   /// <summary>The new position of the POV hat.</summary>
   public HatPosition Position;
-  /// <summary>The joystick that caused this event.</summary>
-  /// <remarks> This field can be used to index into <see cref="Input.Input.Joysticks"/></remarks>
-  public byte Device;
   /// <summary>The index of the hat that was moved.</summary>
   /// <remarks>This can be used to index into <see cref="Input.Joystick.Hats"/>.</remarks>
   public byte Hat;
+  /// <summary>The joystick that caused this event.</summary>
+  /// <remarks> This field can be used to index into <see cref="Input.Input.Joysticks"/>.</remarks>
+  public byte Device;
 }
 
 /// <summary>Occurs when a joystick button is pressed or released.</summary>
@@ -501,10 +530,10 @@ public class JoyButtonEvent : Event
   }
 
   /// <summary>The joystick that caused this event.</summary>
-  /// <remarks> This field can be used to index into <see cref="Input.Input.Joysticks"/></remarks>
+  /// <remarks> This field can be used to index into <see cref="Input.Input.Joysticks"/>.</remarks>
   public byte Device;
   /// <summary>The index of the button that caused this event.</summary>
-  /// <remarks> This field can be used to index into <see cref="Input.Joystick.Buttons"/></remarks>
+  /// <remarks> This field can be used to index into <see cref="Input.Joystick.Buttons"/>.</remarks>
   public byte Button;
   /// <summary>True if the button was pressed and false if it was released.</summary>
   public bool Down;
@@ -513,11 +542,12 @@ public class JoyButtonEvent : Event
 
 #region Windowing system events
 /// <summary>This event class serves as a base for all messages specific to the windowing system.</summary>
-/// <remarks>These messages serve to implement the internals of the windowing system and do not need to be handled
-/// by user code. However, implementors of custom windowing controls may want to derive from this class to implement
-/// custom events. Since the UI handling code and the event handling code should be on the same thread, controls that
-/// use other threads (or objects such as <see cref="System.Threading.Timer"/>, which use other threads) are good
-/// candidates for using events derived from this class. See <see cref="Forms.Control"/> for more information.
+/// <remarks>These messages serve to implement the internals of the windowing system and do not normally need to be
+/// handled by user code. However, implementors of custom windowing controls may want to derive from this class to
+/// implement custom events. Since the UI handling code and the event handling code should be on the same thread,
+/// controls that use other threads (or use objects such as <see cref="System.Threading.Timer"/>, which use other
+/// threads) are good candidates for using events derived from this class. See <see cref="Forms.Control"/> for more
+/// information.
 /// </remarks>
 public abstract class WindowEvent : Event
 { 
@@ -525,6 +555,7 @@ public abstract class WindowEvent : Event
   /// <param name="control">The control associated with this event. The event will be passed to that control's
   /// <see cref="Forms.Control.OnCustomEvent"/> handler.
   /// </param>
+  /// <remarks>This constructor sets <see cref="SubType"/> to <see cref="MessageType.Custom"/>.</remarks>
   public WindowEvent(GameLib.Forms.Control control) : this(control, MessageType.Custom) { }
   internal WindowEvent(GameLib.Forms.Control control, MessageType subType) : base(EventType.Window)
   { if(control==null) throw new ArgumentNullException("control");
@@ -574,9 +605,9 @@ internal class KeyRepeatEvent : WindowEvent
 /// </summary>
 /// <remarks>This event helps serve to implement the internals of the windowing system and does not need to be
 /// handled by ordinary user code. The desktop will normally update itself automatically, but if it's waiting for
-/// the next event (it may do this, depending on the type of event loop used in the application), it won't paint
-/// itself until the next event wakes it up. A custom control that manually updates the desktop and wants the change
-/// to be immediately visible, however, may post this message to wake up the desktop so it'll see that it's been
+/// the next event (it may do this, depending on the type of event loop you use in the application), it won't paint
+/// itself until the next event wakes it up. A custom control that manually updates the desktop and wants to be sure
+/// the change will be immediately visible may post this message to wake up the desktop so it'll see that it's been
 /// updated.
 /// </remarks>
 public class DesktopUpdatedEvent : WindowEvent
@@ -586,18 +617,6 @@ public class DesktopUpdatedEvent : WindowEvent
 #endregion
 
 #region Events class
-/// <summary>This enum contains values that can be returned from an event filter to tell the <see cref="Events"/>
-/// class what to do with the event.
-/// </summary>
-public enum FilterAction
-{ 
-  /// <summary>The event should be passed onto the next filter, or queued (accepted) if there are no other filters.</summary>
-  Continue,
-  /// <summary>The event should be dropped (rejected) immediately.</summary>
-  Drop,
-  /// <summary>The event should be queued (accepted) immediately.</summary>
-  Queue
-}
 /// <summary>This delegate is used in conjunction with <see cref="Events.EventFilter"/> to filter events.</summary>
 /// <remarks>The function should return a <see cref="FilterAction"/> value to determine how the incoming event will
 /// be treated.
@@ -633,9 +652,9 @@ public delegate bool IdleProcedure();
 /// single event queue and a variety of ways to interact with it.
 /// </summary>
 /// <remarks>Multiple threads can add events, but only one thread should read events. If multiple threads must read
-/// events, use lock the <see cref="Events.SyncRoot"/> property with <see cref="System.Threading.Monitor"/> or
+/// events, lock the <see cref="Events.SyncRoot"/> property with <see cref="System.Threading.Monitor"/> or
 /// C#'s <c>lock</c> statement to prevent concurrent access. Events cannot be added with <see cref="PushEvent"/>
-/// while those locks are held, though!
+/// from other threads while those locks are held, though!
 /// The event subsystem must be initialized by calling <see cref="Events.Initialize"/> before use.
 /// </remarks>
 public sealed class Events
@@ -673,7 +692,7 @@ public sealed class Events
   public static int MaxQueueSize
   { get { return max; }
     set
-    { if(value<1) throw new ArgumentOutOfRangeException("value", value, "must be greater than zero");
+    { if(value<=0) throw new ArgumentOutOfRangeException("value", value, "must be greater than zero");
       lock(queue)
       { if(value<max) while(queue.Count>value) queue.Dequeue();
         max=value;
@@ -681,15 +700,20 @@ public sealed class Events
     }
   }
   
+  /// <summary>Gets an object that can be locked to synchronize access to the event queue.</summary>
+  /// <remarks>While it's strongly recommended that only one thread read events from the queue, it should be
+  /// possible to have multiple threads reading the queue if each thread locks this property with a
+  /// <see cref="System.Threading.Monitor"/> or the C# <c>lock</c> statement. Note that it is not possible to
+  /// add events from other threads using <see cref="PushEvent"/> while this is locked.
+  /// </remarks>
   public static object SyncRoot { get { return queue; } }
 
   /// <summary>Gets the number of events waiting in the queue.</summary>
-  public static int QueueSize { get { return queue.Count; } }
+  public static int Count { get { return queue.Count; } }
 
-  /// <summary>Gets/sets the quit flag, which indicates that the application has indicated an intention to quit.</summary>
+  /// <summary>Gets/sets the quit flag, which indicates that the application has shown an intention to quit.</summary>
   /// <remarks>If the application returns false from an <see cref="GameLib.Events.EventProcedure"/>, the quit flag
-  /// will be set to true
-  /// by <see cref="PumpEvent"/> or <see cref="PumpEvents"/>. The quit flag will cause some methods to do no work and
+  /// will be set to true. The quit flag will cause some methods to do no work and
   /// return immediately, with the assumption being that the application is about to quit. See
   /// <see cref="GameLib.Events.EventProcedure"/> for more information on this.
   /// </remarks>
@@ -709,7 +733,7 @@ public sealed class Events
 
   /// <summary>Deinitializes the event subsystem.</summary>
   /// <remarks>This method should be called the same number of times that <see cref="Initialize"/> has been called
-  /// in order to deinitialize the event subsystem. This will cause the event queue to be emptied.
+  /// in order to deinitialize the event subsystem. All messages still waiting in the queue will be lost.
   /// </remarks>
   public static void Deinitialize()
   { if(initCount==0) throw new InvalidOperationException("Deinitialize called too many times!");
@@ -736,7 +760,7 @@ public sealed class Events
   /// <exception cref="InvalidOperationException">Thrown if the event subsystem has not been initialized.</exception>
   public static Event NextEvent() { return NextEvent(Infinite, true);  }
   /// <summary>Returns the next event without removing it from the queue.</summary>
-  /// <param name="timeout">The amount of time to wait for a event. <see cref="Infinite"/> can be passed to
+  /// <param name="timeout">The amount of time to wait for an event. <see cref="Infinite"/> can be passed to
   /// specify an infinite timeout.
   /// </param>
   /// <returns>The next event in the queue, or null if no events arrive in the specified timeout period.</returns>
@@ -746,7 +770,7 @@ public sealed class Events
   /// <exception cref="InvalidOperationException">Thrown if the event subsystem has not been initialized.</exception>
   public static Event PeekEvent(int timeout) { return NextEvent(timeout, false); }
   /// <summary>Removes and returns the next event from the queue.</summary>
-  /// <param name="timeout">The amount of time to wait for a event. <see cref="Infinite"/> can be passed to
+  /// <param name="timeout">The amount of time to wait for an event. <see cref="Infinite"/> can be passed to
   /// specify an infinite timeout.
   /// </param>
   /// <returns>The next event in the queue, or null if no events arrive in the specified timeout period.</returns>
@@ -756,7 +780,7 @@ public sealed class Events
   /// <exception cref="InvalidOperationException">Thrown if the event subsystem has not been initialized.</exception>
   public static Event NextEvent(int timeout) { return NextEvent(timeout, true);  }
   /// <summary>Returns the next event from the queue, optionally removing it as well.</summary>
-  /// <param name="timeout">The amount of time to wait for a event. <see cref="Infinite"/> can be passed to
+  /// <param name="timeout">The amount of time to wait for an event. <see cref="Infinite"/> can be passed to
   /// specify an infinite timeout.
   /// </param>
   /// <param name="remove">Set to true if the event is to be removed, and false if not.</param>
@@ -828,24 +852,36 @@ public sealed class Events
   
   /// <summary>Handles the next event.</summary>
   /// <returns>Returns true if the application should continue working or false if it should quit.</returns>
-  /// <remarks>This method requires that at least one <see cref="GameLib.Events.EventProcedure"/> has been registered
-  /// with the <see cref="EventProcedure"/> event. If the <see cref="QuitFlag"/> is true, this method will return
-  /// immediately without doing anything. Otherwise, this method will wait until an event arrives, calling the
-  /// <see cref="IdleProcedure"/> event until it returns false if no events are waiting in the queue. After an event
-  /// arrives, it is processed with <see cref="EventProcedure"/>, and the <see cref="QuitFlag"/> is set to true if
-  /// the <see cref="EventProcedure"/> returned false. The logical negation of the <see cref="QuitFlag"/> is then
-  /// returned.  See <see cref="GameLib.Events.EventProcedure"/> for more information.
-  /// </remarks>
+/// <remarks>
+/// <para>
+/// This method requires that at least one <see cref="GameLib.Events.EventProcedure"/> has been registered
+/// with the <see cref="EventProcedure"/> event. If the <see cref="QuitFlag"/> is true, this method will return
+/// immediately without doing anything. Otherwise, this method will wait until an event arrives, calling the
+/// <see cref="IdleProcedure"/> event until all return false as long as no events are waiting in the queue. After
+/// an event arrives, it is processed with <see cref="EventProcedure"/>. If any event procedure returns false, the
+/// <see cref="QuitFlag"/> is set to true and processing of further event procedures is not done.
+/// The logical negation of the <see cref="QuitFlag"/> is then returned.
+/// </para>
+/// See <see cref="GameLib.Events.EventProcedure"/> for more information.
+/// </remarks>
   /// <exception cref="InvalidOperationException">Thrown if no event procedure has been registered.</exception>
   public static bool PumpEvent()
   { if(EventProcedure==null) throw new InvalidOperationException("No event procedure has been registered");
     if(quit) return false;
     Event e = NextEvent(0);
     if(e==null)
-    { if(IdleProcedure!=null) while(IdleProcedure() && !quit && PeekEvent(0)==null);
+    { if(IdleProcedure!=null)
+      { Delegate[] idles = IdleProcedure.GetInvocationList();
+        bool morework;
+        do
+        { morework = false;
+          for(int i=0; i<idles.Length; i++) if(((IdleProcedure)idles[i])()) morework=true;
+        } while(morework && !quit && PeekEvent(0)==null);
+      }
       e = NextEvent();
     }
-    quit = !EventProcedure(e) || quit;
+    Delegate[] procs = EventProcedure.GetInvocationList();
+    for(int i=0; i<procs.Length; i++) if(!((EventProcedure)procs[i])(e)) { quit=true; break; }
     return !quit;
   }
 
@@ -859,7 +895,9 @@ public sealed class Events
   /// <see cref="EventProcedure"/> event, or null to not register any.
   /// </param>
   /// <remarks>Calling this method is equivalent to calling <see cref="PumpEvents(EventProcedure,IdleProcedure)"/>
-  /// and passing null for the <see cref="GameLib.Events.IdleProcedure"/> parameter.
+  /// and passing null for the <see cref="GameLib.Events.IdleProcedure"/> parameter. Beware of calling this procedure
+  /// multiple times with the same value for <paramref name="proc"/>. That may cause the given event procedure to be
+  /// registered multiple times and thus executed multiple times per event.
   /// </remarks>
   public static void PumpEvents(EventProcedure proc) { PumpEvents(proc, null); }
   /// <summary>Handle events until the application decides to quit.</summary>
@@ -869,28 +907,53 @@ public sealed class Events
   /// <param name="idle">A <see cref="GameLib.Events.IdleProcedure"/> that will be added to the
   /// <see cref="IdleProcedure"/> event, or null to not register any.
   /// </param>
-  /// <remarks>This method requires that at least one <see cref="GameLib.Events.EventProcedure"/> has been registered
+  /// <remarks>
+  /// <para>
+  /// This method requires that at least one <see cref="GameLib.Events.EventProcedure"/> has been registered
   /// with the <see cref="EventProcedure"/> event. However, one can be passed in and it will be registered at the
-  /// start. If the <see cref="QuitFlag"/> is true, this method will return
-  /// immediately without doing anything. Otherwise, this method will wait until an event arrives, calling the
-  /// <see cref="IdleProcedure"/> event until it returns false if no events are waiting in the queue. After an event
-  /// arrives, it is processed with <see cref="EventProcedure"/>, and the <see cref="QuitFlag"/> is set to true if
-  /// the <see cref="EventProcedure"/> returned false. If the <see cref="QuitFlag"/> is not true at this point, it
-  /// repeats the whole process. See <see cref="GameLib.Events.EventProcedure"/> for more information.
+  /// start.
+  /// </para>
+  /// <para>
+  /// If the <see cref="QuitFlag"/> is true, this method will return immediately without doing anything. Otherwise,
+  /// this method will wait until an event arrives, calling the <see cref="IdleProcedure"/> event until all return
+  /// false as long as no events are waiting in the queue. After an event arrives, it is processed with
+  /// <see cref="EventProcedure"/>. If any event procedure returns false, the <see cref="QuitFlag"/> is set to true
+  /// and processing of further event procedures will not be done. If the <see cref="QuitFlag"/> is not true after
+  /// that, the whole process is repeated. If it's false, the method will return.
+  /// See <see cref="GameLib.Events.EventProcedure"/> for more information.
+  /// </para>
+  /// <para>
+  /// Beware of calling this procedure multiple times with the same value for <paramref name="proc"/> or
+  /// <paramref name="idle"/>. That may cause the given event or idle procedure to be registered multiple times and
+  /// thus executed multiple times per event. Also, the lists of registered event and idle handlers are only
+  /// retrieved once during the call to this method, so if additional handlers are added, they will not be used.
+  /// You should register any handlers you want to use before calling this method or by passing them in the
+  /// <paramref name="proc"/> and <paramref name="idle"/> parameters. This restriction may be lifted in the future.
+  /// </para>
   /// </remarks>
   /// <exception cref="InvalidOperationException">Thrown if no event procedure has been registered.</exception>
   public static void PumpEvents(EventProcedure proc, IdleProcedure idle)
   { if(proc!=null) EventProcedure += proc;
     if(idle!=null) IdleProcedure += idle;
     if(EventProcedure==null) throw new InvalidOperationException("No event procedure has been registered");
+    Delegate[] procs = EventProcedure.GetInvocationList();
+    Delegate[] idles = IdleProcedure==null ? null : IdleProcedure.GetInvocationList();
     while(!quit)
     { Event e = NextEvent(0);
       if(e==null)
-      { if(IdleProcedure!=null) while(IdleProcedure() && !quit && PeekEvent(0)==null);
-        if(quit || !EventProcedure(NextEvent())) break;
+      { if(idles!=null)
+        { bool morework;
+          do
+          { morework = false;
+            for(int i=0; i<idles.Length; i++) if(((IdleProcedure)idles[i])()) morework=true;
+          } while(morework && !quit && PeekEvent(0)==null);
+        }
+        if(quit) break;
+        e = NextEvent();
       }
-      else if(!EventProcedure(e)) break;
+      for(int i=0; i<procs.Length; i++) if(!((EventProcedure)procs[i])(e)) { goto done; }
     }
+    done:
     quit=true;
   }
   

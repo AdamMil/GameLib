@@ -1219,7 +1219,7 @@ public class TextBox : TextBoxBase
         rect.X += font.CalculateSize(Text.Substring(start, CaretPosition-start)).Width + padding;
         Primitives.VLine(desktop.Surface, rect.X, rect.Top, rect.Bottom-1, CaretOn && HasCaret ? ForeColor : BackColor);
         desktop.AddUpdatedArea(rect);
-        if(Events.Events.QueueSize==0) Events.Events.PushEvent(new Events.DesktopUpdatedEvent(desktop));
+        if(Events.Events.Count==0) Events.Events.PushEvent(new Events.DesktopUpdatedEvent(desktop));
       }
     }
   }
