@@ -873,10 +873,10 @@ public class Audio
   public static PlayPolicy PlayPolicy { get { return playPolicy; } set { playPolicy=value; } }
   public static MixPolicy  MixPolicy  { get { return mixPolicy; } set { mixPolicy=value; } }
 
-  public static bool Initialize() { return Initialize(22050, SampleFormat.Default, Speakers.Stereo, 100); }
-  public static bool Initialize(uint frequency) { return Initialize(frequency, SampleFormat.Default, Speakers.Stereo, 100); }
-  public static bool Initialize(uint frequency, SampleFormat format) { return Initialize(frequency, format, Speakers.Stereo, 100); }
-  public static bool Initialize(uint frequency, SampleFormat format, Speakers chans) { return Initialize(frequency, format, chans, 100); }
+  public static bool Initialize() { return Initialize(22050, SampleFormat.Default, Speakers.Stereo, 50); }
+  public static bool Initialize(uint frequency) { return Initialize(frequency, SampleFormat.Default, Speakers.Stereo, 50); }
+  public static bool Initialize(uint frequency, SampleFormat format) { return Initialize(frequency, format, Speakers.Stereo, 50); }
+  public static bool Initialize(uint frequency, SampleFormat format, Speakers chans) { return Initialize(frequency, format, chans, 50); }
   public unsafe static bool Initialize(uint frequency, SampleFormat format, Speakers chans, uint bufferMs)
   { if(init) throw new InvalidOperationException("Already initialized. Deinitialize first to change format");
     callback    = new GLMixer.MixCallback(FillBuffer);

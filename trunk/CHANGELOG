@@ -20,6 +20,7 @@ LATEST (alpha/beta)
 * Altered the Input sample to use dead zones and saturation zones to
   eliminate jitter. Also added more joystick output to the input sample
   (it might not fit in the window anymore if you have lots of joysticks)
+* Lowered the default audio buffer size (latency) from 100 to 50 milliseconds
 
 2004.05.02 (alpha/beta)
 -----------------------
