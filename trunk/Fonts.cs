@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Drawing;
 using GameLib.Video;
 using GameLib.Collections;
@@ -20,18 +21,31 @@ public abstract class Font
 
   public abstract Size CalculateSize(string text);
 
-  public void Render(Surface dest, string text, Point pt) { Render(dest, text, pt.X, pt.Y); }
-  public abstract void Render(Surface dest, string text, int x, int y);
+  public int Render(Surface dest, string text, Point pt) { return Render(dest, text, pt.X, pt.Y); }
+  public abstract int Render(Surface dest, string text, int x, int y);
 
-  public void Render(Surface dest, string text, Rectangle rect) { Render(dest, text, rect, breakers); }
-  public virtual void Render(Surface dest, string text, Rectangle rect, char[] breakers)
-  { int[] lines = WordWrap(text, rect, breakers);
-    int start=0, y=rect.Y;
+  public Point Render(Surface dest, string text, Rectangle rect) { return Render(dest, text, rect, 0, 0, breakers); }
+  public Point Render(Surface dest, string text, Rectangle rect, Point start)
+  { return Render(dest, text, rect, start.X, start.Y, breakers);
+  }
+  public Point Render(Surface dest, string text, Rectangle rect, Point start, char[] breakers)
+  { return Render(dest, text, rect, start.X, start.Y, breakers);
+  }
+  public Point Render(Surface dest, string text, Rectangle rect, int startx, int starty)
+  { return Render(dest, text, rect, startx, starty, breakers);
+  }
+  public virtual Point Render(Surface dest, string text, Rectangle rect, int startx, int starty, char[] breakers)
+  { int[] lines = WordWrap(text, rect, startx, starty, breakers);
+    int start=0, x=rect.X+startx, y=rect.Y+starty, length=0;
+    if(lines.Length==0) return new Point(x, y);
+    y-=LineSkip;
     for(int i=0; i<lines.Length; i++)
-    { Render(dest, text.Substring(start, lines[i]), rect.X, y);
-      start += lines[i];
+    { if(i==1) { x=rect.X; y=rect.Y; }
       y += LineSkip;
+      length = Render(dest, text.Substring(start, lines[i]), x, y);
+      start += lines[i];
     }
+    return new Point(length + (lines.Length==1 ? startx : 0), y);
   }
   
   public void Center(Surface dest, string text) { CenterOff(dest, text, 0, 0); }
@@ -45,9 +59,74 @@ public abstract class Font
     Render(dest, text, (dest.Width-size.Width)/2+xoffset, (dest.Height-size.Height)/2+yoffset);
   }
 
-  public int[] WordWrap(string text, Rectangle rect) { return WordWrap(text, rect, breakers); }
-  public virtual int[] WordWrap(string text, Rectangle rect, char[] breakers)
-  { throw new NotImplementedException();
+  public int[] WordWrap(string text, Rectangle rect) { return WordWrap(text, rect, 0, 0, breakers); }
+  public int[] WordWrap(string text, Rectangle rect, char[] breakers)
+  { return WordWrap(text, rect, 0, 0, breakers);
+  }
+  public int[] WordWrap(string text, Rectangle rect, Point start)
+  { return WordWrap(text, rect, start.X, start.Y, breakers);
+  }
+  public int[] WordWrap(string text, Rectangle rect, Point start, char[] breakers)
+  { return WordWrap(text, rect, start.X, start.Y, breakers);
+  }
+  public int[] WordWrap(string text, Rectangle rect, int startx, int starty)
+  { return WordWrap(text, rect, startx, starty, breakers);
+  }
+  public virtual int[] WordWrap(string text, Rectangle rect, int startx, int starty, char[] breakers)
+  { if(text.Length==0) return new int[0];
+
+    // FIXME: take offsets into account
+    ArrayList list = new ArrayList();
+    int x=rect.X+startx, start=0, end=0, pend, length=0, plen=0, height=LineSkip;
+    int rwidth=rect.Width-startx, rheight=rect.Height-starty;
+    if(height>=rheight) return new int[0];
+
+    while(true)
+    { for(pend=end; end<text.Length; end++)
+      { char c=text[end];
+        for(int i=0; i<breakers.Length; i++)
+          if(c==breakers[i])
+          { plen = length;
+            end++;
+            length += CalculateSize(text.Substring(pend, end-pend)).Width;
+            goto extended;
+          }
+      }
+      extended:
+      if(length>rwidth)
+      { if(pend==start)
+        { for(length=plen; pend<end; pend++)
+          { length += CalculateSize(text[pend].ToString()).Width;
+            if(length>rect.Width) break;
+            plen=length;
+          }
+          if(pend==start) goto done; // can't possibly fit. prevent infinite loops
+          end = pend;
+        }
+        else { end=pend; }
+        list.Add(end-start);
+        height += LineSkip;
+        if(height>=rheight) break;
+        start  = end;
+        length = 0;
+        rwidth = rect.Width;
+      }
+      else if(end==text.Length)
+      { list.Add(end-start);
+        break;
+      }
+
+      // while text remains...
+      // extend current line until the next breaker, or to the end
+      // if line doesn't fit
+      //   if previous length is zero, length = as many characters as will fit
+      //   else length = previous length
+      //   add line to array, zero length
+      // else if at end of text
+      //   add line to array
+    }
+    done:
+    return (int[])list.ToArray(typeof(int));
   }
 
   protected abstract void DisplayFormatChanged();
@@ -58,7 +137,7 @@ public abstract class Font
     }
   }
 
-  static readonly char[] breakers = new char[] { ' ', '-', ',', ':', ';' };
+  static readonly char[] breakers = new char[] { ' ', '-', '\n' };
   Video.ModeChangedHandler handler;
 }
 
@@ -96,12 +175,14 @@ public class BitmapFont : Font, IDisposable
     return new Size(Height, (text.Length-1)*(width+xAdd)+width);
   }
 
-  public override void Render(Surface dest, string text, int x, int y)
-  { for(int i=0,add=width+xAdd; i<text.Length; i++)
+  public override int Render(Surface dest, string text, int x, int y)
+  { int start=x;
+    for(int i=0,add=width+xAdd; i<text.Length; i++)
     { int off = charset.IndexOf(text[i]);
       if(off!=-1) font.Blit(dest, new Rectangle(off*width, 0, width, Height), x, y);
       x += add;
     }
+    return x-start;
   }
 
   protected override void DisplayFormatChanged() { font=orig.CloneDisplay(); }
@@ -186,12 +267,14 @@ public class TrueTypeFont : NonFixedFont, IDisposable
     TTF.SizeUNICODE(font, text, out width, out height);
     return new Size(width, height);
   }
-  public override void Render(Surface dest, string text, int x, int y)
-  { for(int i=0; i<text.Length; i++)
+  public override int Render(Surface dest, string text, int x, int y)
+  { int start = x;
+    for(int i=0; i<text.Length; i++)
     { CachedChar c = GetChar(text[i]);
       c.Surface.Blit(dest, x+c.OffsetX, y+c.OffsetY);
       x += c.Advance;
     }
+    return x-start;
   }
 
   protected struct CacheIndex : IComparable

@@ -566,7 +566,7 @@ public class VorbisSource : AudioSource
 
 #region Channel class
 public sealed class Channel
-{ internal Channel(int channel) { number=channel; }
+{ internal Channel(int channel) { number=channel; Reset(); }
   
   public event MixFilter Filters;
   public event ChannelFinishedHandler Finished;
@@ -611,6 +611,8 @@ public sealed class Channel
       fadeRight = EffectiveRight;
     }
   }
+
+  internal void Reset() { rate=1f; left=Audio.MaxVolume; right=Audio.MaxVolume; }
 
   internal void StartPlaying(AudioSource source, int loops, int position, Fade fade, uint fadeMs, int timeoutMs)
   { StopPlaying();
@@ -862,11 +864,15 @@ public class Audio
     }
   }
   
-  public static void AllocateChannels(int numChannels)
+  public static void AllocateChannels(int numChannels) { AllocateChannels(numChannels, true); }
+  public static void AllocateChannels(int numChannels, bool resetChannels)
   { AssertInit();
     if(numChannels<0) throw new ArgumentOutOfRangeException("numChannels");
     lock(callback)
-    { for(int i=numChannels; i<chans.Length; i++) chans[i].Stop();
+    { for(int i=numChannels; i<chans.Length; i++)
+      { chans[i].Stop();
+        if(resetChannels) chans[i].Reset();
+      }
       Channel[] narr = new Channel[numChannels];
       Array.Copy(narr, chans, chans.Length);
       for(int i=chans.Length; i<numChannels; i++) narr[i] = new Channel(i);
