@@ -264,6 +264,31 @@ public sealed class IOH
   public static char Getche() { return GameLib.Interop.GLUtility.Utility.Getche(); }
   #endregion
 
+  #region CalculateOutputs
+  /// <summary>Calculates how many objects would be read by <see cref="Read(Stream,string)"/> and the like.</summary>
+  /// <param name="format">The format string to use to calculate the number of objects.</param>
+  /// <returns>The number of objects that would be read from the data source.</returns>
+  /// <include file='documentation.xml' path='//IO/IOH/BinaryFormat/*'/>
+  public static int CalculateOutputs(string format)
+  { if(format==null) throw new ArgumentNullException("format");
+    int num=0;
+    for(int i=0,flen=format.Length; i<flen; i++)
+    { char c = format[i];
+      switch(c)
+      { case 'b': case 'B': case 'w': case 'W': case 'd': case 'D': case 'f': case 'F':
+        case 'q': case 'Q': case 'c': case 'p': case 's':
+          num++; break;
+        case 'A': case 'U': case '<': case '>': case '=': break;
+        case '?': throw new ArgumentException("Objects of unknown size (prefix='?') are not supported.", "format");
+        default:
+          if(char.IsDigit(c) || char.IsWhiteSpace(c)) break;
+          throw new ArgumentException(string.Format("Unknown character '{0}'", c), "format");
+      }
+    }
+    return num;
+  }
+  #endregion
+
   #region CalculateSize
   /// <summary>This method calculates how many bytes would be written by <see cref="Write(Stream,string,object[])"/>
   /// etc if given the specified format string and variable-length arguments to match.
@@ -277,7 +302,7 @@ public sealed class IOH
   /// <include file='documentation.xml' path='//IO/IOH/BinaryFormat/*'/>
   public static int CalculateSize(string format, params object[] parms) { return CalculateSize(false, format, parms); }
 
-  /// <summary>This method calculates how many bytes would be written by <see cref="Write(Stream,string,object[])"/>
+  /// <summary>Calculates how many bytes would be written by <see cref="Write(Stream,string,object[])"/>
   /// etc if given the specified format string and arguments to match.
   /// </summary>
   /// <param name="allParms">If true, this method will expect all parameters to be passed to this method. Otherwise,
@@ -296,7 +321,6 @@ public sealed class IOH
     try
     { for(int flen=format.Length,prefix; i<flen; i++)
       { c = format[i];
-        if(char.IsWhiteSpace(c)) continue;
         if(char.IsDigit(c))
         { prefix = c-'0';
           while(++i<flen && char.IsDigit(c=format[i])) prefix = prefix*10 + c-'0';
@@ -358,12 +382,14 @@ public sealed class IOH
           case 'A': unicode=false; break;
           case 'U': unicode=true; break;
           case '<': case '>': case '=': break;
-          default: throw new ArgumentException(string.Format("Unknown character '{0}'", c), "format");
+          default:
+            if(char.IsWhiteSpace(c)) break;
+            throw new ArgumentException(string.Format("Unknown character '{0}'", c), "format");
         }
       }
     }
     catch(Exception e)
-    { throw new ArgumentException(string.Format("Error near char {0}, near parameter {1} -- {2}", e.Message), e);
+    { throw new ArgumentException(string.Format("Error near char {0}, near parameter {1} -- {2}", i, j, e.Message), e);
     }
     return length;
   }
@@ -778,7 +804,7 @@ public sealed class IOH
   public static void Skip(Stream stream, long bytes)
   { if(bytes<0) throw new ArgumentException("cannot be negative", "bytes");
     if(stream.CanSeek) stream.Position += bytes;
-    else if(bytes<8) { int b = (int)bytes; while(b-- > 0) Read1(stream); }
+    else if(bytes<8) { int b = (int)bytes; while(b-- > 0) Read1(stream); } // these numbers are just chosen at random. they should probably be optimized
     else if(bytes<=512) Read(stream, (int)bytes);
     else
     { byte[] buf = new byte[512];
@@ -792,7 +818,660 @@ public sealed class IOH
   }
   #endregion
 
-  #region Formatted binary Write
+  #region Formatted binary read
+  /// <summary>Reads formatted binary data from a stream.</summary>
+  /// <param name="stream">The <see cref="Stream"/> to read from.</param>
+  /// <param name="format">The format string controlling how the data will be read.</param>
+  /// <returns>An array of <see cref="System.Object"/> containing the data read.</returns>
+  /// <include file='documentation.xml' path='//IO/IOH/BinaryFormat/*'/>
+  public static object[] Read(Stream stream, string format)
+  { int dummy;
+    return Read(stream, format, out dummy);
+  }
+  /// <summary>Reads formatted binary data from a stream.</summary>
+  /// <param name="stream">The <see cref="Stream"/> to read from.</param>
+  /// <param name="format">The format string controlling how the data will be read.</param>
+  /// <param name="bytesRead">An integer in which the number of bytes read from <paramref name="stream"/>
+  /// will be stored.
+  /// </param>
+  /// <returns>An array of <see cref="System.Object"/> containing the data read.</returns>
+  /// <include file='documentation.xml' path='//IO/IOH/BinaryFormat/*'/>
+  public static object[] Read(Stream stream, string format, out int bytesRead)
+  { object[] ret = new object[CalculateOutputs(format)];
+    bytesRead = Read(stream, format, ret, 0);
+    return ret;
+  }
+  /// <summary>Reads formatted binary data from a stream.</summary>
+  /// <param name="stream">The <see cref="Stream"/> to read from.</param>
+  /// <param name="format">The format string controlling how the data will be read.</param>
+  /// <param name="output">An array of <see cref="System.Object"/> into which the data will be read.</param>
+  /// <returns>The number of bytes read from <paramref name="stream"/>.</returns>
+  /// <include file='documentation.xml' path='//IO/IOH/BinaryFormat/*'/>
+  public static int Read(Stream stream, string format, object[] output) { return Read(stream, format, output, 0); }
+  /// <summary>Reads formatted binary data from a stream.</summary>
+  /// <param name="stream">The <see cref="Stream"/> to read from.</param>
+  /// <param name="format">The format string controlling how the data will be read.</param>
+  /// <param name="output">An array of <see cref="System.Object"/> into which the data will be read.</param>
+  /// <param name="index">The index into <paramref name="output"/> at which writing will begin.</param>
+  /// <returns>The number of bytes read from <paramref name="stream"/>.</returns>
+  /// <include file='documentation.xml' path='//IO/IOH/BinaryFormat/*'/>
+  public static int Read(Stream stream, string format, object[] output, int index)
+  { if(stream==null || output==null) throw new ArgumentNullException();
+    if(index<0 || index+CalculateOutputs(format)>output.Length) throw new ArgumentOutOfRangeException();
+
+    int i=0, length=0;
+    char c;
+    bool bigendian=!BitConverter.IsLittleEndian, unicode=false;
+    try
+    { for(int flen=format.Length,prefix; i<flen; i++)
+      { c = format[i];
+        if(char.IsDigit(c))
+        { prefix = c-'0';
+          while(++i<flen && char.IsDigit(c=format[i])) prefix = prefix*10 + c-'0';
+          if(i==flen) throw new ArgumentException("Missing operator at "+i.ToString(), "format");
+        }
+        else if(c=='s') throw new ArgumentException("Strings of unknown size are not supported.", "format");
+        else prefix=-1;
+        if(prefix==0) continue;
+        
+        switch(c)
+        { case 'x':
+            if(prefix==-1) { length++; IOH.Read1(stream); }
+            else
+            { length += prefix;
+              IOH.Skip(stream, prefix);
+            }
+            break;
+
+          case 'b':
+            if(prefix==-1) { output[index++]=(sbyte)Read1(stream); length++; }
+            else
+            { sbyte[] arr = new sbyte[prefix];
+              if(prefix<8) for(int j=0; j<prefix; j++) arr[j] = (sbyte)Read1(stream);
+              else
+                unsafe
+                { byte[] buf = Read(stream, prefix);
+                  fixed(byte* src=buf) fixed(sbyte* dest=arr) Interop.Unsafe.Copy(src, dest, prefix);
+                }
+              output[index++] = arr;
+              length += prefix;
+            }
+            break;
+
+          case 'B':
+            output[index++] = (prefix==-1 ? Read1(stream) : (object)Read(stream, prefix));
+            length += prefix==-1 ? 1 : prefix;
+            break;
+
+          case 'w':
+            if(prefix==-1) { output[index++]=bigendian ? ReadBE2(stream) : ReadLE2(stream); length+=2; }
+            else
+            { short[] arr = new short[prefix];
+              if(bigendian) for(int j=0; j<prefix; j++) arr[j] = ReadBE2(stream);
+              else for(int j=0; j<prefix; j++) arr[j] = ReadLE2(stream);
+              output[index++] = arr;
+              length += prefix*2;
+            }
+            break;
+
+          case 'W':
+            if(prefix==-1) { output[index++]=bigendian ? ReadBE2U(stream) : ReadLE2U(stream); length+=2; }
+            else
+            { ushort[] arr = new ushort[prefix];
+              if(bigendian) for(int j=0; j<prefix; j++) arr[j] = ReadBE2U(stream);
+              else for(int j=0; j<prefix; j++) arr[j] = ReadLE2U(stream);
+              output[index++] = arr;
+              length += prefix*2;
+            }
+            break;
+
+          case 'd':
+            if(prefix==-1) { output[index++]=bigendian ? ReadBE4(stream) : ReadLE4(stream); length += 4; }
+            else
+            { int[] arr = new int[prefix];
+              if(bigendian) for(int j=0; j<prefix; j++) arr[j] = ReadBE4(stream);
+              else for(int j=0; j<prefix; j++) arr[j] = ReadLE4(stream);
+              output[index++] = arr;
+              length += prefix*4;
+            }
+            break;
+
+          case 'D':
+            if(prefix==-1) { output[index++]=bigendian ? ReadBE4U(stream) : ReadLE4U(stream); length += 4; }
+            else
+            { uint[] arr = new uint[prefix];
+              if(bigendian) for(int j=0; j<prefix; j++) arr[j] = ReadBE4U(stream);
+              else for(int j=0; j<prefix; j++) arr[j] = ReadLE4U(stream);
+              output[index++] = arr;
+              length += prefix*4;
+            }
+            break;
+
+          case 'f':
+            if(prefix==-1) { output[index++]=ReadFloat(stream); length += 4; }
+            else
+            { float[] arr = new float[prefix];
+              for(int j=0; j<prefix; j++) arr[j] = ReadFloat(stream);
+              output[index++] = arr;
+              length += prefix*4;
+            }
+            break;
+
+          case 'F':
+            if(prefix==-1) { output[index++]=ReadDouble(stream); length += 8; }
+            else
+            { double[] arr = new double[prefix];
+              for(int j=0; j<prefix; j++) arr[j] = ReadDouble(stream);
+              output[index++] = arr;
+              length += prefix*8;
+            }
+            break;
+
+          case 'q':
+            if(prefix==-1) { output[index++]=bigendian ? ReadBE8(stream) : ReadLE8(stream); length += 8; }
+            else
+            { long[] arr = new long[prefix];
+              if(bigendian) for(int j=0; j<prefix; j++) arr[j] = ReadBE8(stream);
+              else for(int j=0; j<prefix; j++) arr[j] = ReadLE8(stream);
+              output[index++] = arr;
+              length += prefix*8;
+            }
+            break;
+
+          case 'Q':
+            if(prefix==-1) { output[index++]=bigendian ? ReadBE8U(stream) : ReadLE8U(stream); length += 8; }
+            else
+            { ulong[] arr = new ulong[prefix];
+              if(bigendian) for(int j=0; j<prefix; j++) arr[j] = ReadBE8U(stream);
+              else for(int j=0; j<prefix; j++) arr[j] = ReadLE8U(stream);
+              output[index++] = arr;
+              length += prefix*8;
+            }
+            break;
+
+          case 'c':
+            if(prefix==-1)
+            { if(unicode) { output[index++]=bigendian ? (char)ReadBE2U(stream) : (char)ReadLE2U(stream); length+=2; }
+              else { output[index++]=(char)Read1(stream); length++; }
+            }
+            else
+            { char[] arr = new char[prefix];
+              if(unicode)
+              { if(bigendian) for(int j=0; j<prefix; j++) arr[j] = (char)ReadBE2U(stream);
+                else for(int j=0; j<prefix; j++) arr[j] = (char)ReadLE2U(stream);
+                length += prefix*2;
+              }
+              else
+              { for(int j=0; j<prefix; j++) arr[j] = (char)Read1(stream);
+                length += prefix;
+              }
+              output[index++] = arr;
+            }
+            break;
+
+          case 's':
+            if(unicode)
+              unsafe
+              { char* arr = stackalloc char[prefix];
+                if(bigendian) for(int j=0; j<prefix; j++) arr[j] = (char)ReadBE2U(stream);
+                else for(int j=0; j<prefix; j++) arr[j] = (char)ReadLE2U(stream);
+                output[index++] = new string(arr, 0, prefix);
+                length += prefix*2;
+              }
+            else
+            { output[index++] = System.Text.Encoding.ASCII.GetString(Read(stream, prefix));
+              length += prefix;
+            }
+            break;
+
+          case 'p':
+          { int len=Read1(stream), slen;
+            if(prefix==-1) { prefix=len; slen=0; }
+            else if(len<prefix) throw new ArgumentException("Prefix is greater than length of pascal string.");
+            else slen = len-prefix;
+
+            if(unicode)
+              unsafe
+              { char* arr = stackalloc char[prefix];
+                if(bigendian) for(int j=0; j<prefix; j++) arr[j] = (char)ReadBE2U(stream);
+                else for(int j=0; j<prefix; j++) arr[j] = (char)ReadLE2U(stream);
+                output[index++] = new string(arr, 0, prefix);
+                length += len*2;
+                slen *= 2;
+              }
+            else
+            { output[index++] = System.Text.Encoding.ASCII.GetString(Read(stream, prefix));
+              length += len;
+            }
+            if(slen!=0) IOH.Skip(stream, slen*2);
+            break;
+          }
+
+          case 'A': unicode=false; break;
+          case 'U': unicode=true; break;
+          case '<': bigendian=false; break;
+          case '>': bigendian=true; break;
+          case '=': bigendian=!BitConverter.IsLittleEndian; break;
+          default:
+            if(char.IsWhiteSpace(c)) break;
+            throw new ArgumentException(string.Format("Unknown character '{0}'", c), "format");
+        }
+      }
+    }
+    catch(Exception e)
+    { throw new ArgumentException(string.Format("Error near char {0}, near output {1} -- {2}", i, index, e.Message), e);
+    }
+
+    return length;
+  }
+  
+  /// <summary>Reads formatted binary data from a byte array.</summary>
+  /// <param name="buf">An array of <see cref="System.Byte"/> from which the data will be read.</param>
+  /// <param name="format">The format string controlling how the data will be read.</param>
+  /// <returns>An array of <see cref="System.Object"/> containing the data read.</returns>
+  /// <include file='documentation.xml' path='//IO/IOH/BinaryFormat/*'/>
+  public static object[] Read(byte[] buf, string format)
+  { int dummy;
+    return Read(buf, format, out dummy);
+  }
+  /// <summary>Reads formatted binary data from a byte array.</summary>
+  /// <param name="buf">An array of <see cref="System.Byte"/> from which the data will be read.</param>
+  /// <param name="format">The format string controlling how the data will be read.</param>
+  /// <param name="bytesRead">An integer in which the number of bytes read from <paramref name="buf"/>
+  /// will be stored.
+  /// </param>
+  /// <returns>An array of <see cref="System.Object"/> containing the data read.</returns>
+  /// <include file='documentation.xml' path='//IO/IOH/BinaryFormat/*'/>
+  public static object[] Read(byte[] buf, string format, out int bytesRead)
+  { object[] ret = new object[CalculateOutputs(format)];
+    bytesRead = Read(buf, 0, format, ret, 0);
+    return ret;
+  }
+  /// <summary>Reads formatted binary data from a byte array.</summary>
+  /// <param name="buf">An array of <see cref="System.Byte"/> from which the data will be read.</param>
+  /// <param name="format">The format string controlling how the data will be read.</param>
+  /// <param name="output">An array of <see cref="System.Object"/> into which the data will be written.</param>
+  /// <returns>The number of bytes read from <paramref name="buf"/>.</returns>
+  /// <include file='documentation.xml' path='//IO/IOH/BinaryFormat/*'/>
+  public static int Read(byte[] buf, string format, object[] output)
+  { return Read(buf, 0, format, output, 0);
+  }
+  /// <summary>Reads formatted binary data from a byte array.</summary>
+  /// <param name="buf">An array of <see cref="System.Byte"/> from which the data will be read.</param>
+  /// <param name="srcIndex">The offset into <paramref name="buf"/> at which reading will begin.</param>
+  /// <param name="format">The format string controlling how the data will be read.</param>
+  /// <returns>An array of <see cref="System.Object"/> containing the data read.</returns>
+  /// <include file='documentation.xml' path='//IO/IOH/BinaryFormat/*'/>
+  public static object[] Read(byte[] buf, int srcIndex, string format)
+  { int dummy;
+    return Read(buf, srcIndex, format, out dummy);
+  }
+  /// <summary>Reads formatted binary data from a byte array.</summary>
+  /// <param name="buf">An array of <see cref="System.Byte"/> from which the data will be read.</param>
+  /// <param name="srcIndex">The offset into <paramref name="buf"/> at which reading will begin.</param>
+  /// <param name="format">The format string controlling how the data will be read.</param>
+  /// <param name="bytesRead">An integer in which the number of bytes read from <paramref name="stream"/>
+  /// will be stored.
+  /// </param>
+  /// <returns>An array of <see cref="System.Object"/> containing the data read.</returns>
+  /// <include file='documentation.xml' path='//IO/IOH/BinaryFormat/*'/>
+  public static object[] Read(byte[] buf, int srcIndex, string format, out int bytesRead)
+  { object[] ret = new object[CalculateOutputs(format)];
+    bytesRead = Read(buf, srcIndex, format, ret);
+    return ret;
+  }
+  /// <summary>Reads formatted binary data from a byte array.</summary>
+  /// <param name="buf">An array of <see cref="System.Byte"/> from which the data will be read.</param>
+  /// <param name="srcIndex">The offset into <paramref name="buf"/> at which reading will begin.</param>
+  /// <param name="format">The format string controlling how the data will be read.</param>
+  /// <param name="output">An array of <see cref="System.Object"/> into which the data will be written.</param>
+  /// <returns>The number of bytes read from <paramref name="buf"/>.</returns>
+  /// <include file='documentation.xml' path='//IO/IOH/BinaryFormat/*'/>
+  public static int Read(byte[] buf, int srcIndex, string format, object[] output)
+  { return Read(buf, srcIndex, format, output, 0);
+  }
+  /// <summary>Reads formatted binary data from a byte array.</summary>
+  /// <param name="buf">An array of <see cref="System.Byte"/> from which the data will be read.</param>
+  /// <param name="srcIndex">The offset into <paramref name="buf"/> at which reading will begin.</param>
+  /// <param name="format">The format string controlling how the data will be read.</param>
+  /// <param name="output">An array of <see cref="System.Object"/> into which the data will be written.</param>
+  /// <param name="destIndex">The index into <paramref name="output"/> at which writing will begin.</param>
+  /// <returns>The number of bytes read from <paramref name="buf"/>.</returns>
+  /// <include file='documentation.xml' path='//IO/IOH/BinaryFormat/*'/>
+  public static unsafe int Read(byte[] buf, int srcIndex, string format, object[] output, int destIndex)
+  { if(buf==null || output==null) throw new ArgumentNullException();
+    if(srcIndex<0 || destIndex<0 || destIndex+CalculateOutputs(format)>output.Length)
+      throw new ArgumentOutOfRangeException();
+
+    int i=0, start=srcIndex;
+    char c;
+    bool bigendian=!BitConverter.IsLittleEndian, unicode=false;
+    try
+    { for(int flen=format.Length,prefix; i<flen; i++)
+      { c = format[i];
+        if(char.IsDigit(c))
+        { prefix = c-'0';
+          while(++i<flen && char.IsDigit(c=format[i])) prefix = prefix*10 + c-'0';
+          if(i==flen) throw new ArgumentException("Missing operator at "+i.ToString(), "format");
+        }
+        else if(c=='s') throw new ArgumentException("Strings of unknown size are not supported.", "format");
+        else prefix=-1;
+        if(prefix==0) continue;
+
+        switch(c)
+        { case 'x':
+            if(prefix==-1) srcIndex+=prefix;
+            else srcIndex += prefix;
+            break;
+
+          case 'b':
+            if(prefix==-1) output[destIndex++] = (sbyte)buf[srcIndex++];
+            else
+            { sbyte[] arr = new sbyte[prefix];
+              fixed(byte* src=buf) fixed(sbyte* dest=arr) Interop.Unsafe.Copy(src+srcIndex, dest, prefix);
+              output[destIndex++] = arr;
+              srcIndex += prefix;
+            }
+            break;
+
+          case 'B':
+            if(prefix==-1) output[destIndex++] = buf[srcIndex++];
+            else
+            { byte[] arr = new byte[prefix];
+              fixed(byte* src=buf) fixed(byte* dest=arr) Interop.Unsafe.Copy(src+srcIndex, dest, prefix);
+              output[destIndex++] = arr;
+              srcIndex += prefix;
+            }
+            break;
+
+          case 'w':
+            if(prefix==-1)
+            { output[destIndex++] = bigendian ? ReadBE2(buf, srcIndex) : ReadLE2(buf, srcIndex);
+              srcIndex += 2;
+            }
+            else
+            { short[] arr = new short[prefix];
+              if(bigendian==!BitConverter.IsLittleEndian)
+              { int len = prefix*2;
+                if(srcIndex+len>buf.Length) throw new ArgumentOutOfRangeException("Insufficient data.");
+                fixed(byte* src=buf) fixed(void* dest=arr) Interop.Unsafe.Copy(src, dest, len);
+                srcIndex += len;
+              }
+              else
+                for(int j=0; j<prefix; srcIndex+=2,j++)
+                  #if BIGENDIAN
+                  arr[j] = ReadLE2(buf, srcIndex);
+                  #else
+                  arr[j] = ReadBE2(buf, srcIndex);
+                  #endif
+
+              output[destIndex++] = arr;
+            }
+            break;
+
+          case 'W':
+            if(prefix==-1)
+            { output[destIndex++] = bigendian ? ReadBE2U(buf, srcIndex) : ReadLE2U(buf, srcIndex);
+              srcIndex += 2;
+            }
+            else
+            { ushort[] arr = new ushort[prefix];
+              if(bigendian==!BitConverter.IsLittleEndian)
+              { int len = prefix*2;
+                if(srcIndex+len>buf.Length) throw new ArgumentOutOfRangeException("Insufficient data.");
+                fixed(byte* src=buf) fixed(void* dest=arr) Interop.Unsafe.Copy(src, dest, len);
+                srcIndex += len;
+              }
+              else
+                for(int j=0; j<prefix; srcIndex+=2,j++)
+                  #if BIGENDIAN
+                  arr[j] = ReadLE2U(buf, srcIndex);
+                  #else
+                  arr[j] = ReadBE2U(buf, srcIndex);
+                  #endif
+
+              output[destIndex++] = arr;
+            }
+            break;
+
+          case 'd':
+            if(prefix==-1)
+            { output[destIndex++] = bigendian ? ReadBE4(buf, srcIndex) : ReadLE4(buf, srcIndex);
+              srcIndex += 4;
+            }
+            else
+            { int[] arr = new int[prefix];
+              if(bigendian==!BitConverter.IsLittleEndian)
+              { int len = prefix*4;
+                if(srcIndex+len>buf.Length) throw new ArgumentOutOfRangeException("Insufficient data.");
+                fixed(byte* src=buf) fixed(void* dest=arr) Interop.Unsafe.Copy(src, dest, len);
+                srcIndex += len;
+              }
+              else
+                for(int j=0; j<prefix; srcIndex+=4,j++)
+                  #if BIGENDIAN
+                  arr[j] = ReadLE4(buf, srcIndex);
+                  #else
+                  arr[j] = ReadBE4(buf, srcIndex);
+                  #endif
+
+              output[destIndex++] = arr;
+            }
+            break;
+
+          case 'D':
+            if(prefix==-1)
+            { output[destIndex++] = bigendian ? ReadBE4U(buf, srcIndex) : ReadLE4U(buf, srcIndex);
+              srcIndex += 4;
+            }
+            else
+            { uint[] arr = new uint[prefix];
+              if(bigendian==!BitConverter.IsLittleEndian)
+              { int len = prefix*4;
+                if(srcIndex+len>buf.Length) throw new ArgumentOutOfRangeException("Insufficient data.");
+                fixed(byte* src=buf) fixed(void* dest=arr) Interop.Unsafe.Copy(src, dest, len);
+                srcIndex += len;
+              }
+              else
+                for(int j=0; j<prefix; srcIndex+=4,j++)
+                  #if BIGENDIAN
+                  arr[j] = ReadLE4U(buf, srcIndex);
+                  #else
+                  arr[j] = ReadBE4U(buf, srcIndex);
+                  #endif
+
+              output[destIndex++] = arr;
+            }
+            break;
+
+          case 'f':
+            if(prefix==-1)
+            { output[destIndex++] = ReadFloat(buf, srcIndex);
+              srcIndex += 4;
+            }
+            else
+            { int len = prefix*4;
+              if(srcIndex+len>buf.Length) throw new ArgumentOutOfRangeException("Insufficient data.");
+              float[] arr = new float[prefix];
+              fixed(byte* src=buf) fixed(void* dest=arr) Interop.Unsafe.Copy(src, dest, len);
+              srcIndex += len;
+              output[destIndex++] = arr;
+            }
+            break;
+
+          case 'F':
+            if(prefix==-1)
+            { output[destIndex++] = ReadDouble(buf, srcIndex);
+              srcIndex += 8;
+            }
+            else
+            { int len = prefix*8;
+              if(srcIndex+len>buf.Length) throw new ArgumentOutOfRangeException("Insufficient data.");
+              double[] arr = new double[prefix];
+              fixed(byte* src=buf) fixed(void* dest=arr) Interop.Unsafe.Copy(src, dest, len);
+              srcIndex += len;
+              output[destIndex++] = arr;
+            }
+            break;
+
+          case 'q':
+            if(prefix==-1)
+            { output[destIndex++] = bigendian ? ReadBE8(buf, srcIndex) : ReadLE8(buf, srcIndex);
+              srcIndex += 8;
+            }
+            else
+            { long[] arr = new long[prefix];
+              if(bigendian==!BitConverter.IsLittleEndian)
+              { int len = prefix*8;
+                if(srcIndex+len>buf.Length) throw new ArgumentOutOfRangeException("Insufficient data.");
+                fixed(byte* src=buf) fixed(void* dest=arr) Interop.Unsafe.Copy(src, dest, len);
+                srcIndex += len;
+              }
+              else
+                for(int j=0; j<prefix; srcIndex+=8,j++)
+                  #if BIGENDIAN
+                  arr[j] = ReadLE8(buf, srcIndex);
+                  #else
+                  arr[j] = ReadBE8(buf, srcIndex);
+                  #endif
+
+              output[destIndex++] = arr;
+            }
+            break;
+
+          case 'Q':
+            if(prefix==-1)
+            { output[destIndex++] = bigendian ? ReadBE8U(buf, srcIndex) : ReadLE8U(buf, srcIndex);
+              srcIndex += 8;
+            }
+            else
+            { ulong[] arr = new ulong[prefix];
+              if(bigendian==!BitConverter.IsLittleEndian)
+              { int len = prefix*8;
+                if(srcIndex+len>buf.Length) throw new ArgumentOutOfRangeException("Insufficient data.");
+                fixed(byte* src=buf) fixed(void* dest=arr) Interop.Unsafe.Copy(src, dest, len);
+                srcIndex += len;
+              }
+              else
+                for(int j=0; j<prefix; srcIndex+=8,j++)
+                  #if BIGENDIAN
+                  arr[j] = ReadLE8U(buf, srcIndex);
+                  #else
+                  arr[j] = ReadBE8U(buf, srcIndex);
+                  #endif
+
+              output[destIndex++] = arr;
+            }
+            break;
+
+          case 'c':
+            if(prefix==-1)
+            { if(unicode)
+              { output[destIndex++] = bigendian ? (char)ReadBE2U(buf, srcIndex) : (char)ReadLE2U(buf, srcIndex);
+                srcIndex += 2;
+              }
+              else output[destIndex++] = (char)buf[srcIndex++];
+            }
+            else
+            { char[] arr = new char[prefix];
+              if(bigendian==!BitConverter.IsLittleEndian)
+              { int len = prefix*2;
+                if(srcIndex+len>buf.Length) throw new ArgumentOutOfRangeException("Insufficient data.");
+                fixed(byte* src=buf) fixed(void* dest=arr) Interop.Unsafe.Copy(src, dest, len);
+                srcIndex += len;
+              }
+              else
+                for(int j=0; j<prefix; srcIndex+=2,j++)
+                  #if BIGENDIAN
+                  arr[j] = (char)ReadLE2U(buf, srcIndex);
+                  #else
+                  arr[j] = (char)ReadBE2U(buf, srcIndex);
+                  #endif
+
+              output[destIndex++] = arr;
+            }
+            break;
+
+          case 's':
+            if(unicode)
+            { char* arr = stackalloc char[prefix];
+
+              if(bigendian==!BitConverter.IsLittleEndian)
+              { int len = prefix*2;
+                if(srcIndex+len>buf.Length) throw new ArgumentOutOfRangeException("Insufficient data.");
+                fixed(byte* src=buf) Interop.Unsafe.Copy(src, arr, len);
+                srcIndex += len;
+              }
+              else
+                for(int j=0; j<prefix; srcIndex+=2,j++)
+                  #if BIGENDIAN
+                  arr[j] = (char)ReadLE2U(buf, srcIndex);
+                  #else
+                  arr[j] = (char)ReadBE2U(buf, srcIndex);
+                  #endif
+
+              output[destIndex++] = new string(arr, 0, prefix);
+            }
+            else
+            { output[destIndex++] = System.Text.Encoding.ASCII.GetString(buf, srcIndex, prefix);
+              srcIndex += prefix;
+            }
+            break;
+
+          case 'p':
+          { int len=buf[srcIndex++], slen;
+            if(prefix==-1) { prefix=len; slen=0; }
+            else if(len<prefix) throw new ArgumentException("Prefix is greater than length of pascal string.");
+            else slen = len-prefix;
+
+            if(unicode)
+            { char* arr = stackalloc char[prefix];
+
+              if(bigendian==!BitConverter.IsLittleEndian)
+              { len = prefix*2;
+                if(srcIndex+len>buf.Length) throw new ArgumentOutOfRangeException("Insufficient data.");
+                fixed(byte* src=buf) Interop.Unsafe.Copy(src, arr, len);
+                srcIndex += len;
+              }
+              else
+                for(int j=0; j<prefix; srcIndex+=2,j++)
+                  #if BIGENDIAN
+                  arr[j] = (char)ReadLE2U(buf, srcIndex);
+                  #else
+                  arr[j] = (char)ReadBE2U(buf, srcIndex);
+                  #endif
+
+              output[destIndex++] = new string(arr, 0, prefix);
+              slen *= 2;
+            }
+            else
+            { output[destIndex++] = System.Text.Encoding.ASCII.GetString(buf, srcIndex, prefix);
+              srcIndex += prefix;
+            }
+            srcIndex += slen;
+            break;
+          }
+
+          case 'A': unicode=false; break;
+          case 'U': unicode=true; break;
+          case '<': bigendian=false; break;
+          case '>': bigendian=true; break;
+          case '=': bigendian=!BitConverter.IsLittleEndian; break;
+          default:
+            if(char.IsWhiteSpace(c)) break;
+            throw new ArgumentException(string.Format("Unknown character '{0}'", c), "format");
+        }
+      }
+    }
+    catch(Exception e)
+    { throw new ArgumentException(string.Format("Error near char {0}, near output {1} -- {2}", i, destIndex, e.Message), e);
+    }
+
+    return srcIndex-start;
+  }
+  #endregion
+
+  #region Formatted binary write
   /// <summary>Returns formatted binary data in a byte array.</summary>
   /// <param name="format">The string used to format the binary data.</param>
   /// <param name="parms">Parameters referenced by the format string.</param>
@@ -829,17 +1508,12 @@ public sealed class IOH
   /// <include file='documentation.xml' path='//IO/IOH/BinaryFormat/*'/>
   public static int Write(byte[] buf, int index, string format, params object[] parms)
   { char c;
-    #if BIGENDIAN
-    bool bigendian=true,unicode=false;
-    #else
-    bool bigendian=false,unicode=false;
-    #endif
+    bool bigendian=!BitConverter.IsLittleEndian, unicode=false;
 
     int i=0, j=0, origIndex=index;
     try
     { for(int flen=format.Length,prefix; i<flen; i++)
       { c = format[i];
-        if(char.IsWhiteSpace(c)) continue;
         if(char.IsDigit(c))
         { prefix = c-'0';
           while(++i<flen && char.IsDigit(c=format[i])) prefix = prefix*10 + c-'0';
@@ -1047,17 +1721,15 @@ public sealed class IOH
           case 'U': unicode=true; break;
           case '<': bigendian=false; break;
           case '>': bigendian=true; break;
-          #if BIGENDIAN
-          case '=': bigendian=true; break;
-          #else
-          case '=': bigendian=false; break;
-          #endif
-          default: throw new ArgumentException(string.Format("Unknown character '{0}'", c, i), "format");
+          case '=': bigendian=!BitConverter.IsLittleEndian; break;
+          default:
+            if(char.IsWhiteSpace(c)) break;
+            throw new ArgumentException(string.Format("Unknown character '{0}'", c), "format");
         }
       }
     }
     catch(Exception e)
-    { throw new ArgumentException(string.Format("Error near char {0}, near parameter {1} -- {2}", e.Message), e);
+    { throw new ArgumentException(string.Format("Error near char {0}, near parameter {1} -- {2}", i, j, e.Message), e);
     }
     return index-origIndex;
   }
@@ -1069,18 +1741,15 @@ public sealed class IOH
   /// <returns>The number of bytes written.</returns>
   /// <include file='documentation.xml' path='//IO/IOH/BinaryFormat/*'/>
   public static int Write(Stream stream, string format, params object[] parms)
-  { char c;
-    #if BIGENDIAN
-    bool bigendian=true,unicode=false;
-    #else
-    bool bigendian=false,unicode=false;
-    #endif
+  { if(stream==null || format==null || parms==null) throw new ArgumentNullException();
+
+    char c;
+    bool bigendian=!BitConverter.IsLittleEndian, unicode=false;
 
     int i=0, j=0, origPos=(int)stream.Position;
     try
     { for(int flen=format.Length,prefix; i<flen; i++)
       { c = format[i];
-        if(char.IsWhiteSpace(c)) continue;
         if(char.IsDigit(c))
         { prefix = c-'0';
           while(++i<flen && char.IsDigit(c=format[i])) prefix = prefix*10 + c-'0';
@@ -1093,6 +1762,7 @@ public sealed class IOH
         }
         else prefix=(c=='s' || c=='p' ? -1 : 1);
         if(prefix==0) continue;
+
         switch(c)
         { case 'x':
             if(prefix<8) do stream.WriteByte(0); while(--prefix!=0);
@@ -1264,17 +1934,15 @@ public sealed class IOH
           case 'U': unicode=true; break;
           case '<': bigendian=false; break;
           case '>': bigendian=true; break;
-          #if BIGENDIAN
-          case '=': bigendian=true; break;
-          #else
-          case '=': bigendian=false; break;
-          #endif
-          default: throw new ArgumentException(string.Format("Unknown character '{0}'", c, i), "format");
+          case '=': bigendian=!BitConverter.IsLittleEndian; break;
+          default:
+            if(char.IsWhiteSpace(c)) break;
+            throw new ArgumentException(string.Format("Unknown character '{0}'", c), "format");
         }
       }
     }
     catch(Exception e)
-    { throw new ArgumentException(string.Format("Error near char {0}, near parameter {1} -- {2}", e.Message), e);
+    { throw new ArgumentException(string.Format("Error near char {0}, near parameter {1} -- {2}", i, j, e.Message), e);
     }
     return (int)stream.Position-origPos;
   }
