@@ -1168,10 +1168,10 @@ public struct Rectangle
   }
   
   public void Unite(Rectangle rect)
-  { if(X<rect.X) X=rect.X;
-    if(Y<rect.Y) Y=rect.Y;
-    if(Right>rect.Right)   Width  += rect.Right-Right;
-    if(Bottom>rect.Bottom) Height += rect.Bottom-Bottom;
+  { if(X>rect.X) X=rect.X;
+    if(Y>rect.Y) Y=rect.Y;
+    if(Right<rect.Right)   Width  += rect.Right-Right;
+    if(Bottom<rect.Bottom) Height += rect.Bottom-Bottom;
   }
 
   public float X, Y, Width, Height;
@@ -1179,7 +1179,7 @@ public struct Rectangle
 #endregion
 
 #region Polygon
-public class Polygon
+public class Polygon : ICloneable
 { public Polygon() { points=new Point[4]; }
   public Polygon(Point[] points) : this(points.Length) { AddPoints(points); }
   public Polygon(Point[] points, int nPoints) : this(nPoints) { AddPoints(points, nPoints); }
@@ -1220,6 +1220,8 @@ public class Polygon
   }
 
   public void Clear() { length=0; }
+
+  public object Clone() { return new Polygon(points, length); }
 
   public bool ConvexContains(Point point)
   { int  sgn;
@@ -1338,6 +1340,11 @@ public class Polygon
       }
     }
     return true;
+  }
+
+  public void Offset(Vector dist) { Offset(dist.X, dist.Y); }
+  public void Offset(float xd, float yd)
+  { for(int i=0; i<length; i++) points[i].Offset(xd, yd);
   }
 
   public void RemovePoint(int index)
@@ -1460,9 +1467,10 @@ public class Polygon
   }
 
   void ResizeTo(int capacity)
-  { if(points.Length<capacity)
-    { Point[] narr = new Point[Math.Max(capacity, points.Length*2)];
-      Array.Copy(points, narr, length);
+  { int clen = points==null ? 0 : points.Length;
+    if(clen<capacity)
+    { Point[] narr = new Point[Math.Max(capacity, clen*2)];
+      if(length>0) Array.Copy(points, narr, length);
       points = narr;
     }
   }
