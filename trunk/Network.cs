@@ -1425,8 +1425,8 @@ public class Server
   public void Send(object toWho, byte[] data, int length) { Send(toWho, data, 0, length, defFlags); }
   /// <include file="documentation.xml" path="//Network/Server/Send/*[self::Common or self::byteData or self::Length or self::Index]/*"/>
   public void Send(object toWho, byte[] data, int index, int length)
-  { if(cvt.AltersByteArray) DoSend(toWho, cvt.Serialize(data, index, length), defFlags, 0, data);
-    else DoSend(toWho, data, index, length, defFlags, 0, data);
+  { if(cvt.AltersByteArray) RawSend(toWho, cvt.Serialize(data, index, length), defFlags, 0, data);
+    else RawSend(toWho, data, index, length, defFlags, 0, data);
   }
   /// <include file="documentation.xml" path="//Network/Server/Send/*[self::Common or self::byteData or self::Flags]/*"/>
   public void Send(object toWho, byte[] data, SendFlag flags) { Send(toWho, data, 0, data.Length, flags); }
@@ -1434,8 +1434,8 @@ public class Server
   public void Send(object toWho, byte[] data, int length, SendFlag flags) { Send(toWho, data, 0, length, flags); }
   /// <include file="documentation.xml" path="//Network/Server/Send/*[self::Common or self::byteData or self::Length or self::Index or self::Flags]/*"/>
   public void Send(object toWho, byte[] data, int index, int length, SendFlag flags)
-  { if(cvt.AltersByteArray) DoSend(toWho, cvt.Serialize(data, index, length), flags, 0, data);
-    else DoSend(toWho, data, index, length, flags, 0, data);
+  { if(cvt.AltersByteArray) RawSend(toWho, cvt.Serialize(data, index, length), flags, 0, data);
+    else RawSend(toWho, data, index, length, flags, 0, data);
   }
   /// <include file="documentation.xml" path="//Network/Server/Send/*[self::Common or self::byteData or self::Flags or self::Timeout]/*"/>
   public void Send(object toWho, byte[] data, SendFlag flags, uint timeoutMs) { Send(toWho, data, 0, data.Length, flags); }
@@ -1443,27 +1443,30 @@ public class Server
   public void Send(object toWho, byte[] data, int length, SendFlag flags, uint timeoutMs) { Send(toWho, data, 0, length, flags); }
   /// <include file="documentation.xml" path="//Network/Server/Send/*[self::Common or self::byteData or self::Index or self::Length or self::Flags or self::Timeout]/*"/>
   public void Send(object toWho, byte[] data, int index, int length, SendFlag flags, uint timeoutMs)
-  { if(cvt.AltersByteArray) DoSend(toWho, cvt.Serialize(data, index, length), flags, timeoutMs, data);
-    else DoSend(toWho, data, index, length, flags, timeoutMs, data);
+  { if(cvt.AltersByteArray) RawSend(toWho, cvt.Serialize(data, index, length), flags, timeoutMs, data);
+    else RawSend(toWho, data, index, length, flags, timeoutMs, data);
   }
   /// <include file="documentation.xml" path="//Network/Server/Send/*[self::Common or self::objData]/*"/>
-  public void Send(object toWho, object data) { DoSend(toWho, cvt.Serialize(data), defFlags, 0, data); }
+  public void Send(object toWho, object data) { RawSend(toWho, cvt.Serialize(data), defFlags, 0, data); }
   /// <include file="documentation.xml" path="//Network/Server/Send/*[self::Common or self::objData or self::Flags]/*"/>
-  public void Send(object toWho, object data, SendFlag flags) { DoSend(toWho, cvt.Serialize(data), flags, 0, data); }
+  public void Send(object toWho, object data, SendFlag flags) { RawSend(toWho, cvt.Serialize(data), flags, 0, data); }
   /// <include file="documentation.xml" path="//Network/Server/Send/*[self::Common or self::objData or self::Flags or self::Timeout]/*"/>
   public void Send(object toWho, object data, SendFlag flags, uint timeoutMs)
-  { DoSend(toWho, cvt.Serialize(data), flags, timeoutMs, data);
+  { RawSend(toWho, cvt.Serialize(data), flags, timeoutMs, data);
   }
 
-  struct DualTag
-  { public DualTag(object tag1, object tag2) { Tag1=tag1; Tag2=tag2; }
-    public object Tag1, Tag2;
-  }
+  /// <summary>Gets the <see cref="MessageConverter"/> used to serialize/deserialize messages.</summary>
+  /// <remarks>This is most commonly used in conjunction with <see cref="RawSend"/> to serialize a complex message
+  /// once and then send it multiple times.
+  /// </remarks>
+  protected MessageConverter Converter { get { return cvt; } }
 
-  void DoSend(object toWho, byte[] data, SendFlag flags, uint timeoutMs, object orig)
-  { DoSend(toWho, data, 0, data.Length, flags, timeoutMs, orig);
+  /// <include file="documentation.xml" path="//Network/Server/Send/*[self::Common or self::RawSend or self::Flags or self::Timeout]/*"/>
+  protected void RawSend(object toWho, byte[] data, SendFlag flags, uint timeoutMs, object orig)
+  { RawSend(toWho, data, 0, data.Length, flags, timeoutMs, orig);
   }
-  void DoSend(object toWho, byte[] data, int index, int length, SendFlag flags, uint timeoutMs, object orig)
+  /// <include file="documentation.xml" path="//Network/Server/Send/*[self::Common or self::RawSend or self::Index or self::Length or self::Flags or self::Timeout]/*"/>
+  protected void RawSend(object toWho, byte[] data, int index, int length, SendFlag flags, uint timeoutMs, object orig)
   { if((object)data!=orig) flags |= SendFlag.NoCopy;
     if(toWho==null || toWho==Players)
       lock(this)
@@ -1486,76 +1489,6 @@ public class Server
         catch(ConnectionLostException) { }
       }
     else throw new ArgumentException("Unknown destination type: "+toWho.GetType(), "toWho");
-  }
-
-  void ThreadFunc()
-  { try
-    { ArrayList disconnected = new ArrayList();
-      while(!quit)
-      { bool did=false;
-
-        lock(this)
-        { while(listening && server.Pending())
-          { Socket sock = server.AcceptSocket();
-            try
-            { ServerPlayer p = new ServerPlayer(new NetLink(sock), nextID++);
-              if(!quit && OnPlayerConnecting(p))
-              { p.Link.LagAverage      = lagAverage;
-                p.Link.LagVariance     = lagVariance;
-                p.Link.MessageSent    += new LinkMessageHandler(OnMessageSent);
-                p.Link.RemoteReceived += new LinkMessageHandler(OnRemoteReceived);
-                players.Array.Add(p);
-                links.Add(p.Link);
-                p.Link.Send(new byte[0], SendFlag.Reliable);
-                if(PlayerConnected!=null) PlayerConnected(this, p);
-              }
-              else sock.Close();
-            }
-            catch(SocketException) { sock.Close(); }
-            catch(HandshakeException) { sock.Close(); }
-          }
-
-          for(int i=0; i<players.Count; i++)
-          { ServerPlayer p = players[i];
-            try
-            { if(p.DelayedDrop && Timing.Msecs-p.DropStart>=p.DropDelay) p.Link.Close();
-
-              p.Link.SendPoll(); // ReceivePoll() is called by ReceiveMessage() as necessary
-              LinkMessage msg = p.Link.ReceiveMessage();
-              if(msg!=null)
-              { did=true;
-                OnMessageReceived(p, cvt.Deserialize(msg));
-              }
-              else
-              { if(p.DelayedDrop && p.Link.sendQueue==0) p.Link.Close();
-                if(!p.Link.IsConnected)
-                { did=true;
-                  players.Array.RemoveAt(i);
-                  links.RemoveAt(i);
-                  i--;
-                  disconnected.Add(p);
-                }
-              }
-            }
-            catch(SocketException) { }
-          }
-
-          if(disconnected!=null)
-          { foreach(ServerPlayer p in disconnected) OnPlayerDisconnected(p);
-            disconnected.Clear();
-          }
-        }
-
-        if(!did) NetLink.WaitForEvent(links, 250);
-      }
-    }
-    catch(Exception e)
-    { try
-      { if(Events.Events.Initialized)
-          Events.Events.PushEvent(new Events.ExceptionEvent(Events.ExceptionLocation.NetworkThread, e));
-      }
-      catch { throw e; }
-    }
   }
 
   /// <summary>Raises the <see cref="MessageReceived"/> event.</summary>
@@ -1628,18 +1561,93 @@ public class Server
     if(smh==null) smh(this, player, message);
   }
 
-  void OnMessageSent(NetLink link, LinkMessage msg)
-  { DualTag tag = (DualTag)msg.Tag;
-    OnMessageSent((ServerPlayer)tag.Tag1, tag.Tag2);
+  struct DualTag
+  { public DualTag(object tag1, object tag2) { Tag1=tag1; Tag2=tag2; }
+    public object Tag1, Tag2;
   }
+
+  void AssertOpen()   { if(thread==null) throw new InvalidOperationException("Server not initialized yet."); }
+  void AssertClosed() { if(thread!=null) throw new InvalidOperationException("Server already initialized."); }
 
   void OnRemoteReceived(NetLink link, LinkMessage msg)
   { DualTag tag = (DualTag)msg.Tag;
     OnRemoteReceived((ServerPlayer)tag.Tag1, tag.Tag2);
   }
 
-  void AssertOpen()   { if(thread==null) throw new InvalidOperationException("Server not initialized yet."); }
-  void AssertClosed() { if(thread!=null) throw new InvalidOperationException("Server already initialized."); }
+  void OnMessageSent(NetLink link, LinkMessage msg)
+  { DualTag tag = (DualTag)msg.Tag;
+    OnMessageSent((ServerPlayer)tag.Tag1, tag.Tag2);
+  }
+
+  void ThreadFunc()
+  { try
+    { ArrayList disconnected = new ArrayList();
+      while(!quit)
+      { bool did=false;
+
+        lock(this)
+        { while(listening && server.Pending())
+          { Socket sock = server.AcceptSocket();
+            try
+            { ServerPlayer p = new ServerPlayer(new NetLink(sock), nextID++);
+              if(!quit && OnPlayerConnecting(p))
+              { p.Link.LagAverage      = lagAverage;
+                p.Link.LagVariance     = lagVariance;
+                p.Link.MessageSent    += new LinkMessageHandler(OnMessageSent);
+                p.Link.RemoteReceived += new LinkMessageHandler(OnRemoteReceived);
+                players.Array.Add(p);
+                links.Add(p.Link);
+                p.Link.Send(new byte[0], SendFlag.Reliable);
+                OnPlayerConnected(p);
+              }
+              else sock.Close();
+            }
+            catch(SocketException) { sock.Close(); }
+            catch(HandshakeException) { sock.Close(); }
+          }
+
+          for(int i=0; i<players.Count; i++)
+          { ServerPlayer p = players[i];
+            try
+            { if(p.DelayedDrop && Timing.Msecs-p.DropStart>=p.DropDelay) p.Link.Close();
+
+              p.Link.SendPoll(); // ReceivePoll() is called by ReceiveMessage() as necessary
+              LinkMessage msg = p.Link.ReceiveMessage();
+              if(msg!=null)
+              { did=true;
+                OnMessageReceived(p, cvt.Deserialize(msg));
+              }
+              else
+              { if(p.DelayedDrop && p.Link.sendQueue==0) p.Link.Close();
+                if(!p.Link.IsConnected)
+                { did=true;
+                  players.Array.RemoveAt(i);
+                  links.RemoveAt(i);
+                  i--;
+                  disconnected.Add(p);
+                }
+              }
+            }
+            catch(SocketException) { }
+          }
+
+          if(disconnected!=null)
+          { foreach(ServerPlayer p in disconnected) OnPlayerDisconnected(p);
+            disconnected.Clear();
+          }
+        }
+
+        if(!did) NetLink.WaitForEvent(links, 250);
+      }
+    }
+    catch(Exception e)
+    { try
+      { if(Events.Events.Initialized)
+          Events.Events.PushEvent(new Events.ExceptionEvent(Events.ExceptionLocation.NetworkThread, e));
+      }
+      catch { throw e; }
+    }
+  }
 
   PlayerCollection  players = new PlayerCollection();
   ArrayList         links   = new ArrayList();
@@ -1903,7 +1911,7 @@ public class Client
           LinkMessage msg = link.ReceiveMessage();
           if(msg!=null)
           { did=true;
-            if(MessageReceived!=null) MessageReceived(this, cvt.Deserialize(msg));
+            OnMessageReceived(cvt.Deserialize(msg));
           }
           else
           { if(delayedDrop && link.sendQueue==0) link.Close();

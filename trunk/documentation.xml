@@ -760,6 +760,14 @@ byte[] output = IOH.Write("dfp?d", parms);
         <summary>Queues a message for sending.</summary>
         <param name="data">An array of <see cref="System.Byte"/> containing the message data.</param>
       </Common>
+      <RawSend>
+        <param name="orig">A reference to the original, unserialized message data.</param>
+        <remarks>This method is used to send a raw block of data over the network. It is assumed that the data
+          was obtained by serializing it with the <see cref="Converter"/>. The primary use for this is if you want
+          to send a complex message to several players without first creating a collection containing them,
+          or to send the same message at several different times.
+        </remarks>
+      </RawSend>
       <Length><param name="length">The length of the message data.</param></Length>
       <Index><param name="index">The index into <paramref name="data"/> at which the message data begins.</param></Index>
       <Flags>
