@@ -147,6 +147,11 @@
                     BuildAction = "Compile"
                 />
                 <File
+                    RelPath = "OggVorbisInterop.cs"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
                     RelPath = "OpenGL.cs"
                     SubType = "Code"
                     BuildAction = "Compile"

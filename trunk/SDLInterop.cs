@@ -575,7 +575,7 @@ internal class SDL
 
 #region StreamRWOps class
 internal class StreamRWOps
-{ public unsafe StreamRWOps(Stream stream) : this(stream, true) { }
+{ public StreamRWOps(Stream stream) : this(stream, true) { }
   public unsafe StreamRWOps(Stream stream, bool autoClose)
   { if(stream==null) throw new ArgumentNullException("stream");
     else if(!stream.CanSeek || !stream.CanRead)
