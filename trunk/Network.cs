@@ -4,12 +4,19 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Runtime.InteropServices;
+using System.Reflection;
 using GameLib.IO;
 
 namespace GameLib.Network
 {
 
 #region Common types
+public interface INetSerializeable
+{ int  SizeOf();
+  void SerializeTo(byte[] buf, int index);
+  void DeserializeFrom(byte[] buf, int index);
+}
+
 public struct QueueStats
 { public int SendMessages, SendBytes, ReceiveMessages, ReceiveBytes;
 }
@@ -18,6 +25,8 @@ public struct QueueStats
 public enum SendFlag
 { None=0, Reliable=1, Sequential=2, NotifySent=4, NotifyReceived=8, NoCopy=16,
   LowPriority=32, HighPriority=64,
+  
+  ReliableSequential = Reliable|Sequential,
   
   // these are not for Send(). they're used for GetQueueStats().
   NormalPriority=128, ReceiveQueue=256, AllStats=LowPriority|NormalPriority|HighPriority|ReceiveQueue
@@ -32,14 +41,16 @@ internal class MessageConverter
   }
 
   public void RegisterType(Type type)
-  { int i;
+  { TypeInfo info = new TypeInfo(type, type.IsSubclassOf(typeof(INetSerializeable)));
+    int  i;
     for(i=0; i<types.Count; i++) if(types[i]==null) break;
-    if(i==types.Count) types.Add(type); else types[i] = type;
+    if(i==types.Count) types.Add(info); else types[i] = info;
     typeIDs[type] = i;
   }
 
   public void UnregisterType(Type type)
-  { int index = (int)typeIDs[type];
+  { if(!typeIDs.Contains(type)) throw new ArgumentException(String.Format("{0} is not a registered type", type));
+    int index = (int)typeIDs[type];
     typeIDs.Remove(type);
     types[index] = null;
   }
@@ -61,13 +72,22 @@ internal class MessageConverter
         return buf;
       }
       else
-        unsafe
-        { fixed(byte* buf=msg.Data)
-            return Marshal.PtrToStructure(new IntPtr(buf+msg.Index+4), (Type)types[id-1]);
+      { if(id<0 || id>=types.Count || types[id]==null) return null;
+        TypeInfo info = (TypeInfo)types[id-1];
+        if(info.UseInterface)
+        { INetSerializeable ns = (INetSerializeable)info.Type.GetConstructor(Type.EmptyTypes).Invoke(null);
+          ns.DeserializeFrom(msg.Data, msg.Index+4);
+          return ns;
         }
+        else
+          unsafe
+          { fixed(byte* buf=msg.Data)
+              return Marshal.PtrToStructure(new IntPtr(buf+msg.Index+4), info.Type);
+          }
+      }
     }
   }
-  
+
   public byte[] FromObject(byte[] data) { return FromObject(data, 0, data.Length); }
   public byte[] FromObject(byte[] data, int index, int length)
   { if(types.Count==0)
@@ -91,12 +111,27 @@ internal class MessageConverter
     else
     { Type type = obj.GetType();
       if(!typeIDs.Contains(type)) throw new ArgumentException(String.Format("{0} is not a registered type", type));
-      int id = (int)typeIDs[type], length = Marshal.SizeOf(type);
-      byte[] ret = new byte[length+4];
+      int id = (int)typeIDs[type];
+      TypeInfo info = (TypeInfo)types[id];
+      byte[]   ret;
+      if(info.UseInterface)
+      { INetSerializeable ns = (INetSerializeable)obj;
+        ret = new byte[ns.SizeOf()+4];
+        ns.SerializeTo(ret, 4);
+      }
+      else
+      { ret = new byte[Marshal.SizeOf(type)+4];
+        unsafe { fixed(byte* ptr = ret) Marshal.StructureToPtr(obj, new IntPtr(ptr+4), false); }
+      }
       IOH.WriteLE4(ret, 0, id+1);
-      unsafe { fixed(byte* ptr = ret) Marshal.StructureToPtr(obj, new IntPtr(ptr+4), false); }
       return ret;
     }
+  }
+
+  class TypeInfo
+  { public TypeInfo(Type type, bool useInterface) { Type=type; UseInterface=useInterface; }
+    public Type Type;
+    public bool UseInterface;
   }
 
   ArrayList types   = new ArrayList();
@@ -327,11 +362,7 @@ internal class NetLink
   public void SendPoll()
   { if(tcp!=null) System.Threading.Monitor.Enter(tcp);
     if(udp!=null) System.Threading.Monitor.Enter(udp);
-    try
-    { if(!SendMessages(high)) return;
-      if(!SendMessages(norm)) return;
-      if(!SendMessages(low))  return;
-    }
+    try { SendMessages(low, SendMessages(norm, SendMessages(high, true))); }
     finally
     { if(udp!=null) System.Threading.Monitor.Exit(udp);
       if(tcp!=null) System.Threading.Monitor.Exit(tcp);
@@ -384,13 +415,14 @@ internal class NetLink
     if(recvBuf==null || recvBuf.Length<len) recvBuf=new byte[len];
   }
 
-  bool SendMessages(Queue queue)
+  bool SendMessages(Queue queue, bool trySend)
   { if(!connected) return false;
     
     lock(queue)
     { while(queue.Count>0)
       { LinkMessage msg = (LinkMessage)queue.Peek();
         if(msg.Deadline!=0 && Timing.Ticks>msg.Deadline) goto Remove;
+        if(!trySend) return false;
 
         bool useTcp;
         int  sent;
@@ -448,8 +480,8 @@ internal class NetLink
 #endregion
 
 #region Server class and supporting types
-public class Player
-{ internal Player(IPEndPoint ep, NetLink link, uint id) { EndPoint=ep; Link=link; ID=id; }
+public class ServerPlayer
+{ internal ServerPlayer(IPEndPoint ep, NetLink link, uint id) { EndPoint=ep; Link=link; ID=id; }
   
   public object     Data;
   public IPEndPoint EndPoint;
@@ -457,14 +489,14 @@ public class Player
   internal NetLink  Link;
 }
 
-public delegate bool PlayerConnectHandler(Server server, Player player);
-public delegate void PlayerDisconnectHandler(Server server, Player player);
-public delegate void ServerReceivedHandler(Server sender, Player player, object msg);
-public delegate void ServerSentHandler(Server sender, Player player, object msg);
+public delegate bool PlayerConnectHandler(Server server, ServerPlayer player);
+public delegate void PlayerDisconnectHandler(Server server, ServerPlayer player);
+public delegate void ServerReceivedHandler(Server sender, ServerPlayer player, object msg);
+public delegate void ServerSentHandler(Server sender, ServerPlayer player, object msg);
 
 public class Server
 { public class PlayerCollection : ReadOnlyCollectionBase
-  { public Player this[int index] { get { return (Player)InnerList[index]; } }
+  { public ServerPlayer this[int index] { get { return (ServerPlayer)InnerList[index]; } }
     internal ArrayList Array { get { return InnerList; } }
   }
 
@@ -499,7 +531,7 @@ public class Server
 
   public void Close()
   { if(thread!=null)
-    { lock(this) foreach(Player p in players) p.Link.Close();
+    { lock(this) foreach(ServerPlayer p in players) p.Link.Close();
       quit = true;
       thread.Join(1500);
       thread.Abort();
@@ -527,7 +559,7 @@ public class Server
       }
   }
   
-  public void DropPlayer(Player p) { lock(this) p.Link.Close(); }
+  public void DropPlayer(ServerPlayer p) { lock(this) p.Link.Close(); }
 
   public void Send(object toWho, byte[] data, SendFlag flags) { Send(toWho, data, 0, data.Length, flags); }
   public void Send(object toWho, byte[] data, int length, SendFlag flags) { Send(toWho, data, 0, length, flags); }
@@ -547,10 +579,10 @@ public class Server
 
   void DoSend(object toWho, byte[] data, SendFlag flags, uint timeoutMs, object orig)
   { if(toWho is ICollection)
-      foreach(Player p in (ICollection)toWho)
+      foreach(ServerPlayer p in (ICollection)toWho)
         p.Link.Send(data, 0, data.Length, flags, timeoutMs, new DualTag(p, orig));
     else
-    { Player p = (Player)toWho;
+    { ServerPlayer p = (ServerPlayer)toWho;
       p.Link.Send(data, 0, data.Length, flags, timeoutMs, new DualTag(p, orig));
     }
   }
@@ -562,7 +594,7 @@ public class Server
       { while(server!=null && server.Pending())
         { Socket sock = server.AcceptSocket();
           try
-          { Player p = new Player((IPEndPoint)sock.RemoteEndPoint, new NetLink(sock), nextID++);
+          { ServerPlayer p = new ServerPlayer((IPEndPoint)sock.RemoteEndPoint, new NetLink(sock), nextID++);
             if(!quit && (PlayerConnecting==null || PlayerConnecting(this, p)))
             { players.Array.Add(p);
               links.Add(p.Link);
@@ -577,7 +609,7 @@ public class Server
         }
 
         for(int i=0; i<players.Count; i++)
-        { Player p = players[i];
+        { ServerPlayer p = players[i];
           try
           { p.Link.Poll();
 
@@ -605,7 +637,7 @@ public class Server
   { lock(this)
     { if(eMessageSent!=null)
       { DualTag tag = (DualTag)msg.Tag;
-        eMessageSent(this, (Player)tag.Tag1, tag.Tag2);
+        eMessageSent(this, (ServerPlayer)tag.Tag1, tag.Tag2);
       }
       return true;
     }
@@ -614,7 +646,7 @@ public class Server
   bool OnRemoteReceived(NetLink link, LinkMessage msg)
   { if(RemoteReceived==null)
     { DualTag tag = (DualTag)msg.Tag;
-      RemoteReceived(this, (Player)tag.Tag1, tag.Tag2);
+      RemoteReceived(this, (ServerPlayer)tag.Tag1, tag.Tag2);
     }
     return true;
   }

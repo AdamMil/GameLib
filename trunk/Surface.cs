@@ -51,7 +51,7 @@ public class Surface : IDisposable
   public unsafe Surface(string filename) { InitFromSurface(Interop.SDLImage.Image.Load(filename)); }
   public unsafe Surface(string filename, ImageType type)
   { SDL.RWOps* ops = SDL.RWFromFile(filename, "rb");
-    if(ops==null) throw new System.IO.FileNotFoundException();
+    if(ops==null) throw new System.IO.FileNotFoundException("The file could not be opened", filename);
     InitFromSurface(Interop.SDLImage.Image.LoadTyped_RW(ops, 1, Interop.SDLImage.Image.Type.Types[(int)type]));
   }
   public unsafe Surface(System.IO.Stream stream) : this(stream, true) { }
