@@ -8,11 +8,12 @@ namespace GameLib.Interop.OggVorbis
 [System.Security.SuppressUnmanagedCodeSecurity()]
 internal class Ogg
 { 
-  [CallConvCdecl] public unsafe delegate int ReadHandler(byte* buf, int size, int num, void* context); // 'int' is really size_t in the .h
-  [CallConvCdecl] public unsafe delegate int SeekHandler(void* context, long offset, SeekType type);
-  [CallConvCdecl] public unsafe delegate int CloseHandler(void* context);
-  [CallConvCdecl] public unsafe delegate int TellHandler(void* context); // 'int' is actually 'long' in the .h, conflicts with seek, suckage! 
+  [CallConvCdecl] public unsafe delegate int  ReadHandler(void* context, byte* buf, int size, int maxnum);
+  [CallConvCdecl] public unsafe delegate int  SeekHandler(void* context, int offset, SeekType type);
+  [CallConvCdecl] public unsafe delegate int  TellHandler(void* context);
+  [CallConvCdecl] public unsafe delegate void CloseHandler(void* context);
 
+  #region Enums
   public enum SeekType : int
   { Absolute, Relative, FromEnd
   }
@@ -21,9 +22,16 @@ internal class Ogg
   { NotOpen, PartlyOpen, Opened, StreamSet, InitSet
   };
   
-  [StructLayout(LayoutKind.Sequential, Pack=4)]
+  public enum OggError
+  { False=-1, Eof=-2, Hole=-3, Read=-128, Fault=-129, NotImpl=-130, Invalid=-131, NotVorbis=-132, BadHeader=-133,
+    BadVersion=-134, NotAudio=-135, BadPacket=-136, BadLink=-137, NoSeek=-138
+  }
+  #endregion
+  
+  #region Structs
+  [StructLayout(LayoutKind.Sequential, Pack=4, Size=16)]
   public unsafe struct Callbacks
-  { public void* Read, Seek, Close, Tell;
+  { public void* Read, Seek, Tell, Close;
   }
   
   [StructLayout(LayoutKind.Sequential, Pack=4)]
@@ -47,97 +55,81 @@ internal class Ogg
     private void* offsets, dataOffsets, serialNos, pcmLengths;
     public VorbisInfo* Info;
   }
+  #endregion
 
-  [DllImport(Config.VorbisImportPath, EntryPoint="ov_clear", CallingConvention=CallingConvention.Cdecl)]
-  public static extern int Clear(ref VorbisFile vf);
-  [DllImport(Config.VorbisImportPath, EntryPoint="ov_open_callbacks", CallingConvention=CallingConvention.Cdecl)]
-  public static extern int OpenCallbacks(IntPtr context, out VorbisFile vf, string initial, int ibytes, Callbacks callbacks);
-  [DllImport(Config.VorbisImportPath, EntryPoint="ov_pcm_total", CallingConvention=CallingConvention.Cdecl)]
-  public static extern long PcmTotal(ref VorbisFile vf, int i);
-  [DllImport(Config.VorbisImportPath, EntryPoint="ov_time_total", CallingConvention=CallingConvention.Cdecl)]
-  public static extern double TimeTotal(ref VorbisFile vf, int i);
-  [DllImport(Config.VorbisImportPath, EntryPoint="ov_raw_seek", CallingConvention=CallingConvention.Cdecl)]
-  public static extern int RawSeek(ref VorbisFile vf, long pos);
-  [DllImport(Config.VorbisImportPath, EntryPoint="ov_pcm_seek", CallingConvention=CallingConvention.Cdecl)]
-  public static extern int PcmSeek(ref VorbisFile vf, long pos);
-  [DllImport(Config.VorbisImportPath, EntryPoint="ov_time_seek", CallingConvention=CallingConvention.Cdecl)]
-  public static extern int TimeSeek(ref VorbisFile vf, double pos);
-  [DllImport(Config.VorbisImportPath, EntryPoint="ov_pcm_tell", CallingConvention=CallingConvention.Cdecl)]
-  public static extern long PcmTell(ref VorbisFile vf);
-  [DllImport(Config.VorbisImportPath, EntryPoint="ov_time_tell", CallingConvention=CallingConvention.Cdecl)]
+  #region Imports
+  [DllImport(Config.VorbisImportPath, EntryPoint="VW_Open", CallingConvention=CallingConvention.Cdecl)]
+  public unsafe static extern int Open(out VorbisFile vf, Callbacks *calls);
+  [DllImport(Config.VorbisImportPath, EntryPoint="VW_Close", CallingConvention=CallingConvention.Cdecl)]
+  public static extern void Close(ref VorbisFile vf);
+  [DllImport(Config.VorbisImportPath, EntryPoint="VW_PcmLength", CallingConvention=CallingConvention.Cdecl)]
+  public static extern int PcmLength(ref VorbisFile vf, int section);
+  [DllImport(Config.VorbisImportPath, EntryPoint="VW_PcmTell", CallingConvention=CallingConvention.Cdecl)]
+  public static extern int PcmTell(ref VorbisFile vf);
+  [DllImport(Config.VorbisImportPath, EntryPoint="VW_PcmSeek", CallingConvention=CallingConvention.Cdecl)]
+  public static extern int PcmSeek(ref VorbisFile vf, int samples);
+  [DllImport(Config.VorbisImportPath, EntryPoint="VW_TimeLength", CallingConvention=CallingConvention.Cdecl)]
+  public static extern double TimeLength(ref VorbisFile vf, int section);
+  [DllImport(Config.VorbisImportPath, EntryPoint="VW_TimeTell", CallingConvention=CallingConvention.Cdecl)]
   public static extern double TimeTell(ref VorbisFile vf);
-  [DllImport(Config.VorbisImportPath, EntryPoint="ov_info", CallingConvention=CallingConvention.Cdecl)]
-  public static extern VorbisInfo* GetInfo(ref VorbisFile vf, int link);
-  [DllImport(Config.VorbisImportPath, EntryPoint="ov_read", CallingConvention=CallingConvention.Cdecl)]
-  public unsafe static extern int Read(ref VorbisFile vf, byte* buffer, int length, int bigendian, int word, int signed, out int bitstream);
+  [DllImport(Config.VorbisImportPath, EntryPoint="VW_TimeSeek", CallingConvention=CallingConvention.Cdecl)]
+  public static extern int TimeSeek(ref VorbisFile vf, double seconds);
+  [DllImport(Config.VorbisImportPath, EntryPoint="VW_Read", CallingConvention=CallingConvention.Cdecl)]
+  public unsafe static extern int Read(ref VorbisFile vf, byte *buf, int length, int bigEndian, int word, int sgned, out int section);
+  [DllImport(Config.VorbisImportPath, EntryPoint="VW_Info", CallingConvention=CallingConvention.Cdecl)]
+  public unsafe static extern VorbisInfo * GetInfo(ref VorbisFile vf, int section);
+  #endregion
+  
+  public static void Check(int result)
+  { if(result>-128) return;
+    switch((OggError)result)
+    { case OggError.Read:
+        throw new OggVorbisException((GameLib.OggError)result, "Read error while fetching compressed data for decode");
+      case OggError.Fault:
+        throw new OggVorbisException((GameLib.OggError)result, "Internal inconsistency in decode state. Continuing is likely not possible.");
+      case OggError.NotImpl:
+        throw new OggVorbisException((GameLib.OggError)result, "Feature not implemented");
+      case OggError.Invalid:
+        throw new OggVorbisException((GameLib.OggError)result, "Either an invalid argument, or incompletely initialized argument passed to libvorbisfile call");
+      case OggError.NotVorbis:
+        throw new OggVorbisException((GameLib.OggError)result, "The given file/data was not recognized as Ogg Vorbis data.");
+      case OggError.BadHeader:
+        throw new OggVorbisException((GameLib.OggError)result, "The file/data is apparently an Ogg Vorbis stream, but contains a corrupted or undecipherable header.");
+      case OggError.BadVersion:
+        throw new OggVorbisException((GameLib.OggError)result, "The bitstream format revision of the given stream is not supported.");
+      case OggError.BadLink:
+        throw new OggVorbisException((GameLib.OggError)result, "The given link exists in the Vorbis data stream, but is not decipherable due to garbacge or corruption.");
+      case OggError.NoSeek:
+        throw new OggVorbisException((GameLib.OggError)result, "The given stream is not seekable");
+      default: throw new OggVorbisException((GameLib.OggError)result, "Unknown error");
+    }
+  }
 }
 
 #region VorbisCallbacks
-internal class VorbisCallbacks
+internal class VorbisCallbacks : StreamCallbackSource
 { public VorbisCallbacks(System.IO.Stream stream) : this(stream, true) { }
-  public unsafe VorbisCallbacks(System.IO.Stream stream, bool autoClose)
-  { if(stream==null) throw new ArgumentNullException("stream");
-    else if(!stream.CanRead) throw new ArgumentException("Stream must be readable", "stream");
-    this.stream    = stream;
-    this.autoClose = autoClose;
+  public unsafe VorbisCallbacks(System.IO.Stream stream, bool autoClose) : base(stream, autoClose)
+  { seek  = new Ogg.SeekHandler(OnSeek);
     read  = new Ogg.ReadHandler(OnRead);
-    seek  = new Ogg.SeekHandler(OnSeek);
-    close = new Ogg.CloseHandler(OnClose);
     tell  = new Ogg.TellHandler(OnTell);
-    calls.Read  = new DelegateMarshaller(read).ToPointer();
+    close = new Ogg.CloseHandler(OnClose);
     calls.Seek  = new DelegateMarshaller(seek).ToPointer();
-    calls.Close = new DelegateMarshaller(close).ToPointer();
+    calls.Read  = new DelegateMarshaller(read).ToPointer();
     calls.Tell  = new DelegateMarshaller(tell).ToPointer();
-
-    if(!autoClose) GC.SuppressFinalize(this);
-  }
-  ~VorbisCallbacks() { if(stream!=null) stream.Close(); }
-
-  unsafe int OnRead(byte* data, int size, int maxnum, void* context)
-  { if(size<=0 || maxnum<=0) return 0;
-
-    byte[] buf = new byte[size];
-    int i=0, read;
-    try
-    { for(; i<maxnum; i++)
-      { read = stream.Read(buf, 0, size);
-        if(read!=size) { return i==0 ? -1 : i; }
-        for(int j=0; j<size; j++) *data++=buf[j];
-      }
-      return i;
-    }
-    catch { return i==0 ? -1 : i; }
+    calls.Close = new DelegateMarshaller(close).ToPointer();
   }
 
-  unsafe int OnSeek(void* context, long offset, Ogg.SeekType type)
-  { if(!stream.CanSeek) return -1;
-    long pos=-1;
-    switch(type)
-    { case Ogg.SeekType.Absolute: pos = stream.Seek(offset, System.IO.SeekOrigin.Begin); break;
-      case Ogg.SeekType.Relative: pos = stream.Seek(offset, System.IO.SeekOrigin.Current); break;
-      case Ogg.SeekType.FromEnd:  pos = stream.Seek(offset, System.IO.SeekOrigin.End); break;
-    }
-    return (int)pos;
-  }
-  
-  unsafe int OnClose(void* context)
-  { if(autoClose) stream.Close();
-    stream=null;
-    GC.SuppressFinalize(this);
-    return 0;
-  }
-  
-  unsafe int OnTell(void* context)
-  { return stream.CanSeek ? (int)stream.Position : -1;
-  }
-  
+  unsafe int OnRead(void* context, byte* buf, int size, int maxnum) { return (int)Read(buf, size, maxnum); }
+  unsafe int OnSeek(void* context, int offset, Ogg.SeekType type) { return Seek(offset, (SeekType)type)<0 ? -1 : 0; }
+  unsafe int OnTell(void* context) { return (int)Tell(); }
+  unsafe void OnClose(void* context) { MaybeClose(); }
+
   internal Ogg.Callbacks calls;
-  System.IO.Stream stream;
-  Ogg.ReadHandler  read;
   Ogg.SeekHandler  seek;
-  Ogg.CloseHandler close;
+  Ogg.ReadHandler  read;
   Ogg.TellHandler  tell;
-  bool autoClose;
+  Ogg.CloseHandler close;
 }
 #endregion
 

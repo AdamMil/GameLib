@@ -131,14 +131,10 @@ internal class SF
 }
 
 #region StreamIOCalls class
-internal class StreamIOCalls
+internal class StreamIOCalls : StreamCallbackSource
 { public unsafe StreamIOCalls(Stream stream) : this(stream, true) { }
-  public unsafe StreamIOCalls(Stream stream, bool autoClose)
-  { if(stream==null) throw new ArgumentNullException("stream");
-    else if(!stream.CanSeek || !stream.CanRead)
-      throw new ArgumentException("Stream must be seekable and readable", "stream");
-    this.stream    = stream;
-    this.autoClose = autoClose;
+  public unsafe StreamIOCalls(Stream stream, bool autoClose) : base(stream, autoClose)
+  { if(!stream.CanSeek) throw new ArgumentException("stream must be seekable", "stream");
     seek   = new SF.SeekHandler(OnSeek);
     read   = new SF.ReadHandler(OnRead);
     write  = new SF.WriteHandler(OnWrite);
@@ -155,57 +151,12 @@ internal class StreamIOCalls
     calls.Length   = new DelegateMarshaller(length).ToPointer();
     calls.Truncate = new DelegateMarshaller(trunc).ToPointer();
     calls.Close    = new DelegateMarshaller(close).ToPointer();
-    
-    if(!autoClose) GC.SuppressFinalize(this);
-  }
-  ~StreamIOCalls() { if(stream!=null) stream.Close(); }
-
-  unsafe long OnSeek(IntPtr context, long offset, SF.SeekType type)
-  { long pos=-1;
-    switch(type)
-    { case SF.SeekType.Absolute: pos = stream.Seek(offset, SeekOrigin.Begin); break;
-      case SF.SeekType.Relative: pos = stream.Seek(offset, SeekOrigin.Current); break;
-      case SF.SeekType.FromEnd:  pos = stream.Seek(offset, SeekOrigin.End); break;
-    }
-    return pos;
   }
   
-  unsafe long OnRead(IntPtr context, byte* data, long size, long maxnum)
-  { if(size<=0 || maxnum<=0) return 0;
-
-    byte[] buf = new byte[size];
-    long i=0, read;
-    try
-    { for(; i<maxnum; i++)
-      { read = stream.Read(buf, 0, (int)size);
-        if(read!=size) { return i==0 ? -1 : i; }
-        for(int j=0; j<size; j++) *data++=buf[j];
-      }
-      return i;
-    }
-    catch { return i==0 ? -1 : i; }
-  }
-
-  unsafe long OnWrite(IntPtr context, byte* data, long size, long num)
-  { if(!stream.CanWrite) return -1;
-    if(size<=0 || num<=0) return 0;
-    long total=size*num;
-    int len = (int)Math.Min(total, 1024);
-    byte[] buf = new byte[len];
-    try
-    { do
-      { if(total<len) len=(int)total;
-        for(int i=0; i<len; i++) buf[i]=*data++;
-        stream.Write(buf, 0, len);
-        total -= len;
-      } while(total>0);
-      return size;
-    }
-    catch { return -1; }
-  }
-  
-  unsafe long OnTell(IntPtr context) { return stream.Position; }
-
+  long OnSeek(IntPtr context, long offset, SF.SeekType type) { return Seek(offset, (SeekType)type); }
+  unsafe long OnRead(IntPtr context, byte* data, long size, long maxnum) { return Read(data, size, maxnum); }
+  unsafe long OnWrite(IntPtr context, byte* data, long size, long num) { return Write(data, size, num); }
+  long OnTell(IntPtr context) { return stream.Position; }
   unsafe long OnGets(IntPtr context, byte* buffer, long bufsize)
   { long i=0;
     int  b;
@@ -218,23 +169,11 @@ internal class StreamIOCalls
     buffer[i]=0;
     return i;
   }
-    
-  unsafe long OnLength(IntPtr context) { return stream.Length; }
-
-  unsafe int OnTruncate(IntPtr context, long len)
-  { try { stream.SetLength(len); } catch { return -1; }
-    return 0;
-  }
-  
-  unsafe int OnClose(IntPtr context)
-  { if(autoClose) stream.Close();
-    stream=null;
-    GC.SuppressFinalize(this);
-    return 0;
-  }
+  long OnLength(IntPtr context) { return stream.Length; }
+  int OnTruncate(IntPtr context, long len) { return Truncate(len); }
+  int OnClose(IntPtr context) { MaybeClose(); return 0; }
   
   internal SF.IOCalls calls;
-  Stream stream;
   SF.SeekHandler     seek;
   SF.ReadHandler     read;
   SF.WriteHandler    write;
@@ -243,7 +182,6 @@ internal class StreamIOCalls
   SF.LengthHandler   length;
   SF.TruncateHandler trunc;
   SF.CloseHandler    close;
-  bool autoClose;
 }
 #endregion
 

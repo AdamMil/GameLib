@@ -5,7 +5,6 @@
 #include "SDL_audio.h"
 #include "begin_code.h"
 
-/* Set up for C function definitions, even when using C++ */
 #ifdef __cplusplus
 extern "C" {
 #endif

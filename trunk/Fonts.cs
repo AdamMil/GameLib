@@ -122,13 +122,13 @@ public class TrueTypeFont : NonFixedFont, IDisposable
   }
   public TrueTypeFont(System.IO.Stream stream, int pointSize) : this(stream, pointSize, true) { }
   public TrueTypeFont(System.IO.Stream stream, int pointSize, bool autoClose)
-  { StreamRWOps source = new StreamRWOps(stream, autoClose);
+  { SeekableStreamRWOps source = new SeekableStreamRWOps(stream, autoClose);
     unsafe { fixed(SDL.RWOps* ops = &source.ops) font = TTF.OpenFontRW(ops, 0, pointSize); }
     Init();
   }
   public TrueTypeFont(System.IO.Stream stream, int pointSize, int fontIndex) : this(stream, pointSize, fontIndex, true) { }
   public TrueTypeFont(System.IO.Stream stream, int pointSize, int fontIndex, bool autoClose)
-  { StreamRWOps source = new StreamRWOps(stream, autoClose);
+  { SeekableStreamRWOps source = new SeekableStreamRWOps(stream, autoClose);
     unsafe { fixed(SDL.RWOps* ops = &source.ops) font = TTF.OpenFontIndexRW(ops, 0, pointSize, fontIndex); }
     Init();
   }

@@ -453,7 +453,7 @@ int GLM_SetupCVT(GLM_AudioCVT *cvt)
   }
   while(DIVISIBLE(cvt->len_mul, 2) && DIVISIBLE(cvt->len_div, 2)) cvt->len_mul/=2, cvt->len_div/=2;
 
-  cvt->len_cvt = cvt->len*cvt->len_mul/cvt->len_div;
+  cvt->len_cvt = (int)((__int64)cvt->len*cvt->len_mul/cvt->len_div);
   return 0;
 }
 
