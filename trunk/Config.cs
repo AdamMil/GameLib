@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.InteropServices;
 
 namespace GameLib
 {
@@ -13,7 +14,14 @@ public class Config
   public const string GLMixerImportPath  = "Mixer";
   public const string SndFileImportPath  = "libsndfile";
   public const string VorbisImportPath   = "VorbisWrapper";
-  
+  #if WIN32
+  public const string OpenGLImportPath   = "opengl32";
+  public const string GLUImportPath      = "glu32";
+  #else
+  public const string OpenGLImportPath   = "opengl";
+  public const string GLUImportPath      = "glu";
+  #endif
+
   #if BIGENDIAN
   public const bool CompiledBigEndian = true;
   #else
