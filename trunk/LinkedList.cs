@@ -87,11 +87,11 @@ public sealed class LinkedList : ICollection, IEnumerable
   /// <seealso cref="ICollection.SyncRoot"/>
   /// </remarks>
   public object SyncRoot { get { return this; } }
-  /// <summary>Copies the list elements to an existing one-dimensional Array, starting at the specified array index.</summary>
+  /// <summary>Copies the list elements to an existing one-dimensional array, starting at the specified array index.</summary>
   /// <param name="array">The one-dimensional <see cref="Array"/> that is the destination of the elements copied
   /// from the list.
   /// </param>
-  /// <param name="startIndex">The zero-based index in array at which copying begins.</param>
+  /// <param name="startIndex">The zero-based index in <paramref name="array"/> at which copying begins.</param>
   /// <remarks>See <see cref="ICollection.CopyTo"/> for more information. <seealso cref="ICollection.CopyTo"/></remarks>
   public void CopyTo(Array array, int startIndex)
   { Node n = head;
@@ -102,14 +102,14 @@ public sealed class LinkedList : ICollection, IEnumerable
   #region IEnumerable
   /// <summary>Represents an enumerator for a <see cref="LinkedList"/> collection.</summary>
   public sealed class Enumerator : IEnumerator
-  { internal Enumerator(LinkedList list, Node head)
-    { if(head==null) GC.SuppressFinalize(this);
+  { internal Enumerator(LinkedList list)
+    { head = list.head;
+      if(head==null) GC.SuppressFinalize(this);
       else
       { handler = new ListChangeHandler(OnListChanged);
         list.ListChanged += handler;
         this.list=list;
       }
-      this.head=head;
       Reset();
     }
     ~Enumerator() { list.ListChanged -= handler; }
@@ -157,7 +157,7 @@ public sealed class LinkedList : ICollection, IEnumerable
   
   /// <summary>Returns an enumerator that can iterate through the linked list.</summary>
   /// <returns>An <see cref="IEnumerator"/> that can be used to iterate through the list.</returns>
-  IEnumerator IEnumerable.GetEnumerator() { return new Enumerator(this, head); }
+  IEnumerator IEnumerable.GetEnumerator() { return new Enumerator(this); }
 
   internal delegate void ListChangeHandler();
   internal event ListChangeHandler ListChanged;

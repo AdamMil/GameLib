@@ -127,10 +127,20 @@ Legend
   could be read
 ! Reimplemented the PriorityQueue using a heap instead of a binary search
   tree, and made the interface more standard for a priority queue
+* Fixed bug in RedBlackTree that caused Maximum() and Minimum() to fail when
+  there was only one item in the tree
+! Split RedBlackTree into Map and BinaryTree classes. Map replaces the old
+  RedBlackTree class, and BinaryTree is a more standard binary search tree
+! Renamed PSDCodec.ReadNextLayer to PSDCodec.ReadLayer and
+  PSDCodec.ReadRemainingLayers to PSDCodec.ReadLayers
++ Added PSDCodec.SkipLayers which is analogous to PSDCodec.ReadLayers
+* Fixed a bug in PSDCodec.IsPSD(Stream) that caused it to not reset the
+  position of the stream if the file was a PSD file using a version of the
+  PSD format that greater than the highest version understood by the codec
 + Added a lot more documentation (for CD.cs, Config.cs, Events.cs,
   Exceptions.cs, Fonts.cs, GraphicsPrimitives.cs, Input.cs, Interop.cs,
   IO.cs, LinkedList.cs, OpenGL.cs, OpenGLInterop.cs, PriorityQueue.cs,
-  Surface.cs, and Video.cs).
+  PSD.cs, RedBlackTree.cs, Surface.cs, and Video.cs).
 * A couple bugfixes I forgot to add to the changelog
 
 2004.02.07 (alpha/beta)

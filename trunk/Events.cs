@@ -845,18 +845,18 @@ public sealed class Events
   
   /// <summary>Handles the next event.</summary>
   /// <returns>Returns true if the application should continue working or false if it should quit.</returns>
-/// <remarks>
-/// <para>
-/// This method requires that at least one <see cref="GameLib.Events.EventProcedure"/> has been registered
-/// with the <see cref="EventProcedure"/> event. If the <see cref="QuitFlag"/> is true, this method will return
-/// immediately without doing anything. Otherwise, this method will wait until an event arrives, calling the
-/// <see cref="IdleProcedure"/> event until all return false as long as no events are waiting in the queue. After
-/// an event arrives, it is processed with <see cref="EventProcedure"/>. If any event procedure returns false, the
-/// <see cref="QuitFlag"/> is set to true and processing of further event procedures is not done.
-/// The logical negation of the <see cref="QuitFlag"/> is then returned.
-/// </para>
-/// See <see cref="GameLib.Events.EventProcedure"/> for more information.
-/// </remarks>
+  /// <remarks>
+  /// <para>
+  /// This method requires that at least one <see cref="GameLib.Events.EventProcedure"/> has been registered
+  /// with the <see cref="EventProcedure"/> event. If the <see cref="QuitFlag"/> is true, this method will return
+  /// immediately without doing anything. Otherwise, this method will wait until an event arrives, calling the
+  /// <see cref="IdleProcedure"/> event until all return false as long as no events are waiting in the queue. After
+  /// an event arrives, it is processed with <see cref="EventProcedure"/>. If any event procedure returns false, the
+  /// <see cref="QuitFlag"/> is set to true and processing of further event procedures is not done.
+  /// The logical negation of the <see cref="QuitFlag"/> is then returned.
+  /// </para>
+  /// See <see cref="GameLib.Events.EventProcedure"/> for more information.
+  /// </remarks>
   /// <exception cref="InvalidOperationException">Thrown if no event procedure has been registered.</exception>
   public static bool PumpEvent()
   { if(EventProcedure==null) throw new InvalidOperationException("No event procedure has been registered");
@@ -1007,7 +1007,7 @@ public sealed class Events
       { KeyboardEvent e = new KeyboardEvent(ref evt.Keyboard);
         mods = mods & ~KeyMod.StatusMask | e.StatusMods;
         if(e.Down) // SDL's mod handling is quirky, so i'll do it myself
-        { switch(e.Key)
+          switch(e.Key)
           { case Key.LShift: mods |= KeyMod.LShift; break;
             case Key.RShift: mods |= KeyMod.RShift; break;
             case Key.LCtrl:  mods |= KeyMod.LCtrl;  break;
@@ -1017,9 +1017,8 @@ public sealed class Events
             case Key.LMeta:  mods |= KeyMod.LMeta;  break;
             case Key.RMeta:  mods |= KeyMod.RMeta;  break;
           }
-        }
         else
-        { switch(e.Key)
+          switch(e.Key)
           { case Key.LShift: mods &= ~KeyMod.LShift; break;
             case Key.RShift: mods &= ~KeyMod.RShift; break;
             case Key.LCtrl:  mods &= ~KeyMod.LCtrl;  break;
@@ -1029,7 +1028,7 @@ public sealed class Events
             case Key.LMeta:  mods &= ~KeyMod.LMeta;  break;
             case Key.RMeta:  mods &= ~KeyMod.RMeta;  break;
           }
-        }
+        e.Mods = mods;
         return e;
       }
       case SDL.EventType.MouseMove: return new MouseMoveEvent(ref evt.MouseMove);

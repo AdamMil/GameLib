@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8" ?> 
+<?xml version="1.0" encoding="utf-8" ?> 
 <GameLib>
  <IO>
   <StreamStream> <!-- StreamStream class -->
@@ -93,7 +93,8 @@ U     Sets Unicode mode       NONE
       length parameter array, you can also pass a single array of <see cref="System.Object"/> that contains all
       the parameters.
      </para>
-     <para>See the following examples:</para>
+     <example>
+      <para>See the following examples:</para>
 <code>
 // A simple example that first writes an array's length, and then writes the
 // contents of the array (of Int32), using default endianness:
@@ -135,8 +136,85 @@ public void SerializeTo(byte[] buf, int index)
 object[] parms = new object[] { 1, 2.4f, stringVar, intArray };
 byte[] output = IOH.Write("dfp?d", parms);
 </code>
+     </example>
     </remarks>
    </BinaryFormat>
   </IOH>
  </IO>
+ 
+ <Video>
+  <PSDCodec>
+   <IsPSD>
+    <summary>Determines whether a file is a PSD image file that can be read by this codec.</summary>
+    <returns>Returns true if the file looks like it contains PSD image data and false otherwise.</returns>
+    <remarks>This function does not read all the data from the PSD image file to determine whether it could be
+    loaded successfully and doesn't use any unsupported features. It only checks to see whether the image file has
+    the right header signature and version number for the PSD format the codec can understand.
+    </remarks>
+   </IsPSD>
+   <LayerReading>
+    <exception cref="InvalidOperationException">
+    Thrown if
+    <para>The codec is not in a reading mode.</para>
+    -or-
+    <para>All layers have been read already.</para>
+    </exception>
+   </LayerReading>
+   <Read>
+    <summary>Reads a PSD image from the given file.</summary>
+    <returns>A <see cref="PSDImage"/> containing the flattened image and all the layers.</returns>
+    <include file="documentation.xml" path="//Video/PSDCodec/Reading_X/*"/>
+   </Read>
+   <ReadComposite>
+    <summary>Reads the flattened image from a PSD file.</summary>
+    <returns>A <see cref="Surface"/> containing the flattened image from the PSD file.</returns>
+    <include file="documentation.xml" path="//Video/PSDCodec/Reading_X/*"/>
+   </ReadComposite>
+   <Reading_X>
+    <exception cref="ArgumentException">Thrown if the file does not contain a valid PSD image.</exception>
+    <exception cref="NotSupportedException">Thrown if the PSD image uses unsupported features.</exception>
+    <exception cref="InvalidOperationException">Thrown if the codec is currently in a reading or writing mode.</exception>
+   </Reading_X>
+   <StartReading>
+    <summary>Starts reading a PSD image.</summary>
+    <returns>The <see cref="PSDImage"/> object in which data for this file will be stored. All fields except
+    <see cref="Surface"/> fields will be populated.
+    </returns>
+    <include file="documentation.xml" path="//Video/PSDCodec/Reading_X/*"/>
+   </StartReading>
+   <StartWriting>
+    <summary>Starts writing a PSD image.</summary>
+    <param name="image">A <see cref="PSDImage"/> object with all fields populated, including layer information,
+    except <see cref="Surface"/> fields, which are not required.
+    </param>
+    <remarks>All data in <paramref name="image"/> is written into the PSD header and is expected to remain the
+    same throughout the writing process.
+    </remarks>
+    <include file="documentation.xml" path="//Video/PSDCodec/Writing_X/*"/>
+   </StartWriting>
+   <Write>
+    <summary>Writes a PSD image.</summary>
+    <param name="image">A <see cref="PSDImage"/> object with all fields populated, including layer information
+    and image data (<see cref="Surface"/> fields).
+    </param>
+    <include file="documentation.xml" path="//Video/PSDCodec/Writing_X/*"/>
+   </Write>
+   <Write_Surface>
+    <summary>Writes a PSD image.</summary>
+    <param name="surface">A <see cref="Surface"/> which will be used as the flattened image in the PSD file.</param>
+    <remarks>The resulting PSD image will have no layers.</remarks>
+    <exception cref="ArgumentNullException">Thrown if <paramref name="surface"/> or <paramref name="stream"/> is
+    null.
+    </exception>
+    <exception cref="InvalidOperationException">Thrown if the codec is currently in a reading or writing mode.</exception>
+   </Write_Surface>
+   <Writing_X>
+    <exception cref="ArgumentNullException">Thrown if <paramref name="image"/> or <paramref name="stream"/> is
+    null.
+    </exception>
+    <exception cref="ArgumentException">Thrown if <paramref name="image"/> contains invalid data.</exception>
+    <exception cref="InvalidOperationException">Thrown if the codec is currently in a reading or writing mode.</exception>
+   </Writing_X>   
+  </PSDCodec>
+ </Video>
 </GameLib>
