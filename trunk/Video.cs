@@ -113,6 +113,7 @@ public sealed class Video
   public static event ModeChangedHandler ModeChanged;
 
   public static bool Initialized { get { return initCount>0; } }
+  public static bool ModeSet { get { return display!=null; } }
   public static int         Width  { get { AssertModeSet(); return display.Width; } }
   public static int         Height { get { AssertModeSet(); return display.Height; } }
   public static int         Depth  { get { AssertModeSet(); return display.Depth; } }
