@@ -985,12 +985,11 @@ public sealed class Events
   { if(evt==null) return false;
     if(evt==userEvent) return true;
     if(EventFilter!=null)
-    { Delegate[] list = EventFilter.GetInvocationList();
-      foreach(EventFilter ef in list) switch(ef(evt))
-      { case FilterAction.Drop:  return false;
-        case FilterAction.Queue: break;
-      }
-    }
+      foreach(EventFilter ef in EventFilter.GetInvocationList())
+        switch(ef(evt))
+        { case FilterAction.Drop:  return false;
+          case FilterAction.Queue: break;
+        }
     return true;
   }
 
