@@ -171,7 +171,7 @@ class App
 
       client.Send(new Complex("hello!", 1, 2, 3, 4, 5));
       client.DelayedDisconnect(1000); // give it up to 1 second to send
-      while(client.Connected);        // all remaining data
+      while(client.IsConnected);      // all remaining data
       server.Deinitialize();
       Console.WriteLine();
     }
