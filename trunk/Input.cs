@@ -286,7 +286,7 @@ public struct KeyCombo
   static KeyMod[] masks = new KeyMod[] { KeyMod.Shift, KeyMod.Ctrl, KeyMod.Alt, KeyMod.Meta };
 }
 
-public delegate void KeyPressHandler(KeyboardEvent evt);
+public delegate void KeyEventHandler(KeyboardEvent evt);
 public delegate void MouseMoveHandler(MouseMoveEvent evt);
 public delegate void MouseClickHandler(MouseClickEvent evt);
 public delegate void JoyMoveHandler(Joystick js, JoyMoveEvent evt);
@@ -299,14 +299,23 @@ public delegate void JoyButtonHandler(Joystick js, JoyButtonEvent evt);
 public sealed class Keyboard
 { private Keyboard() { }
   
-  public static event KeyPressHandler KeyPress;
+  public static KeyEventHandler KeyEvent;
 
-  public static KeyMod Modifiers { get { return mods; } }
+  public static KeyMod KeyMods { get { return mods&KeyMod.KeyMask; } }
+  public static KeyMod StatusMods { get { return mods&KeyMod.StatusMask; } }
+  public static KeyMod Mods { get { return mods; } }
 
   public static bool IsModKey(Key key)
   { return key==Key.LShift || key==Key.LCtrl || key==Key.LAlt   ||
            key==Key.RShift || key==Key.RCtrl || key==Key.RAlt   ||
            key==Key.LMeta  || key==Key.RMeta || key==Key.LSuper || key==Key.RSuper;
+  }
+  public static bool HasAnyMod  (KeyMod mod) { return (mods&mod)!=KeyMod.None; }
+  public static bool HasAllMods (KeyMod mod) { return (mods&mod)==mod; }
+  public static bool HasAllKeys (KeyMod mod) { return (KeyMods&mod)==mod; }
+  public static bool HasOnlyKeys(KeyMod mod)
+  { KeyMod mods = KeyMods;
+    return (mods&mod)!=KeyMod.None && (mods&~mod)==KeyMod.None;
   }
 
   public static string KeyName(Key key) { return Enum.GetName(typeof(Key), key); }
@@ -334,10 +343,35 @@ public sealed class Keyboard
     }
   }
 
-  internal static void OnKeyPress(KeyboardEvent e)
-  { mods = (KeyMod)e.Mods;
-    state[(int)e.Key] = e.Down;
-    if(KeyPress!=null) KeyPress(e);
+  internal static void OnKeyEvent(KeyboardEvent e)
+  { mods = mods & ~KeyMod.StatusMask | e.StatusMods;
+    if(e.Down) // SDL's mod handling is crap
+    { switch(e.Key)
+      { case Key.LShift: mods |= KeyMod.LShift; break;
+        case Key.RShift: mods |= KeyMod.RShift; break;
+        case Key.LCtrl:  mods |= KeyMod.LCtrl;  break;
+        case Key.RCtrl:  mods |= KeyMod.RCtrl;  break;
+        case Key.LAlt:   mods |= KeyMod.LAlt;   break;
+        case Key.RAlt:   mods |= KeyMod.RAlt;   break;
+        case Key.LMeta:  mods |= KeyMod.LMeta;  break;
+        case Key.RMeta:  mods |= KeyMod.RMeta;  break;
+      }
+      state[(int)e.Key] = true;
+    }
+    else
+    { switch(e.Key)
+      { case Key.LShift: mods &= ~KeyMod.LShift; break;
+        case Key.RShift: mods &= ~KeyMod.RShift; break;
+        case Key.LCtrl:  mods &= ~KeyMod.LCtrl;  break;
+        case Key.RCtrl:  mods &= ~KeyMod.RCtrl;  break;
+        case Key.LAlt:   mods &= ~KeyMod.LAlt;   break;
+        case Key.RAlt:   mods &= ~KeyMod.RAlt;   break;
+        case Key.LMeta:  mods &= ~KeyMod.LMeta;  break;
+        case Key.RMeta:  mods &= ~KeyMod.RMeta;  break;
+      }
+      state[(int)e.Key] = false;
+    }
+    if(KeyEvent!=null) KeyEvent(e);
   }
 
   static bool[] state = new bool[(int)Key.NumKeys];
@@ -467,40 +501,50 @@ public sealed class Joystick : IDisposable
 public sealed class Input
 { private Input() { }
 
-  public static Joystick[] Joysticks { get { return joysticks; } }
+  public static bool Initialized { get { return initCount>0; } }
 
-  // FIXME: the event filter operates as soon as the event is posted, and we want this to work as the event is
-  // released
+  public static Joystick[] Joysticks { get { return joysticks; } }
+  
+  public static bool UseJoysticks
+  { get { return joysticks!=null; }
+    set
+    { if(initCount==0) throw new InvalidOperationException("The input system has not been initialized!");
+      if(value!=UseJoysticks)
+      { if(value)
+        { SDL.Initialize(SDL.InitFlag.Joystick);
+          SDL.JoystickEventState(SDL.JoystickMode.Events);
+          joysticks = new Joystick[SDL.NumJoysticks()];
+          for(int i=0; i<joysticks.Length; i++) joysticks[i] = new Joystick(i);
+        }
+        else
+        { for(int i=0; i<joysticks.Length; i++) joysticks[i].Dispose();
+          SDL.JoystickEventState(SDL.JoystickMode.Poll);
+          SDL.Deinitialize(SDL.InitFlag.Joystick);
+          joysticks = null;
+        }
+      }
+    }
+  }
+
+  public static void Initialize() { Initialize(false); }
   public static void Initialize(bool useJoysticks)
   { if(initCount++==0)
     { Events.Events.Initialize();
-      Events.Events.EventFilter += new EventFilter(OnEvent);
       Keyboard.Initialize();
       Mouse.Initialize();
-      SDL.ShowCursor(0);
-      
-      if(useJoysticks)
-      { SDL.Initialize(SDL.InitFlag.Joystick);
-        joysticks = new Joystick[SDL.NumJoysticks()];
-        for(int i=0; i<joysticks.Length; i++) joysticks[i] = new Joystick(i);
-      }
+      UseJoysticks = useJoysticks;
     }
   }
 
   public static void Deinitialize()
   { if(initCount==0) throw new InvalidOperationException("Deinitialize called too many times!");
     if(--initCount==0)
-    { if(joysticks!=null)
-      { for(int i=0; i<joysticks.Length; i++) joysticks[i].Dispose();
-        SDL.Deinitialize(SDL.InitFlag.Joystick);
-        joysticks = null;
-      }
-      Events.Events.EventFilter -= new EventFilter(OnEvent);
+    { UseJoysticks = false;
       Events.Events.Deinitialize();
     }
   }
-
-  static FilterAction OnEvent(Event e)
+  
+  public static void ProcessEvent(Event e)
   { switch(e.Type)
     { case EventType.MouseMove:  Mouse.OnMouseMove((MouseMoveEvent)e); break;
       case EventType.JoyMove:
@@ -508,7 +552,7 @@ public sealed class Input
         joysticks[je.Device].OnJoyMove(je);
         break;
       }
-      case EventType.Keyboard:   Keyboard.OnKeyPress((KeyboardEvent)e); break;
+      case EventType.Keyboard:   Keyboard.OnKeyEvent((KeyboardEvent)e); break;
       case EventType.MouseClick: Mouse.OnMouseClick((MouseClickEvent)e); break;
       case EventType.JoyBall:
       { JoyBallEvent je = (JoyBallEvent)e;
@@ -526,7 +570,6 @@ public sealed class Input
         break;
       }
     }
-    return FilterAction.Continue;
   }
 
   static Joystick[] joysticks;
