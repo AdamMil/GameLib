@@ -468,9 +468,7 @@ public class GLTexture2D : IDisposable
   }
 
   void AssertInit() { if(texture==0) throw new InvalidOperationException("Texture has not been initialized yet"); }
-  void Dispose(bool destructing)
-  { Unload();
-  }
+  void Dispose(bool finalizing) { Unload(); }
 
   Size imgSize, size;
   uint texture;

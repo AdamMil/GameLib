@@ -900,12 +900,14 @@ public unsafe class Primitives
   /// alpha blended onto the surface.
   /// </param>
   public static void Polygon(Surface dest, Point[] points, int index, int length, Color color)
-  { if(index<0 || length<0 || index+length>=points.Length) throw new ArgumentOutOfRangeException();
+  { if(index<0 || length<0 || index+length>points.Length) throw new ArgumentOutOfRangeException();
     if(length==0) return;
     short *vx = stackalloc short[length];
     short *vy = stackalloc short[length];
-    fixed(Point* pt=points)
-      for(int i=0,end=index+length; length<end; i++,length++) { vx[i]=(short)pt[length].X; vy[i]=(short)pt[length].Y; }
+    fixed(Point* ptb=points)
+    { Point* pt = ptb+index;
+      for(int i=0; i<length; i++) { vx[i]=(short)pt[i].X; vy[i]=(short)pt[i].Y; }
+    }
     Check(GFX.polygonRGBA(dest.surface, vx, vy, length, color.R, color.G, color.B, color.A));
   }
   /// <summary>Draws a hollow polygon, with optional alpha blending.</summary>
@@ -955,12 +957,14 @@ public unsafe class Primitives
   /// the surface.
   /// </param>
   public static void PolygonAA(Surface dest, Point[] points, int index, int length, Color color)
-  { if(index<0 || length<0 || index+length>=points.Length) throw new ArgumentOutOfRangeException();
+  { if(index<0 || length<0 || index+length>points.Length) throw new ArgumentOutOfRangeException();
     if(length==0) return;
     short *vx = stackalloc short[length];
     short *vy = stackalloc short[length];
-    fixed(Point* pt=points)
-      for(int i=0,end=index+length; length<end; i++,length++) { vx[i]=(short)pt[length].X; vy[i]=(short)pt[length].Y; }
+    fixed(Point* ptb=points)
+    { Point* pt = ptb+index;
+      for(int i=0; i<length; i++) { vx[i]=(short)pt[i].X; vy[i]=(short)pt[i].Y; }
+    }
     Check(GFX.aapolygonRGBA(dest.surface, vx, vy, length, color.R, color.G, color.B, color.A));
   }
   /// <summary>Draws an antialiased hollow polygon, with optional alpha blending.</summary>
@@ -1012,12 +1016,14 @@ public unsafe class Primitives
   /// alpha blended onto the surface.
   /// </param>
   public static void FilledPolygon(Surface dest, Point[] points, int index, int length, Color color)
-  { if(index<0 || length<0 || index+length>=points.Length) throw new ArgumentOutOfRangeException();
+  { if(index<0 || length<0 || index+length>points.Length) throw new ArgumentOutOfRangeException();
     if(length==0) return;
     short *vx = stackalloc short[length];
     short *vy = stackalloc short[length];
-    fixed(Point* pt=points)
-      for(int i=0,end=index+length; length<end; i++,length++) { vx[i]=(short)pt[length].X; vy[i]=(short)pt[length].Y; }
+    fixed(Point* ptb=points)
+    { Point* pt = ptb+index;
+      for(int i=0; i<length; i++) { vx[i]=(short)pt[i].X; vy[i]=(short)pt[i].Y; }
+    }
     Check(GFX.filledPolygonRGBA(dest.surface, vx, vy, length, color.R, color.G, color.B, color.A));
   }
   /// <summary>Draws a filled polygon, with optional alpha blending.</summary>
@@ -1073,12 +1079,14 @@ public unsafe class Primitives
   /// alpha blended onto the surface.
   /// </param>
   public static void Bezier(Surface dest, Point[] points, int index, int length, int steps, Color color)
-  { if(index<0 || length<0 || index+length>=points.Length) throw new ArgumentOutOfRangeException();
+  { if(index<0 || length<0 || index+length>points.Length) throw new ArgumentOutOfRangeException();
     if(length==0) return;
     short *vx = stackalloc short[length];
     short *vy = stackalloc short[length];
-    fixed(Point* pt=points)
-      for(int i=0,end=index+length; length<end; i++,length++) { vx[i]=(short)pt[length].X; vy[i]=(short)pt[length].Y; }
+    fixed(Point* ptb=points)
+    { Point* pt = ptb+index;
+      for(int i=0; i<length; i++) { vx[i]=(short)pt[i].X; vy[i]=(short)pt[i].Y; }
+    }
     Check(GFX.bezierRGBA(dest.surface, vx, vy, length, steps, color.R, color.G, color.B, color.A));
   }
   /// <summary>Draws a bezier curve, with optional alpha blending.</summary>

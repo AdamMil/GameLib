@@ -112,6 +112,19 @@ Legend
   number of points to read from the array
 * Fixed a bug in IOH.Skip that caused an exception to not be thrown if the
   end of the stream was reached with large (>512 bytes) skip values.
+* Changed IOH.Skip so it takes an argument of type long instead of int
+* Removed the restriction that when using StreamStream with unseekable
+  underlying streams, the underlying stream's Position must equal the start
+  of the range given to the constructor
+* Removed the restriction that a StreamStream cannot be increased in length
+  using StreamStream.SetLength. Now, the length can be increased or reduced
+  as long as it wouldn't require seeking an unseekable underlying stream.
+* Fixed a bug in StreamStream.Read and StreamStream.ReadByte that allowed
+  them to read past the end of the underlying stream
+* Fixed a bug in StreamStream.Seek that allow it to seek past the end of the
+  underlying stream in one circumstance
++ Added versions of IOH.Read that do not throw an exception when not all data
+  could be read
 + Added a lot more documentation (for CD.cs, Events.cs, Fonts.cs,
   GraphicsPrimitives.cs, Input.cs, Interop.cs, IO.cs, OpenGL.cs,
   OpenGLInterop.cs, Surface.cs, and Video.cs).

@@ -337,7 +337,7 @@ public class SoundFileSource : AudioSource
     }
   }
 
-  protected void Dispose(bool destructing)
+  protected void Dispose(bool finalizing)
   { unsafe
     { if(sndfile.ToPointer()!=null)
       { base.Dispose();
@@ -550,7 +550,7 @@ public class VorbisSource : AudioSource
     public int RealLen, CvtLen;
   }
 
-  protected void Dispose(bool destructing)
+  protected void Dispose(bool finalizing)
   { if(open)
       lock(this)
       { base.Dispose();

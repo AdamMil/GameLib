@@ -28,53 +28,52 @@ namespace GameLib.IO
 /// <summary>This class provides a stream based on a portion of an existing stream.</summary>
 /// <remarks>Many methods taking stream arguments expect the entire range of the stream to be devoted to the data
 /// being read by that method. You may want to use a stream containing other data as well with one of those methods.
-/// This class allows you to create a stream from a section of another stream. This class should not be used by
-/// multiple threads simultaneously.
+/// This class allows you to create a stream from a section of another stream. This class is not thread-safe and
+/// should not be used by multiple threads simultaneously.
 /// </remarks>
 public class StreamStream : Stream, IDisposable
 { 
-  /// <summary>Initializes this stream.</summary>
   /// <param name="stream">The underlying stream. It is assumed that the underlying stream will not be used by other
   /// code while this stream is in use. The underlying stream will not be closed automatically when this stream is
   /// closed.
   /// </param>
-  /// <param name="start">The starting offset into the stream where this stream will begin.</param>
-  /// <param name="length">The length of this stream.</param>
-  /// <remarks>If you want to use the underlying stream in other code simultaneously, use one of the
-  /// other <see cref="StreamStream">constructors</see>.
+  /// <remarks>If you want to use the underlying stream in other code while this stream is in use, use one of the
+  /// other constructors, such as <see cref="StreamStream(Stream,long,long,bool)"/>.
   /// </remarks>
+  /// <include file='documentation.xml' path='//IO/StreamStream/StreamStream/*'/>
   public StreamStream(Stream stream, long start, long length) : this(stream, start, length, false, false) { }
-  /// <summary>Initializes this stream.</summary>
   /// <param name="stream">The underlying stream. The underlying stream will not be closed automatically when this
   /// stream is closed. Unseekable streams cannot be shared (<paramref name="shared"/> must be false).
   /// </param>
-  /// <param name="start">The starting offset into the stream where this stream will begin.</param>
-  /// <param name="length">The length of this stream.</param>
   /// <param name="shared">If set to true, the underlying stream will be seeked to the expected position before
   /// each operation in case some other code has moved the file pointer. If set to false, it is assumed that other
-  /// code will not touch the underlying stream while this stream is in use.
+  /// code will not touch the underlying stream while this stream is in use, so the additional seeking can be avoided.
   /// </param>
+  /// <include file='documentation.xml' path='//IO/StreamStream/StreamStream/*'/>
   public StreamStream(Stream stream, long start, long length, bool shared)
     : this(stream, start, length, shared, false) { }
-  /// <summary>Initializes this stream.</summary>
-  /// <param name="stream">The underlying stream.  Unseekable streams cannot be shared (<paramref name="shared"/> must
+  /// <param name="stream">The underlying stream. Unseekable streams cannot be shared (<paramref name="shared"/> must
   /// be false).
   /// </param>
-  /// <param name="start">The starting offset into the stream where this stream will begin.</param>
-  /// <param name="length">The length of this stream.</param>
   /// <param name="shared">If set to true, the underlying stream will be seeked to the expected position before
   /// each operation in case some other code has moved the file pointer. If set to false, it is assumed that other
-  /// code will not touch the underlying stream while this stream is in use.
+  /// code will not touch the underlying stream while this stream is in use, so the additional seeking can be avoided.
   /// </param>
   /// <param name="closeInner">If set to true, the underlying stream will be closed automatically when this stream
   /// is closed.
   /// </param>
+  /// <include file='documentation.xml' path='//IO/StreamStream/StreamStream/*'/>
   public StreamStream(Stream stream, long start, long length, bool shared, bool closeInner)
-  { if(!stream.CanSeek && (stream.Position!=start || shared))
-      throw new ArgumentException("If using an unseekable stream, 'start' must equal 'stream.Position' and "+
-                                  "shared must be false");
-    if(stream==null) throw new ArgumentNullException("stream");
-    if(start<0 || length<0) throw new ArgumentOutOfRangeException("'start' or 'count'", "cannot be negative");
+  { if(stream==null) throw new ArgumentNullException("stream");
+    if(start<0 || length<0) throw new ArgumentOutOfRangeException("'start' or 'length'", "cannot be negative");
+    if(stream.CanSeek) stream.Position = start;
+    else
+    { if(shared) throw new ArgumentException("If using an unseekable stream, 'shared' must be false");
+      if(stream.Position > start+length)
+        throw new ArgumentException("The stream is unseekable and its Position is already past the end of the range.");
+      if(stream.Position < start) IOH.Skip(stream, start-stream.Position);
+      else if(stream.Position > start) position = stream.Position - start;
+    }
     this.stream=stream; this.start=start; this.length=length; this.shared=shared; this.closeInner=closeInner;
     if(!closeInner) GC.SuppressFinalize(this);
   }
@@ -90,9 +89,13 @@ public class StreamStream : Stream, IDisposable
   /// <summary>Returns true if the underlying stream can be written to.</summary>
   public override bool CanWrite { get { AssertOpen(); return stream.CanWrite; } }
 
-  /// <summary>Returns the length of this stream, as passed to the constructor.</summary>
+  /// <summary>Returns the length of this stream.</summary>
   public override long Length { get { AssertOpen(); return length; } }
-  /// <summary>Returns the current position within this stream.</summary>
+  /// <summary>Gets/sets the current position within this stream.</summary>
+  /// <remarks>You cannot seek past the end of a <see cref="StreamStream"/>. However, you can first use
+  /// <see cref="SetLength"/> to increase the size of the stream and then seek past what was previously the end.
+  /// <seealso cref="Seek"/>
+  /// </remarks>
   public override long Position { get { AssertOpen(); return position; } set { Seek(value, SeekOrigin.Begin); } }
 
   /// <summary>Closes the stream.</summary>
@@ -107,13 +110,10 @@ public class StreamStream : Stream, IDisposable
   /// <summary>Flushes the underlying stream.</summary>
   public override void Flush() { AssertOpen(); stream.Flush(); }
 
-  /// <summary>Reads a sequence of bytes from the underlying stream and advances the position within the stream by
+  /// <summary>Reads a sequence of bytes from the underlying stream and advances the position within this stream by
   /// the number of bytes read.
   /// </summary>
-  /// <param name="buffer">An array of bytes. When this method returns, the buffer contains the specified byte array
-  /// with the values between <paramref name="offset"/> and (<paramref name="offset"/> + <paramref name="count"/> - 1)
-  /// replaced by the bytes read from the underlying stream.
-  /// </param>
+  /// <param name="buffer">An array of bytes into which data will be read.</param>
   /// <param name="offset">The zero-based byte offset in <paramref name="buffer"/> at which to begin storing the data
   /// read from the underlying stream.
   /// </param>
@@ -124,17 +124,19 @@ public class StreamStream : Stream, IDisposable
   public override int Read(byte[] buffer, int offset, int count)
   { AssertOpen();
     if(shared) stream.Position = position+start;
+    if(count>length-position) count = (int)(length-position);
     int ret = stream.Read(buffer, offset, count);
     position += ret;
     return ret;
   }
 
-  /// <summary>Reads a byte from the stream and advances the position within the stream by one byte, or returns -1
+  /// <summary>Reads a byte from the stream and advances the position within this stream by one byte, or returns -1
   /// if at the end of the stream.
   /// </summary>
   /// <returns>The unsigned byte cast to an integer, or -1 if at the end of the stream.</returns>
   public override int ReadByte()
   { AssertOpen();
+    if(position>=length) return -1;
     if(shared) stream.Position = position+start;
     int ret = stream.ReadByte();
     if(ret!=-1) position++;
@@ -147,25 +149,37 @@ public class StreamStream : Stream, IDisposable
   /// the new position.
   /// </param>
   /// <returns>The new position within the current stream.</returns>
+  /// <remarks>You cannot seek past the end of a <see cref="StreamStream"/>. However, you can first use
+  /// <see cref="SetLength"/> to increase the size of the stream and then seek past what was previously the end.
+  /// <seealso cref="Position"/>
+  /// </remarks>
   public override long Seek(long offset, SeekOrigin origin)
   { AssertOpen();
-    switch(origin)
-    { case SeekOrigin.Current: offset+=position; break;
-      case SeekOrigin.End: offset=length-offset; break;
-    }
+    if(origin==SeekOrigin.Current) offset+=position;
+    else if(origin==SeekOrigin.End) offset+=length;
     if(offset<0 || offset>length)
       throw new ArgumentOutOfRangeException("Cannot seek outside the bounds of this stream.");
-    return position = stream.Seek(offset+start, SeekOrigin.Begin)-start;
+    return position = stream.Seek(start+offset, SeekOrigin.Begin)-start;
   }
 
   /// <summary>Sets the length of the current stream.</summary>
-  /// <param name="value">The desired length of the current stream in bytes.</param>
-  /// <remarks>This method does not check the length of the underlying stream, but trusts that the value you
-  /// supply is valid.
+  /// <param name="length">The desired length of the current stream in bytes.</param>
+  /// <remarks>This method does not check the length of the underlying stream, nor does it call
+  /// <see cref="SetLength"/> on the underlying stream. If, after altering this stream's length,
+  /// <see cref="Position"/> would be past the end of the range, it will be set to the end of the new range. For
+  /// unseekable streams, the position cannot be adjusted, so an exception will be thrown if the new length would
+  /// require seeking an unseekable stream.
   /// </remarks>
-  public override void SetLength(long value)
+  /// <exception cref="ArgumentException">Thrown if the underlying stream cannot seek (<see cref="CanSeek"/>
+  /// is false) and the new length would require the <see cref="Position"/> property to be adjusted to be within the
+  /// new range.
+  /// </exception>
+  public override void SetLength(long length)
   { AssertOpen();
-    length=value;
+    if(!stream.CanSeek && position>length)
+      throw new ArgumentException("The underlying stream is unseekable and setting the length to this value would "+
+                                  "require seeking.", "length");
+    this.length=length;
     if(position>length) Position=length;
   }
 
@@ -180,12 +194,12 @@ public class StreamStream : Stream, IDisposable
   /// </param>
   /// <param name="count">The number of bytes to be written to the underlying stream.</param>
   /// <remarks>You cannot write past the end of a <see cref="StreamStream"/>. However, you can first use
-  /// <see cref="SetLength"/> to increase the size of this stream and then write data past what was previously the
-  /// end.
+  /// <see cref="SetLength"/> to increase the size of the stream and then write data past what was previously the end.
   /// </remarks>
   public override void Write(byte[] buffer, int offset, int count)
   { AssertOpen();
-    if(count>length-position) throw new ArgumentException("Cannot write past the end of a StreamStream");
+    if(count>length-position)
+      throw new ArgumentException("Cannot write past the end of a StreamStream (try resizing with SetLength first?)");
     if(shared) stream.Position = position+start;
     stream.Write(buffer, offset, count);
     position = stream.Position-start;
@@ -194,27 +208,31 @@ public class StreamStream : Stream, IDisposable
   /// <summary>Writes a byte to the current position in the stream and advances the current position by one byte.</summary>
   /// <param name="value">The byte to write to the stream.</param>
   /// <remarks>You cannot write past the end of a <see cref="StreamStream"/>. However, you can first use
-  /// <see cref="SetLength"/> to increase the size of this stream and then write data past what was previously the
-  /// end.
+  /// <see cref="SetLength"/> to increase the size of the stream and then write data past what was previously the end.
   /// </remarks>
   public override void WriteByte(byte value)
   { AssertOpen();
-    if(position==length) throw new ArgumentException("Cannot write past the end of a StreamStream");
+    if(position>=length) throw new InvalidOperationException("Cannot write past the end of a StreamStream "+
+                                                             "(try resizing with SetLength first?)");
     if(shared) stream.Position = position+start;
     stream.WriteByte(value);
     position++;
   }
 
+  /// <summary>Gets the underlying stream.</summary>
+  /// <value>The underlying <see cref="Stream"/> object, or null if this stream is closed.</value>
+  protected Stream InnerStream { get { return stream; } }
+  
   /// <summary>Throws an exception if the stream is not open.</summary>
-  /// <exception cref="InvalidOperationException">Thrown if this stream is not open.</exception>
+  /// <exception cref="InvalidOperationException">Thrown if this stream has been closed.</exception>
   protected void AssertOpen()
   { if(stream==null) throw new InvalidOperationException("The inner stream was already closed.");
   }
   
   /// <summary>Disposes resources used by this stream.</summary>
-  /// <param name="destructing">True if this method is being called from a finalizer and false otherwise.</param>
+  /// <param name="finalizing">True if this method is being called from a finalizer and false otherwise.</param>
   /// <remarks>If overriden in a derived class, remember to call the base implementation.</remarks>
-  protected void Dispose(bool destructing) { Close(); }
+  protected void Dispose(bool finalizing) { Close(); }
 
   Stream stream;
   long start, length, position;
@@ -222,10 +240,12 @@ public class StreamStream : Stream, IDisposable
 }
 #endregion
 
-/// <summary>This class provides helpers for stream and console IO.</summary>
+#region IOH
+/// <summary>This class provides helpers for stream, console, and buffer IO.</summary>
 public sealed class IOH
 { private IOH() {}
 
+  #region Unbuffered input
   /// <summary>Reads a character from standard input without using line buffering.</summary>
   /// <returns>The next character from standard input.</returns>
   /// <remarks>The standard <see cref="Console.Read"/> method uses line buffering, which means that it will not return
@@ -240,7 +260,9 @@ public sealed class IOH
   /// the user presses a character key. This also echos the character back to standard output.
   /// </remarks>
   public static char Getche() { return GameLib.Interop.GLUtility.Utility.Getche(); }
+  #endregion
 
+  #region CalculateSize
   /// <summary>This method calculates how many bytes would be written by <see cref="Write(Stream,string,object[])"/>
   /// etc if given the specified format string and variable-length arguments to match.
   /// </summary>
@@ -254,7 +276,7 @@ public sealed class IOH
   public static int CalculateSize(string format, params object[] parms) { return CalculateSize(false, format, parms); }
 
   /// <summary>This method calculates how many bytes would be written by <see cref="Write(Stream,string,object[])"/>
-  /// etc if given the specified format string and variable-length arguments to match.
+  /// etc if given the specified format string and arguments to match.
   /// </summary>
   /// <param name="allParms">If true, this method will expect all parameters to be passed to this method. Otherwise,
   /// it will only expect the variable-length parameters where a prefix was not given.
@@ -344,7 +366,9 @@ public sealed class IOH
     }
     return length;
   }
+  #endregion
 
+  #region CopyStream
   /// <summary>Copies a source stream into a destination stream.</summary>
   /// <param name="source">The source stream to copy.</param>
   /// <param name="dest">The destination stream into which the source data will be written.</param>
@@ -364,53 +388,121 @@ public sealed class IOH
     int read, total=0;
     while(true)
     { read = source.Read(buf, 0, 1024);
-      total += read;
       if(read==0) return total;
+      total += read;
       dest.Write(buf, 0, read);
     }
   }
+  #endregion
 
+  #region Reading
   /// <summary>Reads the given number of bytes from a stream.</summary>
   /// <param name="stream">The stream to read from.</param>
   /// <param name="length">The number of bytes to read.</param>
   /// <returns>A byte array containing <paramref name="length"/> bytes of data.</returns>
+  /// <remarks>This calls <see cref="Stream.Read"/> repeatedly until enough data can be read or the end of the stream
+  /// is reached.
+  /// </remarks>
   /// <exception cref="EndOfStreamException">Thrown if the end of the stream is reached before all data could be read.
   /// </exception>
   public static byte[] Read(Stream stream, int length)
   { byte[] buf = new byte[length];
-    Read(stream, buf, 0, length);
+    Read(stream, buf, 0, length, true);
     return buf;
   }
   /// <summary>Fills the given buffer with data from a stream.</summary>
   /// <param name="stream">The stream to read from.</param>
   /// <param name="buf">The array to fill with data.</param>
   /// <returns>The number of bytes read. This will always be equal to the length of the buffer passed in.</returns>
+  /// <remarks>This calls <see cref="Stream.Read"/> repeatedly until enough data can be read or the end of the stream
+  /// is reached.
+  /// </remarks>
   /// <exception cref="EndOfStreamException">Thrown if the end of the stream is reached before all data could be read.
   /// </exception>
-  public static int Read(Stream stream, byte[] buf) { return Read(stream, buf, 0, buf.Length); }
+  public static int Read(Stream stream, byte[] buf) { return Read(stream, buf, 0, buf.Length, true); }
   /// <summary>Reads the given number of bytes from a stream into a buffer.</summary>
   /// <param name="stream">The stream to read from.</param>
   /// <param name="buf">The array in which the data will be stored.</param>
   /// <param name="length">The number of bytes to read.</param>
-  /// <returns>The number of bytes read. This will always be equal to the <paramref name="length"/>.</returns>
+  /// <returns>The number of bytes read. This will always be equal to <paramref name="length"/>.</returns>
+  /// <remarks>This calls <see cref="Stream.Read"/> repeatedly until enough data can be read or the end of the stream
+  /// is reached.
+  /// </remarks>
   /// <exception cref="EndOfStreamException">Thrown if the end of the stream is reached before all data could be read.
   /// </exception>
-  public static int Read(Stream stream, byte[] buf, int length) { return Read(stream, buf, 0, length); }
+  public static int Read(Stream stream, byte[] buf, int length) { return Read(stream, buf, 0, length, true); }
   /// <summary>Reads the given number of bytes from a stream into a buffer.</summary>
   /// <param name="stream">The stream to read from.</param>
   /// <param name="buf">The array in which the data will be stored.</param>
   /// <param name="offset">The offset into the buffer at which data will be stored.</param>
   /// <param name="length">The number of bytes to read.</param>
-  /// <returns>The number of bytes read. This will always be equal to the <paramref name="length"/> parameter.</returns>
+  /// <returns>The number of bytes read. This will always be equal to <paramref name="length"/>.</returns>
+  /// <remarks>This calls <see cref="Stream.Read"/> repeatedly until enough data can be read or the end of the stream
+  /// is reached.
+  /// </remarks>
   /// <exception cref="EndOfStreamException">Thrown if the end of the stream is reached before all data could be read.
   /// </exception>
   public static int Read(Stream stream, byte[] buf, int offset, int length)
+  { return Read(stream, buf, 0, length, true);
+  }
+  /// <summary>Tries to fill the given buffer with data from a stream.</summary>
+  /// <param name="stream">The stream to read from.</param>
+  /// <param name="buf">The array in which the data will be stored.</param>
+  /// <param name="throwOnEOF">If true, this method will throw <see cref="EndOfStreamException"/> if not all data
+  /// could be read.
+  /// </param>
+  /// <returns>The number of bytes read.</returns>
+  /// <remarks>This calls <see cref="Stream.Read"/> repeatedly until enough data can be read or the end of the stream
+  /// is reached.
+  /// </remarks>
+  /// <exception cref="EndOfStreamException">Thrown if <paramref name="throwOnEOF"/> is true and the end of the
+  /// stream is reached before all data could be read.
+  /// </exception>
+  public static int Read(Stream stream, byte[] buf, bool throwOnEOF)
+  { return Read(stream, buf, 0, buf.Length, throwOnEOF);
+  }
+  /// <summary>Tries to read the given number of bytes from a stream into a buffer.</summary>
+  /// <param name="stream">The stream to read from.</param>
+  /// <param name="buf">The array in which the data will be stored.</param>
+  /// <param name="length">The maximum number of bytes to read.</param>
+  /// <param name="throwOnEOF">If true, this method will throw <see cref="EndOfStreamException"/> if not all data
+  /// could be read.
+  /// </param>
+  /// <returns>The number of bytes read.</returns>
+  /// <remarks>This calls <see cref="Stream.Read"/> repeatedly until enough data can be read or the end of the stream
+  /// is reached.
+  /// </remarks>
+  /// <exception cref="EndOfStreamException">Thrown if <paramref name="throwOnEOF"/> is true and the end of the
+  /// stream is reached before all data could be read.
+  /// </exception>
+  public static int Read(Stream stream, byte[] buf, int length, bool throwOnEOF)
+  { return Read(stream, buf, 0, length, throwOnEOF);
+  }
+  /// <summary>Tries to read the given number of bytes from a stream into a buffer.</summary>
+  /// <param name="stream">The stream to read from.</param>
+  /// <param name="buf">The array in which the data will be stored.</param>
+  /// <param name="offset">The offset into the buffer at which data will be stored.</param>
+  /// <param name="length">The maximum number of bytes to read.</param>
+  /// <param name="throwOnEOF">If true, this method will throw <see cref="EndOfStreamException"/> if not all data
+  /// could be read.
+  /// </param>
+  /// <returns>The number of bytes read.</returns>
+  /// <remarks>This calls <see cref="Stream.Read"/> repeatedly until enough data can be read or the end of the stream
+  /// is reached.
+  /// </remarks>
+  /// <exception cref="EndOfStreamException">Thrown if <paramref name="throwOnEOF"/> is true and the end of the
+  /// stream is reached before all data could be read.
+  /// </exception>
+  public static int Read(Stream stream, byte[] buf, int offset, int length, bool throwOnEOF)
   { int read=0, total=0;
     while(true)
     { read = stream.Read(buf, offset+read, length-read);
       total += read;
       if(total==length) return length;
-      if(read==0) throw new EndOfStreamException();
+      if(read==0)
+      { if(throwOnEOF) throw new EndOfStreamException();
+        return total;
+      }
     }
   }
 
@@ -438,7 +530,8 @@ public sealed class IOH
   /// <summary>Reads the next byte from a stream.</summary>
   /// <param name="stream">The stream to read from.</param>
   /// <returns>The byte value read from the stream.</returns>
-  /// <exception cref="EndOfStreamException">Thrown if the end of the stream was reached.</exception>
+  /// <exception cref="EndOfStreamException">Thrown if the end of the stream was reached before the byte could be read.
+  /// </exception>
   public static byte Read1(Stream stream)
   { int i = stream.ReadByte();
     if(i==-1) throw new EndOfStreamException();
@@ -642,20 +735,18 @@ public sealed class IOH
   /// <returns>The value read from the stream.</returns>
   /// <exception cref="EndOfStreamException">Thrown if the end of the stream was reached before all data could be read.
   /// </exception>
-  public static float ReadFloat(Stream stream)
-  { unsafe
-    { byte* buf = stackalloc byte[4];
-      buf[0]=Read1(stream); buf[1]=Read1(stream); buf[2]=Read1(stream); buf[3]=Read1(stream);
-      return *(float*)buf;
-    }
+  public unsafe static float ReadFloat(Stream stream)
+  { byte* buf = stackalloc byte[4];
+    buf[0]=Read1(stream); buf[1]=Read1(stream); buf[2]=Read1(stream); buf[3]=Read1(stream);
+    return *(float*)buf;
   }
 
   /// <summary>Reads an IEEE754 float (4 bytes) from a byte array.</summary>
   /// <param name="buf">The byte array to read from.</param>
   /// <param name="index">The index from which to begin reading.</param>
   /// <returns>The value read from the array.</returns>
-  public static float ReadFloat(byte[] buf, int index)
-  { unsafe { fixed(byte* ptr=buf) return *(float*)(ptr+index); }
+  public unsafe static float ReadFloat(byte[] buf, int index)
+  { fixed(byte* ptr=buf) return *(float*)(ptr+index);
   }
 
   /// <summary>Reads an IEEE754 double (8 bytes) from a stream.</summary>
@@ -663,45 +754,66 @@ public sealed class IOH
   /// <returns>The value read from the stream.</returns>
   /// <exception cref="EndOfStreamException">Thrown if the end of the stream was reached before all data could be read.
   /// </exception>
-  public static double ReadDouble(Stream stream)
-  { unsafe
-    { byte[] buf = Read(stream, sizeof(double));
-      fixed(byte* ptr=buf) return *(double*)ptr;
-    }
+  public unsafe static double ReadDouble(Stream stream)
+  { byte[] buf = Read(stream, sizeof(double));
+    fixed(byte* ptr=buf) return *(double*)ptr;
   }
 
   /// <summary>Reads an IEEE754 double (8 bytes) from a byte array.</summary>
   /// <param name="buf">The byte array to read from.</param>
   /// <param name="index">The index from which to begin reading.</param>
   /// <returns>The value read from the array.</returns>
-  public static double ReadDouble(byte[] buf, int index)
-  { unsafe { fixed(byte* ptr=buf) return *(double*)(ptr+index); }
+  public unsafe static double ReadDouble(byte[] buf, int index)
+  { fixed(byte* ptr=buf) return *(double*)(ptr+index);
   }
+  #endregion
 
+  #region Skip
   /// <summary>Skips forward a number of bytes in a stream.</summary>
   /// <param name="stream">The stream to seek forward in.</param>
   /// <param name="bytes">The number of bytes to skip.</param>
-  /// <remarks>This method works on both seekable and non-seekable streams.</remarks>
+  /// <remarks>This method works on both seekable and non-seekable streams, but is more efficient with seekable ones.</remarks>
   /// <exception cref="EndOfStreamException">Thrown if the end of the stream was reached before all bytes could be
   /// skipped.
   /// </exception>
-  public static void Skip(Stream stream, int bytes)
+  public static void Skip(Stream stream, long bytes)
   { if(bytes<0) throw new ArgumentException("cannot be negative", "bytes");
     if(stream.CanSeek) stream.Position += bytes;
-    else if(bytes<8) while(bytes-- > 0) Read1(stream);
-    else if(bytes<=512) Read(stream, bytes);
+    else if(bytes<8) { int b = (int)bytes; while(b-- > 0) Read1(stream); }
+    else if(bytes<=512) Read(stream, (int)bytes);
     else
     { byte[] buf = new byte[512];
       int read;
       while(bytes>0)
-      { read = stream.Read(buf, 0, Math.Min(bytes, 512));
+      { read = stream.Read(buf, 0, (int)Math.Min(bytes, 512));
         if(read==0) throw new EndOfStreamException();
         bytes -= read;
       }
     }
   }
+  #endregion
 
-  #region Formatted binary write
+  #region Formatted binary Write
+  /// <summary>Returns formatted binary data in a byte array.</summary>
+  /// <param name="format">The string used to format the binary data.</param>
+  /// <param name="parms">Parameters referenced by the format string.</param>
+  /// <returns>A byte array containing the binary data.</returns>
+  /// <include file='documentation.xml' path='//IO/IOH/BinaryFormat/*'/>
+  public static byte[] Write(string format, params object[] parms)
+  { byte[] output = new byte[CalculateSize(true, format, parms)];
+    #if DEBUG
+    try
+    { if(output.Length != Write(output, 0, format, parms)) throw new IndexOutOfRangeException();
+    }
+    catch(IndexOutOfRangeException e)
+    { throw new GameLibException("The lengths don't match! This is a bug in GameLib's formatted output. "+
+                                 "Please report it, along with the values you passed to this function.", e);
+    }
+    #else
+    Write(output, 0, format, parms);
+    #endif
+    return output;
+  }
   /// <summary>Writes formatted binary data to a byte array.</summary>
   /// <param name="buf">The byte array to write to.</param>
   /// <param name="format">The string used to format the binary data.</param>
@@ -1169,10 +1281,11 @@ public sealed class IOH
   }
   #endregion
 
+  #region Writing
   /// <summary>Writes an array of data to a stream.</summary>
   /// <param name="stream">The stream to which data will be written.</param>
   /// <param name="data">The array of data to write to the stream.</param>
-  public static void Write(Stream stream, byte[] data) { stream.Write(data, 0, data.Length); }
+  public static int Write(Stream stream, byte[] data) { stream.Write(data, 0, data.Length); return data.Length; }
 
   /// <summary>Encodes a string as ASCII and writes it to a stream.</summary>
   /// <param name="stream">The stream to which the string will be written.</param>
@@ -1187,11 +1300,8 @@ public sealed class IOH
   /// <param name="encoding">The encoding to use to encode the string.</param>
   /// <returns>The number of bytes written to the stream.</returns>
   public static int WriteString(Stream stream, string str, System.Text.Encoding encoding)
-  { byte[] buf = encoding.GetBytes(str);
-    stream.Write(buf, 0, buf.Length);
-    return buf.Length;
+  { return Write(stream, encoding.GetBytes(str));
   }
-  
   /// <summary>Encodes a string as ASCII and writes it to a byte array.</summary>
   /// <param name="buf">The byte array to which the string will be written.</param>
   /// <param name="index">The index from which to begin writing.</param>
@@ -1435,40 +1545,37 @@ public sealed class IOH
   /// <summary>Writes an IEEE754 float (4 bytes) to a stream.</summary>
   /// <param name="stream">The stream to write to.</param>
   /// <param name="val">The value to write.</param>
-  public static void WriteFloat(Stream stream, float val)
-  { unsafe
-    { byte[] buf = new byte[sizeof(float)];
-      fixed(byte* pbuf=buf) *(float*)pbuf = val;
-      stream.Write(buf, 0, sizeof(float));
-    }
+  public unsafe static void WriteFloat(Stream stream, float val)
+  { byte* buf = (byte*)&val;
+    stream.WriteByte(buf[0]); stream.WriteByte(buf[1]); stream.WriteByte(buf[2]); stream.WriteByte(buf[3]);
   }
-  
+
   /// <summary>Writes an IEEE754 float (4 bytes) to a byte array.</summary>
   /// <param name="buf">The byte array to which the value will be written.</param>
   /// <param name="index">The index from which to begin writing.</param>
   /// <param name="val">The value to write.</param>
-  public static void WriteFloat(byte[] buf, int index, float val)
-  { unsafe { fixed(byte* pbuf=buf) *(float*)(pbuf+index) = val; }
+  public unsafe static void WriteFloat(byte[] buf, int index, float val)
+  { fixed(byte* pbuf=buf) *(float*)(pbuf+index) = val;
   }
 
   /// <summary>Writes an IEEE754 double (8 bytes) to a stream.</summary>
   /// <param name="stream">The stream to write to.</param>
   /// <param name="val">The value to write.</param>
-  public static void WriteDouble(Stream stream, double val)
-  { unsafe
-    { byte[] buf = new byte[sizeof(double)];
-      fixed(byte* pbuf=buf) *(double*)pbuf = val;
-      stream.Write(buf, 0, sizeof(double));
-    }
+  public unsafe static void WriteDouble(Stream stream, double val)
+  { byte[] buf = new byte[sizeof(double)];
+    fixed(byte* pbuf=buf) *(double*)pbuf = val;
+    stream.Write(buf, 0, sizeof(double));
   }
   
   /// <summary>Writes an IEEE754 double (8 bytes) to a byte array.</summary>
   /// <param name="buf">The byte array to which the value will be written.</param>
   /// <param name="index">The index from which to begin writing.</param>
   /// <param name="val">The value to write.</param>
-  public static void WriteDouble(byte[] buf, int index, double val)
-  { unsafe { fixed(byte* pbuf=buf) *(double*)(pbuf+index) = val; }
+  public unsafe static void WriteDouble(byte[] buf, int index, double val)
+  { fixed(byte* pbuf=buf) *(double*)(pbuf+index) = val;
   }
+  #endregion
 }
+#endregion
 
 } // namespace GameLib.IO
