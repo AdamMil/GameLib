@@ -16,8 +16,7 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
-// TODO: implement more controls (listbox, dropdown)
-// TODO: have controls display differently when disabled
+// TODO: implement more controls (listbox, dropdown, color picker)
 using System;
 using System.Collections;
 using System.Drawing;
@@ -93,12 +92,12 @@ public class ScrollableControl : Control
     ShowVerticalScrollBar   = vertical;
   }
 
-  public override Rectangle ContentRect
+  public override RectOffset ContentOffset
   { get
-    { Rectangle rect = base.ContentRect;
-      if(horz!=null) rect.Height -= horz.Height;
-      if(vert!=null) rect.Width  -= vert.Width;
-      return rect;
+    { RectOffset ret = base.ContentOffset;
+      if(horz!=null) ret.Bottom += horz.Height;
+      if(vert!=null) ret.Right  += vert.Width;
+      return ret;
     }
   }
 
@@ -113,13 +112,12 @@ public class ScrollableControl : Control
         { horz = MakeScrollBar(true);
           horz.ValueChanged += new ValueChangedEventHandler(OnHorzizontalScroll);
           Controls.Add(horz);
-          TriggerLayout();
         }
         else
         { Controls.Remove(horz);
           horz = null;
-          TriggerLayout();
         }
+        OnContentSizeChanged(new EventArgs());
       }
     }
   }
@@ -132,13 +130,12 @@ public class ScrollableControl : Control
         { vert = MakeScrollBar(false);
           vert.ValueChanged += new ValueChangedEventHandler(OnVerticalScroll);
           Controls.Add(vert);
-          TriggerLayout();
         }
         else
         { Controls.Remove(vert);
           vert = null;
-          TriggerLayout();
         }
+        OnContentSizeChanged(new EventArgs());
       }
     }
   }
@@ -278,7 +275,7 @@ public class Label : LabelBase
     if(Text.Length>0)
     { GameLib.Fonts.Font f = Font;
       if(f != null)
-      { f.Color     = ForeColor;
+      { f.Color     = Enabled ? ForeColor : SystemColors.GrayText;
         f.BackColor = BackColor;
         f.Render(e.Surface, Text, rect, TextAlign);
       }
@@ -364,7 +361,7 @@ public class Button : ButtonBase
 
   protected internal override void OnPaintBackground(PaintEventArgs e)
   { base.OnPaintBackground(e);
-    Helpers.DrawBorder(e.Surface, DrawRect, BorderStyle, Focused ? BorderColor : ForeColor,
+    Helpers.DrawBorder(e.Surface, DrawRect, BorderStyle, Focused ? ForeColor : BorderColor,
                        Pressed && (over || alwaysUse));
   }
 
@@ -383,7 +380,7 @@ public class Button : ButtonBase
     { GameLib.Fonts.Font f = Font;
       if(f!=null)
       { if(pressed) rect.Offset(1, 1);
-        f.Color     = ForeColor;
+        f.Color     = Enabled ? ForeColor : SystemColors.GrayText;
         f.BackColor = BackColor;
         f.Render(e.Surface, Text, rect, TextAlign);
       }
@@ -460,7 +457,7 @@ public class CheckBox : CheckBoxBase
 
     Rectangle rect = ContentDrawRect;
 
-    int borderSize=BorderWidth, boxSize=11+borderSize;
+    int borderSize=BorderWidth, boxSize=11+borderSize; // constant 11 also used below
     bool right = Helpers.AlignedRight(TextAlign);
     ContentAlignment align = Helpers.AlignedTop(TextAlign)    ? ContentAlignment.TopLeft    :
                              Helpers.AlignedMiddle(TextAlign) ? ContentAlignment.MiddleLeft :
@@ -469,14 +466,14 @@ public class CheckBox : CheckBoxBase
     GameLib.Fonts.Font font = Font;
     if(font!=null)
     { font.BackColor = BackColor;
-      font.Color = ForeColor;
+      font.Color = Enabled ? ForeColor : SystemColors.GrayText;
       if(!right) rect.X = font.Render(e.Surface, Text, rect, align).X;
     }
 
     Rectangle box = new Rectangle(rect.X, rect.Y+(rect.Height-boxSize)/2, boxSize, boxSize);
     Helpers.DrawBorder(e.Surface, box, BorderStyle, BorderColor, true);
     box.Inflate(-borderSize, -borderSize);
-    e.Surface.Fill(box, down ? SystemColors.Control : SystemColors.Window);
+    e.Surface.Fill(box, !down && Enabled ? SystemColors.Window : SystemColors.Control);
     if(Checked) Helpers.DrawCheck(e.Surface, box.X+1, box.Y+1, SystemColors.ControlText);
 
     if(font!=null && right)
@@ -493,9 +490,21 @@ public class CheckBox : CheckBoxBase
   { down=false; Invalidate(ContentRect);
     base.OnMouseUp(e);
   }
+
+  protected override void OnCheckedChanged(EventArgs e) { Invalidate(ContentRect); base.OnCheckedChanged(e); }
+  
+  // ensure that we have enough room for the checkbox
+  // TODO: is this good idea?
+  // or should we provide another mechanism for helping the user set the size of a checkbox?
+  protected override void OnContentSizeChanged(EventArgs e)
+  { int need = 11+BorderWidth - ContentHeight; // constant 11 also used above
+    if(need>0) Height += need;
+    base.OnContentSizeChanged(e);
+  }
+
   protected override void OnGotFocus(EventArgs e) { Invalidate(); base.OnGotFocus(e); }
   protected override void OnLostFocus(EventArgs e) { Invalidate(); base.OnLostFocus(e); }
-  protected override void OnCheckedChanged(EventArgs e) { Invalidate(ContentRect); base.OnCheckedChanged(e); }
+
   protected override void OnTextAlignChanged(ValueChangedEventArgs e)
   { if(Helpers.AlignedCenter(TextAlign))
     { TextAlign = ContentAlignment.MiddleRight;
@@ -629,15 +638,23 @@ public abstract class ScrollBarBase : Control, IDisposable
     }
   }
   protected internal override void OnMouseUp(ClickEventArgs e)
-  { if(e.CE.Button==MouseButton.Left) OnMouseLeave(e);
+  { if(e.CE.Button==MouseButton.Left)
+    { if(repeatEvent!=null)
+      { crTimer.Change(System.Threading.Timeout.Infinite, System.Threading.Timeout.Infinite);
+        repeatEvent = null;
+        repeated    = false;
+      }
+      OnMouseUp();
+    }
   }
   protected internal override void OnMouseLeave(EventArgs e)
   { if(repeatEvent!=null)
     { crTimer.Change(System.Threading.Timeout.Infinite, System.Threading.Timeout.Infinite);
       repeatEvent = null;
       repeated    = false;
-    }
-    OnMouseUp();
+      OnMouseUp();
+    } // if the mouse leaves while depressed, consider it unpressed
+    else if(Mouse.Pressed(MouseButton.Left)) OnMouseUp();
   }
   protected internal override void OnDragStart(DragEventArgs e)
   { if(!repeated && e.Pressed(0) && FindPlace(e.Start)==Place.Thumb)
@@ -669,8 +686,8 @@ public abstract class ScrollBarBase : Control, IDisposable
       case Place.PageDown: OnPageDown(eventArgs); break;
       case Place.PageUp: OnPageUp(eventArgs); break;
       case Place.Up: OnUp(eventArgs); break;
+      default: base.OnCustomEvent(e); break;
     }
-    base.OnCustomEvent(e);
   }
   protected internal override void OnKeyDown(KeyEventArgs e)
   { if(!e.Handled) switch(e.KE.Key)
@@ -745,7 +762,7 @@ public abstract class ScrollBarBase : Control, IDisposable
 
   protected int ValueToThumb(int value) { return (value-min)*Space/(max-min)+endSize; }
 
-  class ClickRepeat : GameLib.Events.WindowEvent
+  class ClickRepeat : Events.WindowEvent
   { public ClickRepeat(Control control, Place place) : base(control) { Place=place; }
     public Place Place;
   }
@@ -806,7 +823,7 @@ public class ScrollBar : ScrollBarBase
     if(down==place) rect.Offset(1, 1);
     Helpers.DrawArrow(surface, rect, place==Place.Up ? Horizontal ? Helpers.Arrow.Right : Helpers.Arrow.Down
                                                      : Horizontal ? Helpers.Arrow.Left  : Helpers.Arrow.Up,
-                      EndSize/4, Color.Black);
+                      EndSize/4, Enabled ? Color.Black : SystemColors.GrayText);
   }
 
   Place down;
@@ -1061,9 +1078,9 @@ public abstract class TextBoxBase : Control
     else if(c=='A'-64 && e.KE.HasOnlyKeys(KeyMod.Ctrl)) { SelectAll(); e.Handled=true; }
   }
 
-  protected internal override void OnCustomEvent(GameLib.Events.WindowEvent e)
+  protected internal override void OnCustomEvent(Events.WindowEvent e)
   { if(e is CaretFlashEvent) OnCaretFlash();
-    base.OnCustomEvent(e);
+    else base.OnCustomEvent(e);
   }
   #endregion
 
@@ -1189,7 +1206,7 @@ public class TextBox : TextBoxBase
         else break;
       }
 
-      if((!HideSelection || Focused) && SelectionLength!=0)
+      if((!HideSelection || Focused) && SelectionLength!=0 && Enabled)
       { text = Text.Substring(start, end-start);
         if(SelectionStart>start) rect.X += font.CalculateSize(text.Substring(0, SelectionStart-start)).Width;
         rect.Width = font.CalculateSize(text.Substring(Math.Max(0, SelectionStart-start),
@@ -1211,26 +1228,29 @@ public class TextBox : TextBoxBase
 
       string text = Text.Substring(start, end-start);
 
-      font.Color = ForeColor;
+      Color fore = Enabled ? ForeColor : SystemColors.GrayText;
+
+      font.Color = fore;
       font.BackColor = BackColor;
+
       if((HideSelection && !Focused) || SelectionLength==0) font.Render(e.Surface, text, location);
       else
       { if(SelectionStart>start)
           location.X += font.Render(e.Surface, text.Substring(0, SelectionStart-start), location);
 
-        font.Color = BackColor;
-        font.BackColor = ForeColor;
+        font.Color     = BackColor;
+        font.BackColor = fore;
         location.X += font.Render(e.Surface, text.Substring(Math.Max(0, SelectionStart-start),
                                                             Math.Min(Math.Abs(SelectionLength), end-start)), location);
         if(SelectionEnd<end)
-        { font.Color = ForeColor;
+        { font.Color     = fore;
           font.BackColor = BackColor;
           font.Render(e.Surface, text.Substring(SelectionEnd-start, end-SelectionEnd), location);
         }
       }
 
       int x = rect.X + font.CalculateSize(text.Substring(0, CaretPosition-start)).Width;
-      Primitives.VLine(e.Surface, x, rect.Top+2, rect.Bottom-3, CaretOn && HasCaret ? ForeColor : BackColor);
+      Primitives.VLine(e.Surface, x, rect.Top+2, rect.Bottom-3, CaretOn && HasCaret ? fore : BackColor);
     }
   }
 
@@ -1321,13 +1341,21 @@ public abstract class ListControl : ScrollableControl
     public void AddRange(params object[] items) { for(int i=0; i<items.Length; i++) List.Add(items[i]); }
     public void AddRange(ICollection items) { foreach(object o in items) List.Add(o); }
 
+    // TODO: handle updating the selection when an item moves
+    public void Insert(int index, object item)
+    { if(sorted) Add(item);
+      else List.Insert(index, item);
+    }
+
+    // TODO: handle updating the selection when an item is removed
     public void Remove(object item) { List.Remove(item); }
 
     internal bool Sorted
     { get { return sorted; }
       set
       { if(value && !sorted)
-        { throw new NotImplementedException(); // TODO: implement sorted lists (be sure to preserve selected items)
+        { // TODO: updated the indexes of the parent (ie, CalcIndexes)
+          throw new NotImplementedException(); // TODO: implement sorted lists (be sure to preserve selected items)
           parent.Invalidate(parent.ContentRect);
         }
         sorted=value;
@@ -1366,7 +1394,6 @@ public abstract class ListControl : ScrollableControl
   #endregion
 
   public ItemCollection Items { get { return items; } }
-  public abstract Size PreferredSize { get; }
   public abstract int SelectedIndex { get; set; }
 
   public object SelectedItem
@@ -1381,16 +1408,7 @@ public abstract class ListControl : ScrollableControl
     set { SelectedIndex = FindStringExact(value); }
   }
 
-  public int TopIndex
-  { get { return top; }
-    set
-    { int newValue = Math.Max(Math.Min(value, items.Count), 0);
-      if(newValue!=top)
-      { top=newValue;
-        Invalidate(ContentRect);
-      }
-    }
-  }
+  public abstract int TopIndex { get; set; }
 
   public int FindString(string startsWith) { return FindString(startsWith, 0); }
   public int FindString(string startsWith, int from)
@@ -1405,7 +1423,9 @@ public abstract class ListControl : ScrollableControl
   }
 
   public string GetItemText(int index) { return items[index].ToString(); }
-  
+  public Size GetPreferredSize() { return GetPreferredSize(items.Count); }
+  public abstract Size GetPreferredSize(int numItems);
+
   protected abstract void DrawItem(int index, PaintEventArgs e, Rectangle bounds);
   protected abstract Rectangle GetItemRectangle(int index, bool onlySeen);
   protected abstract bool IsSelected(int index);
@@ -1414,33 +1434,24 @@ public abstract class ListControl : ScrollableControl
   protected abstract int PointToItem(Point clientPoint);
 
   ItemCollection items;
-  int top;
 }
 #endregion
 
 #region ListBoxBase
 public abstract class ListBoxBase : ListControl
-{ protected ListBoxBase() { Padding=new RectOffset(1); }
-  protected ListBoxBase(ICollection items) : base(items) { Padding=new RectOffset(1); }
-  protected ListBoxBase(IEnumerable items) : base(items) { Padding=new RectOffset(1); }
+{ protected ListBoxBase() { Init(); }
+  protected ListBoxBase(ICollection items) : base(items) { Init(); }
+  protected ListBoxBase(IEnumerable items) : base(items) { Init(); }
+  void Init()
+  { selected=-1; bottom=-1;
+    selBack=SystemColors.Highlight;
+    selFore=SystemColors.HighlightText;
+    Padding=new RectOffset(1);
+    Style|=ControlStyle.CanFocus;
+  }
 
   public Color SelectedBackColor { get { return selBack; } set { selBack=value; } }
   public Color SelectedForeColor { get { return selFore; } set { selFore=value; } }
-
-  public override Size PreferredSize
-  { get
-    { Size ret = new Size(0, 0);
-      for(int i=0; i<Items.Count; i++)
-      { Size size = MeasureItem(i);
-        ret.Height += size.Height;
-        if(size.Width>ret.Width) ret.Width=size.Width;
-      }
-      if(VerticalScrollBar!=null) ret.Width += VerticalScrollBar.Width;
-      Rectangle rect = ContentRect;
-      ret.Width += rect.X + Right-rect.Right;
-      return ret;
-    }
-  }
 
   public override int SelectedIndex
   { get { return selected; }
@@ -1452,6 +1463,53 @@ public abstract class ListBoxBase : ListControl
         selected = newValue;
       }
     }
+  }
+
+  public override int TopIndex
+  { get { return top; }
+    set
+    { int newValue = Math.Max(Math.Min(value, lastTop), 0);
+      if(newValue!=top)
+      { top=newValue;
+        if(VerticalScrollBar!=null) VerticalScrollBar.Value = newValue;
+        Invalidate(ContentRect);
+        bottom = Math.Max(Math.Min(value, Items.Count-1), 0)==lastTop ? lastTop : -1;
+      }
+    }
+  }
+
+  public override Size GetPreferredSize(int numItems)
+  { if(numItems<0 || numItems>=Items.Count)
+      throw new ArgumentOutOfRangeException("numItems", numItems, "out of range");
+
+    Size ret = new Size(0, 0);
+    for(int i=0; i<numItems; i++)
+    { Size size = MeasureItem(i);
+      ret.Height += size.Height;
+      if(size.Width>ret.Width) ret.Width=size.Width;
+    }
+
+    return ContentOffset.Grow(ret);
+  }
+
+  protected int FindChar(char c) { return FindChar(c, 0); }
+  protected int FindChar(char c, int start)
+  { c = char.ToUpper(c);
+    for(; start<Items.Count; start++)
+    { string s = GetItemText(start);
+      if(s.Length>0 && char.ToUpper(s[0])==c) return start;
+    }
+    return -1;
+  }
+
+  protected int GetBottomIndex()
+  { if(bottom==-1)
+    { Rectangle bounds = ContentRect;
+      int i;
+      for(i=TopIndex; i<Items.Count && bounds.Height>0; i++) bounds.Height -= MeasureItem(i).Height;
+      bottom = i-1;
+    }
+    return bottom;
   }
 
   protected override Rectangle GetItemRectangle(int index, bool onlySeen)
@@ -1480,23 +1538,87 @@ public abstract class ListBoxBase : ListControl
 
   protected override bool IsSelected(int index) { return index==selected; }
 
-  protected internal override void OnMouseDown(ClickEventArgs e)
-  { base.OnMouseDown(e);
-    if(!e.Handled && e.CE.Button==MouseButton.Left)
-    { SelectedIndex = PointToItem(e.CE.Point);
-      e.Handled = true;
-    }
+  protected override ScrollBarBase MakeScrollBar(bool horizontal)
+  { ScrollBarBase bar = base.MakeScrollBar(horizontal);
+    bar.Style &= ~ControlStyle.CanFocus;
+    return bar;
   }
 
   protected override void OnCountChanged()
   { base.OnCountChanged();
-    ShowVerticalScrollBar = !AllFit;
-    if(VerticalScrollBar!=null) VerticalScrollBar.Maximum = Items.Count;
+    CalcIndexes();
   }
 
-  protected override void OnVerticalScroll(object bar, ValueChangedEventArgs e)
-  { base.OnVerticalScroll(bar, e);
-    TopIndex = VerticalScrollBar.Value;
+  protected internal override void OnCustomEvent(Events.WindowEvent e)
+  { if(e is ScrollEvent) DoScroll();
+    else base.OnCustomEvent(e);
+  }
+
+  protected internal override void OnKeyDown(KeyEventArgs e)
+  { if(e.KE.KeyMods==KeyMod.None)
+    { if(e.KE.Key==Key.Up || e.KE.Key==Key.Down)
+      { StopScrolling();
+        Capture = down = false;
+        if(e.KE.Key==Key.Up) ScrollUp();
+        else ScrollDown();
+        e.Handled=true;
+      }
+      else if(e.KE.Key==Key.PageUp)
+      { ScrollTo(SelectedIndex);
+        if(SelectedIndex>TopIndex) SelectedIndex=TopIndex;
+        else SelectedIndex=TopIndex=BottomToTop(TopIndex);
+      }
+      else if(e.KE.Key==Key.PageDown)
+      { ScrollTo(SelectedIndex);
+        if(SelectedIndex<GetBottomIndex()) SelectedIndex=bottom;
+        else { TopIndex=bottom; SelectedIndex=GetBottomIndex(); }
+      }
+      else if(e.KE.Key==Key.Home) TopIndex=SelectedIndex=0;
+      else if(e.KE.Key==Key.End)
+      { TopIndex = lastTop;
+        SelectedIndex = Items.Count-1;
+      }
+    }
+    base.OnKeyDown(e);
+  }
+
+  protected internal override void OnKeyPress(KeyEventArgs e)
+  { int next = FindChar(e.KE.Char, SelectedIndex+1);
+    if(next==-1) next = FindChar(e.KE.Char);
+    if(next!=-1) ScrollTo(SelectedIndex=next);
+    base.OnKeyPress(e);
+  }
+
+  protected internal override void OnMouseDown(ClickEventArgs e)
+  { if(!e.Handled && e.CE.Button==MouseButton.Left)
+    { SelectedIndex = PointToItem(e.CE.Point);
+      Capture = e.Handled = down = true;
+    }
+    base.OnMouseDown(e);
+  }
+
+  protected internal override void OnMouseMove(Events.MouseMoveEvent e)
+  { if(down)
+    { int index = PointToItem(new Point(Width/2, e.Y)); // assumes that Width/2 is within ContentRect
+      if(index==-1)
+      { StartScrolling();
+        DoScroll();
+      }
+      else
+      { StopScrolling();
+        SelectedIndex = index;
+      }
+    }
+    base.OnMouseMove(e);
+  }
+
+  protected internal override void OnMouseUp(ClickEventArgs e)
+  { if(!e.Handled && down && e.CE.Button==MouseButton.Left)
+    { Capture = down = false;
+      StopScrolling();
+      e.Handled = true;
+    }
+    base.OnMouseUp(e);
   }
 
   protected internal override void OnPaint(PaintEventArgs e)
@@ -1513,9 +1635,19 @@ public abstract class ListBoxBase : ListControl
     }
   }
 
+  protected override void OnResize(EventArgs e)
+  { base.OnResize(e);
+    CalcIndexes();
+  }
+
+  protected override void OnVerticalScroll(object bar, ValueChangedEventArgs e)
+  { base.OnVerticalScroll(bar, e);
+    TopIndex = VerticalScrollBar.Value;
+  }
+
   protected override int PointToItem(Point clientPoint)
   { Rectangle bounds = ContentRect;
-    for(int i=TopIndex; i<Items.Count; i++)
+    for(int i=TopIndex; i<Items.Count && bounds.Height>0; i++)
     { Rectangle itemRect = new Rectangle(bounds.X, bounds.Y, bounds.Width, MeasureItem(i).Height);
       if(itemRect.Contains(clientPoint)) return i;
       bounds.Y += itemRect.Height; bounds.Height -= itemRect.Height;
@@ -1523,10 +1655,86 @@ public abstract class ListBoxBase : ListControl
     return -1;
   }
 
-  bool AllFit { get { return ContentRect.Contains(GetItemRectangle(Items.Count-1, true)); } }
+  class ScrollEvent : Events.WindowEvent { public ScrollEvent(Control ctrl) : base(ctrl) { } }
 
-  int selected=-1;
-  Color selBack=SystemColors.Highlight, selFore=SystemColors.HighlightText;
+  int BottomToTop() { return BottomToTop(Items.Count-1); }
+  int BottomToTop(int start)
+  { Rectangle bounds = ContentRect;
+    for(; start>=0 && bounds.Height>0; start--) bounds.Height -= MeasureItem(start).Height;
+    return start+1;
+  }
+
+  void CalcIndexes()
+  { bottom  = -1;
+    lastTop = BottomToTop();
+    if(lastTop>0)
+    { ShowVerticalScrollBar = true;
+      VerticalScrollBar.Maximum = lastTop;
+    }
+    else ShowVerticalScrollBar = false;
+  }
+
+  void DoScroll()
+  { if(down)
+    { Point pt = ScreenToWindow(Mouse.Point);
+      if(pt.Y<0) ScrollUp();
+      else if(pt.Y>=Height) ScrollDown();
+    }
+  }
+
+  void ScrollDown()
+  { int bi = GetBottomIndex();
+    if(SelectedIndex==bi)
+    { if(bi==-1) SelectedIndex=TopIndex;
+      else if(bi<Items.Count-1)
+      { TopIndex++;
+        SelectedIndex=bottom=bi+1;
+      }
+    }
+    else ScrollTo(++SelectedIndex);
+  }
+
+  void ScrollTo(int index)
+  { if(index<TopIndex) TopIndex = index;
+    else if(index>GetBottomIndex()) TopIndex = BottomToTop(index);
+  }
+
+  void ScrollUp()
+  { if(SelectedIndex==TopIndex)
+    { if(TopIndex>0) SelectedIndex = --TopIndex;
+    }
+    else ScrollTo(--SelectedIndex);
+  }
+
+  void StartScrolling()
+  { if(!scrolling)
+    { scrolling=true;
+      if(scroll==null) scroll = new ScrollEvent(this);
+      staticScroll = scroll;
+      DesktopControl desktop = Desktop;
+      scrollTimer.Change(25, 25);
+    }
+  }
+  
+  void StopScrolling()
+  { if(scrolling)
+    { scrollTimer.Change(System.Threading.Timeout.Infinite, System.Threading.Timeout.Infinite);
+      scrolling=false;
+    }
+  }
+
+  ScrollEvent scroll;
+  int   selected, top, bottom, lastTop;
+  Color selBack,  selFore;
+  bool  down;
+
+  static void ScrollIt(object dummy) { Events.Events.PushEvent(staticScroll); }
+
+  static ScrollEvent staticScroll;
+  static System.Threading.Timer scrollTimer =
+    new System.Threading.Timer(new System.Threading.TimerCallback(ScrollIt), null,
+                               System.Threading.Timeout.Infinite, System.Threading.Timeout.Infinite);
+  static bool scrolling;
 }
 #endregion
 
@@ -1550,6 +1758,7 @@ public class ListBox : ListBoxBase
       if(back!=Color.Transparent) e.Surface.Fill(bounds, back);
     }
     else { back=BackColor; fore=ForeColor; }
+    if(!Enabled) fore = SystemColors.GrayText;
 
     GameLib.Fonts.Font font = Font;
     if(font!=null)
@@ -1561,13 +1770,14 @@ public class ListBox : ListBoxBase
 
   protected override Size MeasureItem(int index)
   { GameLib.Fonts.Font font = Font;
-    return font==null ? new Size(Width, 12) : font.CalculateSize(GetItemText(index));
+    return font==null ? new Size(Width, 14) : font.CalculateSize(GetItemText(index)); // guess 14 for font size
   }
 }
 #endregion
 #endregion
 
 #region Menus
+// TODO: allow the hotkey letter to be underlined
 #region MenuItemBase
 public abstract class MenuItemBase : Control
 { public MenuItemBase() { BackColor = SystemColors.Menu; ForeColor = SystemColors.MenuText; }
@@ -1653,7 +1863,7 @@ public abstract class MenuBase : ContainerControl
   { if(!e.Handled)
     { char c = char.ToUpper(e.KE.Char);
       foreach(MenuItemBase item in Controls)
-        if(c==item.HotKey)
+        if(c==item.HotKey && item.Enabled)
         { PostClickEvent(item);
           Close();
           e.Handled=true;
@@ -1676,7 +1886,11 @@ public abstract class MenuBase : ContainerControl
       else
       { pullDown = false;
         foreach(MenuItemBase item in Controls)
-          if(item.Bounds.Contains(e.CE.Point)) { PostClickEvent(item); Close(); goto done; }
+          if(item.Bounds.Contains(e.CE.Point))
+          { if(item.Enabled) PostClickEvent(item);
+            Close();
+            goto done;
+          }
         Capture = true;
       }
       done:
@@ -1688,14 +1902,17 @@ public abstract class MenuBase : ContainerControl
   protected internal override void OnMouseClick(ClickEventArgs e)
   { if(!e.Handled)
     { foreach(MenuItemBase item in Controls)
-        if(item.Bounds.Contains(e.CE.Point)) { PostClickEvent(item); break; }
+        if(item.Bounds.Contains(e.CE.Point))
+        { if(item.Enabled) { PostClickEvent(item); break; }
+          else goto done;
+        }
       Close();
       e.Handled=true;
     }
-    base.OnMouseClick(e);
+    done: base.OnMouseClick(e);
   }
 
-  protected internal override void OnCustomEvent(GameLib.Events.WindowEvent e)
+  protected internal override void OnCustomEvent(Events.WindowEvent e)
   { if(e is ItemClickedEvent) Click(((ItemClickedEvent)e).Item);
     base.OnCustomEvent(e);
   }
@@ -1803,19 +2020,20 @@ public abstract class MenuBarBase : Control
       return true;
     }
     foreach(MenuBase menu in menus)
-      foreach(MenuItemBase item in menu.Controls)
-        if(item.GlobalHotKey.Matches(e))
-        { if(!item.AllowKeyRepeat) Desktop.StopKeyRepeat();
-          menu.PostClickEvent(item);
-          return true;
-        }
+      if(menu.Enabled)
+        foreach(MenuItemBase item in menu.Controls)
+          if(item.Enabled && item.GlobalHotKey.Matches(e))
+          { if(!item.AllowKeyRepeat) Desktop.StopKeyRepeat();
+            menu.PostClickEvent(item);
+            return true;
+          }
     return false;
   }
 
   protected internal override void OnMouseDown(ClickEventArgs e)
   { if(e.CE.Button==MouseButton.Left)
     { for(int i=0; i<buttons.Length; i++)
-      { if(buttons[i].Area.Contains(e.CE.Point)) Open(i);
+      { if(buttons[i].Area.Contains(e.CE.Point) && buttons[i].Menu.Enabled) Open(i);
         else if(buttons[i].State!=ButtonState.Normal) Close(i);
       }
       e.Handled=true;
@@ -1846,13 +2064,18 @@ public abstract class MenuBarBase : Control
     base.OnMouseDown(e);
   }
 
-  protected internal override void OnMouseMove(GameLib.Events.MouseMoveEvent e)
+  protected internal override void OnMouseMove(Events.MouseMoveEvent e)
   { int over=-1, oldOver=-1;
     for(int i=0; i<buttons.Length; i++)
     { if(buttons[i].Over || buttons[i].State!=ButtonState.Normal) oldOver=i;
-      buttons[i].Over = buttons[i].Area.Contains(e.Point);
-      if(buttons[i].Over) over=i;
+      if(buttons[i].Area.Contains(e.Point))
+      { if(!buttons[i].Menu.Enabled) goto done;
+        buttons[i].Over = true;
+        over=i;
+      }
+      else buttons[i].Over = false;
     }
+
     if(over!=oldOver)
     { ButtonState oldState=ButtonState.Over;
       if(oldOver==-1) oldState=ButtonState.Over;
@@ -1868,7 +2091,7 @@ public abstract class MenuBarBase : Control
         Invalidate(buttons[over].Area);
       }
     }
-    base.OnMouseMove(e);
+    done: base.OnMouseMove(e);
   }
 
   protected internal override void OnMouseLeave(EventArgs e)
@@ -1943,12 +2166,13 @@ public abstract class MenuBarBase : Control
 
 #region MenuItem
 public class MenuItem : MenuItemBase
-{ public MenuItem() { }
-  public MenuItem(string text) { Text=text; }
-  public MenuItem(string text, char hotKey) { Text=text; HotKey=hotKey; }
+{ public MenuItem() { Init(); }
+  public MenuItem(string text) { Init(); Text=text; }
+  public MenuItem(string text, char hotKey) { Init(); Text=text; HotKey=hotKey; }
   public MenuItem(string text, char hotKey, KeyCombo globalHotKey)
-  { Text=text; HotKey=hotKey; GlobalHotKey=globalHotKey; Padding=new RectOffset(2, 0);
+  { Init(); Text=text; HotKey=hotKey; GlobalHotKey=globalHotKey; Padding=new RectOffset(2, 0);
   }
+  void Init() { DontDraw|=DontDraw.BackImage; }
 
   public Color RawSelectedBackColor { get { return selBack; } }
   public Color RawSelectedForeColor { get { return selFore; } }
@@ -1974,14 +2198,11 @@ public class MenuItem : MenuItemBase
   protected internal override void OnMouseEnter(EventArgs e) { mouseOver=true;  Invalidate(); base.OnMouseEnter(e); }
   protected internal override void OnMouseLeave(EventArgs e) { mouseOver=false; Invalidate(); base.OnMouseLeave(e); }
 
+  // FIXME: if BackImage is used, this will overwrite it
   protected internal override void OnPaintBackground(PaintEventArgs e)
-  { if(mouseOver)
-    { Color c = RawBackColor;
-      BackColor = SelectedBackColor;
-      base.OnPaintBackground(e);
-      BackColor = c;
-    }
-    else base.OnPaintBackground(e);
+  { base.OnPaintBackground(e);
+    if(mouseOver && Enabled) e.Surface.Fill(e.DisplayRect, SelectedBackColor);
+    else if(RawBackColor!=Color.Transparent) e.Surface.Fill(e.DisplayRect, RawBackColor);
   }
 
   protected internal override void OnPaint(PaintEventArgs e)
@@ -1990,8 +2211,12 @@ public class MenuItem : MenuItemBase
     { GameLib.Fonts.Font f = Font;
       if(f != null)
       { Rectangle rect = ContentDrawRect;
-        f.Color     = mouseOver ? SelectedForeColor : ForeColor;
-        f.BackColor = mouseOver ? SelectedBackColor : BackColor;
+        if(Enabled)
+        { f.Color     = mouseOver ? SelectedForeColor : ForeColor;
+          f.BackColor = mouseOver ? SelectedBackColor : BackColor;
+        }
+        else { f.Color=SystemColors.GrayText; f.BackColor=BackColor; }
+
         f.Render(e.Surface, Text, rect, ContentAlignment.MiddleLeft);
         if(GlobalHotKey.Valid) f.Render(e.Surface, GlobalHotKey.ToString(), rect, ContentAlignment.MiddleRight);
       }
@@ -2083,12 +2308,13 @@ public class MenuBar : MenuBarBase
   { base.OnPaint(e);
     GameLib.Fonts.Font font = Font;
     if(font==null) return;
-    font.Color = ForeColor;
+
     font.BackColor = BackColor;
     foreach(MenuButton button in Buttons)
-    { if(button.Area.IntersectsWith(e.WindowRect))
+      if(button.Area.IntersectsWith(e.WindowRect))
+      { font.Color = button.Menu.Enabled ? ForeColor : SystemColors.GrayText;
         font.Render(e.Surface, button.Menu.Text, WindowToDisplay(button.Area), ContentAlignment.MiddleCenter);
-    }
+      }
   }
 
   protected override Size MeasureItem(MenuBase menu)
@@ -2103,142 +2329,6 @@ public class MenuBar : MenuBarBase
 #endregion
 
 #region Forms
-#region TitleBarBase
-public abstract class TitleBarBase : ContainerControl
-{ public TitleBarBase(FormBase parent)
-  { Style    |= ControlStyle.Draggable|ControlStyle.DontLayout;
-    BackColor = SystemColors.ActiveCaption;
-    ForeColor = SystemColors.ActiveCaptionText;
-    parent.Controls.Add(this);
-  }
-
-  public abstract bool CloseBox { get; set; }
-
-  protected internal override void OnDragStart(DragEventArgs e)
-  { if(!e.OnlyPressed(MouseButton.Left)) e.Cancel=true;
-    base.OnDragStart(e);
-  }
-
-  protected internal override void OnDragMove(DragEventArgs e)
-  { DragParent(e);
-    base.OnDragMove(e);
-  }
-
-  protected internal override void OnDragEnd(DragEventArgs e)
-  { DragParent(e);
-    base.OnDragEnd(e);
-  }
-
-  protected override void OnResize(EventArgs e)
-  { FormBase parent = (FormBase)Parent;
-    if(parent.MinimumHeight<Height) parent.MinimumHeight=Height;
-    base.OnResize(e);
-  }
-
-  void DragParent(DragEventArgs e)
-  { Point location = Parent.Location;
-    location.Offset(e.End.X-e.Start.X, e.End.Y-e.Start.Y);
-    Parent.Location = location;
-  }
-}
-#endregion
-
-#region TitleBar
-public class TitleBar : TitleBarBase
-{ public TitleBar(FormBase parent) : base(parent)
-  { GameLib.Fonts.Font font = parent.Font;
-    Height = parent.Font==null ? 24 : font.LineSkip*4/3;
-    CloseBox = true;
-  }
-
-  public override bool CloseBox
-  { get { return close!=null; }
-    set
-    { if(value!=CloseBox)
-      { if(value)
-        { close = new CloseButton();
-          close.Anchor = AnchorStyle.TopBottom | AnchorStyle.Right;
-          close.Bounds = new Rectangle(Right-Height+2, 2, Height-4, Height-4);
-          Controls.Add(close);
-        }
-        else
-        { Controls.Remove(close);
-          close = null;
-        }
-      }
-    }
-  }
-
-  protected internal override void OnPaint(PaintEventArgs e)
-  { base.OnPaint(e);
-    GameLib.Fonts.Font font = Font;
-    if(font!=null)
-    { Rectangle rect = DrawRect;
-      rect.X += (font.LineSkip+3)/6;
-      font.Color = ForeColor;
-      font.BackColor = BackColor;
-      font.Render(e.Surface, Parent.Text, rect, ContentAlignment.MiddleLeft);
-    }
-  }
-
-  protected override void OnFontChanged(ValueChangedEventArgs e)
-  { UpdateSize();
-    Invalidate();
-    base.OnFontChanged(e);
-  }
-
-  protected override void OnVisibleChanged(ValueChangedEventArgs e)
-  { UpdateSize();
-    base.OnVisibleChanged(e);
-  }
-
-  void UpdateSize()
-  { if(!Visible) Height=0;
-    else
-    { GameLib.Fonts.Font font = Font;
-      if(font!=null) Height = font.LineSkip*4/3;
-    }
-  }
-
-  #region CloseButton
-  class CloseButton : Button
-  { public CloseButton() { BackColor=SystemColors.Control; ForeColor=SystemColors.ControlText; }
-
-    protected override void OnResize(EventArgs e)
-    { Rectangle rect = Bounds;
-      int xd = Width-Height;
-      if(xd!=0) { rect.X += xd; rect.Width -= xd; Bounds = rect; } // if it's not square, make it square
-      base.OnResize(e);
-    }
-
-    protected override void OnClick(ClickEventArgs e)
-    { ((FormBase)Parent.Parent).Close();
-      base.OnClick(e);
-    }
-
-    protected internal override void OnPaint(PaintEventArgs e)
-    { Rectangle rect = ContentDrawRect;
-      float size = (float)rect.Width*3/5;
-      int pad = (int)Math.Round((rect.Width-size)/2), isize = (int)Math.Round(size);
-      rect.X += pad; rect.Width  -= isize-(rect.Width&1)-1;
-      rect.Y += pad; rect.Height -= isize-(rect.Height&1);
-      if(Pressed && Over) { rect.X++; rect.Y++; }
-      int right=rect.Right-1, bottom=rect.Bottom-1;
-      Color c = ForeColor;
-
-      Primitives.Line(e.Surface, rect.X, rect.Y, right-1, bottom, c);
-      Primitives.Line(e.Surface, rect.X+1, rect.Y, right, bottom, c);
-      Primitives.Line(e.Surface, rect.X, bottom, right-1, rect.Y, c);
-      Primitives.Line(e.Surface, rect.X+1, bottom, right, rect.Y, c);
-      base.OnPaint(e);
-    }
-  }
-  #endregion
-
-  CloseButton close;
-}
-#endregion
-
 #region FormBase
 // TODO: make TAB start tabbing through child controls
 public enum ButtonClicked { None, Abort, Cancel, Ignore, No, Ok, Retry, Yes }
@@ -2249,13 +2339,54 @@ public abstract class FormBase : ContainerControl
     DragThreshold=3;
   }
 
+  #region TitleBarBase
+  public abstract class TitleBarBase : ContainerControl
+  { public TitleBarBase(FormBase parent)
+    { Style    |= ControlStyle.Draggable|ControlStyle.DontLayout;
+      BackColor = SystemColors.InactiveCaption;
+      ForeColor = SystemColors.InactiveCaptionText;
+      parent.Controls.Add(this);
+    }
+
+    public abstract bool CloseBox { get; set; }
+
+    protected internal override void OnDragStart(DragEventArgs e)
+    { if(!e.OnlyPressed(MouseButton.Left)) e.Cancel=true;
+      base.OnDragStart(e);
+    }
+
+    protected internal override void OnDragMove(DragEventArgs e)
+    { DragParent(e);
+      base.OnDragMove(e);
+    }
+
+    protected internal override void OnDragEnd(DragEventArgs e)
+    { DragParent(e);
+      base.OnDragEnd(e);
+    }
+
+    protected override void OnResize(EventArgs e)
+    { FormBase parent = (FormBase)Parent;
+      if(parent.MinimumHeight<Height) parent.MinimumHeight=Height;
+      base.OnResize(e);
+      parent.OnContentSizeChanged(e);
+    }
+
+    void DragParent(DragEventArgs e)
+    { Point location = Parent.Location;
+      location.Offset(e.End.X-e.Start.X, e.End.Y-e.Start.Y);
+      Parent.Location = location;
+    }
+  }
+  #endregion
+
   public ButtonClicked Button { get { return button; } set { button=value; }  }
 
-  public override Rectangle ContentRect
+  public override RectOffset ContentOffset
   { get
-    { Rectangle rect = base.ContentRect;
-      rect.Y += TitleBar.Height; rect.Height -= TitleBar.Height;
-      return rect;
+    { RectOffset ret = base.ContentOffset;
+      ret.Top += TitleBar.Height;
+      return ret;
     }
   }
 
@@ -2336,7 +2467,7 @@ public abstract class FormBase : ContainerControl
   { if(desktop==null) throw new ArgumentNullException("desktop");
     Visible = true;
     Parent  = desktop;
-    BringToFront();
+    Focus();
     SetModal(true);
     while(Events.Events.PumpEvent() && Parent!=null);
     return returnValue;
@@ -2441,7 +2572,103 @@ public abstract class FormBase : ContainerControl
 // TODO: add menu bar?
 // TODO: rewrite the titlebar stuff so it doesn't use docking
 public class Form : FormBase
-{ public Form() { titleBar=new TitleBar(this); BorderStyle=BorderStyle.FixedThick; }
+{ public Form() { titleBar=new OurTitleBar(this); BorderStyle=BorderStyle.FixedThick; KeyPreview=true; }
+
+  #region OurTitleBar
+  class OurTitleBar : TitleBarBase
+  { public OurTitleBar(FormBase parent) : base(parent)
+    { GameLib.Fonts.Font font = parent.Font;
+      Height = parent.Font==null ? 24 : font.LineSkip*4/3;
+      CloseBox = true;
+    }
+
+    public override bool CloseBox
+    { get { return close!=null; }
+      set
+      { if(value!=CloseBox)
+        { if(value)
+          { close = new CloseButton();
+            close.Anchor = AnchorStyle.TopBottom | AnchorStyle.Right;
+            close.Bounds = new Rectangle(Right-Height+2, 2, Height-4, Height-4);
+            Controls.Add(close);
+          }
+          else
+          { Controls.Remove(close);
+            close = null;
+          }
+        }
+      }
+    }
+
+    protected internal override void OnPaint(PaintEventArgs e)
+    { base.OnPaint(e);
+      GameLib.Fonts.Font font = Font;
+      if(font!=null)
+      { Rectangle rect = DrawRect;
+        rect.X += (font.LineSkip+3)/6;
+        font.Color = ForeColor;
+        font.BackColor = BackColor;
+        font.Render(e.Surface, Parent.Text, rect, ContentAlignment.MiddleLeft);
+      }
+    }
+
+    protected override void OnFontChanged(ValueChangedEventArgs e)
+    { UpdateSize();
+      Invalidate();
+      base.OnFontChanged(e);
+    }
+
+    protected override void OnVisibleChanged(ValueChangedEventArgs e)
+    { UpdateSize();
+      base.OnVisibleChanged(e);
+    }
+
+    void UpdateSize()
+    { if(!Visible) Height=0;
+      else
+      { GameLib.Fonts.Font font = Font;
+        if(font!=null) Height = font.LineSkip*4/3;
+      }
+    }
+
+    #region CloseButton
+    class CloseButton : Button
+    { public CloseButton() { BackColor=SystemColors.Control; ForeColor=SystemColors.ControlText; }
+
+      protected override void OnResize(EventArgs e)
+      { Rectangle rect = Bounds;
+        int xd = Width-Height;
+        if(xd!=0) { rect.X += xd; rect.Width -= xd; Bounds = rect; } // if it's not square, make it square
+        base.OnResize(e);
+      }
+
+      protected override void OnClick(ClickEventArgs e)
+      { ((FormBase)Parent.Parent).Close();
+        base.OnClick(e);
+      }
+
+      protected internal override void OnPaint(PaintEventArgs e)
+      { Rectangle rect = ContentDrawRect;
+        float size = (float)rect.Width*3/5;
+        int pad = (int)Math.Round((rect.Width-size)/2), isize = (int)Math.Round(size);
+        rect.X += pad; rect.Width  -= isize-(rect.Width&1)-1;
+        rect.Y += pad; rect.Height -= isize-(rect.Height&1);
+        if(Pressed && Over) { rect.X++; rect.Y++; }
+        int right=rect.Right-1, bottom=rect.Bottom-1;
+        Color c = Enabled ? ForeColor : SystemColors.GrayText;
+
+        Primitives.Line(e.Surface, rect.X, rect.Y, right-1, bottom, c);
+        Primitives.Line(e.Surface, rect.X+1, rect.Y, right, bottom, c);
+        Primitives.Line(e.Surface, rect.X, bottom, right-1, rect.Y, c);
+        Primitives.Line(e.Surface, rect.X+1, bottom, right, rect.Y, c);
+        base.OnPaint(e);
+      }
+    }
+    #endregion
+
+    CloseButton close;
+  }
+  #endregion
 
   public override TitleBarBase TitleBar { get { return titleBar; } }
 
@@ -2458,8 +2685,16 @@ public class Form : FormBase
     TitleBar.ForeColor = SystemColors.InactiveCaptionText;
     TitleBar.BackColor = SystemColors.InactiveCaption;
   }
+  
+  protected internal override void OnKeyDown(KeyEventArgs e)
+  { if(!e.Handled && e.KE.Key==Key.F4 && e.KE.HasOnlyKeys(KeyMod.Ctrl)) // close the window when Ctrl-F4 is pressed
+    { Close();
+      e.Handled=true;
+    }
+    base.OnKeyPress(e);
+  }
 
-  TitleBar titleBar;
+  OurTitleBar titleBar;
 }
 #endregion
 
@@ -2481,42 +2716,74 @@ public sealed class MessageBox : Form
   { Parent = desktop;
     if(!init)
     { GameLib.Fonts.Font font = Font;
-      if(font!=null) // TODO: clean this up. it's a mess
-      { int btnWidth=0, btnHeight=font.LineSkip*3/2, height=font.LineSkip*3+btnHeight, btnSpace=12;
-        int[] sizes = new int[buttonTexts.Length];
-        for(int i=0; i<buttonTexts.Length; i++)
-        { sizes[i] = font.CalculateSize(buttonTexts[i]).Width * 3/2; // padding inside button
-          if(sizes[i]<40) sizes[i]=40;
-          btnWidth += sizes[i];
-        }
-        btnWidth += (buttonTexts.Length-1) * btnSpace; // space between buttons
+      if(font!=null)
+      { int sidePadding = font.LineSkip*2;
 
         Size deskSize = desktop.ContentSize;
-        Label label   = new Label(message);
-        int textWidth = deskSize.Width/2-font.LineSkip*2, textHeight;
-        if(btnWidth>textWidth) textWidth = btnWidth;
-        Rectangle rect = new Rectangle(0, 0, textWidth, int.MaxValue);
-        int lines = font.WordWrap(message, rect).Length;
-        if(lines==1) textWidth = font.CalculateSize(message).Width;
-        textHeight = lines*font.LineSkip;
+        deskSize.Width -= sidePadding; // we don't want to use the whole space...
 
-        height += textHeight + TitleBar.Height;
-        Size size = new Size(Math.Max(Math.Min(deskSize.Width, btnWidth*3/2), textWidth+font.LineSkip*2), height);
-        Bounds = new Rectangle(new Point((deskSize.Width-size.Width)/2, (deskSize.Height-size.Height)/2), size);
+        int btnWidth=0, btnHeight=font.LineSkip*3/2+2, btnSpace=12;
 
-        label.Bounds = new Rectangle((ContentWidth-textWidth)/2, font.LineSkip, textWidth, textHeight);
+        int[] btnWidths = new int[buttonTexts.Length];
+        for(int i=0; i<buttonTexts.Length; i++)
+        { btnWidths[i] = font.CalculateSize(buttonTexts[i]).Width;
+          btnWidth += Math.Max(btnWidths[i]*3/2, 40); // add padding
+        }
+        
+        #region Find button width
+        // find a good width, try to degrade nicely if we can't get the width we want
+        { int width = btnWidth + sidePadding + (btnWidths.Length-1)*btnSpace;
+
+          if(width<=deskSize.Width) // it's good, accept it
+          { for(int i=0; i<btnWidths.Length; i++) btnWidths[i] = Math.Max(btnWidths[i]*3/2, 40);
+            goto foundSize;
+          }
+          // it doesn't fit, so try to reduce the spacing
+          width = btnWidth + sidePadding + (btnWidths.Length-1)*(btnSpace/2);
+          if(width<=deskSize.Width)
+          { for(int i=0; i<btnWidths.Length; i++) btnWidths[i] = btnWidths[i]*3/2;
+            btnSpace /= 2;
+            goto foundSize;
+          }
+
+          // okay, we need to try harder. reduce the internal space
+          btnWidth = 0;
+          for(int i=0; i<btnWidths.Length; i++) btnWidth += btnWidths[i]*5/4;
+          width = btnWidth + sidePadding + (btnWidths.Length-1)*btnSpace;
+          if(width<=deskSize.Width)
+          { for(int i=0; i<btnWidths.Length; i++) btnWidth += btnWidths[i]*5/4;
+            goto foundSize;
+          }
+          
+          // okay, use only minimal padding and space. this is our final attempt
+          btnWidth = 0;
+          for(int i=0; i<btnWidths.Length; i++) btnWidth += (btnWidths[i] += 4); // only 2 pixels of padding
+          btnSpace = 4;
+          width = btnWidth + sidePadding + (btnWidths.Length-1)*btnSpace;
+
+          foundSize:
+          btnWidth = width;
+        }
+        #endregion
+        
+        Label label  = new Label(message);
+        label.Width  = Math.Max(btnWidth, Math.Min(deskSize.Width*3/4-sidePadding, font.CalculateSize(message).Width));
+        label.Height = font.WordWrap(message, label.Width, int.MaxValue).Length * font.LineSkip;
+        label.Location  = new Point(sidePadding/2, sidePadding/2);
         label.TextAlign = ContentAlignment.TopCenter;
 
-        int x = (ContentWidth-btnWidth)/2, y = ContentHeight-font.LineSkip-btnHeight-TitleBar.Height;
-        for(int i=0; i<buttonTexts.Length; i++)
+        Size = ContentOffset.Grow(new Size(label.Width+sidePadding, label.Height+btnHeight+sidePadding+font.LineSkip));
+        Location = new Point(Math.Max((deskSize.Width-Width)/2, 0), Math.Max((deskSize.Height-Height)/2, 0));
+
+        int x=(Width-btnWidth+sidePadding)/2, y=label.Bottom+font.LineSkip;
+        for(int i=0; i<btnWidths.Length; i++)
         { Button btn = new Button(buttonTexts[i]);
-          btn.Bounds = new Rectangle(x, y, sizes[i], btnHeight);
+          btn.Bounds = new Rectangle(x, y, btnWidths[i], btnHeight);
           btn.Click += new ClickEventHandler(btn_OnClick);
-          btn.Tag    = i;
-          btn.TabIndex = i;
-          x += sizes[i]+btnSpace;
+          btn.Tag    = btn.TabIndex = i;
           Controls.Add(btn);
           if(i==defaultButton) btn.Focus();
+          x += btn.Width+btnSpace;
         }
         Controls.Add(label);
         init = true;

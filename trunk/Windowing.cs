@@ -20,6 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // TODO: add 'other control' to focus events?
 // TODO: do something so that slow painting/updating doesn't lag the entire windowing system
 // TODO: implement overlapping window support
+// TODO: unify terminology referring to coordinates (eg, control coordinates vs client coordinates, etc)
 using System;
 using System.Collections;
 using System.Drawing;
@@ -92,11 +93,34 @@ public struct RectOffset
   public override int GetHashCode()
   { return Left.GetHashCode()^Top.GetHashCode()^Right.GetHashCode()^Bottom.GetHashCode();
   }
-
+  
+  /// <summary>Adds a given amount to each offset.</summary>
+  /// <param name="amount">The amount to add to the <see cref="Left"/>, <see cref="Top"/>, <see cref="Right"/>,
+  /// and <see cref="Bottom"/> offsets.
+  /// </param>
+  /// <remarks><paramref name="amount"/> can be negative if you want to decrease the offsets.</remarks>
+  public void Offset(int amount) { Left+=amount; Top+=amount; Right+=amount; Bottom+=amount; }
+  /// <summary>Adds a given amount to each offset.</summary>
+  /// <param name="horizontal">The amount to add to the <see cref="Left"/>, and <see cref="Right"/> offsets.</param>
+  /// <param name="vertical">The amount to add to the <see cref="Top"/>, and <see cref="Bottom"/> offsets.</param>
+  /// <remarks><paramref name="horizontal"/> and <paramref name="vertical"/> can be negative if you want to
+  /// decrease the offsets.
+  /// </remarks>
+  public void Offset(int horizontal, int vertical)
+  { Left+=horizontal; Right+=horizontal; Top+=vertical; Bottom+=vertical;
+  }
+  /// <summary>Adds a given amount to each offset.</summary>
+  /// <param name="left">The amount to add to the <see cref="Left"/> offset.</param>
+  /// <param name="top">The amount to add to the <see cref="Top"/> offset.</param>
+  /// <param name="right">The amount to add to the <see cref="Right"/> offset.</param>
+  /// <param name="bottom">The amount to add to the <see cref="Bottom"/> offset.</param>
+  /// <remarks>The parameters can be negative if you want to decrease the offsets.</remarks>
+  public void Offset(int left, int top, int right, int bottom) { Left+=left; Right+=right; Top+=top; Bottom+=bottom; }
+    
   /// <summary>Enlarges a rectangle.</summary>
   /// <param name="rect">The <see cref="Rectangle"/> to enlarge.</param>
   /// <returns>A <see cref="Rectangle"/> that has been enlarged by the offsets in this object. Note that if
-  /// this object's offsets are negative, the resulting rectangle may actually shrink.
+  /// the offsets are negative, the resulting rectangle may actually shrink.
   /// </returns>
   public Rectangle Grow(Rectangle rect)
   { rect.X -= Left;
@@ -105,11 +129,21 @@ public struct RectOffset
     rect.Height -= Top+Bottom;
     return rect;
   }
+  /// <summary>Enlarges a <see cref="Size"/> object.</summary>
+  /// <param name="size">The <see cref="Size"/> to enlarge.</param>
+  /// <returns>A <see cref="Size"/> that has been enlarged by the <see cref="Horizontal"/> and <see cref="Vertical"/>
+  /// offsets in this object. Note that if the offsets are negative, the resulting size may actually shink.
+  /// </returns>
+  public Size Grow(Size size)
+  { size.Width  += Left+Right;
+    size.Height += Top+Bottom;
+    return size;
+  }
 
   /// <summary>Shrinks a rectangle.</summary>
   /// <param name="rect">The <see cref="Rectangle"/> to shrink.</param>
   /// <returns>A <see cref="Rectangle"/> that has been shrunk by the offsets in this object. Note that if
-  /// this object's offsets are negative, the resulting rectangle may actually grow.
+  /// the offsets are negative, the resulting rectangle may actually grow.
   /// </returns>
   public Rectangle Shrink(Rectangle rect)
   { rect.X += Left;
@@ -117,6 +151,16 @@ public struct RectOffset
     rect.Y += Top;
     rect.Height -= Top+Bottom;
     return rect;
+  }
+  /// <summary>Shrinks a <see cref="Size"/> object.</summary>
+  /// <param name="size">The <see cref="Size"/> to shrink.</param>
+  /// <returns>A <see cref="Size"/> that has been shrunk by the <see cref="Horizontal"/> and <see cref="Vertical"/>
+  /// offsets in this object. Note that if the offsets are negative, the resulting size may actually grow.
+  /// </returns>
+  public Size Shrink(Size size)
+  { size.Width  -= Left+Right;
+    size.Height -= Top+Bottom;
+    return size;
   }
 
   public override string ToString()
@@ -706,9 +750,8 @@ public class Control
   { get { return border; }
     set
     { if(border!=value)
-      { if(BorderWidth != Helpers.BorderWidth(value)) TriggerLayout();
+      { if(BorderWidth != Helpers.BorderWidth(value)) OnContentSizeChanged(new EventArgs());
         border=value;
-        Invalidate();
       }
     }
   }
@@ -764,47 +807,57 @@ public class Control
 
   /// <summary>Gets the rectangle on the drawing surface that represents the content area.</summary>
   /// <value>A <see cref="Rectangle"/> representing the content area in drawing surface coordinates.</value>
-  /// <remarks>The content area of a control is the control's client area, minus the border and padding.
-  /// However, a control can override <see cref="ContentRect"/> to alter the definition of the content area.
-  /// </remarks>
+  /// <remarks>The content area is the client area shrunk by <see cref="ContentOffset"/>.</remarks>
   public Rectangle ContentDrawRect
   { get { return BackingSurface==null ? WindowToDisplay(ContentRect) : WindowToBacking(ContentRect); }
   }
 
   /// <summary>Gets the height of the content area.</summary>
   /// <value>The height of the content area, in pixels.</value>
-  /// <remarks>The content area of a control is the control's client area, minus the border and padding.
-  /// However, a control can override <see cref="ContentRect"/> to alter the definition of the content area.
+  /// <remarks>The content area is the client area shrunk by <see cref="ContentOffset"/>.</remarks>
+  public int ContentHeight { get { return bounds.Height-ContentOffset.Vertical; } }
+
+  /// <summary>Gets the offset that defines the content area.</summary>
+  /// <value>A <see cref="RectOffset"/> that will be used to shrink the <see cref="WindowRect"/> and obtain
+  /// the <see cref="ContentRect"/>.
+  /// </value>
+  /// <remarks>By default, this is defined as the offset created by <see cref="Padding"/> and
+  /// <see cref="BorderWidth"/>. It can be overridden to provide a new definition of the content area, but for
+  /// compatibility, you should define your new offset as a modification of the base class's version. Also,
+  /// make sure to call <see cref="OnContentSizeChanged"/> if your criteria for evaluating the offset change.
   /// </remarks>
-  public int ContentHeight { get { return ContentRect.Height; } }
+  public virtual RectOffset ContentOffset
+  { get
+    { RectOffset ret = padding;
+      ret.Offset(BorderWidth);
+      return ret;
+    }
+  }
 
   /// <summary>Gets the rectangle representing the content area, in control coordinates.</summary>
   /// <value>A <see cref="Rectangle"/> representing the content area.</value>
-  /// <remarks>The content area of a control is the control's client area, minus the border and padding.
-  /// However, a control can override this property to alter the definition of the content area.
-  /// </remarks>
-  public virtual Rectangle ContentRect
+  /// <remarks>The content area is the client area shrunk by <see cref="ContentOffset"/>.</remarks>
+  public Rectangle ContentRect
   { get
-    { Rectangle ret = WindowRect - padding;
-      int bsize = -BorderWidth;
-      ret.Inflate(bsize, bsize);
-      return ret;
+    { RectOffset offset = ContentOffset;
+      return new Rectangle(offset.Left, offset.Top, bounds.Width-offset.Horizontal, bounds.Height-offset.Vertical);
     }
   }
   
   /// <summary>Gets the size of the content area.</summary>
   /// <value>The <see cref="Size"/> of the content area, in pixels.</value>
-  /// <remarks>The content area of a control is the control's client area, minus the border and padding.
-  /// However, a control can override <see cref="ContentRect"/> to alter the definition of the content area.
-  /// </remarks>
-  public Size ContentSize { get { return ContentRect.Size; } }
+  /// <remarks>The content area is the client area shrunk by <see cref="ContentOffset"/>.</remarks>
+  public Size ContentSize
+  { get
+    { RectOffset offset = ContentOffset;
+      return new Size(bounds.Width-offset.Horizontal, bounds.Height-offset.Vertical);
+    }
+  }
 
   /// <summary>Gets the width of the content area.</summary>
   /// <value>The width of the content area, in pixels.</value>
-  /// <remarks>The content area of a control is the control's client area, minus the border and padding.
-  /// However, a control can override <see cref="ContentRect"/> to alter the definition of the content area.
-  /// </remarks>
-  public int ContentWidth { get { return ContentRect.Width; } }
+  /// <remarks>The content area is the client area shrunk by <see cref="ContentOffset"/>.</remarks>
+  public int ContentWidth { get { return bounds.Width-ContentOffset.Horizontal; } }
 
   /// <summary>Gets the <see cref="ControlCollection"/> containing this control's children.</summary>
   public ControlCollection Controls { get { return controls; } }
@@ -1051,8 +1104,7 @@ public class Control
       { if(value.Left<0 || value.Top<0 || value.Right<0 || value.Bottom<0)
           throw new ArgumentOutOfRangeException("Padding", value, "offset cannot be negative");
         padding=value;
-        TriggerLayout();
-        Invalidate();
+        OnContentSizeChanged(new EventArgs());
       }
     }
   }
@@ -1175,8 +1227,7 @@ public class Control
     set
     { if(value!=style)
       { style=value;
-        if((value&ControlStyle.BackingSurface)==0) backingSurface=null;
-        else if(backingSurface==null) UpdateBackingSurface(false);
+        UpdateBackingSurface(false);
       }
     }
   }
@@ -1451,9 +1502,7 @@ public class Control
   /// <param name="recursive">Determines whether the layout will recurse and lay out all descendents.
   /// See <see cref="TriggerLayout(bool)"/> for more information.
   /// </param>
-  public void PerformLayout(bool recursive)
-  { OnLayout(new LayoutEventArgs(recursive));
-  }
+  public void PerformLayout(bool recursive) { OnLayout(new LayoutEventArgs(recursive)); }
 
   /// <summary>Sets the <see cref="Bounds"/> property and performs layout logic.</summary>
   /// <param name="x">The new X coordinate of the left edge of the control.</param>
@@ -1604,7 +1653,9 @@ public class Control
   /// <summary>Converts a point from control coordinates to the parent's control coordinates.</summary>
   /// <param name="windowPoint">The point to convert, in control coordinates.</param>
   /// <returns>The converted point, in the control coordinates of this control's parent.</returns>
-  /// <remarks>This method can be used even if the control is not attached to a parent.</remarks>
+  /// <remarks>This method can be used even if the control is not attached to a parent because it simply examines
+  /// <see cref="Bounds"/>.
+  /// </remarks>
   public Point WindowToParent(Point windowPoint)
   { windowPoint.X+=bounds.X; windowPoint.Y+=bounds.Y; return windowPoint;
   }
@@ -1612,9 +1663,25 @@ public class Control
   /// <summary>Converts a rectangle from control coordinates to the parent's control coordinates.</summary>
   /// <param name="windowRect">The rectangle to convert, in control coordinates.</param>
   /// <returns>The converted rectangle, in the control coordinates of this control's parent.</returns>
-  /// <remarks>This method can be used even if the control is not attached to a parent.</remarks>
+  /// <remarks>This method can be used even if the control is not attached to a parent because it simply examines
+  /// <see cref="Bounds"/>.
+  /// </remarks>
   public Rectangle WindowToParent(Rectangle windowRect)
   { return new Rectangle(WindowToParent(windowRect.Location), windowRect.Size);
+  }
+
+  /// <summary>Converts a point from control coordinates to screen coordinates.</summary>
+  /// <param name="windowPoint">The point to convert, in control coordinates.</param>
+  /// <returns>A <see cref="Point"/> representing the location on the screen.</returns>
+  /// <remarks>This method is primarily useful for converting local mouse coordinates to screen coordinates.
+  /// It requires that the control be associated with a desktop.
+  /// </remarks>
+  public Point WindowToScreen(Point windowPoint)
+  { DesktopControl desktop = Desktop;
+    if(desktop==null) throw new InvalidOperationException("This control has no desktop");
+    windowPoint = WindowToDisplay(windowPoint);
+    windowPoint.Offset(-desktop.Left, -desktop.Top);
+    return windowPoint;
   }
 
   /// <summary>Immediately repaints the entire display surface.</summary>
@@ -1634,6 +1701,21 @@ public class Control
     { AddInvalidRect(area);
       Update();
     }
+  }
+
+  /// <summary>Converts a point from screen coordinates to control coordinates.</summary>
+  /// <param name="screenPoint">The point to convert, in screen coordinates.</param>
+  /// <returns>A <see cref="Point"/> representing the location, in control coordinates.</returns>
+  /// <remarks>This method is primarily useful for converting mouse coordinates from
+  /// <see cref="GameLib.Input.Mouse"/>to local coordinates. It requires that the control be associated
+  /// with a desktop.
+  /// </remarks>
+  public Point ScreenToWindow(Point screenPoint)
+  { DesktopControl desktop = Desktop;
+    if(desktop==null) throw new InvalidOperationException("This control has no desktop");
+    screenPoint = DisplayToWindow(screenPoint);
+    screenPoint.Offset(desktop.Left, desktop.Top);
+    return screenPoint;
   }
 
   /// <summary>Sends this control to the back of the Z-order.</summary>
@@ -1671,6 +1753,8 @@ public class Control
   public event ValueChangedEventHandler BackImageAlignChanged;
   /// <summary>Occurs when the value of the <see cref="BackingSurface"/> property for this control changes.</summary>
   public event EventHandler BackingSurfaceChanged;
+  /// <summary>Occurs when the <see cref="ContentSize"/> property changes.</summary>
+  public event EventHandler ContentSizeChanged;
   /// <summary>Occurs when the value of the <see cref="Enabled"/> property changes.</summary>
   public event ValueChangedEventHandler EnabledChanged;
   /// <summary>Occurs when the value of the <see cref="Font"/> property changes.</summary>
@@ -1831,9 +1915,8 @@ public class Control
   /// <summary>Raises the <see cref="BackImageAlignChanged"/> event and performs default handing.</summary>
   /// <param name="e">A <see cref="ValueChangedEventArgs"/> that contains the event data.</param>
   /// <remarks>This method raises the <see cref="BackImageAlignChanged"/> event and invalidates the control (using
-  /// <see cref="Invalidate"/>) if a background image is defined.
-  /// When overriding this method in a derived class, be sure to call the base class' version to ensure that the
-  /// default processing gets performed.
+  /// <see cref="Invalidate"/>) if a background image is defined. When overriding this method in a derived class, be
+  /// sure to call the base class' version to ensure that the default processing gets performed.
   /// </remarks>
   protected virtual void OnBackImageAlignChanged(ValueChangedEventArgs e)
   { if(BackImageAlignChanged!=null) BackImageAlignChanged(this, e);
@@ -1842,21 +1925,33 @@ public class Control
 
   /// <summary>Raises the <see cref="BackingSurfaceChanged"/> event.</summary>
   /// <param name="e">An <see cref="EventArgs"/> that contains the event data.</param>
-  /// <remarks>This method calls <see cref="OnParentBackingSurfaceChanged"/> on each child.
-  /// When overriding this method in a derived class, be sure to call the base class'
-  /// version to ensure that the default processing gets performed.
+  /// <remarks>This method calls <see cref="OnParentBackingSurfaceChanged"/> on each child. When overriding this
+  /// method in a derived class, be sure to call the base class' version to ensure that the default processing gets
+  /// performed.
   /// </remarks>
   protected virtual void OnBackingSurfaceChanged(EventArgs e)
   { if(BackingSurfaceChanged!=null) BackingSurfaceChanged(this, e);
     foreach(Control c in controls) c.OnParentBackingSurfaceChanged(e);
   }
 
+  /// <summary>Raises the <see cref="ContentSizeChanged"/> event.</summary>
+  /// <param name="e">An <see cref="EventArgs"/> that contains the event data.</param>
+  /// <remarks>This method raises the <see cref="ContentSizeChanged"/> event and calls <see cref="TriggerLayout"/>
+  /// and <see cref="Invalidate"/>. When overriding this method in a derived class, be sure to call the base
+  /// class' version to ensure that default processing gets performed.
+  /// </remarks>
+  protected virtual void OnContentSizeChanged(EventArgs e)
+  { if(ContentSizeChanged!=null) ContentSizeChanged(this, e);
+    TriggerLayout();
+    Invalidate();
+  }
+
   /// <summary>Raises the <see cref="EnabledChanged"/> event and performs default handing.</summary>
   /// <param name="e">A <see cref="ValueChangedEventArgs"/> that contains the event data.</param>
   /// <remarks>This method raises the <see cref="EnabledChanged"/> event, and invalidates and possibly blurs the
-  /// control, and calls <see cref="OnParentEnabledChanged"/> on each child.
-  /// When overriding this method in a derived class, be sure to call the base class' version to ensure that the
-  /// default processing gets performed. The proper place to do this is at the beginning of the derived version.
+  /// control, and calls <see cref="OnParentEnabledChanged"/> on each child. When overriding this method in a
+  /// derived class, be sure to call the base class' version to ensure that the default processing gets
+  /// performed. The proper place to do this is at the beginning of the derived version.
   /// </remarks>
   protected virtual void OnEnabledChanged(ValueChangedEventArgs e)
   { if(EnabledChanged!=null) EnabledChanged(this, e);
@@ -1870,9 +1965,9 @@ public class Control
   /// <summary>Raises the <see cref="FontChanged"/> event and performs default handing.</summary>
   /// <param name="e">A <see cref="ValueChangedEventArgs"/> that contains the event data.</param>
   /// <remarks>This method raises the <see cref="FontChanged"/> event, and invalidates the control (using
-  /// <see cref="Invalidate"/>), and calls <see cref="OnParentFontChanged"/> on each child.
-  /// When overriding this method in a derived class, be sure to call the base class' version to ensure that the
-  /// default processing gets performed.
+  /// <see cref="Invalidate"/>), and calls <see cref="OnParentFontChanged"/> on each child. When overriding this
+  /// method in a derived class, be sure to call the base class' version to ensure that the default processing gets
+  /// performed.
   /// </remarks>
   protected virtual void OnFontChanged(ValueChangedEventArgs e)
   { if(FontChanged!=null) FontChanged(this, e);
@@ -1883,9 +1978,9 @@ public class Control
   /// <summary>Raises the <see cref="ForeColorChanged"/> event and performs default handing.</summary>
   /// <param name="e">A <see cref="ValueChangedEventArgs"/> that contains the event data.</param>
   /// <remarks>This method raises the <see cref="ForeColorChanged"/> event, and invalidates the control (using
-  /// <see cref="Invalidate"/>), and calls <see cref="OnParentForeColorChanged"/> on each child.
-  /// When overriding this method in a derived class, be sure to call the base class' version to ensure that the
-  /// default processing gets performed.
+  /// <see cref="Invalidate"/>), and calls <see cref="OnParentForeColorChanged"/> on each child. When overriding
+  /// this method in a derived class, be sure to call the base class' version to ensure that the default
+  /// processing gets performed.
   /// </remarks>
   protected virtual void OnForeColorChanged(ValueChangedEventArgs e)
   { if(ForeColorChanged!=null) ForeColorChanged(this, e);
@@ -1895,10 +1990,10 @@ public class Control
 
   /// <summary>Raises the <see cref="LocationChanged"/> event and performs default handing.</summary>
   /// <param name="e">A <see cref="ValueChangedEventArgs"/> that contains the event data.</param>
-  /// <remarks>This method raises the <see cref="LocationChanged"/> event, and invalidates the control and
-  /// its parent (using <see cref="Invalidate"/>), updates anchor information, and calls <see cref="OnMove"/>.
-  /// When overriding this method in a derived class, be sure to call the base class' version to ensure that the
-  /// default processing gets performed. The proper place to do this is at the end of the derived version.
+  /// <remarks>This method raises the <see cref="LocationChanged"/> event, and invalidates the control and its parent
+  /// (using <see cref="Invalidate"/>), updates anchor information, and calls <see cref="OnMove"/>. When overriding
+  /// this method in a derived class, be sure to call the base class' version to ensure that the default processing
+  /// gets performed. The proper place to do this is at the end of the derived version.
   /// </remarks>
   protected virtual void OnLocationChanged(ValueChangedEventArgs e)
   { if(LocationChanged!=null) LocationChanged(this, e);
@@ -1911,9 +2006,9 @@ public class Control
 
   /// <summary>Raises the <see cref="ParentChanged"/> event and performs default handing.</summary>
   /// <param name="e">A <see cref="ValueChangedEventArgs"/> that contains the event data.</param>
-  /// <remarks>This method raises the <see cref="ParentChanged"/> event, and performs important processing.
-  /// When overriding this method in a derived class, be sure to call the base class' version to ensure that the
-  /// default processing gets performed. The proper place for this is at the beginning of the derived version.
+  /// <remarks>This method raises the <see cref="ParentChanged"/> event, and performs important processing. When
+  /// overriding this method in a derived class, be sure to call the base class' version to ensure that the default
+  /// processing gets performed. The proper place for this is at the beginning of the derived version.
   /// </remarks>
   protected virtual void OnParentChanged(ValueChangedEventArgs e)
   { if(ParentChanged!=null) ParentChanged(this, e);
@@ -1964,7 +2059,6 @@ public class Control
   { if(SizeChanged!=null) SizeChanged(this, e);
     if(invalid.Right>bounds.Width) invalid.Width-=invalid.Right-bounds.Width;
     if(invalid.Bottom>bounds.Height) invalid.Height-=invalid.Bottom-bounds.Height;
-    TriggerLayout();
     UpdateBackingSurface(false);
     Size old = (Size)e.OldValue;
     if(parent!=null && (bounds.Width<old.Width || bounds.Height<old.Height))
@@ -1976,7 +2070,10 @@ public class Control
       else parent.Invalidate(new Rectangle(WindowToParent(new Point(0, bounds.Height)),
                                            new Size(old.Width, old.Height-bounds.Height)));
     }
+    TriggerLayout();
     Invalidate();
+    
+    OnContentSizeChanged(e);
     OnResize(e);
     foreach(Control c in controls) c.OnParentResized(e);
   }
@@ -2000,9 +2097,9 @@ public class Control
   /// <summary>Raises the <see cref="VisibleChanged"/> event and performs default handing.</summary>
   /// <param name="e">A <see cref="ValueChangedEventArgs"/> that contains the event data.</param>
   /// <remarks>This method raises the <see cref="VisibleChanged"/> event, invalidates and possibly blurs the
-  /// control, and calls <see cref="OnParentVisibleChanged"/> on each child.
-  /// When overriding this method in a derived class, be sure to call the base class' version to ensure that the
-  /// default processing gets performed. The proper place to do this is at the beginning of the derived version.
+  /// control, and calls <see cref="OnParentVisibleChanged"/> on each child. When overriding this method in a
+  /// derived class, be sure to call the base class' version to ensure that the default processing gets
+  /// performed. The proper place to do this is at the beginning of the derived version.
   /// </remarks>
   protected virtual void OnVisibleChanged(ValueChangedEventArgs e)
   { if(VisibleChanged!=null) VisibleChanged(this, e);
@@ -2113,8 +2210,9 @@ public class Control
 
   /// <summary>Raises the <see cref="KeyPress"/> event.</summary>
   /// <param name="e">A <see cref="KeyEventArgs"/> that contains the event data.</param>
-  /// <remarks>When overriding this method in a derived class, be sure to call the base class'
-  /// version to ensure that the default processing gets performed.
+  /// <remarks>This method will only be called for keystrokes that produce characters. When overriding this
+  /// method in a derived class, be sure to call the base class' version to ensure that the default processing
+  /// gets performed. 
   /// </remarks>
   protected internal virtual void OnKeyPress(KeyEventArgs e) { if(KeyPress!=null) KeyPress(this, e); }
 
@@ -2270,8 +2368,8 @@ public class Control
 
   /// <summary>Called when the control receives a custom window event.</summary>
   /// <param name="e">A <see cref="WindowEvent"/> that contains the event.</param>
-  /// <remarks>When overriding this method in a derived class, be sure to call the base class' version to
-  /// ensure that the default processing gets performed.
+  /// <remarks>When overriding this method in a derived class, be sure to call the base class' version if you
+  /// don't completely handle the event, or the event could possibly be handled by another class.
   /// </remarks>
   protected internal virtual void OnCustomEvent(WindowEvent e) { }
   #endregion
@@ -2418,12 +2516,13 @@ public class Control
   internal void UpdateBackingSurface(bool forceNew)
   { DesktopControl desktop = Desktop;
     bool hasStyle = (style&ControlStyle.BackingSurface)!=0;
-    if(forceNew || ((!hasStyle || desktop==null) && backingSurface!=null) ||
+    if(forceNew || ((!hasStyle || desktop==null) && backingSurface!=null) || // yikes, this is complicated
        ((hasStyle || desktop!=null) && (backingSurface==null || Size!=backingSurface.Size)))
-    { if(hasStyle && desktop!=null && desktop.Surface!=null)
+    { Surface old = backingSurface;
+      if(old!=null) { old.Dispose(); backingSurface=null; }
+      if(hasStyle && desktop!=null && desktop.Surface!=null)
         backingSurface = desktop.Surface.CreateCompatible(Width, Height);
-      else backingSurface = null;
-      OnBackingSurfaceChanged(new EventArgs());
+      if(backingSurface!=old) OnBackingSurfaceChanged(new EventArgs());
     }
   }
 
@@ -2528,6 +2627,13 @@ public class DesktopControl : ContainerControl, IDisposable
   /// The default is <see cref="AutoFocus.None"/>.
   /// </remarks>
   public AutoFocus AutoFocusing { get { return focus; } set { focus=value; } }
+
+  /// <summary>The default key repeat delay, in milliseconds.</summary>
+  /// <remarks>This is simply a recommended value.</remarks>
+  public const int DefaultKeyRepeatDelay = 400;
+  /// <summary>The default key repeat rate, in milliseconds.</summary>
+  /// <remarks>This is the default value for the <see cref="KeyRepeatRate"/> property.</remarks>
+  public const int DefaultKeyRepeatRate = 40;
 
   /// <summary>Gets or sets the double click delay in milliseconds for this desktop.</summary>
   /// <remarks>The double click delay is the maximum number of milliseconds allowed between mouse clicks for them
@@ -3135,19 +3241,34 @@ public class DesktopControl : ContainerControl, IDisposable
   internal void DoPaint(Control control)
   { if(surface!=null && control.InvalidRect.Width>0)
     { PaintEventArgs pe = new PaintEventArgs(control, control.InvalidRect, surface);
+      Rectangle oldClip = pe.Surface.ClipRect;
       pe.Surface.ClipRect = pe.DisplayRect;
       control.OnPaintBackground(pe);
       control.OnPaint(pe);
-      pe.Surface.ClipRect = pe.Surface.Bounds;
+      pe.Surface.ClipRect = oldClip;
 
-      // propogate changes to the desktop's surface if we need to
+      // propogate changes up to the desktop's surface if we need to.
       // we skip translucent controls because their Invalidate() call simply invalidates the given area of the
-      // parent control
+      // parent control. the pe.Surface!=surface check basically means control.BackingSurface!=null.
       if(control.backingSurface!=null || pe.Surface!=surface && !control.Transparent)
-      { Point pt = control.WindowToDisplay(pe.WindowRect.Location);
-surface.ClipRect = surface.Bounds; // FIXME: the cliprect is getting messed up somewhere. in a C library?? where?
-        pe.Surface.Blit(surface, pe.DisplayRect, pt);
-        pe.DisplayRect.Location = pt;
+      { while(true) // propogate up to each backing surface and then the desktop in turn
+        { Control withSurface = control;
+          do withSurface = withSurface.Parent; while(withSurface!=this && withSurface.backingSurface==null);
+
+          Point pt = control.WindowToAncestor(pe.WindowRect.Location, withSurface);
+          Surface dest = withSurface.backingSurface==null ? surface : withSurface.backingSurface;
+
+          oldClip = dest.ClipRect;
+          dest.ClipRect = surface.Bounds;
+          pe.Surface.Blit(dest, pe.DisplayRect, pt);
+          dest.ClipRect = oldClip;
+
+          pe.DisplayRect.Location = pt;
+          if(withSurface==this) break;
+          pe.WindowRect.Location = pt;
+          pe.Surface = dest;
+          control    = withSurface;
+        }
       }
 
       if(trackUpdates) AddUpdatedArea(pe.DisplayRect);
@@ -3198,7 +3319,7 @@ surface.ClipRect = surface.Bounds; // FIXME: the cliprect is getting messed up s
   Input.Key tab=Input.Key.Tab;
   ClickStatus clickStatus;
   int   enteredLen, updatedLen;
-  uint  dcDelay=350, krDelay, krRate=40;
+  uint  dcDelay=350, krDelay, krRate=DefaultKeyRepeatRate;
   bool  keys=true, clicks=true, moves=true, init, dragStarted, trackUpdates=true, keyProcessing;
 }
 #endregion

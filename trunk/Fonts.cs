@@ -48,9 +48,7 @@ public abstract class Font : IDisposable
 
   /// <summary>Gets the height of the font, in pixels.</summary>
   public abstract int Height { get; }
-  /// <summary>Gets the vertical offset that should be added to move the draw position to the next line. This is
-  /// equivalent to the height of the font plus spacing between lines.
-  /// </summary>
+  /// <include file="documentation.xml" path="//Fonts/LineSkip/*"/>
   public abstract int LineSkip { get; }
   /// <summary>Gets/sets the color of the font.</summary>
   /// <remarks>The interpretation of this property is up to the implementing class, so see the documentation for
@@ -64,84 +62,33 @@ public abstract class Font : IDisposable
   /// </remarks>
   public abstract Color BackColor { get; set; }
 
-  /// <summary>Calculates the size of a string of text.</summary>
-  /// <param name="text">The text to use for the calculation.</param>
-  /// <returns>A <see cref="Size"/> that contains the amount of space required to render the given text with this
-  /// font.
-  /// </returns>
-  /// <remarks>This method does not perform word-wrapping on the text, and returns a calculation assuming the text
-  /// is rendered as a single line.
-  /// </remarks>
+  /// <include file="documentation.xml" path="//Fonts/CalculateSize/*"/>
   public abstract Size CalculateSize(string text);
-  /// <summary>Calculates how many characters of the given string would fit into the given width.</summary>
-  /// <param name="text">The string to test.</param>
-  /// <param name="width">The available width, in pixels.</param>
-  /// <returns>The number of characters that would fully fit within the given width.</returns>
+  /// <include file="documentation.xml" path="//Fonts/HowManyFit/*"/>
   public abstract int HowManyFit(string text, int width);
 
-  /// <summary>Renders text at a given point.</summary>
-  /// <param name="dest">The surface to render into.</param>
-  /// <param name="text">The text to render.</param>
-  /// <param name="pt">The point where the top-left corner of the rendered text should appear.</param>
-  /// <returns>Returns the width of the text rendered plus spacing so that you can use the value to calculate where
-  /// more text can be rendered (by adding the returned width to the starting position).
-  /// </returns>
+  /// <include file="documentation.xml" path="//Fonts/Render/Point/Pt/*"/>
   public int Render(Surface dest, string text, Point pt) { return Render(dest, text, pt.X, pt.Y); }
-  /// <summary>Renders text at a given point.</summary>
-  /// <param name="dest">The surface to render into.</param>
-  /// <param name="text">The text to render.</param>
-  /// <param name="x">The X coordinate where the left side of the rendered text should appear.</param>
-  /// <param name="y">The Y coordinate where the top edge of the rendered text should appear.</param>
-  /// <returns>Returns the width of the text rendered plus spacing so that you can use the value to calculate where
-  /// more text can be rendered (by adding the returned width to the starting position).
-  /// </returns>
+  /// <include file="documentation.xml" path="//Fonts/Render/Point/XY/*"/>
   public abstract int Render(Surface dest, string text, int x, int y);
 
-  /// <summary>Word-wraps and renders text into a given rectangle.</summary>
-  /// <param name="dest">The surface to render into.</param>
-  /// <param name="text">The text to render.</param>
-  /// <param name="rect">The area into which text will be rendered.</param>
-  /// <returns>Returns the end point of the rendering, where rendering can be continue with more text.</returns>
+  /// <include file="documentation.xml" path="//Fonts/Render/Rect/NoAlign/*"/>
   public Point Render(Surface dest, string text, Rectangle rect)
   { return Render(dest, text, rect, ContentAlignment.TopLeft, 0, 0, breakers);
   }
-  /// <summary>Word-wraps and renders text into a given rectangle.</summary>
-  /// <param name="dest">The surface to render into.</param>
-  /// <param name="text">The text to render.</param>
-  /// <param name="rect">The area into which text will be rendered.</param>
-  /// <param name="align">The <see cref="ContentAlignment"/> to use inside the rectangle.</param>
-  /// <returns>Returns the end point of the rendering, where rendering can be continue with more text.
-  /// This only works with top-left alignment, since the endpoints for other types of alignment require before-hand
-  /// knowledge of the amount of text. For other alignment types, the value of the returned point is undefined.
-  /// </returns>
+  /// <include file="documentation.xml" path="//Fonts/Render/Rect/Align/*"/>
   public Point Render(Surface dest, string text, Rectangle rect, ContentAlignment align)
   { return Render(dest, text, rect, align, 0, 0, breakers);
   }
-  /// <summary>Word-wraps and renders text into a given rectangle.</summary>
-  /// <param name="dest">The surface to render into.</param>
-  /// <param name="text">The text to render.</param>
-  /// <param name="rect">The area into which text will be rendered.</param>
-  /// <param name="startx">The X offset into the rectangle at which rendering will begin.</param>
-  /// <param name="starty">The Y offset into the rectangle at which rendering will begin.</param>
-  /// <returns>Returns the end point of the rendering, where rendering can be continue with more text.</returns>
+  /// <include file="documentation.xml" path="//Fonts/Render/Rect/*[self::NoAlign or self::Offset]/*"/>
   /// <remarks>The X and Y offsets into the rectangle are provided to allow continuing rendering where you left off.</remarks>
   public Point Render(Surface dest, string text, Rectangle rect, int startx, int starty)
   { return Render(dest, text, rect, ContentAlignment.TopLeft, startx, starty, breakers);
   }
-  /// <summary>Word-wraps and renders text into a given rectangle.</summary>
-  /// <param name="dest">The surface to render into.</param>
-  /// <param name="text">The text to render.</param>
-  /// <param name="rect">The area into which text will be rendered.</param>
-  /// <param name="align">The <see cref="ContentAlignment"/> to use inside the rectangle.</param>
-  /// <param name="startx">The X offset into the rectangle at which rendering will begin.</param>
-  /// <param name="starty">The Y offset into the rectangle at which rendering will begin.</param>
+  /// <include file="documentation.xml" path="//Fonts/Render/Rect/*[self::Align or self::Offset]/*"/>
   /// <param name="breakers">An array of characters that will be used to break the text. Those characters will
   /// mark preferred places within the string to break to a new line.
   /// </param>
-  /// <returns>Returns the end point of the rendering, where rendering can be continue with more text.
-  /// This only works with top-left alignment, since the endpoints for other types of alignment require before-hand
-  /// knowledge of the amount of text. For other alignment types, the value of the returned point is undefined.
-  /// </returns>
   /// <remarks>The X and Y offsets into the rectangle are provided to allow continuing rendering where you left off,
   /// but they can only be used (nonzero) if the alignment is <see cref="ContentAlignment.TopLeft"/>.
   /// </remarks>
@@ -195,58 +142,37 @@ public abstract class Font : IDisposable
     Render(dest, text, (dest.Width-width)/2, y);
   }
 
-  /// <summary>Word-wraps text into a specified rectangle.</summary>
-  /// <param name="text">The text to word-wrap.</param>
-  /// <param name="rect">The area bounding the text.</param>
-  /// <returns>An array of integers specifying indices into the string. There is one element for each line of text.
-  /// The value of the element is how many characters should be rendered on that line.
-  /// </returns>
-  /// <remarks>Currently, a newline character will not force a line break. This behavior will be changed in the future.</remarks>
-  public int[] WordWrap(string text, Rectangle rect) { return WordWrap(text, rect, 0, 0, breakers); }
-  /// <summary>Word-wraps text into a specified rectangle.</summary>
-  /// <param name="text">The text to word-wrap.</param>
-  /// <param name="rect">The area bounding the text.</param>
-  /// <param name="breakers">An array of characters that will be used to break the text. Those characters will
-  /// mark preferred places within the string to break to a new line.
-  /// </param>
-  /// <returns>An array of integers specifying indices into the string. There is one element for each line of text.
-  /// The value of the element is how many characters should be rendered on that line.
-  /// </returns>
-  /// <remarks>Currently, a newline character will not force a line break. This behavior will be changed in the future.</remarks>
-  public int[] WordWrap(string text, Rectangle rect, char[] breakers)
-  { return WordWrap(text, rect, 0, 0, breakers);
+  /// <include file="documentation.xml" path="//Fonts/WordWrap/Dims/*"/>
+  public int[] WordWrap(string text, int width, int height)
+  { return WordWrap(text, new Rectangle(0, 0, width, height), 0, 0, breakers);
   }
-  /// <summary>Word-wraps text into a specified rectangle.</summary>
-  /// <param name="text">The text to word-wrap.</param>
-  /// <param name="rect">The area bounding the text.</param>
-  /// <param name="startx">The X offset into the rectangle at which the text should start.</param>
-  /// <param name="starty">The Y offset into the rectangle at which the text should start.</param>
-  /// <returns>An array of integers specifying indices into the string. There is one element for each line of text.
-  /// The value of the element is how many characters should be rendered on that line.
-  /// </returns>
-  /// <remarks>Currently, a newline character will not force a line break. This behavior will be changed in the future.</remarks>
+  /// <include file="documentation.xml" path="//Fonts/WordWrap/*[self::Dims or self::Breakers]/*"/>
+  public int[] WordWrap(string text, int width, int height, char[] breakers)
+  { return WordWrap(text, new Rectangle(0, 0, width, height), 0, 0, breakers);
+  }
+  /// <include file="documentation.xml" path="//Fonts/WordWrap/Size/*"/>
+  public int[] WordWrap(string text, Size size)
+  { return WordWrap(text, new Rectangle(0, 0, size.Width, size.Height), 0, 0, breakers);
+  }
+  /// <include file="documentation.xml" path="//Fonts/WordWrap/*[self::Size or self::Breakers]/*"/>
+  public int[] WordWrap(string text, Size size, char[] breakers)
+  { return WordWrap(text, new Rectangle(0, 0, size.Width, size.Height), 0, 0, breakers);
+  }
+  /// <include file="documentation.xml" path="//Fonts/WordWrap/Rect/*"/>
+  public int[] WordWrap(string text, Rectangle rect) { return WordWrap(text, rect, 0, 0, breakers); }
+  /// <include file="documentation.xml" path="//Fonts/WordWrap/*[self::Rect or self::Breakers]/*"/>
+  public int[] WordWrap(string text, Rectangle rect, char[] breakers) { return WordWrap(text, rect, 0, 0, breakers); }
+  /// <include file="documentation.xml" path="//Fonts/WordWrap/*[self::Rect or self::Offset]/*"/>
   public int[] WordWrap(string text, Rectangle rect, int startx, int starty)
   { return WordWrap(text, rect, startx, starty, breakers);
   }
-  /// <summary>Word-wraps text into a specified rectangle.</summary>
-  /// <param name="text">The text to word-wrap.</param>
-  /// <param name="rect">The area bounding the text.</param>
-  /// <param name="startx">The X offset into the rectangle at which the text should start.</param>
-  /// <param name="starty">The Y offset into the rectangle at which the text should start.</param>
-  /// <param name="breakers">An array of characters that will be used to break the text. Those characters will
-  /// mark preferred places within the string to break to a new line.
-  /// </param>
-  /// <returns>An array of integers specifying indices into the string. There is one element for each line of text.
-  /// The value of the element is how many characters should be rendered on that line.
-  /// </returns>
-  /// <remarks>Currently, a newline character will not force a line break. This behavior will be changed in the future.</remarks>
+  /// <include file="documentation.xml" path="//Fonts/WordWrap/*[self::Rect or self::Breakers or self::Offset]/*"/>
   // TODO: respect newline characters in text
   public virtual int[] WordWrap(string text, Rectangle rect, int startx, int starty, char[] breakers)
   { if(text.Length==0) return new int[0];
 
     ArrayList list = new ArrayList(); // make this a class member?
-    // HACK: LineSkip should never be less than Height, but sometimes it is, so we take the minimum
-    int x=rect.X+startx, start=0, end=0, pend, length=0, plen=0, height=Math.Min(Height, LineSkip);
+    int x=rect.X+startx, start=0, end=0, pend, length=0, plen=0, height=LineSkip;
     int rwidth=rect.Width-startx, rheight=rect.Height-starty;
     if(height>rheight) return new int[0];
 
@@ -387,9 +313,7 @@ public class BitmapFont : Font
 
   /// <summary>Gets the height of the font, in pixels.</summary>
   public override int Height { get { return font.Height; } }
-  /// <summary>Gets the vertical offset that should be added to move the draw position to the next line. This is
-  /// equivalent to the height of the font plus spacing between lines.
-  /// </summary>
+  /// <include file="documentation.xml" path="//Fonts/LineSkip/*"/>
   public override int LineSkip { get { return lineSkip; } }
   /// <summary>Since the source of data for this font is a bitmap, this property does nothing.</summary>
   public override Color Color { get { return Color.White; } set { } }
@@ -402,12 +326,7 @@ public class BitmapFont : Font
     set { bgColor=value; }
   }
 
-  /// <summary>Calculates the size of a string of text.</summary>
-  /// <param name="text">The text to use for the calculation.</param>
-  /// <returns>A <see cref="Size"/> that contains the amount of space required to render the given text with this
-  /// font.
-  /// </returns>
-  /// <remarks>See <see cref="Font.CalculateSize"/> for more details regarding this method.</remarks>
+  /// <include file="documentation.xml" path="//Fonts/CalculateSize/*"/>
   public override Size CalculateSize(string text)
   { if(text.Length==0) return new Size(Height, 0);
     if(widths==null)
@@ -422,11 +341,7 @@ public class BitmapFont : Font
     return ret;
   }
 
-  /// <summary>Calculates how many characters of the given string would fit into the given width.</summary>
-  /// <param name="text">The text to test.</param>
-  /// <param name="width">The available width, in pixels.</param>
-  /// <returns>The number of characters that would fully fit within the given width.</returns>
-  /// <remarks>See <see cref="Font.HowManyFit"/> for more details regarding this method.</remarks>
+  /// <include file="documentation.xml" path="//Fonts/HowManyFit/*"/>
   public override int HowManyFit(string text, int width)
   { if(text.Length==0) return 0;
     width += xAdd;
@@ -440,14 +355,7 @@ public class BitmapFont : Font
     return text.Length;
   }
 
-  /// <summary>Renders text at a given point.</summary>
-  /// <param name="dest">The surface to render into.</param>
-  /// <param name="text">The text to render.</param>
-  /// <param name="x">The X coordinate where the left side of the rendered text should appear.</param>
-  /// <param name="y">The Y coordinate where the top edge of the rendered text should appear.</param>
-  /// <returns>Returns the width of the text rendered plus spacing so that you can use the value to calculate where
-  /// more text can be rendered (by adding the returned width to the starting position).
-  /// </returns>
+  /// <include file="documentation.xml" path="//Fonts/Render/Point/XY/*"/>
   public override int Render(Surface dest, string text, int x, int y)
   { int start=x;
     if(widths==null)
@@ -538,63 +446,30 @@ public enum RenderStyle : byte
 /// </remarks>
 public class TrueTypeFont : StyledFont
 { 
-  /// <summary>Initializes this font from a file on disk.</summary>
-  /// <param name="filename">The path to the TrueType font file.</param>
-  /// <param name="pointSize">The size of the font, in points (based on 72dpi).</param>
+  /// <include file="documentation.xml" path="//Fonts/TrueTypeFont/Cons/File/*"/>
   public TrueTypeFont(string filename, int pointSize)
   { TTF.Initialize();
     try { font = TTF.OpenFont(filename, pointSize); }
     catch(NullReferenceException) { unsafe { font = new IntPtr(null); } }
     Init();
   }
-  /// <summary>Initializes this font from a file on disk.</summary>
-  /// <param name="filename">The path to the TrueType font file.</param>
-  /// <param name="pointSize">The size of the font, in points (based on 72dpi).</param>
-  /// <param name="fontIndex">Some fonts contain multiple faces. This parameter selects which face to use
-  /// (zero-based).
-  /// </param>
+  /// <include file="documentation.xml" path="//Fonts/TrueTypeFont/Cons/*[self::File or self::Index]/*"/>
   public TrueTypeFont(string filename, int pointSize, int fontIndex)
   { try { font = TTF.OpenFontIndex(filename, pointSize, fontIndex); }
     catch(NullReferenceException) { unsafe { font = new IntPtr(null); } }
     Init();
   }
-  /// <summary>Initializes this font from a stream containing TrueType font data.</summary>
-  /// <param name="stream">The stream to read the font from. The stream must be seekable, with its entire set of
-  /// data devoted to the font.
-  /// </param>
-  /// <param name="pointSize">The size of the font, in points (based on 72dpi).</param>
-  /// <remarks>The stream will be closed after the font is loaded.</remarks>
+  /// <include file="documentation.xml" path="//Fonts/TrueTypeFont/Cons/*[self::Stream or self::WillClose]/*"/>
   public TrueTypeFont(System.IO.Stream stream, int pointSize) : this(stream, pointSize, true) { }
-  /// <summary>Initializes this font from a stream containing TrueType font data.</summary>
-  /// <param name="stream">The stream to read the font from. The stream must be seekable, with its entire set of
-  /// data devoted to the font.
-  /// </param>
-  /// <param name="pointSize">The size of the font, in points (based on 72dpi).</param>
-  /// <param name="autoClose">If true, the stream will be closed after the font is loaded.</param>
+  /// <include file="documentation.xml" path="//Fonts/TrueTypeFont/Cons/*[self::Stream or self::AutoClose]/*"/>
   public TrueTypeFont(System.IO.Stream stream, int pointSize, bool autoClose)
   { SeekableStreamRWOps source = new SeekableStreamRWOps(stream, autoClose);
     unsafe { fixed(SDL.RWOps* ops = &source.ops) font = TTF.OpenFontRW(ops, 0, pointSize); }
     Init();
   }
-  /// <summary>Initializes this font from a stream containing TrueType font data.</summary>
-  /// <param name="stream">The stream to read the font from. The stream must be seekable, with its entire set of
-  /// data devoted to the font.
-  /// </param>
-  /// <param name="pointSize">The size of the font, in points (based on 72dpi).</param>
-  /// <param name="fontIndex">Some fonts contain multiple faces. This parameter selects which face to use
-  /// (zero-based).
-  /// </param>
-  /// <remarks>The stream will be closed after the font is loaded.</remarks>
+  /// <include file="documentation.xml" path="//Fonts/TrueTypeFont/Cons/*[self::Stream or self::Index or self::WillClose]/*"/>
   public TrueTypeFont(System.IO.Stream stream, int pointSize, int fontIndex) : this(stream, pointSize, fontIndex, true) { }
-  /// <summary>Initializes this font from a stream containing TrueType font data.</summary>
-  /// <param name="stream">The stream to read the font from. The stream must be seekable, with its entire set of
-  /// data devoted to the font.
-  /// </param>
-  /// <param name="pointSize">The size of the font, in points (based on 72dpi).</param>
-  /// <param name="fontIndex">Some fonts contain multiple faces. This parameter selects which face to use
-  /// (zero-based).
-  /// </param>
-  /// <param name="autoClose">If true, the stream will be closed after the font is loaded.</param>
+  /// <include file="documentation.xml" path="//Fonts/TrueTypeFont/Cons/*[self::Stream or self::Index or self::AutoClose]/*"/>
   public TrueTypeFont(System.IO.Stream stream, int pointSize, int fontIndex, bool autoClose)
   { SeekableStreamRWOps source = new SeekableStreamRWOps(stream, autoClose);
     unsafe { fixed(SDL.RWOps* ops = &source.ops) font = TTF.OpenFontIndexRW(ops, 0, pointSize, fontIndex); }
@@ -686,9 +561,7 @@ public class TrueTypeFont : StyledFont
 
   /// <summary>Gets the height of the font, in pixels.</summary>
   public override int Height { get { return TTF.FontHeight(font); } }
-  /// <summary>Gets the vertical offset that should be added to move the draw position to the next line. This is
-  /// equivalent to the height of the font plus spacing between lines.
-  /// </summary>
+  /// <include file="documentation.xml" path="//Fonts/LineSkip/*"/>
   public override int LineSkip { get { return TTF.FontLineSkip(font); } }
   /// <summary>Gets the maximum pixel ascent of all glyphs in the font.</summary>
   /// <remarks>The maximum pixel ascent can also be interpreted as the distance from the top of the font to the
@@ -726,12 +599,7 @@ public class TrueTypeFont : StyledFont
     }
   }
 
-  /// <summary>Calculates the size of a string of text.</summary>
-  /// <param name="text">The text to use for the calculation.</param>
-  /// <returns>A <see cref="Size"/> that contains the amount of space required to render the given text with this
-  /// font.
-  /// </returns>
-  /// <remarks>See <see cref="Font.CalculateSize"/> for more details regarding this method.</remarks>
+  /// <include file="documentation.xml" path="//Fonts/CalculateSize/*"/>
   public override Size CalculateSize(string text)
   { /*int width, height;
     TTF.SizeUNICODE(font, text, out width, out height); -- DOESN'T WORK CONSISTENTLY */
@@ -743,11 +611,7 @@ public class TrueTypeFont : StyledFont
     return size;
   }
 
-  /// <summary>Calculates how many characters of the given string would fit into the given width.</summary>
-  /// <param name="text">The text to test.</param>
-  /// <param name="width">The available width, in pixels.</param>
-  /// <returns>The number of characters that would fully fit within the given width.</returns>
-  /// <remarks>See <see cref="Font.HowManyFit"/> for more details regarding this method.</remarks>
+  /// <include file="documentation.xml" path="//Fonts/HowManyFit/*"/>
   public override int HowManyFit(string text, int width)
   { int pixels=0;
     for(int i=0; i<text.Length; i++)
@@ -760,14 +624,7 @@ public class TrueTypeFont : StyledFont
     return text.Length;
   }
 
-  /// <summary>Renders text at a given point.</summary>
-  /// <param name="dest">The surface to render into.</param>
-  /// <param name="text">The text to render.</param>
-  /// <param name="x">The X coordinate where the left side of the rendered text should appear.</param>
-  /// <param name="y">The Y coordinate where the top edge of the rendered text should appear.</param>
-  /// <returns>Returns the width of the text rendered plus spacing so that you can use the value to calculate where
-  /// more text can be rendered (by adding the returned width to the starting position).
-  /// </returns>
+  /// <include file="documentation.xml" path="//Fonts/Render/Point/XY/*"/>
   public override int Render(Surface dest, string text, int x, int y)
   { int start = x;
     if(bgColor != Color.Transparent)

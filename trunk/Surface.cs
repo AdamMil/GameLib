@@ -150,22 +150,14 @@ public enum SurfaceFlag : uint
 [System.Security.SuppressUnmanagedCodeSecurity()]
 public sealed class Surface : IDisposable, IBlittable
 { 
-  /// <summary>This constructor attempts to initialize the surface from a <see cref="System.Drawing.Bitmap"/>.
-  /// </summary>
-  /// <param name="bitmap">The <see cref="System.Drawing.Bitmap"/> containing the image to initialize this
-  /// surface with.
-  /// </param>
+  /// <include file="documentation.xml" path="//Video/Surface/Cons/FromBmp/*"/>
   /// <remarks>Using this is equivalent to using <see cref="Surface(Bitmap,SurfaceFlag)"/> and passing 
   /// <see cref="SurfaceFlag.None"/>. You may want to use <see cref="CloneDisplay"/> to convert the surface
   /// into something that matches the display surface, for efficiency.
   /// </remarks>
   public Surface(Bitmap bitmap) : this(bitmap, SurfaceFlag.None) { }
 
-  /// <summary>This constructor attempts to initialize the surface from a <see cref="System.Drawing.Bitmap"/>.
-  /// </summary>
-  /// <param name="bitmap">The <see cref="System.Drawing.Bitmap"/> containing the image to initialize this
-  /// surface with.
-  /// </param>
+  /// <include file="documentation.xml" path="//Video/Surface/Cons/FromBmp/*"/>
   /// <param name="flags">The <see cref="SurfaceFlag">flags</see> to use when initializing this
   /// surface. The <see cref="SurfaceFlag.SrcAlpha"/> flag is automatically set if the bitmap contains an alpha
   /// channel. You may want to use <see cref="CloneDisplay"/> to convert the surface
@@ -221,20 +213,14 @@ public sealed class Surface : IDisposable, IBlittable
     finally { bitmap.UnlockBits(data); }
   }
 
-  /// <summary>Creates an empty surface with the given dimensions and bit depth.</summary>
-  /// <param name="width">The width of the surface to create.</param>
-  /// <param name="height">The height of the surface to create.</param>
-  /// <param name="depth">The bit depth of the surface to create, in bits per pixel.</param>
+  /// <include file="documentation.xml" path="//Video/Surface/Cons/FromDims/*"/>
   /// <remarks>Using this is equivalent to using <see cref="Surface(int,int,int,SurfaceFlag)"/> and
   /// passing <see cref="SurfaceFlag.None"/>. The pixel format is the default format for the given bit depth (see
   /// <see cref="PixelFormat.GenerateDefaultMasks"/> for more information).
   /// </remarks>
   public Surface(int width, int height, int depth) : this(width, height, depth, SurfaceFlag.None) { }
 
-  /// <summary>Creates an empty surface with the given dimensions and bit depth.</summary>
-  /// <param name="width">The width of the surface to create.</param>
-  /// <param name="height">The height of the surface to create.</param>
-  /// <param name="depth">The bit depth of the surface to create, in bits per pixel.</param>
+  /// <include file="documentation.xml" path="//Video/Surface/Cons/FromDims/*"/>
   /// <param name="flags">The <see cref="SurfaceFlag"/> flags to use when initializing this surface.</param>
   /// <remarks>The pixel format is the default format for the given bit depth (see
   /// <see cref="PixelFormat.GenerateDefaultMasks"/> for more information).
@@ -243,19 +229,13 @@ public sealed class Surface : IDisposable, IBlittable
   { InitFromFormat(width, height, new PixelFormat(depth, (flags&SurfaceFlag.SrcAlpha)!=0), flags);
   }
 
-  /// <summary>Creates an empty surface with the given dimensions and pixel format</summary>
-  /// <param name="width">The width of the surface to create.</param>
-  /// <param name="height">The height of the surface to create.</param>
-  /// <param name="format">The <see cref="PixelFormat"/> of the surface to create.</param>
+  /// <include file="documentation.xml" path="//Video/Surface/Cons/FromFormat/*"/>
   /// <remarks>Using this is equivalent to using <see cref="Surface(int,int,PixelFormat,SurfaceFlag)"/> and
   /// passing <see cref="SurfaceFlag.None"/>.
   /// </remarks>
   public Surface(int width, int height, PixelFormat format) : this(width, height, format, SurfaceFlag.None) { }
 
-  /// <summary>Creates an empty surface with the given dimensions and pixel format</summary>
-  /// <param name="width">The width of the surface to create.</param>
-  /// <param name="height">The height of the surface to create.</param>
-  /// <param name="format">The <see cref="PixelFormat"/> of the surface to create.</param>
+  /// <include file="documentation.xml" path="//Video/Surface/Cons/FromFormat/*"/>
   /// <param name="flags">The <see cref="SurfaceFlag"/> flags to use when initializing this surface.</param>
   public Surface(int width, int height, PixelFormat format, SurfaceFlag flags)
   { InitFromFormat(width, height, format, flags);
@@ -265,7 +245,7 @@ public sealed class Surface : IDisposable, IBlittable
   /// <param name="filename">The path to the image file to load.</param>
   /// <remarks>This constructor will attempt to detect the type of the image, but it is recommended that you use
   /// <see cref="Surface(string,ImageType)"/> if possible for efficiency and because the detection may not be perfect.
-  /// You may want to use <see cref="CloneDisplay"/> to convert the surface
+  /// You may also want to use <see cref="CloneDisplay"/> to convert the surface
   /// into something that matches the display surface, for efficiency.
   /// </remarks>
   public unsafe Surface(string filename)
@@ -507,6 +487,11 @@ public sealed class Surface : IDisposable, IBlittable
     }
   }
 
+  /// <summary>Determins whether this surface was created with a given surface flag.</summary>
+  /// <param name="flag">A <see cref="SurfaceFlag"/> to test for.</param>
+  /// <returns>True if the surface was created with the given flag and false otherwise.</returns>
+  public bool HasFlag(SurfaceFlag flag) { return (Flags&flag)!=0; }
+
   /// <summary>Determines whether this surface is compatible with the display surface (meaning that no conversion
   /// would be required between them.
   /// </summary>
@@ -517,31 +502,17 @@ public sealed class Surface : IDisposable, IBlittable
   public bool IsCompatible() { return Format.IsCompatible(Video.DisplayFormat); }
 
   /// <summary>Fills the surface with black.</summary>
+  /// <remarks>This method should not be called while the surface is locked.
+  /// This method respects the <see cref="ClipRect"/> set on the surface.
+  /// </remarks>
   public void Fill() { Fill(Bounds, MapColor(Color.Black)); }
-  /// <summary>Fills the surface with the specified color.</summary>
-  /// <param name="color">The color to fill the surface with.</param>
-  /// <remarks>The color will be converted to a raw pixel value with <see cref="MapColor(Color)"/> before the surface
-  /// is filled. This method respects the <see cref="ClipRect"/> set on the surface.
-  /// </remarks>
+  /// <include file="documentation.xml" path="//Video/Surface/Fill/*[self::Whole or self::C]/*"/>
   public void Fill(Color color) { Fill(Bounds, MapColor(color)); }
-  /// <summary>Fills the surface with the specified raw pixel value.</summary>
-  /// <param name="color">The raw pixel value to fill the surface with.</param>
-  /// <remarks>The color will be converted to a raw pixel value with <see cref="MapColor(Color)"/> before the surface
-  /// is filled. This method respects the <see cref="ClipRect"/> set on the surface.
-  /// </remarks>
+  /// <include file="documentation.xml" path="//Video/Surface/Fill/*[self::Whole or self::R]/*"/>
   public void Fill(uint color)  { Fill(Bounds, color); }
-  /// <summary>Fills a portion of the surface with a given color.</summary>
-  /// <param name="rect">The portion of the surface to fill.</param>
-  /// <param name="color">The color to fill the area with.</param>
-  /// <remarks>This method respects the <see cref="ClipRect"/> set on the surface.</remarks>
+  /// <include file="documentation.xml" path="//Video/Surface/Fill/*[self::Rect or self::C]/*"/>
   public void Fill(Rectangle rect, Color color) { Fill(rect, MapColor(color)); }
-  /// <summary>Fills a portion of the surface with a given raw pixel value.</summary>
-  /// <param name="rect">The portion of the surface to fill.</param>
-  /// <param name="color">The raw pixel value to fill the area with.</param>
-  /// <remarks>This method should not be called when either is locked.
-  /// The color will be converted to a raw pixel value with <see cref="MapColor(Color)"/> before the surface
-  /// is filled. This method respects the <see cref="ClipRect"/> set on the surface.
-  /// </remarks>
+  /// <include file="documentation.xml" path="//Video/Surface/Fill/*[self::Rect or self::R]/*"/>
   public unsafe void Fill(Rectangle rect, uint color)
   { SDL.Rect drect = new SDL.Rect(rect);
     SDL.Check(SDL.FillRect(surface, ref drect, color));
@@ -555,19 +526,14 @@ public sealed class Surface : IDisposable, IBlittable
   /// This method should not be called when either surface is locked.
   /// </remarks>
   public void Blit(Surface dest) { Blit(dest, 0, 0); }
-  /// <summary>Blits this surface onto a destination surface at the given point.</summary>
-  /// <param name="dest">The destination surface to blit onto.</param>
-  /// <param name="dpt">The destination point where the blit will begin.</param>
+  /// <include file="documentation.xml" path="//Video/Surface/Blit/*[self::Whole or self::Pt]/*"/>
   /// <remarks>Calling this method is equivalent to calling <see cref="Blit(Surface,int,int)"/> and passing the X and
   /// Y coordinates of the point. For details about how blitting works (including alpha blending), see
   /// <see cref="Blit(Surface,Rectangle,int,int)"/>.
   /// This method should not be called when either surface is locked.
   /// </remarks>
   public void Blit(Surface dest, Point dpt) { Blit(dest, dpt.X, dpt.Y); }
-  /// <summary>Blits this surface onto a destination surface at the given point.</summary>
-  /// <param name="dest">The destination surface to blit onto.</param>
-  /// <param name="dx">The X coordinate of the destination point where the blit will begin.</param>
-  /// <param name="dy">The Y coordinate of the destination point where the blit will begin.</param>
+  /// <include file="documentation.xml" path="//Video/Surface/Blit/*[self::Whole or self::XY]/*"/>
   /// <remarks>This method blits the entire surface onto the destination surface, with the upper left corner of the
   /// blit beginning at the specified point. For details about how blitting works (including alpha blending), see
   /// <see cref="Blit(Surface,Rectangle,int,int)"/>.
@@ -577,21 +543,14 @@ public sealed class Surface : IDisposable, IBlittable
   { SDL.Rect rect = new SDL.Rect(dx, dy);
     SDL.Check(SDL.BlitSurface(surface, null, dest.surface, &rect));
   }
-  /// <summary>Blits a portion of this surface onto a destination surface at the given point.</summary>
-  /// <param name="dest">The destination surface to blit onto.</param>
-  /// <param name="src">The portion of this surface to blit.</param>
-  /// <param name="dpt">The destination point where the blit will begin.</param>
+  /// <include file="documentation.xml" path="//Video/Surface/Blit/*[self::Part or self::Pt]/*"/>
   /// <remarks>Calling this method is equivalent to calling <see cref="Blit(Surface,Rectangle,int,int)"/> and passing
   /// the X and Y coordinates of the point. For details about how blitting works (including alpha blending), see
   /// <see cref="Blit(Surface,Rectangle,int,int)"/>.
   /// This method should not be called when either surface is locked.
   /// </remarks>
   public void Blit(Surface dest, Rectangle src, Point dpt) { Blit(dest, src, dpt.X, dpt.Y); }
-  /// <summary>Blits a portion of this surface onto a destination surface at the given point.</summary>
-  /// <param name="dest">The destination surface to blit onto.</param>
-  /// <param name="src">The portion of this surface to blit.</param>
-  /// <param name="dx">The X coordinate of the destination point where the blit will begin.</param>
-  /// <param name="dy">The Y coordinate of the destination point where the blit will begin.</param>
+  /// <include file="documentation.xml" path="//Video/Surface/Blit/*[self::Part or self::XY]/*"/>
   /// <remarks>This method blits the given area of this surface onto the destination surface, with the upper left
   /// corner of the blit beginning at the specified point. Blitting respects the <see cref="ClipRect"/> set
   /// on the destination surface. This method should not be called when either surface is locked.
@@ -650,70 +609,14 @@ public sealed class Surface : IDisposable, IBlittable
     SDL.Check(SDL.BlitSurface(surface, &srect, dest.surface, &drect));
   }
 
-  /// <summary>Returns the color of the pixel at the specified point.</summary>
-  /// <param name="point">The point whose color value will be returned.</param>
-  /// <returns>The <see cref="Color"/> of the pixel.</returns>
-  /// <remarks>This method reads the raw pixel value and calls <see cref="MapColor(uint)"/> to convert it to a
-  /// <see cref="Color"/>.
-  /// This method is quite inefficient. Also, it uses <see cref="Lock"/> to lock the
-  /// surface first if necessary. If you are reading/writing many pixels at once, you should consider locking
-  /// the surface before all the operations and unlocking it afterwards, or doing direct pixel access yourself
-  /// using <see cref="Data"/>.
-  /// </remarks>
+  /// <include file="documentation.xml" path="//Video/Surface/GetPixel/*[self::C or self::Pt]/*"/>
   public Color GetPixel(Point point) { return MapColor(GetPixelRaw(point.X, point.Y)); }
-  /// <summary>Returns the color of the pixel at the specified point.</summary>
-  /// <param name="x">The X coordinate of the point whose color value will be returned.</param>
-  /// <param name="y">The Y coordinate of the point whose color value will be returned.</param>
-  /// <returns>The <see cref="Color"/> of the pixel.</returns>
-  /// <remarks>This method reads the raw pixel value and calls <see cref="MapColor(uint)"/> to convert it to a
-  /// <see cref="Color"/>.
-  /// This method is quite inefficient. Also, it uses <see cref="Lock"/> to lock the
-  /// surface first if necessary. If you are reading/writing many pixels at once, you should consider locking
-  /// the surface before all the operations and unlocking it afterwards, or doing direct pixel access yourself
-  /// using <see cref="Data"/>.
-  /// </remarks>
+  /// <include file="documentation.xml" path="//Video/Surface/GetPixel/*[self::C or self::XY]/*"/>
   public Color GetPixel(int x, int y) { return MapColor(GetPixelRaw(x, y)); }
 
-  /// <summary>Sets the color of the pixel at the specified point.</summary>
-  /// <param name="point">The point whose color value will be set.</param>
-  /// <param name="color">The color value to set the pixel to.</param>
-  /// <remarks>This method calls <see cref="MapColor(Color)"/> to convert the color into a raw pixel value.
-  /// This method respects the <see cref="ClipRect"/> set up for the surface. This method is quite inefficient.
-  /// Also, it uses <see cref="Lock"/> to lock the surface first if necessary. If you are reading/writing many
-  /// pixels at once, you should consider locking the surface before all the operations and unlocking it afterwards,
-  /// or doing direct pixel access yourself using <see cref="Data"/>.
-  /// </remarks>
-  public void PutPixel(Point point, Color color) { PutPixelRaw(point.X, point.Y, MapColor(color)); }
-  /// <summary>Sets the color of the pixel at the specified point.</summary>
-  /// <param name="x">The X coordinate of the point whose color value will be set.</param>
-  /// <param name="y">The Y coordinate of the point whose color value will be set.</param>
-  /// <param name="color">The color value to set the pixel to.</param>
-  /// <remarks>This method calls <see cref="MapColor(Color)"/> to convert the color into a raw pixel value.
-  /// This method respects the <see cref="ClipRect"/> set up for the surface. This method is quite inefficient.
-  /// Also, it uses <see cref="Lock"/> to lock the surface first if necessary. If you are reading/writing many
-  /// pixels at once, you should consider locking the surface before all the operations and unlocking it afterwards,
-  /// or doing direct pixel access yourself using <see cref="Data"/>.
-  /// </remarks>
-  public void PutPixel(int x, int y, Color color) { PutPixelRaw(x, y, MapColor(color)); }
-
-  /// <summary>Gets the raw value of the pixel at the specified point.</summary>
-  /// <param name="point">The point whose raw pixel value will be returned.</param>
-  /// <returns>The raw pixel value for the specified point.</returns>
-  /// <remarks>This method is quite inefficient.
-  /// Also, it uses <see cref="Lock"/> to lock the surface first if necessary. If you are reading/writing many
-  /// pixels at once, you should consider locking the surface before all the operations and unlocking it afterwards,
-  /// or doing direct pixel access yourself using <see cref="Data"/>.
-  /// </remarks>
+  /// <include file="documentation.xml" path="//Video/Surface/GetPixel/*[self::R or self::Pt]/*"/>
   public uint GetPixelRaw(Point point) { return GetPixelRaw(point.X, point.Y); }
-  /// <summary>Gets the raw value of the pixel at the specified point.</summary>
-  /// <param name="x">The X coordinate of the point whose raw pixel value will be returned.</param>
-  /// <param name="y">The Y coordinate of the point whose raw pixel value will be returned.</param>
-  /// <returns>The raw pixel value for the specified point.</returns>
-  /// <remarks>This method is quite inefficient.
-  /// Also, it uses <see cref="Lock"/> to lock the surface first if necessary. If you are reading/writing many
-  /// pixels at once, you should consider locking the surface before all the operations and unlocking it afterwards,
-  /// or doing direct pixel access yourself using <see cref="Data"/>.
-  /// </remarks>
+  /// <include file="documentation.xml" path="//Video/Surface/GetPixel/*[self::R or self::XY]/*"/>
   public uint GetPixelRaw(int x, int y)
   { if(!Bounds.Contains(x, y)) throw new ArgumentOutOfRangeException();
     Lock();
@@ -738,27 +641,14 @@ public sealed class Surface : IDisposable, IBlittable
     finally { Unlock(); }
   }
 
-  /// <summary>Sets the raw pixel value of the pixel at the specified point.</summary>
-  /// <param name="point">The point whose raw pixel value will be set.</param>
-  /// <param name="color">The value to set the pixel to.</param>
-  /// <remarks>This method respects the <see cref="ClipRect"/> set up for the surface.
-  /// This method is quite inefficient.
-  /// Also, it uses <see cref="Lock"/> to lock the surface first if necessary. If you are reading/writing many
-  /// pixels at once, you should consider locking the surface before all the operations and unlocking it afterwards,
-  /// or doing direct pixel access yourself using <see cref="Data"/>.
-  /// </remarks>
-  public void PutPixelRaw(Point point, uint color) { PutPixelRaw(point.X, point.Y, color); }
-  /// <summary>Sets the raw pixel value of the pixel at the specified point.</summary>
-  /// <param name="x">The X coordinate of the point whose raw pixel value will be set.</param>
-  /// <param name="y">The Y coordinate of the point whose raw pixel value will be set.</param>
-  /// <param name="color">The value to set the pixel to.</param>
-  /// <remarks>This method respects the <see cref="ClipRect"/> set up for the surface.
-  /// This method is quite inefficient.
-  /// Also, it uses <see cref="Lock"/> to lock the surface first if necessary. If you are reading/writing many
-  /// pixels at once, you should consider locking the surface before all the operations and unlocking it afterwards,
-  /// or doing direct pixel access yourself using <see cref="Data"/>.
-  /// </remarks>
-  public void PutPixelRaw(int x, int y, uint color)
+  /// <include file="documentation.xml" path="//Video/Surface/PutPixel/*[self::C or self::Pt]/*"/>
+  public void PutPixel(Point point, Color color) { PutPixel(point.X, point.Y, MapColor(color)); }
+  /// <include file="documentation.xml" path="//Video/Surface/PutPixel/*[self::C or self::XY]/*"/>
+  public void PutPixel(int x, int y, Color color) { PutPixel(x, y, MapColor(color)); }
+  /// <include file="documentation.xml" path="//Video/Surface/PutPixel/*[self::R or self::Pt]/*"/>
+  public void PutPixel(Point point, uint color) { PutPixel(point.X, point.Y, color); }
+  /// <include file="documentation.xml" path="//Video/Surface/PutPixel/*[self::R or self::XY]/*"/>
+  public void PutPixel(int x, int y, uint color)
   { if(!ClipRect.Contains(x, y)) return;
     Lock();
     try
@@ -779,6 +669,7 @@ public sealed class Surface : IDisposable, IBlittable
     }
     finally { Unlock(); }
   }
+
 
   /// <summary>This method sets the color key and enables/disables transparent blitting.</summary>
   /// <param name="color">The color to set the color key to.</param>
@@ -878,57 +769,22 @@ public sealed class Surface : IDisposable, IBlittable
     }
   }
 
-  /// <summary>Sets the logical palette colors.</summary>
-  /// <param name="colors">An array of <see cref="Color"/> to set the palette with.</param>
-  /// <remarks>If <paramref name="colors"/> contains too few colors, part of the palette will remain unchanged.
-  /// </remarks>
-  /// <exception cref="ArgumentOutOfRangeException">Thrown if the number of colors would overflow the palette.
-  /// </exception>
-  /// <exception cref="ArgumentNullException">Thrown if <paramref name="colors"/> is null.</exception>
+  /// <include file="documentation.xml" path="//Video/Surface/SetPalette/*[self::Logical or self::A or self::EN]/*"/>
   public bool SetPalette(Color[] colors)
   { if(colors==null) throw new ArgumentNullException("colors");
     return SetPalette(colors, 0, 0, colors.Length, PaletteType.Logical);
   }
-  /// <summary>Sets the logical palette colors.</summary>
-  /// <param name="colors">An array of <see cref="Color"/> to set the palette with.</param>
-  /// <param name="numColors">The number of colors to set.</param>
-  /// <remarks>If <paramref name="numColors"/> is smaller than the number of colors in the palette, part of the
-  /// palette will remain unchanged.
-  /// </remarks>
-  /// <exception cref="ArgumentOutOfRangeException">Thrown if the number of colors would overflow the palette.
-  /// </exception>
-  /// <exception cref="ArgumentNullException">Thrown if <paramref name="colors"/> is null.</exception>
+  /// <include file="documentation.xml" path="//Video/Surface/SetPalette/*[self::Logical or self::AN or self::EN]/*"/>
   public bool SetPalette(Color[] colors, int numColors)
   { return SetPalette(colors, 0, 0, numColors, PaletteType.Logical);
   }
-  /// <summary>Sets the logical palette colors.</summary>
-  /// <param name="colors">An array of <see cref="Color"/> to set the palette with.</param>
-  /// <param name="startIndex">The starting index within the palette where colors will be written.</param>
-  /// <param name="startColor">The starting index within the color array from where colors will be read.</param>
-  /// <param name="numColors">The number of colors to set.</param>
-  /// <remarks>If <paramref name="numColors"/> is smaller than the number of colors in the palette, part of the
-  /// palette will remain unchanged.
-  /// </remarks>
-  /// <exception cref="ArgumentOutOfRangeException">Thrown if the number of colors would overflow the palette or
-  /// one of the indices are invalid.
-  /// </exception>
-  /// <exception cref="ArgumentNullException">Thrown if <paramref name="colors"/> is null.</exception>
+  /// <include file="documentation.xml" path="//Video/Surface/SetPalette/*[self::Logical or self::AA]/*"/>
   public bool SetPalette(Color[] colors, int startIndex, int startColor, int numColors)
   { return SetPalette(colors, startIndex, startColor, numColors, PaletteType.Logical);
   }
   /// <summary>Sets palette colors.</summary>
-  /// <param name="colors">An array of <see cref="Color"/> to set the palette with.</param>
-  /// <param name="startIndex">The starting index within the palette where colors will be written.</param>
-  /// <param name="startColor">The starting index within the color array from where colors will be read.</param>
-  /// <param name="numColors">The number of colors to set.</param>
   /// <param name="type">The palette to change (<see cref="PaletteType"/>).</param>
-  /// <remarks>If <paramref name="numColors"/> is smaller than the number of colors in the palette, part of the
-  /// palette will remain unchanged.
-  /// </remarks>
-  /// <exception cref="ArgumentOutOfRangeException">Thrown if the number of colors would overflow the palette or
-  /// one of the indices are invalid.
-  /// </exception>
-  /// <exception cref="ArgumentNullException">Thrown if <paramref name="colors"/> is null.</exception>
+  /// <include file="documentation.xml" path="//Video/Surface/SetPalette/*[self::Common or self::AA]/*"/>
   public unsafe bool SetPalette(Color[] colors, int startIndex, int startColor, int numColors, PaletteType type)
   { ValidatePaletteArgs(colors, startColor, numColors);
 
@@ -942,19 +798,13 @@ public sealed class Surface : IDisposable, IBlittable
     return SDL.SetPalette(surface, (uint)type, array, startColor, numColors)==1;
   }
 
-  /// <summary>Creates a surface with the same pixel format as this one, and a specified size.</summary>
-  /// <param name="width">The width of the new surface.</param>
-  /// <param name="height">The height of the new surface.</param>
-  /// <returns>A <see cref="Surface"/> with the same pixel format as this one.</returns>
+  /// <include file="documentation.xml" path="//Video/Surface/CreateCompatible/*"/>
   /// <remarks>This is equivalent to calling <see cref="CreateCompatible(int,int,SurfaceFlag)"/> and passing
   /// the value of the <see cref="Flags"/> property.
   /// </remarks>
   public Surface CreateCompatible(int width, int height) { return CreateCompatible(width, height, Flags); }
-  /// <summary>Creates a surface with the same pixel format as this one, and a specified size.</summary>
-  /// <param name="width">The width of the new surface.</param>
-  /// <param name="height">The height of the new surface.</param>
+  /// <include file="documentation.xml" path="//Video/Surface/CreateCompatible/*"/>
   /// <param name="flags">The surface flags for the new surface.</param>
-  /// <returns>A <see cref="Surface"/> with the same pixel format as this one.</returns>
   public unsafe Surface CreateCompatible(int width, int height, SurfaceFlag flags)
   { SDL.Surface* ret = SDL.CreateRGBSurface((uint)flags, width, height, format.Depth, format.RedMask,
                                             format.GreenMask, format.BlueMask, format.AlphaMask);
@@ -986,21 +836,10 @@ public sealed class Surface : IDisposable, IBlittable
     return new Surface(ret, true);
   }
 
-  /// <summary>Returns a copy of this surface in the same general format as the display surface, suitable for fast
-  /// blitting.
-  /// </summary>
-  /// <returns>A new <see cref="Surface"/> containing the same image data, converted to the same general pixel format
-  /// of the display surface. The new surface will have an alpha channel if this surface has an alpha channel.
-  /// </returns>
+  /// <include file="documentation.xml" path="//Video/Surface/CloneDisplay/*"/>
   public unsafe Surface CloneDisplay() { return CloneDisplay(Format.AlphaMask!=0); }
-  /// <summary>Returns a copy of this surface in the same general format as the display surface, suitable for fast
-  /// blitting.
-  /// </summary>
-  /// <param name="alphaChannel">A boolean which determines whether the new surface should have an alpha channel.
-  /// </param>
-  /// <returns>A new <see cref="Surface"/> containing the same image data, converted to the same general pixel format
-  /// of the display surface.
-  /// </returns>
+  /// <include file="documentation.xml" path="//Video/Surface/CloneDisplay/*"/>
+  /// <param name="alphaChannel">A boolean which determines whether the new surface should have an alpha channel.</param>
   public unsafe Surface CloneDisplay(bool alphaChannel)
   { SDL.Surface* ret = alphaChannel ? SDL.DisplayFormatAlpha(surface) : SDL.DisplayFormat(surface);
     if(ret==null) SDL.RaiseError();
