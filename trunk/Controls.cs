@@ -1,6 +1,6 @@
-// TODO: implement more controls (checkbox, editbox, listbox, dropdown)
-// TODO: implement a form (dialog) control
+// TODO: implement more controls (checkbox, listbox, dropdown)
 // TODO: have controls display differently when disabled
+// TODO: implement a menubar control
 using System;
 using System.Collections;
 using System.Drawing;
