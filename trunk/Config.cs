@@ -1,7 +1,7 @@
 /*
 GameLib is a library for developing games and other multimedia applications.
 http://www.adammil.net/
-Copyright (C) 2002-2004 Adam Milazzo
+Copyright (C) 2002-2005 Adam Milazzo
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -45,9 +45,9 @@ public sealed class Config
   /// <summary>The <see cref="DllImportAttribute"/> path to the GameLib VorbisWrapper library.</summary>
   public const string VorbisImportPath    = "VorbisWrapper";
   /// <summary>The <see cref="DllImportAttribute"/> path to the OpenGL library.</summary>
-  public const string OpenGLImportPath   = "opengl32";
+  public const string OpenGLImportPath    = "opengl32";
   /// <summary>The <see cref="DllImportAttribute"/> path to the GLU library.</summary>
-  public const string GLUImportPath      = "glu32";
+  public const string GLUImportPath       = "glu32";
   #elif LINUX
   /// <summary>The <see cref="DllImportAttribute"/> path to the SDL library.</summary>
   public const string SDLImportPath       = "libSDL-1.2.so.0";
@@ -77,6 +77,7 @@ public sealed class Config
   public const int EMSGSIZE     = 90;
   #endif
 
+  // TODO: perhaps i should be using System.BitConverter.IsLittleEndian
   /// <summary>True if compiled for a big-endian system.</summary>
   /// <remarks>This value is controlled by the BIGENDIAN compile time declaration.</remarks>
   #if BIGENDIAN

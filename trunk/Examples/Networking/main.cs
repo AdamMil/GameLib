@@ -43,7 +43,7 @@ enum SimpleEnum : byte { Zero, One, Two, Three }; // use a byte to save space
 // simple structures/classes (containing only value types) such as these ones
 // can be serialized automatically
 // StructLayout is required for automatic serialization (serialization
-// for classes that don't implement INetSerializeable). also, set Pack=1
+// for classes that don't implement INetSerializable). also, set Pack=1
 // to make sure no bytes are wasted
 [StructLayout(LayoutKind.Sequential, Pack=1)]
 class Simple
@@ -77,8 +77,8 @@ class OtherSimple : Simple // derivation is okay, too, so you can make a
 }
 
 // complex structures/classes (classes containing non-value types) are okay
-// if they implement INetSerializeable
-class Complex : INetSerializeable
+// if they implement INetSerializable
+class Complex : INetSerializable
 { public Complex() { }
   public Complex(string str, params int[] ints) { String=str; Array=ints; }
 
@@ -98,7 +98,7 @@ class Complex : INetSerializeable
   { Array = new int[IOH.ReadBE4(buf, index)]; index += 4;
     for(int i=0; i<Array.Length; index+=4,i++)
       Array[i] = IOH.ReadBE4(buf, index);
-    String = System.Text.Encoding.ASCII.GetString(buf, index+1, buf[index]);
+    String = Encoding.ASCII.GetString(buf, index+1, buf[index]);
   }
   #endregion
 
@@ -109,68 +109,69 @@ class Complex : INetSerializeable
 
 class App
 { static void Main()
-  { IPEndPoint ep = new IPEndPoint(IPAddress.Loopback, 3000); // change port if necessary
+  { // change the following port if something is using it
+    IPEndPoint ep = new IPEndPoint(IPAddress.Loopback, 3000);
 
     Type[] types = new Type[] // types that we'll be serializing/deserializing
     { typeof(Simple), typeof(OtherSimple), typeof(Complex)
     };
 
+    // Medium-level networking involves using NetLink objects directly
     #region Medium-level networking
     { Console.WriteLine("Testing medium level networking...");
-      NetLink client, server;
 
-      // set up a listener so we can get our client/server sockets,
-      // and use the sockets to create NetLink classes
-      { TcpListener sv = new TcpListener(ep);
-        sv.Start();
+      // create the server/client NetLink objects
+      TcpListener sv = new TcpListener(ep);
+      sv.Start();
+      NetLink client = new NetLink(ep);
+      NetLink server = new NetLink(sv.AcceptSocket());
+      sv.Stop();
 
-        Socket cs = new Socket(AddressFamily.InterNetwork, SocketType.Stream,
-                              ProtocolType.Tcp);
-        cs.Connect(ep);
-        server = new NetLink(sv.AcceptSocket());
-        client = new NetLink(cs);
-        sv.Stop();
-      }
-
-      client.Send(Encoding.ASCII.GetBytes("Hello, world!"));
+      string str = "Hello, world!";
+      client.Send(Encoding.ASCII.GetBytes(str));
+      Console.WriteLine("Client sent: "+str);
       Console.WriteLine("Server received: "+
                         Encoding.ASCII.GetString(server.Receive()));
       Console.WriteLine();
-      
+
       client.Close();
       server.Close();
     }
     #endregion
 
+    // High-level networking involves using the Client, Server, etc classes
     #region High-level networking
     { Console.WriteLine("Testing high-level networking...");
       Server server = new Server();
+      server.MessageSent     += new ServerMessageHandler(server_MessageSent);
+      server.MessageReceived += new ServerMessageHandler(server_MessageReceived);
       server.RegisterTypes(types); // registering the types allows them to be
       server.Listen(ep);           // automatically serialized/deserialized
-      server.MessageSent += new ServerSentHandler(server_MessageSent);
-      server.MessageReceived += new ServerReceivedHandler(server_MessageReceived);
 
       Client client = new Client();
+      client.MessageSent     += new ClientMessageHandler(client_MessageSent);
+      client.MessageReceived += new ClientMessageHandler(client_MessageReceived);
       client.RegisterTypes(types);
       client.Connect(ep);
-      client.MessageSent += new ClientSentHandler(client_MessageSent);
-      client.MessageReceived += new ClientReceivedHandler(client_MessageReceived);
-      
+
+      // using NoCopy in the DefaultFlags might be a bad idea, but for this
+      // application, we know that no buffer will be modified between the time
+      // when .Send() is called and the actual packet is sent, so it's safe.
       server.DefaultFlags = client.DefaultFlags =
-        SendFlag.Sequential | SendFlag.NotifySent;
+        SendFlag.ReliableSequential | SendFlag.NotifySent | SendFlag.NoCopy;
 
       server.Send(null, new byte[] { 1, 2, 3 });
-      client.Send(new Simple(SimpleEnum.One, 1, 1, new Point(-1, -1)));
       server.Send(null, new OtherSimple(SimpleEnum.Two, 2, 3.14f,
                                         new Point(2, 2), 'x'));
+      client.Send(new Simple(SimpleEnum.One, 1, 1, new Point(-1, -1)));
       client.Send(new Complex("hello!", 1, 2, 3, 4, 5));
-      client.DelayedDisconnect(1000);
-      while(client.Connected);
-      server.Close();
+      client.DelayedDisconnect(1000); // give it up to 1 second to send
+      while(client.Connected);        // all remaining data
+      server.Deinitialize();
       Console.WriteLine();
     }
     #endregion
-    
+
     Console.Write("Press [ENTER] to quit.");
     Console.ReadLine();
   }

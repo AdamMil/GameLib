@@ -1,7 +1,7 @@
 /*
 GameLib is a library for developing games and other multimedia applications.
 http://www.adammil.net/
-Copyright (C) 2002-2004 Adam Milazzo
+Copyright (C) 2002-2005 Adam Milazzo
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -1329,15 +1329,32 @@ public abstract class ListControl : ScrollableControl
 
     public object this[int index] { get { return ((Item)InnerList[index]).Object; } }
 
-    public int Add(object item) { return List.Add(new Item(item)); }
+    public int Add(object item)
+    { if(sorted)
+      { int index = FindInsertionPoint(item);
+        List.Insert(index, new Item(item));
+        return index;
+      }
+      else return List.Add(new Item(item));
+    }
 
     public void AddRange(params object[] items)
-    { for(int i=0; i<items.Length; i++) InnerList.Add(new Item(items[i]));
+    { if(!sorted || items.Length>4)
+      { for(int i=0; i<items.Length; i++) InnerList.Add(new Item(items[i]));
+        if(sorted) InnerList.Sort(Comparer);
+      }
+      else
+        for(int i=0; i<items.Length; i++)
+        { Item item = new Item(items[i]);
+          InnerList.Insert(FindInsertionPoint(item), item);
+        }
       Updated();
       parent.Invalidate(parent.ContentRect);
     }
+
     public void AddRange(IEnumerable items)
     { foreach(object o in items) InnerList.Add(new Item(o));
+      if(sorted) InnerList.Sort(Comparer);
       Updated();
       parent.Invalidate(parent.ContentRect);
     }
@@ -1345,15 +1362,44 @@ public abstract class ListControl : ScrollableControl
     public bool Contains(object item) { return IndexOf(item)!=-1; }
 
     public void Insert(int index, object item)
-    { if(sorted) List.Insert(FindInsertionPoint(item), new Item(item));
+    { if(sorted) throw new InvalidOperationException("Can't insert into a sorted list. Use Add()");
       else List.Insert(index, new Item(item));
     }
 
-    public int IndexOf(object item) // TODO: use a binary search if possible
-    { for(int i=0; i<InnerList.Count; i++)
-      { Item it = (Item)InnerList[i];
-        if(it.Object==item) return i;
+    public int IndexOf(object item)
+    { if(sorted)
+      { int index = InnerList.BinarySearch(new Item(item), Comparer);
+        if(index<0) return -1;
+        string text=parent.GetObjectText(item);
+        bool down=true, up=true;
+        for(int i=0,j,c=0,len=InnerList.Count; i<len; i++)
+        { if(++c==4) c=0;
+          if(down)
+          { j=index-i;
+            if(j >= 0)
+            { object o = ((Item)InnerList[j]).Object;
+              if(o.Equals(item)) return j;
+              if(c==0 && parent.GetObjectText(o)!=text)
+              { down=false;
+                if(!up) break;
+              }
+            }
+          }
+          
+          if(up)
+          { j=index+i+1;
+            if(j<len)
+            { object o = ((Item)InnerList[j]).Object;
+              if(o.Equals(item)) return j;
+              if(c==0 && parent.GetObjectText(o)!=text)
+              { up=false;
+                if(!down) break;
+              }
+            }
+          }
+        }
       }
+      else for(int i=0; i<InnerList.Count; i++) if(((Item)InnerList[i]).Object.Equals(item)) return i;
       return -1;
     }
 
@@ -1412,7 +1458,10 @@ public abstract class ListControl : ScrollableControl
       }
     }
 
-    int FindInsertionPoint(object item) { throw new NotImplementedException(); }
+    int FindInsertionPoint(object item)
+    { int index = InnerList.BinarySearch(new Item(item), Comparer);
+      return index<0 ? ~index : index;
+    }
 
     ListControl parent;
     TextComparer comparer;

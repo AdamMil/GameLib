@@ -1,7 +1,7 @@
 /*
 GameLib is a library for developing games and other multimedia applications.
 http://www.adammil.net/
-Copyright (C) 2002-2004 Adam Milazzo
+Copyright (C) 2002-2005 Adam Milazzo
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -35,13 +35,13 @@ public sealed class OpenGL
   /// <summary>Returns a collection of extensions supported by OpenGL.</summary>
   /// <value>A collection of strings representing the extensions supported by OpenGL.</value>
   public static System.Collections.ICollection Extensions
-  { get { if(extensions==null) InitExtensions(); return extensions.Keys; }
+  { get { if(extensions==null) InitExtensions(); return extensions; }
   }
 
   /// <summary>Gets the OpenGL major version number.</summary>
-  public static int VersionMajor { get { if(major==0) InitVersion(); return major; } }
+  public static int VersionMajor { get { if(version==0) InitVersion(); return version>>16; } }
   /// <summary>Gets the OpenGL minor version number.</summary>
-  public static int VersionMinor { get { if(minor==0) InitVersion(); return minor; } }
+  public static int VersionMinor { get { if(version==0) InitVersion(); return version&0xFFFF; } }
 
   /// <summary>Gets/sets whether or not this class will attempt to use the GL_ARB_texture_non_power_of_two extension,
   /// if it exists.
@@ -58,7 +58,7 @@ public sealed class OpenGL
   /// <returns>True if OpenGL supports the given extension and false otherwise.</returns>
   public static bool HasExtension(string name)
   { if(extensions==null) InitExtensions();
-    return extensions.Contains(name);
+    return Array.BinarySearch(extensions, name)>=0;
   }
 
   #region TexImage2D
@@ -123,8 +123,8 @@ public sealed class OpenGL
 
     if(awidth==nwidth && aheight==nheight && !surface.UsingKey && surface.Pitch==surface.Width*surface.Depth/8)
     { uint type = GL.GL_UNSIGNED_BYTE;
-      bool hasPPE = VersionMinor>=2 && major==1 || HasExtension("GL_EXT_packed_pixels") || major>1;
-      bool hasBGR = VersionMinor>=2 && major==1 || HasExtension("EXT_bgra") || major>1;
+      bool hasPPE = VersionMinor>=2 && VersionMajor==1 || HasExtension("GL_EXT_packed_pixels") || VersionMajor>1;
+      bool hasBGR = VersionMinor>=2 && VersionMajor==1 || HasExtension("EXT_bgra") || VersionMajor>1;
       if(surface.Depth==16 && hasPPE)
       { // TODO: make this work with big-endian machines
         if(pf.RedMask==0xF800 && pf.GreenMask==0x7E0 && pf.BlueMask==0x1F)
@@ -237,9 +237,8 @@ public sealed class OpenGL
   static void InitExtensions()
   { string str = GL.glGetString(GL.GL_EXTENSIONS);
     if(str==null) throw new InvalidOperationException("OpenGL not initialized yet!");
-    string[] exts = str.Split(' ');
-    extensions = new System.Collections.Hashtable(exts.Length);
-    foreach(string s in exts) extensions[s] = null;
+    extensions = str.Split(' ');
+    Array.Sort(extensions);
   }
 
   static void InitVersion()
@@ -247,12 +246,11 @@ public sealed class OpenGL
     if(str==null) throw new InvalidOperationException("OpenGL not initialized yet!");
     int pos = str.IndexOf(' ');
     string[] bits = (pos==-1 ? str : str.Substring(0, pos)).Split('.');
-    major = int.Parse(bits[0]);
-    minor = int.Parse(bits[1]);
+    version = (int.Parse(bits[0])<<16) + int.Parse(bits[1]);
   }
 
-  static System.Collections.Hashtable extensions;
-  static int major, minor;
+  static string[] extensions;
+  static int version;
   static bool useNPOT=true;
 }
 #endregion

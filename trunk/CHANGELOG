@@ -52,7 +52,15 @@ DEVELOPMENT (alpha/beta)
   the control was marked as invisible
 * Reworked the networking code significantly. Added the ability to use the
   NetLink class in the same thread as both a client and server, and improved
-  the NetLink interface. Added some protection against race conditions.
+  the NetLink interface by removing the need for handshaking. Added some
+  protection against race conditions.
+* Updated the networking sample to use the new networking features
+* Renamed INetSerializeable to INetSerializable
+* In MessageConverter, renamed ToObject and FromObject to Deserialize and
+  Serialize, respectively.
+* Renamed for the Network.Server class, renamed Open() and Close() to
+  Initialize() and Deinitialize(), respectively
++ Added documentation for the networking code
 
 2004.06.28 (alpha/beta)
 -------------------
