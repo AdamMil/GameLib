@@ -1,0 +1,12 @@
+GameLib authors and contributors
+--------------------------------
+* Thanks to Jim Crawford (http://www.goombas.org/) for music.ogg, which was
+  used in the example programs.
+* mstrr.ttf, the font used for the example programs, was obtained from
+  http://metatype.sourceforge.net
+* libsndfile was written by Erik de Castro Lopo. I only made small
+  modifications to it.
+* GameLib is built upon the excellent SDL, SDL_image, SDL_ttf, SDL_gfx,
+  and libvorbis libraries.
+* All other code written by Adam Milazzo.
+* Thanks to Microsoft for the .NET platform.
