@@ -497,7 +497,7 @@ public struct Fixed64 : IFormattable, IComparable, IConvertible
       quot += Math.DivRem(rem<<32, rhs.val, out rem);
     }
     else if(rhs.val<0x1000000000000)
-    { Math.DivRem((uint)(lhs.val>>32), rhs.val, out rem);
+    { Math.DivRem(lhs.val>>32, rhs.val, out rem);
       quot  = Math.DivRem((rem<<32)+(uint)lhs.val, rhs.val, out rem)<<32;
       quot += Math.DivRem(rem<<16, rhs.val, out rem)<<16;
       quot += Math.DivRem(rem<<16, rhs.val, out rem);
