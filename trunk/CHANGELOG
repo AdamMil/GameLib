@@ -140,6 +140,13 @@ Legend
 * Made the Map and BinaryTree classes iterate in sorted order (infix) rather
   than prefix order
 + Added a Timing.Reset method to allow the timer to be reset
+! Moved static math functions for the fixed point classes into GLMath so
+  that Abs, Ceiling, etc could be properties instead of methods and for
+  greater consistency with how it's done for the .NET standard library
+* Fixed a bug in the ToDouble method of the fixed-point classes
+* Fixed some fixed-point mathematical constants (whoops!)
+* Further optimized many fixed-point math functions
+* Changed math classes to use double instead of float
 + Added a lot more documentation (for CD.cs, Config.cs, Events.cs,
   Exceptions.cs, Fonts.cs, GraphicsPrimitives.cs, Input.cs, Interop.cs,
   IO.cs, LinkedList.cs, OpenGL.cs, OpenGLInterop.cs, PriorityQueue.cs,

@@ -142,6 +142,18 @@ byte[] output = IOH.Write("dfp?d", parms);
   </IOH>
  </IO>
  
+ <Mathematics>
+  <GLMath>
+   <AngleBetween>
+    <summary>This method returns the angle between two points.</summary>
+    <param name="start">The first point.</param>
+    <param name="end">The second point.</param>
+    <returns>Returns the angle between <paramref name="start"/> and <paramref name="end"/>, in radians.
+    A return value of 0.0 indicates that the second point is to the right of the first point.
+    </returns>
+   </AngleBetween>
+  </GLMath>
+ </Mathematics>
  <Video>
   <PSDCodec>
    <IsPSD>
