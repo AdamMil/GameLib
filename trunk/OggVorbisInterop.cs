@@ -77,25 +77,25 @@ internal sealed class Ogg
   #endregion
 
   #region Imports
-  [DllImport(Config.VorbisImportPath, EntryPoint="VW_Open", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.VorbisImportPath, ExactSpelling=true, EntryPoint="VW_Open", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern int Open(VorbisFile** vf, Callbacks calls);
-  [DllImport(Config.VorbisImportPath, EntryPoint="VW_Close", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.VorbisImportPath, ExactSpelling=true, EntryPoint="VW_Close", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern void Close(VorbisFile* vf);
-  [DllImport(Config.VorbisImportPath, EntryPoint="VW_PcmLength", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.VorbisImportPath, ExactSpelling=true, EntryPoint="VW_PcmLength", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern int PcmLength(VorbisFile* vf, int section);
-  [DllImport(Config.VorbisImportPath, EntryPoint="VW_PcmTell", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.VorbisImportPath, ExactSpelling=true, EntryPoint="VW_PcmTell", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern int PcmTell(VorbisFile* vf);
-  [DllImport(Config.VorbisImportPath, EntryPoint="VW_PcmSeek", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.VorbisImportPath, ExactSpelling=true, EntryPoint="VW_PcmSeek", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern int PcmSeek(VorbisFile* vf, int frames);
-  [DllImport(Config.VorbisImportPath, EntryPoint="VW_TimeLength", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.VorbisImportPath, ExactSpelling=true, EntryPoint="VW_TimeLength", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern double TimeLength(VorbisFile* vf, int section);
-  [DllImport(Config.VorbisImportPath, EntryPoint="VW_TimeTell", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.VorbisImportPath, ExactSpelling=true, EntryPoint="VW_TimeTell", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern double TimeTell(VorbisFile* vf);
-  [DllImport(Config.VorbisImportPath, EntryPoint="VW_TimeSeek", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.VorbisImportPath, ExactSpelling=true, EntryPoint="VW_TimeSeek", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern int TimeSeek(VorbisFile* vf, double seconds);
-  [DllImport(Config.VorbisImportPath, EntryPoint="VW_Read", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.VorbisImportPath, ExactSpelling=true, EntryPoint="VW_Read", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern int Read(VorbisFile* vf, byte* buf, int length, int bigEndian, int word, int sgned, out int section);
-  [DllImport(Config.VorbisImportPath, EntryPoint="VW_Info", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.VorbisImportPath, ExactSpelling=true, EntryPoint="VW_Info", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern VorbisInfo* GetInfo(VorbisFile* vf, int section);
   #endregion
 

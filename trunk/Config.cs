@@ -65,6 +65,7 @@ public sealed class Config
   public const string GLUImportPath      = "glu";
   #endif
 
+  // TODO: mono might emulate winsock's replies, so we need to check these under mono/linux and mono/win32
   #if WIN32
   /// <summary>The system constant for the EWOULDBLOCK error.</summary>
   public const int EWOULDBLOCK  = 10035;

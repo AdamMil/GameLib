@@ -128,23 +128,23 @@ internal sealed class SF
   #endregion
 
   #region Functions
-  [DllImport(Config.SndFileImportPath, EntryPoint="sf_open", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SndFileImportPath, ExactSpelling=true, EntryPoint="sf_open", CallingConvention=CallingConvention.Cdecl)]
   public static extern IntPtr Open(string path, OpenMode mode, ref Info sfinfo);
-  [DllImport(Config.SndFileImportPath, EntryPoint="sf_open_calls", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SndFileImportPath, ExactSpelling=true, EntryPoint="sf_open_calls", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern IntPtr OpenCalls(IOCalls* calls, IntPtr ioContext, OpenMode mode, ref Info sfinfo, int close);
 
-  [DllImport(Config.SndFileImportPath, EntryPoint="sf_read_raw", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SndFileImportPath, ExactSpelling=true, EntryPoint="sf_read_raw", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern long ReadRaw(IntPtr sndfile, void* ptr, long bytes);
-  [DllImport(Config.SndFileImportPath, EntryPoint="sf_readf_short", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SndFileImportPath, ExactSpelling=true, EntryPoint="sf_readf_short", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern long ReadShorts(IntPtr sndfile, short* ptr, long frames);
-  [DllImport(Config.SndFileImportPath, EntryPoint="sf_readf_int", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SndFileImportPath, ExactSpelling=true, EntryPoint="sf_readf_int", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern long ReadInts(IntPtr sndfile, int* ptr, long frames);
-  [DllImport(Config.SndFileImportPath, EntryPoint="sf_seek", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SndFileImportPath, ExactSpelling=true, EntryPoint="sf_seek", CallingConvention=CallingConvention.Cdecl)]
   public static extern long Seek(IntPtr sndfile, long frames, SeekType whence);
-  [DllImport(Config.SndFileImportPath, EntryPoint="sf_close", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SndFileImportPath, ExactSpelling=true, EntryPoint="sf_close", CallingConvention=CallingConvention.Cdecl)]
   public static extern int Close(IntPtr sndfile);
 
-  [DllImport(Config.SndFileImportPath, EntryPoint="sf_strerror", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SndFileImportPath, ExactSpelling=true, EntryPoint="sf_strerror", CallingConvention=CallingConvention.Cdecl)]
   public static extern string GetError(IntPtr sndfile);
   #endregion
 
