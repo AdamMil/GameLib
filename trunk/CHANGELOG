@@ -24,14 +24,19 @@ Changes
   can draw pressed even when the mouse was not over the button
 + Added BorderColor properties to the FormBase and LabelBase controls
 + Added low-level support for OpenGL 1.2 and 1.3
-! Removed some overloads of low-level OpenGL functions that are not likely to be used
+! Removed some overloads of low-level OpenGL functions that are not likely
+  to be used
 + Added some more overloads for OpenGL 1.1 functions
+* Fixed some bugs in OpenGL.TexImage2D
 ! Changed some of the overloads for OpenGL.TexImage2D
   (eg, removed the 'target' parameter)
 + Started on a wrapper for a 2D OpenGL texture
 + Added a 2D Rectangle class
-* Fixed some bugs in the 2D Polygon class, added some basic intersection tests
+* Fixed some bugs in the Polygon class, added some basic intersection tests
 + Added a 32 and 64 bit fixed-point math classes
+* Improved some samples (used GLTexture2D in OpenGL and added better
+  exception handling to Asteroids)
+* Improved the Vector classes (you can now normalize to a given length)
 
 2004.02.07 (beta)
 -----------------

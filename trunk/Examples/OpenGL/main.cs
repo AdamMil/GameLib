@@ -47,7 +47,7 @@ class App
   }
 
   static void Main()
-  { Initialize();
+  { InitializeGL();
     WM.WindowTitle = "OpenGL Example";
 
     Events.Initialize();
@@ -77,10 +77,11 @@ class App
     }
 
     done:
+    texture.Unload();
     Video.Deinitialize();
   }
   
-  static void Initialize()
+  static void InitializeGL()
   { Video.Initialize();
     Video.SetGLMode(640, 480, 32);
 
@@ -94,10 +95,7 @@ class App
     GL.glHint(GL.GL_PERSPECTIVE_CORRECTION_HINT, GL.GL_FASTEST);
     GL.glShadeModel(GL.GL_FLAT); // smooth shading is also unnecessary
 
-    uint[] textures = new uint[1];
-    GL.glGenTextures(textures);
-    GL.glBindTexture(GL.GL_TEXTURE_2D, textures[0]);
-    OpenGL.TexImage2D(new Surface(dataPath+"particle.png"));
+    texture.Load(dataPath+"particle.png");
     GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_LINEAR);
     GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_LINEAR);
 
@@ -182,6 +180,7 @@ class App
   static Particle[] Particles = new Particle[NUM_PARTICLES];
   static Vector Gravity = new Vector(0, -1);
   static Random Rand = new Random();
+  static GLTexture2D texture = new GLTexture2D();
   static float[] Color=new float[3], Cinc=new float[3];
 }
 

@@ -44,6 +44,10 @@ public sealed class OpenGL
   }
 
   #region TexImage2D
+  public static bool TexImage2D(Surface surface)
+  { Size dummy;
+    return TexImage2D(0, 0, 0, surface, out dummy);
+  }
   public static bool TexImage2D(Surface surface, out Size texSize)
   { return TexImage2D(0, 0, 0, surface, out texSize);
   }
@@ -57,6 +61,7 @@ public sealed class OpenGL
   { PixelFormat pf = surface.Format;
     uint format=0;
     int nwidth, nheight, awidth=surface.Width-border*2, aheight=surface.Height-border*2;
+    bool usingAlpha = surface.Depth==32 && surface.UsingAlpha || surface.UsingKey;
     if(useNPOT && HasExtension("GL_ARB_texture_non_power_of_two")) { nwidth=awidth; nheight=aheight; }
     else
     { nwidth=nheight=1;
@@ -64,13 +69,14 @@ public sealed class OpenGL
       while(nheight<aheight) nheight<<=1;
     }
 
+    if(internalFormat==0) internalFormat = usingAlpha ? GL.GL_RGBA : GL.GL_RGB;
     if(!WillTextureFit(internalFormat, level, border, nwidth, nheight))
     { texSize = new Size(0, 0);
       return false;
     }
     texSize = new Size(nwidth, nheight);
 
-    if(awidth==nwidth && aheight==nheight && surface.Pitch==surface.Width*surface.Depth/8)
+    if(awidth==nwidth && aheight==nheight && !surface.UsingKey && surface.Pitch==surface.Width*surface.Depth/8)
     { uint type = GL.GL_UNSIGNED_BYTE;
       bool hasPPE = VersionMinor>=2 && major==1 || HasExtension("GL_EXT_packed_pixels") || major>1;
       bool hasBGR = VersionMinor>=2 && major==1 || HasExtension("EXT_bgra") || major>1;
@@ -122,7 +128,7 @@ public sealed class OpenGL
       }
     }
     
-    pf = new PixelFormat(surface.Depth==32 && surface.UsingAlpha || surface.UsingKey ? 32 : 24);
+    pf = new PixelFormat(usingAlpha ? 32 : 24);
     #if BIGENDIAN
     pf.RedMask=0xFF000000; pf.GreenMask=0xFF0000; pf.BlueMask=0xFF00; pf.AlphaMask=(pf.Depth==32 ? 0xFF : 0);
     #else
@@ -130,14 +136,13 @@ public sealed class OpenGL
     #endif
 
     Surface temp = new Surface(nwidth+border*2, nheight+border*2, pf, pf.Depth==32 ? SurfaceFlag.SrcAlpha : 0);
-    bool ua = surface.UsingAlpha;
+    bool oua = surface.UsingAlpha;
     if(surface.Format.AlphaMask!=0 || surface.Alpha==AlphaLevel.Opaque) surface.UsingAlpha=false;
     surface.Blit(temp, border, border);
-    surface.UsingAlpha = ua;
+    surface.UsingAlpha = oua;
     temp.Lock();
     try
-    { if(internalFormat==0) internalFormat = pf.Depth==32 ? GL.GL_RGBA : GL.GL_RGB;
-      if(temp.Pitch==temp.Width*temp.Depth/8)
+    { if(temp.Pitch==temp.Width*temp.Depth/8)
         unsafe
         { GL.glTexImage2D(GL.GL_TEXTURE_2D, level, internalFormat, temp.Width, temp.Height, border,
                           pf.Depth==32 ? GL.GL_RGBA : GL.GL_RGB, GL.GL_UNSIGNED_BYTE, temp.Data);
@@ -204,7 +209,10 @@ public sealed class OpenGL
 #region GLTexture2D
 // TODO: add support for mipmapping
 public class GLTexture2D : IDisposable
-{ public GLTexture2D(Surface surface) : this(0, 0, 0, surface) { }
+{ public GLTexture2D() { }
+  public GLTexture2D(string filename) : this(0, 0, 0, new Surface(filename)) { }
+  public GLTexture2D(System.IO.Stream stream) : this(0, 0, 0, new Surface(stream)) { }
+  public GLTexture2D(Surface surface) : this(0, 0, 0, surface) { }
   public GLTexture2D(uint internalFormat, Surface surface) : this(internalFormat, 0, 0, surface) { }
   public GLTexture2D(uint internalFormat, int level, Surface surface) : this(internalFormat, level, 0, surface) { }
   public GLTexture2D(uint internalFormat, int level, int border, Surface surface)
@@ -249,13 +257,18 @@ public class GLTexture2D : IDisposable
   
   public void Bind() { AssertInit(); GL.glBindTexture(GL.GL_TEXTURE_2D, texture); }
   
+  public bool Load(string filename) { return Load(0, 0, 0, new Surface(filename)); }
+  public bool Load(System.IO.Stream stream) { return Load(0, 0, 0, new Surface(stream)); }
+  public bool Load(Surface surface) { return Load(0, 0, 0, surface); }
+  public bool Load(uint internalFormat, Surface surface) { return Load(internalFormat, 0, 0, surface); }
+  public bool Load(uint internalFormat, int level, Surface surface) { return Load(internalFormat, level, 0, surface); }
   public bool Load(uint internalFormat, int level, int border, Surface surface)
   { Unload();
     uint tex;
     GL.glGenTexture(out tex);
     if(tex==0) throw new NoMoreTexturesException();
 
-    GL.glBindTexture(GL.GL_TEXTURE_2D, texture);
+    GL.glBindTexture(GL.GL_TEXTURE_2D, tex);
     if(!OpenGL.TexImage2D(internalFormat, level, border, surface, out size))
     { GL.glDeleteTexture(tex);
       return false;

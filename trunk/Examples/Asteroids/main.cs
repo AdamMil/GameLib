@@ -219,30 +219,32 @@ class App
   { Initialize();
 
     float lastTime = (float)Timing.Seconds;
-    while(true)
-    { Event e;
-      while((e=Events.NextEvent(0))!=null)
-      { Input.ProcessEvent(e);
-        if(Keyboard.Pressed(Key.Escape) || e is QuitEvent) goto done;
-        if(e is ExceptionEvent) throw ((ExceptionEvent)e).Exception;
+    try
+    { while(true)
+      { Event e;
+        while((e=Events.NextEvent(0))!=null)
+        { Input.ProcessEvent(e);
+          if(Keyboard.Pressed(Key.Escape) || e is QuitEvent) goto done;
+          if(e is ExceptionEvent) throw ((ExceptionEvent)e).Exception;
+        }
+        if(asteroids.Count==0)
+        { int xv=(int)(160*difficulty), yv=(int)(120*difficulty);
+          for(int i=0; i<8; i++)
+            asteroids.Add(new Asteroid(75,
+                            new Point(Rand.Next(640), Rand.Next(480)),
+                            new Vector(Rand.Next(xv)-xv/2, Rand.Next(yv)-yv/2)));
+          ship.Reset();
+          bullets.Clear();
+          difficulty *= 1.1f;
+        }
+        float time = (float)Timing.Seconds;
+        TimeDelta = time-lastTime; lastTime=time;
+        UpdateWorld();
+        Draw();
       }
-      if(asteroids.Count==0)
-      { int xv=(int)(160*difficulty), yv=(int)(120*difficulty);
-        for(int i=0; i<8; i++)
-          asteroids.Add(new Asteroid(75,
-                          new Point(Rand.Next(640), Rand.Next(480)),
-                          new Vector(Rand.Next(xv)-xv/2, Rand.Next(yv)-yv/2)));
-        ship.Reset();
-        bullets.Clear();
-        difficulty *= 1.1f;
-      }
-      float time = (float)Timing.Seconds;
-      TimeDelta = time-lastTime; lastTime=time;
-      UpdateWorld();
-      Draw();
+      done:;
     }
-    done:
-    Deinitialize();
+    finally { Deinitialize(); }
   }
 
   static void Deinitialize()
