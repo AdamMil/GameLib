@@ -2776,8 +2776,8 @@ public class DesktopControl : ContainerControl, IDisposable
   }
 
   /// <summary>Frees resources used by this class.</summary>
-  /// <param name="destructing">Should be true if this method is called from a destructor and false otherwise.</param>
-  protected void Dispose(bool destructing)
+  /// <param name="finalizing">Should be true if this method is called from a destructor and false otherwise.</param>
+  protected void Dispose(bool finalizing)
   { if(init)
     { Video.Video.ModeChanged -= modeChanged;
       modeChanged = null;

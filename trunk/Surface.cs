@@ -264,7 +264,7 @@ public sealed class Surface : IDisposable
   /// <summary>Initializes this surface by loading an image from a file.</summary>
   /// <param name="filename">The path to the image file to load.</param>
   /// <remarks>This constructor will attempt to detect the type of the image, but it is recommended that you use
-  /// <see cref="Surface(string,ImageType)"/> if possible, as the detection is not perfect.
+  /// <see cref="Surface(string,ImageType)"/> if possible for efficiency and because the detection may not be perfect.
   /// You may want to use <see cref="CloneDisplay"/> to convert the surface
   /// into something that matches the display surface, for efficiency.
   /// </remarks>
@@ -296,8 +296,8 @@ public sealed class Surface : IDisposable
   /// <remarks>Using this is equivalent to using <see cref="Surface(System.IO.Stream,bool)"/> and passing true
   /// to automatically close the stream.
   /// This constructor will attempt to detect the type of the image, but it is recommended that you use
-  /// <see cref="Surface(System.IO.Stream,ImageType)"/> if possible, as the detection is not perfect.
-  /// You may want to use <see cref="CloneDisplay"/> to convert the surface
+  /// <see cref="Surface(System.IO.Stream,ImageType)"/> if possible for efficiency and because the detection may not
+  /// be perfect. You may want to use <see cref="CloneDisplay"/> to convert the surface
   /// into something that matches the display surface, for efficiency.
   /// </remarks>
   public unsafe Surface(System.IO.Stream stream) : this(stream, true) { }
@@ -308,8 +308,8 @@ public sealed class Surface : IDisposable
   /// </param>
   /// <param name="autoClose">If true, the stream will be closed after the image is successfully loaded.</param>
   /// <remarks>This constructor will attempt to detect the type of the image, but it is recommended that you use
-  /// <see cref="Surface(System.IO.Stream,ImageType,bool)"/> if possible, as the detection is not perfect.
-  /// You may want to use <see cref="CloneDisplay"/> to convert the surface
+  /// <see cref="Surface(System.IO.Stream,ImageType,bool)"/> if possible for efficiency and because the detection
+  /// may not be perfect. You may want to use <see cref="CloneDisplay"/> to convert the surface
   /// into something that matches the display surface, for efficiency.
   /// </remarks>
   public unsafe Surface(System.IO.Stream stream, bool autoClose)
@@ -1339,7 +1339,7 @@ public sealed class Surface : IDisposable
     }
   }
   
-  unsafe void Dispose(bool destructing)
+  unsafe void Dispose(bool finalizing)
   { if(autoFree && surface!=null)
     { SDL.FreeSurface(surface);
       surface=null;

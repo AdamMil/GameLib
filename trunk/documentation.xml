@@ -1,8 +1,26 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?> 
 <GameLib>
  <IO>
+  <StreamStream> <!-- StreamStream class -->
+   <StreamStream>
+    <summary>Initializes this stream.</summary>
+    <param name="start">The starting offset into <paramref name="stream"/> where this stream will begin.</param>
+    <param name="length">The length of this stream.</param>
+    <remarks>When using seekable streams, the StreamStream's <see cref="Position"/> property will always begin
+    at the beginning of the range given to the constructor. With unseekable streams, however, this may not be
+    possible. If the underlying stream's <see cref="Stream.Position"/> is before <paramref name="start"/>, it will
+    be advanced forward to <paramref name="start"/>. If it's after <paramref name="start"/> but still within the
+    range, then the StreamStream's <see cref="Position"/> property will set to the offset from
+    <paramref name="start"/>. If the underlying stream's <see cref="Stream.Position"/> is past the end of the range
+    (greater than <see cref="start"/> plus <see cref="length"/>) then an exception will be thrown because the
+    StreamStream cannot possibly be in a valid state. Similarly, since shared streams are seeked to the expected
+    position before each operation, unseekable streams cannot be shared.
+    </remarks>
+   </StreamStream>
+  </StreamStream>
+
   <IOH>
-   <BinaryFormat>
+   <BinaryFormat> <!-- BinaryFormat codes -->
     <remarks>
      <para>The binary formatters allow you to format binary data in a way analogous to using
       <see cref="Console.Write"/> or <see cref="String.Format"/> to format text. The following format codes are
@@ -12,17 +30,17 @@
 Code  Writes/Effect           Parameter
 ----------------------------------------
 x     Zero bytes              NONE
-b     Signed bytes            Array/Val.
-B     Unsigned bytes          Array/Val.
-w     Signed words            Array/Val.
-W     Unsigned words          Array/Val.
-d     Signed doublewords      Array/Val.
-D     Unsigned doublewords    Array/Val.
-q     Signed quadwords        Array/Val.
-Q     Unsigned quadwords      Array/Val.
-f     Floats                  Array/Val.
-F     Doubles                 Array/Val.
-c     Characters              Array/Val.
+b     Signed bytes            Array/Vals
+B     Unsigned bytes          Array/Vals
+w     Signed words            Array/Vals
+W     Unsigned words          Array/Vals
+d     Signed doublewords      Array/Vals
+D     Unsigned doublewords    Array/Vals
+q     Signed quadwords        Array/Vals
+Q     Unsigned quadwords      Array/Vals
+f     Floats                  Array/Vals
+F     Doubles                 Array/Vals
+c     Characters              Array/Vals
 s     A string                String
 p     A pascal string         String
 A     Sets ASCII mode         NONE
@@ -32,44 +50,59 @@ U     Sets Unicode mode       NONE
 =     Sets default endianness NONE
 </code>
      <para>Whitespace between tokens in the format string is ignored, so you can use whitespace to make the format
-      string more readable. Whitespace between a prefix and the associated format code is not allowed, however
+      string more readable. However, whitespace between a prefix and its associated format code is not allowed
       (this restriction may be relaxed in the future).
      </para>
-     <para>The <c>x</c> code and all codes that take parameters also take a prefix. A prefix is a positive integer
-      or a question mark added before the code to specify a count of items. If not specified, the prefix defaults to
-      1 (except for string codes <c>s</c> and <c>p</c>, where it defaults to the length of the string). If the prefix
-      is a question mark, an array parameter or string is expected (depending on the code chosen), and the prefix is
-      set to the length of the array or string.
+     <para>The <c>x</c> code and all codes that take parameters also take an optional prefix. A prefix is a positive
+      integer or a question mark added before the code to specify a count of items. If not specified, the prefix
+      defaults to 1 (except for string codes <c>s</c> and <c>p</c>, where it defaults to the length of the string).
+      If the prefix is a question mark, an array or string is expected (depending on the code chosen), and the prefix
+      is set to the length of the array or string.
      </para>
      <para>The <c>p</c> code specifies a pascal string, which has the length of the string stored in the byte before
       the string itself. Because only one byte is allocated for the length, pascal strings are limited to 255
-      characters in length. Without a prefix, if a string is passed that is longer than that, it will be silently
-      truncated to 255 characters. If a prefix greater than 255 is specified for a pascal string, an error will occur.
+      characters in length. Without a prefix (or a prefix of '?'), if a string is passed that is longer than that, it
+      will be silently truncated to 255 characters. If a prefix greater than 255 is specified for a pascal string, an
+      error will occur.
      </para>
      <para>If a prefix is passed for a string code (<c>s</c> or <c>p</c>) and the prefix is longer than the string
-      given as an argument, the remaining characters will be written as zeros to reach the length given in the prefix.
+      parameter, the remaining characters will be written as NILs (value of zero) to reach the length given in the
+      prefix.
      </para>
-     <para>Codes that take Array/Val. as a parameter either take an array of the specified type or a list of
-      values convertible to that type (using the System.Convert class). For instance, the 'w' code takes either an
-      array of signed words or a literal list of values convertible to signed words, with a number of values equal
-      to the prefix.
+     <para>Codes that take Array/Vals as a parameter either take an array of the specified type or a list of
+      values convertible to that type (using the <see cref="System.Convert"/> class). For instance, the 'w' code
+      takes either an array of signed words or a literal list of values convertible to signed words, with a number
+      of values equal to the prefix. You may be surprised by the semantics of the <see cref="System.Convert"/> class,
+      however, so see its documentation to see how it converts values.
      </para>
-     <para>The codes that write words, doublewords, and quadwords are affected by the endianness mode. The default
-      endianness is set to the default for the system the code is running on. It can be changed with the <c>&lt;</c>,
-      <c>&gt;</c>, and <c>=</c> codes.
+     <para>The codes that write words, doublewords, and quadwords are affected by the endianness mode. Unicode
+      characters and strings are also affected. The default endianness is set to the default for the system the code
+      is running on. It can be changed with the <c>&lt;</c>, <c>&gt;</c>, and <c>=</c> codes. The endianness mode
+      can be changed in the middle of the format string if you want to write some data using one endianness
+      mode and some other data with another mode.
      </para>
      <para>The <c>s</c>, <c>p</c>, and <c>c</c> codes are affected by the character mode. By default, the character
-      mode is ASCII, but it can be changed with <c>A</c> and <c>U</c>. If the character mode is ASCII, characters will
-      be written out as single bytes and strings will be converted to ASCII before being written. Otherwise,
-      characters are written using two bytes each and strings will not be encoded before being written. If the
-      character mode is set to Unicode, then the endianness mode determines the endianness of the words written for
-      each character.
+      mode is ASCII, but it can be changed with the <c>A</c> and <c>U</c> codes. If the character mode is ASCII,
+      characters will be written out as single bytes and strings will be converted to ASCII before being written.
+      Otherwise, if the character mode is set to Unicode, strings will not be encoded before being written and
+      characters will be written using two bytes each with the order determined by the current endianness mode.
+      The character mode can be changed in the middle of the format string if you want to write some data using
+      one character mode and some other data with another mode.
+     </para>
+     <para>Because the <see cref="CalculateSize"/> and formatted <see cref="Write"/> functions accept a variable
+      length parameter array, you can also pass a single array of <see cref="System.Object"/> that contains all
+      the parameters.
      </para>
      <para>See the following examples:</para>
 <code>
 // A simple example that first writes an array's length, and then writes the
-// contents of the array (of integers), using default endianness.
+// contents of the array (of Int32), using default endianness:
 IOH.Write(stream, "d?d", Array.Length, Array);
+
+// Codes taking Array/Vals accept both arrays and value lists. For instance:
+short[] arr = new short[] { 1, 2, 4, 8 };
+IOH.Write(stream, "4w", arr);        // writes eight bytes
+IOH.Write(stream, "4w", 1, 2, 4, 8); // writes the same eight bytes
 
 // An example taken from some .PSD writing code to begin the header. It
 // writes the signature (8BPS) as ASCII, the version byte (1), six padding
@@ -81,8 +114,9 @@ IOH.Write(stream, "&gt;s B 6x w 2d 2w", "8BPS", 1, image.Channels,
           image.Height, image.Width, 8, 3);
 
 // This is illegal because whitespace between a prefix and its associated
-// format code is currently not allowed.
-IOH.Write(stream, "6 x"); // write 6 zeros?
+// format code is currently not allowed. This restriction may be relaxed
+// in the future.
+IOH.Write(stream, "6 x"); // BUG: no space allowed between prefix and code
 
 // This example uses IOH.CalculateSize() and IOH.Write() in part of a
 // network serialization implementation. It writes the player's name as
@@ -95,6 +129,11 @@ public void SerializeTo(byte[] buf, int index)
 { IOH.Write(buf, index, "&gt;p3d?B", player.Name, player.X, player.Y,
             byteArray.Length, byteArray);
 }
+
+// You can also pack all the parameters into a single object array, possibly
+// with the parameter array and/or format string built dynamically.
+object[] parms = new object[] { 1, 2.4f, stringVar, intArray };
+byte[] output = IOH.Write("dfp?d", parms);
 </code>
     </remarks>
    </BinaryFormat>

@@ -291,11 +291,11 @@ public abstract class Font : IDisposable
   }
 
   /// <summary>Frees resources used by the font.</summary>
-  /// <param name="destructing">True if this is being called from a destructor and false otherwise.</param>
+  /// <param name="finalizing">True if this is being called from a destructor and false otherwise.</param>
   /// <remarks>Derived classes that override this method should remember to call the the base class' implementation
   /// as well.
   /// </remarks>
-  protected virtual void Dispose(bool destructing)
+  protected virtual void Dispose(bool finalizing)
   { if(handler!=null)
     { Video.Video.ModeChanged -= handler;
       handler=null;
@@ -502,10 +502,10 @@ public class BitmapFont : Font
   protected override void OnDisplayFormatChanged() { font = orig.IsCompatible() ? orig : orig.CloneDisplay(); }
   
   /// <summary>See <see cref="Font.Dispose(bool)"/> for more details regarding this method.</summary>
-  protected override void Dispose(bool destructing)
+  protected override void Dispose(bool finalizing)
   { font.Dispose();
     orig.Dispose();
-    base.Dispose(destructing);
+    base.Dispose(finalizing);
   }
 
   Surface font, orig;
@@ -796,11 +796,11 @@ public class TrueTypeFont : StyledFont
     public char    Char;
     public bool    Compatible;
     internal CacheIndex Index;
-    void Dispose(bool destructing) { Surface.Dispose(); }
+    void Dispose(bool finalizing) { Surface.Dispose(); }
   }
   
   protected CachedChar GetChar(char c)
-  { Color shade = shadeColor==Color.Transparent ? bgColor : shadeColor;
+  { Color shade = shadeColor!=Color.Transparent ? shadeColor : bgColor!=Color.Transparent ? bgColor : Color.Black;
     CacheIndex ind = new CacheIndex(c, color, shade, fstyle, rstyle);
     LinkedList.Node node = (LinkedList.Node)tree[ind];
     CachedChar cc;
@@ -825,7 +825,8 @@ public class TrueTypeFont : StyledFont
       { case RenderStyle.Solid: surface = TTF.RenderGlyph_Solid(font, c, sdlColor); break;
         case RenderStyle.Shaded:
           surface = TTF.RenderGlyph_Shaded(font, c, sdlColor,
-                                           shadeColor==Color.Transparent ? sdlBgColor : sdlShadeColor);
+                                           shadeColor!=Color.Transparent ? sdlShadeColor :
+                                             bgColor!=Color.Transparent ? sdlBgColor : new SDL.Color(Color.Black));
           break;
         case RenderStyle.Blended: surface = TTF.RenderGlyph_Blended(font, c, sdlColor); break;
       }
@@ -859,7 +860,7 @@ public class TrueTypeFont : StyledFont
   }
 
   /// <summary>See <see cref="Font.Dispose(bool)"/> for more details regarding this method.</summary>
-  protected override void Dispose(bool destructing)
+  protected override void Dispose(bool finalizing)
   { unsafe
     { if(font.ToPointer()!=null)
       { TTF.CloseFont(font);
@@ -871,7 +872,7 @@ public class TrueTypeFont : StyledFont
     { foreach(CachedChar c in list) c.Dispose();
       ClearCache();
     }
-    base.Dispose(destructing);
+    base.Dispose(finalizing);
   }
   
   internal struct CacheIndex : IComparable

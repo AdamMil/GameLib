@@ -210,7 +210,7 @@ public unsafe sealed class Drive
     }
   }
 
-  void Dispose(bool destructing)
+  void Dispose(bool finalizing)
   { if(cd!=null)
     { SDL.CDClose(cd);
       cd = null;

@@ -24,6 +24,7 @@ namespace GameLib
 
 public class GameLibException : ApplicationException
 { public GameLibException(string message) : base(message) { }
+  public GameLibException(string message, Exception innerException) : base(message, innerException) { }
 }
 
 public class DataTooLargeException : GameLibException

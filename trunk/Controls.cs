@@ -653,7 +653,7 @@ public abstract class ScrollBarBase : Control, IDisposable
   }
   #endregion
   
-  protected void Dispose(bool destructing)
+  protected void Dispose(bool finalizing)
   { if(crTimer!=null)
     { crTimer.Dispose();
       crTimer=null;
@@ -2298,7 +2298,7 @@ public sealed class MessageBox : Form
 
 #region ColorPicker
 public class ColorPicker : Form
-{ 
+{ public ColorPicker() { throw new NotImplementedException("The ColorPicker form is not yet implemented."); }
 }
 #endregion
 
