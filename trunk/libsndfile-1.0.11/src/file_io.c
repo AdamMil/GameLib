@@ -1280,35 +1280,35 @@ psf_log_syserr (SF_PRIVATE *psf, int error)
 
 #endif
 
-sf_count_t psf_fseek(SF_PRIVATE *psf, sf_count_t offset, int whence)
+inline sf_count_t psf_fseek(SF_PRIVATE *psf, sf_count_t offset, int whence)
 { return psf->calls.seek(psf->ioContext, offset, whence);
 }
-sf_count_t psf_fread(void *ptr, sf_count_t bytes, sf_count_t items, SF_PRIVATE *psf)
+inline sf_count_t psf_fread(void *ptr, sf_count_t bytes, sf_count_t items, SF_PRIVATE *psf)
 { return psf->calls.read(psf->ioContext, ptr, bytes, items);
 }
-sf_count_t psf_fwrite(void *ptr, sf_count_t bytes, sf_count_t items, SF_PRIVATE *psf)
+inline sf_count_t psf_fwrite(void *ptr, sf_count_t bytes, sf_count_t items, SF_PRIVATE *psf)
 { return psf->calls.write(psf->ioContext, ptr, bytes, items);
 }
-sf_count_t psf_ftell(SF_PRIVATE *psf)
+inline sf_count_t psf_ftell(SF_PRIVATE *psf)
 { return psf->calls.tell(psf->ioContext);
 }
-int psf_fclose(SF_PRIVATE *psf)
+inline int psf_fclose(SF_PRIVATE *psf)
 { return psf->calls.close(psf->ioContext);
 }
-sf_count_t psf_fgets(char *buffer, sf_count_t bufsize, SF_PRIVATE *psf)
+inline sf_count_t psf_fgets(char *buffer, sf_count_t bufsize, SF_PRIVATE *psf)
 { return psf->calls.gets(psf->ioContext, buffer, bufsize);
 }
-sf_count_t psf_get_filelen(SF_PRIVATE *psf)
+inline sf_count_t psf_get_filelen(SF_PRIVATE *psf)
 { return psf->calls.length(psf->ioContext);
 }
-int psf_ftruncate(SF_PRIVATE *psf, sf_count_t len)
+inline int psf_ftruncate(SF_PRIVATE *psf, sf_count_t len)
 { return psf->calls.truncate(psf->ioContext, len);
 }
-int psf_is_pipe(SF_PRIVATE *psf)
+inline int psf_is_pipe(SF_PRIVATE *psf)
 { return psf->ioContext==psf ? SF_FALSE : psf_is_pipe_(psf);
 }
-int psf_open_rsrc(SF_PRIVATE *psf, int open_mode)
-{ if(psf->ioContext==psf) return psf->error=SFE_SD2_BAD_RSRC; /* revisit this solution later (eg, see what we should be returning) */
+inline int psf_open_rsrc(SF_PRIVATE *psf, int open_mode) /* revisit this solution later (eg, see what we should be returning) */
+{ if(psf->ioContext==psf) return psf->error=SFE_SD2_BAD_RSRC;
   else return psf_open_rsrc(psf, open_mode);
 }
 
