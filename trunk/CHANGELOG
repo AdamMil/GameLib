@@ -44,6 +44,8 @@ Changes
 * Made sure Line.Intersection(Rectangle) wouldn't loop infinitely (due to
   floating point inaccuracy/imprecision)
 * Fixed a bug in the rectangle union code
+* Fixed the line-polygon intersection code
+- Removed the code to clip a line to the section outside of a polygon
 
 2004.02.07 (beta)
 -----------------
