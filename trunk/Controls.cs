@@ -1,5 +1,5 @@
-// TODO: add keyboard support
-
+// TODO: implement more controls (checkbox, editbox, listbox, dropdown)
+// TODO: implement a form (dialog) control
 using System;
 using System.Collections;
 using System.Drawing;
@@ -24,6 +24,34 @@ public class ContainerControl : Control
     }
     base.OnPaint(e);
   }
+}
+#endregion
+
+#region Line
+public class Line : Control
+{ public bool TopToBottom
+  { get { return ttb; }
+    set { if(ttb!=value) { ttb=value; Invalidate(); } }
+  }
+  
+  public bool AntiAliased
+  { get { return aa; }
+    set { if(aa!=value) { aa=value; Invalidate(); } }
+  }
+  
+  protected internal override void OnPaint(PaintEventArgs e)
+  { base.OnPaint(e);
+    Color c = ForeColor;
+    if(c != Color.Transparent)
+    { Point p1 = ttb ? e.DisplayRect.Location : new Point(e.DisplayRect.X, e.DisplayRect.Bottom-1);
+      Point p2 = ttb ? new Point(e.DisplayRect.Right-1, e.DisplayRect.Bottom-1)
+                     : new Point(e.DisplayRect.Right-1, e.DisplayRect.Y);
+      if(aa) Primitives.LineAA(e.Surface, p1, p2, c);
+      else Primitives.Line(e.Surface, p1, p2, c);
+    }
+  }
+  
+  protected bool ttb=true, aa;
 }
 #endregion
 
@@ -64,6 +92,29 @@ public class LabelBase : Control
 }
 #endregion
 
+#region Label
+public class Label : LabelBase
+{ public Label() { }
+  public Label(string text) { Text=text; }
+
+  protected internal override void OnPaint(PaintEventArgs e)
+  { base.OnPaint(e);
+    if(image!=null)
+    { Point at = Utility.CalculateAlignment(DisplayRect, new Size(image.Width, image.Height), imageAlign);
+      image.Blit(e.Surface, at.X, at.Y);
+    }
+    if(text != "")
+    { GameLib.Fonts.Font f = Font;
+      if(f != null)
+      { f.Color     = ForeColor;
+        f.BackColor = BackColor;
+        f.Render(e.Surface, text, DisplayRect, textAlign);
+      }
+    }
+  }
+}
+#endregion
+
 #region ButtonBase
 public abstract class ButtonBase : LabelBase
 { public ButtonBase() { style=ControlStyle.Clickable|ControlStyle.CanFocus; }
@@ -93,11 +144,59 @@ public abstract class ButtonBase : LabelBase
 }
 #endregion
 
+#region Button
+public class Button : ButtonBase
+{ public Button() { imageAlign=textAlign=ContentAlignment.MiddleCenter; }
+  public Button(string text) { imageAlign=textAlign=ContentAlignment.MiddleCenter; Text=text; }
+  protected internal override void OnPaint(PaintEventArgs e)
+  { base.OnPaint(e);
+
+    Rectangle rect = DisplayRect;
+
+    if(image!=null)
+    { Point at = Utility.CalculateAlignment(rect, new Size(image.Width, image.Height), imageAlign);
+      if(pressed) at.Offset(1, 1);
+      image.Blit(e.Surface, at.X, at.Y);
+    }
+    if(text.Length>0)
+    { GameLib.Fonts.Font f = Font;
+      if(f!=null)
+      { Rectangle box = rect;
+        box.Inflate(-1, -1);
+        if(pressed) box.Offset(1, 1);
+        f.Color     = ForeColor;
+        f.BackColor = BackColor;
+        f.Render(e.Surface, text, box, textAlign);
+      }
+    }
+    
+    Color bright, dark, back=BackColor, fore=ForeColor;
+    bright = Color.FromArgb(back.R+(255-back.R)*3/5, back.G+(255-back.G)*3/5, back.B+(255-back.B)*3/5);
+    dark   = Color.FromArgb(back.R/2, back.G/2, back.B/2);
+    if(pressed) { Color t=bright; bright=dark; dark=t; }
+    else if(Focused) bright=dark=Color.Black;
+    Primitives.Line(e.Surface, rect.X, rect.Y, rect.Right-1, rect.Y, bright);
+    Primitives.Line(e.Surface, rect.X, rect.Y, rect.X, rect.Bottom-1, bright);
+    Primitives.Line(e.Surface, rect.X, rect.Bottom-1, rect.Right-1, rect.Bottom-1, dark);
+    Primitives.Line(e.Surface, rect.Right-1, rect.Y, rect.Right-1, rect.Bottom-1, dark);
+  }
+  
+  protected internal override void OnKeyDown(KeyEventArgs e)
+  { if(e.KE.Key==Input.Key.Return || e.KE.Key==Input.Key.Space || e.KE.Key==Input.Key.KpEnter)
+      OnClick(new ClickEventArgs());
+  }
+
+  protected override void OnLostFocus(EventArgs e) { Invalidate(); base.OnLostFocus(e); }
+  protected override void OnGotFocus(EventArgs e)  { Invalidate(); base.OnGotFocus(e); }
+}
+#endregion
+
 #region ScrollBarBase
 public class ScrollBarBase : Control
 { public ScrollBarBase()
   { style = ControlStyle.Clickable|ControlStyle.Draggable|ControlStyle.CanFocus;
     ClickRepeatDelay = 300;
+    dragThreshold    = 4;
   }
 
   public class ThumbEventArgs : EventArgs
@@ -137,10 +236,13 @@ public class ScrollBarBase : Control
   { get { return endSize; }
     set { if(endSize!=value) { endSize=value; Invalidate(); } }
   }
+
   public int ThumbSize
   { get { return thumbSize; }
     set { if(thumbSize!=value) { thumbSize=value; Invalidate(); } }
   }
+
+  public bool UpdateDuringDrag { get { return immediate; } set { immediate=value; } }
 
   public int Value
   { get { return value; }
@@ -149,7 +251,8 @@ public class ScrollBarBase : Control
       { if(value<min) value=min;
         else if(value>max) value=max;
         this.value = value;
-        OnValueChanged(eventArgs);
+        if(immediate || dragOff==-1) OnValueChanged(eventArgs);
+        else Refresh();
       }
     }
   }
@@ -214,23 +317,24 @@ public class ScrollBarBase : Control
   }
   protected internal override void OnDragStart(DragEventArgs e)
   { if(!repeated && e.Pressed(0) && FindPlace(e.Start)==Place.Thumb)
-    { draggingThumb   = true;
+    { dragOff         = (horizontal ? e.Start.X : e.Start.Y) - ValueToThumb(value);
       thumbArgs.Start = value;
       OnThumbDragStart(thumbArgs);
     }
+    else e.Cancel=true;
     base.OnDragStart(e);
   }
   protected internal override void OnDragMove(DragEventArgs e)
-  { if(draggingThumb)
-    { thumbArgs.End = ThumbToValue(horizontal ? e.End.X : e.End.Y);
+  { if(dragOff != -1)
+    { thumbArgs.End = ThumbToValue((horizontal ? e.End.X : e.End.Y) - dragOff);
       OnThumbDragMove(thumbArgs);
     }
     base.OnDragMove(e);
   }
   protected internal override void OnDragEnd(DragEventArgs e)
-  { if(draggingThumb)
-    { draggingThumb = false;
-      thumbArgs.End = ThumbToValue(horizontal ? e.End.X : e.End.Y);
+  { if(dragOff != -1)
+    { thumbArgs.End = ThumbToValue((horizontal ? e.End.X : e.End.Y) - dragOff);
+      dragOff = -1;
       OnThumbDragEnd(thumbArgs);
     }
     base.OnDragEnd(e);
@@ -242,6 +346,16 @@ public class ScrollBarBase : Control
       case Place.PageUp: OnPageUp(eventArgs); break;
       case Place.Up: OnUp(eventArgs); break;
     }
+    base.OnCustomEvent(e);
+  }
+  protected internal override void OnKeyDown(KeyEventArgs e)
+  { switch(e.KE.Key)
+    { case Input.Key.PageDown: OnPageUp(eventArgs); break;
+      case Input.Key.PageUp: OnPageDown(eventArgs); break;
+      case Input.Key.Down: case Input.Key.Right: OnUp(eventArgs); break;
+      case Input.Key.Up: case Input.Key.Left: OnDown(eventArgs); break;
+    }
+    base.OnKeyDown(e);
   }
 
   protected virtual void OnValueChanged(EventArgs e)
@@ -272,7 +386,10 @@ public class ScrollBarBase : Control
     if(ThumbDragMove!=null) ThumbDragMove(this, e);
   }
   protected virtual void OnThumbDragEnd(ThumbEventArgs e)
-  { if(autoUpdate) Value=e.End;
+  { if(autoUpdate)
+    { Value=e.End;
+      if(!immediate && e.Start!=e.End) OnValueChanged(eventArgs);
+    }
     if(ThumbDragEnd!=null) ThumbDragEnd(this, e);
   }
   
@@ -307,13 +424,14 @@ public class ScrollBarBase : Control
   protected EventArgs eventArgs = new EventArgs();
   protected System.Threading.Timer crTimer;
   protected ClickRepeat repeatEvent;
-  protected int  min, max=100, value, smallInc=1, bigInc=10, endSize=8, thumbSize=10;
+  protected int  value, min, max=100, smallInc=1, bigInc=10, endSize=8, thumbSize=10, dragOff=-1;
   protected uint crDelay, crRate=50;
-  protected bool autoUpdate, horizontal, draggingThumb, repeated;
+  protected bool autoUpdate, horizontal, repeated, immediate=true;
 }
 #endregion
 
-public class ScrollBar : ScrollBarBase
+#region ScrollBar
+public class ScrollBar : ScrollBarBase // TODO: replace with image-based scrollbar
 { public ScrollBar() { BackColor=Color.LightGray; ForeColor=Color.Gray; }
   protected internal override void OnPaint(PaintEventArgs e)
   { base.OnPaint(e);
@@ -323,112 +441,18 @@ public class ScrollBar : ScrollBarBase
     { int x=rect.X, w=rect.Width;
       rect.Width = endSize; e.Surface.Fill(rect, ForeColor);
       rect.X = x+w-endSize; e.Surface.Fill(rect, ForeColor);
-      rect.X = x+thumb; rect.Width = thumbSize; e.Surface.Fill(rect, ForeColor);
+      rect.X = x+thumb; rect.Width = thumbSize;
     }
     else
     { int y=rect.Y, h=rect.Height;
       rect.Height = endSize; e.Surface.Fill(rect, ForeColor);
       rect.Y = y+h-endSize; e.Surface.Fill(rect, ForeColor);
-      rect.Y = y+thumb; rect.Height = thumbSize; e.Surface.Fill(rect, ForeColor);
+      rect.Y = y+thumb; rect.Height = thumbSize;
     }
+    Primitives.Box(e.Surface, rect, Color.Black);
+    rect.Inflate(-1, -1);
+    e.Surface.Fill(rect, ForeColor);
   }
-}
-
-#region Label
-public class Label : LabelBase
-{ public Label() { }
-  public Label(string text) { Text=text; }
-
-  protected internal override void OnPaint(PaintEventArgs e)
-  { base.OnPaint(e);
-    if(image!=null)
-    { Point at = Utility.CalculateAlignment(DisplayRect, new Size(image.Width, image.Height), imageAlign);
-      image.Blit(e.Surface, at.X, at.Y);
-    }
-    if(text != "")
-    { GameLib.Fonts.Font f = Font;
-      if(f != null)
-      { f.Color     = ForeColor;
-        f.BackColor = BackColor;
-        f.Render(e.Surface, text, DisplayRect, textAlign);
-      }
-    }
-  }
-}
-#endregion
-
-#region Button
-public class Button : ButtonBase
-{ public Button() { imageAlign=textAlign=ContentAlignment.MiddleCenter; }
-  public Button(string text) { imageAlign=textAlign=ContentAlignment.MiddleCenter; Text=text; }
-  protected internal override void OnPaint(PaintEventArgs e)
-  { base.OnPaint(e);
-
-    Rectangle rect = DisplayRect;
-
-    if(image!=null)
-    { Point at = Utility.CalculateAlignment(rect, new Size(image.Width, image.Height), imageAlign);
-      if(pressed) at.Offset(1, 1);
-      image.Blit(e.Surface, at.X, at.Y);
-    }
-    if(text.Length>0)
-    { GameLib.Fonts.Font f = Font;
-      if(f!=null)
-      { Rectangle box = rect;
-        box.Inflate(-1, -1);
-        if(pressed) box.Offset(1, 1);
-        f.Color     = ForeColor;
-        f.BackColor = BackColor;
-        f.Render(e.Surface, text, box, textAlign);
-      }
-    }
-    
-    Color bright, dark, back=BackColor, fore=ForeColor;
-    bright = Color.FromArgb(back.R+(255-back.R)*3/5, back.G+(255-back.G)*3/5, back.B+(255-back.B)*3/5);
-    dark   = Color.FromArgb(back.R/2, back.G/2, back.B/2);
-    if(pressed) { Color t=bright; bright=dark; dark=t; }
-    else if(Focused) bright=dark=Color.Black;
-    Primitives.Line(e.Surface, rect.X, rect.Y, rect.Right-1, rect.Y, bright);
-    Primitives.Line(e.Surface, rect.X, rect.Y, rect.X, rect.Bottom-1, bright);
-    Primitives.Line(e.Surface, rect.X, rect.Bottom-1, rect.Right-1, rect.Bottom-1, dark);
-    Primitives.Line(e.Surface, rect.Right-1, rect.Y, rect.Right-1, rect.Bottom-1, dark);
-  }
-  
-  protected internal override void OnKeyPress(KeyEventArgs e)
-  { if(e.KE.Key==Input.Key.Return || e.KE.Key==Input.Key.Space || e.KE.Key==Input.Key.KpEnter)
-      OnClick(new ClickEventArgs());
-  }
-
-  protected override void OnLostFocus(EventArgs e) { Invalidate(); base.OnLostFocus(e); }
-  protected override void OnGotFocus(EventArgs e)  { Invalidate(); base.OnGotFocus(e); }
-}
-#endregion
-
-#region Line
-public class Line : Control
-{ public bool TopToBottom
-  { get { return ttb; }
-    set { if(ttb!=value) { ttb=value; Invalidate(); } }
-  }
-  
-  public bool AntiAliased
-  { get { return aa; }
-    set { if(aa!=value) { aa=value; Invalidate(); } }
-  }
-  
-  protected internal override void OnPaint(PaintEventArgs e)
-  { base.OnPaint(e);
-    Color c = ForeColor;
-    if(c != Color.Transparent)
-    { Point p1 = ttb ? e.DisplayRect.Location : new Point(e.DisplayRect.X, e.DisplayRect.Bottom-1);
-      Point p2 = ttb ? new Point(e.DisplayRect.Right-1, e.DisplayRect.Bottom-1)
-                     : new Point(e.DisplayRect.Right-1, e.DisplayRect.Y);
-      if(aa) Primitives.LineAA(e.Surface, p1, p2, c);
-      else Primitives.Line(e.Surface, p1, p2, c);
-    }
-  }
-  
-  protected bool ttb=true, aa;
 }
 #endregion
 

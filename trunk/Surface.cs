@@ -9,8 +9,10 @@ namespace GameLib.Video
 {
 
 public interface IBlittable
-{ int Width  { get; }
-  int Height { get; }
+{ int  Width  { get; }
+  int  Height { get; }
+  bool StaticImage  { get; }
+  bool ImageChanged { get; }
 
   void Blit(Surface dest, int dx, int dy);
   void Blit(Surface dest, Rectangle src, int dx, int dy);
@@ -131,6 +133,8 @@ public class Surface : IBlittable, IDisposable
 
   public unsafe int Width  { get { return surface->Width; } }
   public unsafe int Height { get { return surface->Height; } }
+  public bool StaticImage  { get { return true; } }
+  public bool ImageChanged { get { return false; } }
   public byte Depth  { get { return format.Depth; } }
   public Size Size   { get { return new Size(Width, Height); } }
   public Rectangle Bounds { get { return new Rectangle(0, 0, Width, Height); } }

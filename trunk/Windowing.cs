@@ -22,8 +22,9 @@ public class DragEventArgs : EventArgs
   public void SetPressed(byte button, bool down)
   { if(down) Buttons|=(byte)(1<<button); else Buttons&=(byte)~(1<<button);
   }
-  public Point  Start, End;
-  public byte   Buttons;
+  public Point Start, End;
+  public byte  Buttons;
+  public bool  Cancel;
 }
 public delegate void DragEventHandler(object sender, DragEventArgs e);
 
@@ -173,9 +174,11 @@ public class Control
     }
     set
     { DesktopControl desktop = Desktop;
-      if(desktop==null) throw new InvalidOperationException("This control has no desktop");
-      if(value==true) desktop.capturing = this;
-      else if(desktop.capturing==this) desktop.capturing=null;
+      if(value)
+      { if(desktop==null) throw new InvalidOperationException("This control has no desktop");
+        desktop.capturing = this;
+      }
+      else if(desktop!=null && desktop.capturing==this) desktop.capturing=null;
     }
   }
 
@@ -350,6 +353,8 @@ public class Control
     }
   }
 
+  public object Tag { get { return tag; } set { tag=value; } }
+  
   public string Text
   { get { return text; }
     set
@@ -460,7 +465,7 @@ public class Control
     else
     { if(invalid.Width==0) invalid = area;
       else invalid = Rectangle.Union(area, invalid); 
-      if(!pendingPaint && Events.Events.Initialized)
+      if(!pendingPaint && (parent!=null || this is DesktopControl) && Events.Events.Initialized)
       { pendingPaint=true;
         Events.Events.PushEvent(new WindowPaintEvent(this));
       }
@@ -642,6 +647,7 @@ public class Control
   protected virtual void OnControlAdded(ControlEventArgs e)   { if(ControlAdded!=null) ControlAdded(this, e); }
   protected virtual void OnControlRemoved(ControlEventArgs e)
   { if(focused==e.Control) focused=null;
+    Invalidate(e.Control.Bounds);
     if(ControlRemoved!=null) ControlRemoved(this, e);
   }
 
@@ -686,15 +692,17 @@ public class Control
   }
   protected virtual void OnParentVisibleChanged(ValueChangedEventArgs e) { if(Visible) Invalidate(); }
   
-  protected internal virtual void OnCustomEvent(WindowEvent e)
-  { throw new NotSupportedException(String.Format("Unhandled message type {0}", e.GetType()));
-  }
+  protected internal virtual void OnCustomEvent(WindowEvent e) { }
   #endregion
   
   internal void SetParent(Control control)
   { ValueChangedEventArgs ve = new ValueChangedEventArgs(parent);
     ControlEventArgs ce = new ControlEventArgs(this);
-    if(parent!=null) parent.OnControlRemoved(ce);
+    if(parent!=null)
+    { DesktopControl desktop = parent is DesktopControl ? (DesktopControl)parent : parent.Desktop;
+      if(desktop.capturing==ce.Control) desktop.capturing=null;
+      parent.OnControlRemoved(ce);
+    }
     parent = control;
     if(parent!=null) parent.OnControlAdded(ce);
     OnParentChanged(ve);
@@ -717,6 +725,7 @@ public class Control
   protected internal bool HasStyle(ControlStyle test) { return (style & test) != ControlStyle.None; }
   protected internal ControlStyle style;
   protected internal uint lastClickTime = int.MaxValue;
+  protected internal int  dragThreshold = -1;
 
   protected void CheckParent() { if(parent==null) throw new InvalidOperationException("This control has no parent"); }
   protected ControlCollection controls;
@@ -726,7 +735,8 @@ public class Control
   protected Color back=Color.Transparent, fore=Color.Transparent;
   protected IBlittable backimg, cursor;
   protected string name="", text="";
-  protected int tabIndex=-1;
+  protected object tag;
+  protected int  tabIndex=-1;
   protected bool enabled=true, visible=true, mychange, pendingPaint, pendingLayout, keyPreview, layoutSuspended;
 }
 #endregion
@@ -781,8 +791,10 @@ public class DesktopControl : ContainerControl
   { get { return surface; }
     set
     { surface = value;
-      Size = surface.Size;
-      Invalidate();
+      if(surface!=null)
+      { Size = surface.Size;
+        Invalidate();
+      }
     }
   }
   public Input.Key TabCharacter { get { return tab; } set { tab=value; } }
@@ -844,16 +856,19 @@ public class DesktopControl : ContainerControl
       { if(dragStarted)
         { drag.End = p==dragging ? at : dragging.PointToClient(ea.Point);
           dragging.OnDragMove(drag);
+          if(drag.Cancel) { dragging=null; dragStarted=false; }
         }
         else if(capturing==null || capturing==p)
         { int xd = ea.X-drag.Start.X;
           int yd = ea.Y-drag.Start.Y;
-          if(xd*xd+yd*yd >= dragThresh)
+          if(xd*xd+yd*yd >= (p.dragThreshold==-1 ? dragThresh : p.dragThreshold))
           { drag.Start = p.PointToClient(drag.Start);
             drag.End = ea.Point;
             drag.Buttons = ea.Buttons;
+            drag.Cancel = false;
             dragStarted = true;
             dragging.OnDragStart(drag);
+            if(drag.Cancel) { dragging=null; dragStarted=false; }
           }
         }
       }
@@ -875,17 +890,17 @@ public class DesktopControl : ContainerControl
     else if(keys && e is KeyboardEvent)
     { if(focused!=null)
       { KeyEventArgs ea = new KeyEventArgs((KeyboardEvent)e);
-        if(ea.KE.Down && ea.KE.Char!=0)
+        if(ea.KE.Down)
         { if(krTimer!=null)
-          { heldChar = ea.KE;
+          { heldKey = ea.KE;
             krTimer.Change(krDelay, krRate);
           }
         }
-        else if(heldChar!=null && heldChar.Key==ea.KE.Key)
+        else if(heldKey!=null && heldKey.Key==ea.KE.Key)
         { krTimer.Change(System.Threading.Timeout.Infinite, System.Threading.Timeout.Infinite);
-          heldChar = null;
+          heldKey = null;
         }
-        DispatchKeyToFocused(ea, false);
+        DispatchKeyToFocused(ea);
         return FilterAction.Drop;
       }
       else
@@ -893,7 +908,7 @@ public class DesktopControl : ContainerControl
         if(ke.Down && ke.Key==tab)
         { TabToNext(ke.HasAnyMod(Input.KeyMod.Shift));
           if(krTimer!=null)
-          { heldChar = ke;
+          { heldKey = ke;
             krTimer.Change(krDelay, krRate);
           }
         }
@@ -963,7 +978,7 @@ public class DesktopControl : ContainerControl
     { WindowEvent we = (WindowEvent)e;
       switch(we.SubType)
       { case WindowEvent.MessageType.KeyRepeat:
-          if(heldChar!=null) DispatchKeyToFocused(new KeyEventArgs(heldChar), true);
+          if(heldKey!=null) DispatchKeyToFocused(new KeyEventArgs(heldKey));
           break;
         case WindowEvent.MessageType.Paint: DoPaint(we.Control); break;
         case WindowEvent.MessageType.Layout: we.Control.OnLayout(new EventArgs()); break;
@@ -985,12 +1000,10 @@ public class DesktopControl : ContainerControl
   }
 
   #region Dispatchers
-  protected bool DispatchKeyEvent(Control target, KeyEventArgs e, bool repeat)
+  protected bool DispatchKeyEvent(Control target, KeyEventArgs e)
   { if(e.KE.Down)
-    { if(!repeat)
-      { target.OnKeyDown(e);
-        if(e.Handled) return false;
-      }
+    { target.OnKeyDown(e);
+      if(e.Handled) return false;
       if(e.KE.Char!=0) target.OnKeyPress(e);
     }
     else target.OnKeyUp(e);
@@ -1019,15 +1032,15 @@ public class DesktopControl : ContainerControl
     return !e.Handled;
   }
   
-  protected bool DispatchKeyToFocused(KeyEventArgs e, bool repeat)
+  protected bool DispatchKeyToFocused(KeyEventArgs e)
   { if(e.Handled) return false;
     if(focused!=null)
     { Control fc = focused;
       while(fc.FocusedControl!=null)
-      { if(fc.KeyPreview && !DispatchKeyEvent(fc, e, repeat)) goto done;
+      { if(fc.KeyPreview && !DispatchKeyEvent(fc, e)) goto done;
         fc = fc.FocusedControl;
       }
-      if(!DispatchKeyEvent(fc, e, repeat)) return false;
+      if(!DispatchKeyEvent(fc, e)) return false;
     }
     done:
     if(e.KE.Down && e.KE.Key==tab) TabToNext(e.KE.HasAnyMod(Input.KeyMod.Shift));
@@ -1049,7 +1062,7 @@ public class DesktopControl : ContainerControl
   protected Control[]   lastClicked=new Control[8], entered=new Control[8];
   protected Control     dragging;
   protected System.Threading.Timer krTimer;
-  protected KeyboardEvent heldChar;
+  protected KeyboardEvent heldKey;
   protected DragEventArgs drag;
   protected Input.Key tab=Input.Key.Tab;
   protected int   dragThresh=16, enteredLen, enteredMax=8;
