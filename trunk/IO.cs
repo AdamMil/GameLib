@@ -33,8 +33,7 @@ public class StreamStream : Stream, IDisposable
                                   "shared must be false");
     if(stream==null) throw new ArgumentNullException("stream");
     if(start<0 || length<0) throw new ArgumentOutOfRangeException("'start' or 'count'", "cannot be negative");
-    this.stream=stream; this.start=start; this.length=length; this.shared=shared;
-    this.position=start;
+    this.stream=stream; this.start=start; this.length=length; this.shared=shared; this.closeInner=closeInner;
   }
   ~StreamStream() { Dispose(true); }
   public void Dispose() { Dispose(false); GC.SuppressFinalize(this); }

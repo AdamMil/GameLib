@@ -110,8 +110,14 @@ public class LinkedList : ICollection, IEnumerable
   public Node Head  { get { return head; } }
   public Node Tail  { get { return tail; } }
 
-  public Node Append(object o) { return tail==null ? head=tail=new Node(o) : InsertAfter(tail, new Node(o)); }
-  public Node Prepend(object o) { return head==null ? head=tail=new Node(o) : InsertBefore(head, new Node(o)); }
+  public Node Append(object o)
+  { if(tail==null) { AssertEmpty(); count=1; return head=tail=new Node(o); }
+    else return InsertAfter(tail, new Node(o));
+  }
+  public Node Prepend(object o)
+  { if(head==null) { AssertEmpty(); count=1; return head=tail=new Node(o); }
+    else return InsertBefore(head, new Node(o));
+  }
   public Node InsertAfter(object at, object o)
   { Node n = Find(at);
     if(n==null) throw new ArgumentException("Object not found in list", "at");
@@ -125,8 +131,14 @@ public class LinkedList : ICollection, IEnumerable
   public void Remove(object o) { Remove(Find(o)); }
   public bool Contains(object o) { return Find(o)!=null; }
 
-  public Node Append(Node newNode)  { return tail==null ? head=tail=newNode : InsertAfter(tail, newNode); }
-  public Node Prepend(Node newNode) { return head==null ? head=tail=newNode : InsertBefore(head, newNode); }
+  public Node Append(Node newNode)
+  { if(tail==null) { AssertEmpty(); count=1; return head=tail=newNode; }
+    else return InsertAfter(tail, newNode);
+  }
+  public Node Prepend(Node newNode)
+  { if(head==null) { AssertEmpty(); count=1; return head=tail=newNode; }
+    else return InsertBefore(head, newNode);
+  }
   public Node Find(object o) { return Find(o, head); }
   public Node Find(object o, Node start)
   { while(start!=null && cmp.Compare(start.Data, o)!=0) start=start.Next;
@@ -140,36 +152,81 @@ public class LinkedList : ICollection, IEnumerable
   public Node InsertAfter(Node node, object o) { return InsertAfter(node, new Node(o)); }
   public Node InsertAfter(Node node, Node newNode)
   { if(node==null || newNode==null) throw new ArgumentNullException();
+    AssertIn(node);
+    AssertOut(newNode);
+    Validate();
     newNode.Prev = node;
     newNode.Next = node.Next;
     node.Next    = newNode;
-    if(node==tail) tail=node.Next;
+    if(node==tail) tail=newNode;
     count++;
     if(ListChanged!=null) ListChanged();
+    AssertIn(node);
+    AssertIn(newNode);
+    Validate();
     return newNode;
   }
   public Node InsertBefore(Node node, object o) { return InsertAfter(node, new Node(o)); }
   public Node InsertBefore(Node node, Node newNode)
   { if(node==null || newNode==null) throw new ArgumentNullException();
+    AssertIn(node);
+    AssertOut(newNode);
+    Validate();
     newNode.Prev = node.Prev;
     newNode.Next = node;
     node.Prev    = newNode;
-    if(node==head) head=node.Prev;
+    if(node==head) head=newNode;
     count++;
     if(ListChanged!=null) ListChanged();
+    AssertIn(node);
+    AssertIn(newNode);
+    Validate();
     return newNode;
   }
   public void Remove(Node node)
   { if(node==null) return;
+    AssertIn(node);
+    Validate();
     if(node.Prev!=null) node.Prev.Next=node.Next;
     if(node.Next!=null) node.Next.Prev=node.Prev;
     if(node==head) head=node.Next;
     if(node==tail) tail=node.Prev;
     count--;
     if(ListChanged!=null) ListChanged();
+    AssertOut(node);
+    Validate();
   }
   public void Clear() { head=tail=null; count=0; }
   
+  public void AssertEmpty()
+  { if(count!=0 || head!=null || tail!=null) throw new Exception("test5");
+  }
+
+  public void AssertIn(Node node)
+  { Node tn = head;
+    while(tn!=null) { if(tn==node) return; tn=tn.Next; }
+    throw new Exception("test1");
+  }
+
+  public void AssertOut(Node node)
+  { Node tn = head;
+    while(tn!=null) { if(tn==node) throw new Exception("test2"); tn=tn.Next; }
+  }
+  
+  public void Validate()
+  { Hashtable hash = new Hashtable();
+    Node tn = head;
+    int c=0;
+    while(tn!=null)
+    { if(hash.Contains(tn) || hash.Contains(tn.Data)) throw new Exception("test3");
+      hash[tn]=true;
+      hash[tn.Data]=true;
+      c++;
+      tn=tn.Next;
+    }
+    if(c!=count) throw new Exception("test4");
+  }
+
   protected IComparer cmp;
   protected Node head, tail;
   protected int count;
