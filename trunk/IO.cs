@@ -48,10 +48,11 @@ public class IOH
   public static int Read(Stream stream, byte[] buf) { return Read(stream, buf, 0, buf.Length); }
   public static int Read(Stream stream, byte[] buf, int length) { return Read(stream, buf, 0, length); }
   public static int Read(Stream stream, byte[] buf, int offset, int length)
-  { int read=0;
+  { int read=0, total=0;
     while(true)
-    { read += stream.Read(buf, offset+read, length-read);
-      if(read==length) return length;
+    { read = stream.Read(buf, offset+read, length-read);
+      total += read;
+      if(total==length) return length;
       if(read==0) throw new EndOfStreamException();
     }
   }

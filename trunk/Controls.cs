@@ -229,10 +229,11 @@ public class Button : ButtonBase
   { base.OnPaint(e);
 
     Rectangle rect = DisplayRect;
+    bool pressed = Pressed && over;
 
     if(Image!=null)
     { Point at = Helpers.CalculateAlignment(rect, new Size(Image.Width, Image.Height), ImageAlign);
-      if(Pressed) at.Offset(1, 1);
+      if(pressed) at.Offset(1, 1);
       Image.Blit(e.Surface, at.X, at.Y);
     }
     if(Text.Length>0)
@@ -240,7 +241,7 @@ public class Button : ButtonBase
       if(f!=null)
       { Rectangle box = rect;
         box.Inflate(-1, -1);
-        if(Pressed) box.Offset(1, 1);
+        if(pressed) box.Offset(1, 1);
         f.Color     = ForeColor;
         f.BackColor = BackColor;
         f.Render(e.Surface, Text, box, TextAlign);
@@ -250,7 +251,7 @@ public class Button : ButtonBase
     Color bright, dark, back=BackColor;
     bright = Color.FromArgb(back.R+(255-back.R)*3/5, back.G+(255-back.G)*3/5, back.B+(255-back.B)*3/5);
     dark   = Color.FromArgb(back.R/2, back.G/2, back.B/2);
-    if(Pressed) { Color t=bright; bright=dark; dark=t; }
+    if(pressed) { Color t=bright; bright=dark; dark=t; }
     else if(Selected) bright=dark=Color.Black;
     Primitives.Line(e.Surface, rect.X, rect.Y, rect.Right-1, rect.Y, bright);
     Primitives.Line(e.Surface, rect.X, rect.Y, rect.X, rect.Bottom-1, bright);
@@ -258,10 +259,22 @@ public class Button : ButtonBase
     Primitives.Line(e.Surface, rect.Right-1, rect.Y, rect.Right-1, rect.Bottom-1, dark);
   }
   
+  protected internal override void OnMouseEnter(EventArgs e)
+  { over=true;
+    if(Pressed) Invalidate();
+    base.OnMouseEnter(e);
+  }
+  protected internal override void OnMouseLeave(EventArgs e)
+  { over=false;
+    if(Pressed) Invalidate();
+    base.OnMouseLeave(e);
+  }
   protected override void OnLostFocus(EventArgs e) { Invalidate(); base.OnLostFocus(e); }
   protected override void OnGotFocus(EventArgs e)  { Invalidate(); base.OnGotFocus(e); }
 
   protected override void OnPressedChanged(EventArgs e) { Invalidate(); base.OnPressedChanged(e); }
+  
+  bool over;
 }
 #endregion
 
@@ -1743,19 +1756,20 @@ public sealed class MessageBox : Form
         }
         btnWidth += (buttonTexts.Length-1) * btnSpace; // space between buttons
         
+        Label label  = new Label(message);
         int textWidth = desktop.Width/2-font.LineSkip*2, textHeight;
         if(btnWidth>textWidth) textWidth = btnWidth;
         Rectangle rect = new Rectangle(0, 0, textWidth, int.MaxValue);
         int lines = font.WordWrap(message, rect).Length;
         if(lines==1) textWidth = font.CalculateSize(message).Width;
-        textHeight = lines*font.LineSkip;
-        height += textHeight;
+        textWidth += label.TextPadding*2;
+        textHeight = lines*font.LineSkip + label.TextPadding*2;
 
-        Size = new Size(Math.Max(btnWidth*3/2, textWidth+font.LineSkip*2), height);
+        height += textHeight;
+        Size = new Size(Math.Max(Math.Min(desktop.Width, btnWidth*3/2), textWidth+font.LineSkip*2), height);
         Location = new Point((desktop.Width-Width)/2, (desktop.Height-Height)/2);
         
-        Label label  = new Label(message);
-        label.Bounds = new Rectangle((Width-textWidth)/2, font.LineSkip, Width-font.LineSkip*2, textHeight);
+        label.Bounds = new Rectangle((Width-textWidth)/2, font.LineSkip, textWidth, textHeight);
         label.TextAlign = ContentAlignment.TopCenter;
         
         int x = (Width-btnWidth)/2, y = Height-font.LineSkip-btnHeight;
