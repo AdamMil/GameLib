@@ -43,6 +43,7 @@ Changes
 * Fixed Polygon.GetBounds()
 * Made sure Line.Intersection(Rectangle) wouldn't loop infinitely (due to
   floating point inaccuracy/imprecision)
+* Fixed a bug in the rectangle union code
 
 2004.02.07 (beta)
 -----------------
