@@ -1140,7 +1140,8 @@ public class TextBox : TextBoxBase
 
 #region MenuItemBase
 public abstract class MenuItemBase : Control
-{ public KeyCombo GlobalHotKey { get { return globalHotKey; } set { globalHotKey=value; } }
+{ public bool AllowKeyRepeat { get { return keyRepeat; } set { keyRepeat=value; } }
+  public KeyCombo GlobalHotKey { get { return globalHotKey; } set { globalHotKey=value; } }
   public char HotKey { get { return hotKey; } set { hotKey=char.ToUpper(value); } }
   public MenuBase Menu { get { return (MenuBase)Parent; } }
 
@@ -1152,6 +1153,7 @@ public abstract class MenuItemBase : Control
 
   KeyCombo globalHotKey;
   char hotKey;
+  bool keyRepeat;
 }
 #endregion
 
@@ -1354,10 +1356,18 @@ public abstract class MenuBarBase : Control
   public MenuBase Add(MenuBase item) { Menus.Add(item); return item; }
 
   public bool HandleKey(Events.KeyboardEvent e)
-  { for(int i=0; i<buttons.Length; i++) if(buttons[i].Menu.GlobalHotKey.Matches(e)) { Open(i, false); return true; }
+  { for(int i=0; i<buttons.Length; i++) if(buttons[i].Menu.GlobalHotKey.Matches(e))
+    { Desktop.StopKeyRepeat();
+      Open(i, false);
+      return true;
+    }
     foreach(MenuBase menu in menus)
       foreach(MenuItemBase item in menu.Controls)
-        if(item.GlobalHotKey.Matches(e)) { menu.PostClickEvent(item); return true; }
+        if(item.GlobalHotKey.Matches(e))
+        { if(!item.AllowKeyRepeat) Desktop.StopKeyRepeat();
+          menu.PostClickEvent(item);
+          return true;
+        }
     return false;
   }
 

@@ -70,7 +70,7 @@ public struct Point
   { float xd=point.X-X, yd=point.Y-Y;
     return (float)Math.Sqrt(xd*xd+yd*yd);
   }
-  public float DistanceSqrTo(Point point)
+  public float DistanceSquaredTo(Point point)
   { float xd=point.X-X, yd=point.Y-Y;
     return xd*xd+yd*yd;
   }
@@ -248,6 +248,28 @@ public sealed class Polygon
     return true;
   }
 
+  public float GetArea()
+  { float area=0;
+    int i;
+    for(i=0; i<points.Length-1; i++) area += points[i].X*points[i+1].Y - points[i+1].X*points[i].Y;
+    area += points[i].X*points[0].Y - points[0].X*points[i].Y;
+    return Math.Abs(area)/2;
+  }
+
+  public Point GetCentroid()
+  { float area=0,x=0,y=0,d;
+    for(int i=0,j; i<points.Length; i++)
+    { j = i+1==points.Length ? 0 : i+1;
+      d = points[i].X*points[j].Y - points[j].X*points[i].Y;
+      x += (points[i].X+points[j].X)*d;
+      y += (points[i].Y+points[j].Y)*d;
+      area += d;
+    }
+    if(area<0) { area=-area; x=-x; y=-y; }
+    area *= 3;
+    return new Point(x/area, y/area);
+  }
+
   public Corner GetCorner(int index)
   { if(length<3) throw new InvalidOperationException("Not a valid polygon [not enough points]!");
     Corner c = new Corner();
@@ -367,8 +389,8 @@ public sealed class Polygon
                 // and we want to make sure the other point is actually on the line segment
                 if(!lint.Point.Valid || lint.OnFirst || !lint.OnSecond) continue;
                 ept = 0;
-                d  = lint.Point.DistanceSqrTo(toExtend.GetPoint(0)); // find the shortest cut
-                d2 = lint.Point.DistanceSqrTo(toExtend.GetPoint(1));
+                d  = lint.Point.DistanceSquaredTo(toExtend.GetPoint(0)); // find the shortest cut
+                d2 = lint.Point.DistanceSquaredTo(toExtend.GetPoint(1));
                 if(d2<d)   { d=d2; ept=1; } // 'ept' references which point gets moved to do the extension
                 if(d<dist) { dist=d; splitEdge=sei; extPoint=ept; splitPoint=lint.Point; }
               }
@@ -504,7 +526,7 @@ public struct Point
   { float xd=point.X-X, yd=point.Y-Y, zd=point.Z-Z;
     return (float)Math.Sqrt(xd*xd+yd*yd+zd*zd);
   }
-  public float DistanceSqrTo(Point point)
+  public float DistanceCubedTo(Point point)
   { float xd=point.X-X, yd=point.Y-Y, zd=point.Z-Z;
     return xd*xd+yd*yd+zd*zd;
   }
