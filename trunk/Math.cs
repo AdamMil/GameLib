@@ -24,8 +24,8 @@ namespace GameLib.Mathematics
 public class MathConst
 { private MathConst() { }
 
-  public const double DegreesToRadians = Math.PI/360;
-  public const double RadiansToDegrees = 360/Math.PI;
+  public const double DegreesToRadians = Math.PI/180;
+  public const double RadiansToDegrees = 180/Math.PI;
 }
 
 // TODO: once generics become available, implement these in a type-generic fashion
@@ -58,8 +58,8 @@ public struct Vector
   public static Vector operator-(Vector a, Vector b) { return new Vector(a.X-b.X, a.Y-b.Y); }
   public static Vector operator*(Vector a, Vector b) { return new Vector(a.X*b.X, a.Y*b.Y); }
   public static Vector operator/(Vector a, Vector b) { return new Vector(a.X/b.X, a.Y/b.Y); }
-  public static Vector operator*(Vector v, float f)   { return new Vector(v.X*f, v.Y*f); }
-  public static Vector operator/(Vector v, float f)   { return new Vector(v.X/f, v.Y/f); }
+  public static Vector operator*(Vector v, float f)  { return new Vector(v.X*f, v.Y*f); }
+  public static Vector operator/(Vector v, float f)  { return new Vector(v.X/f, v.Y/f); }
   
   public float X, Y;
   
