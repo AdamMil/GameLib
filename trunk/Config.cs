@@ -30,8 +30,6 @@ public sealed class Config
   public const string SDLImageImportPath  = "SDL_image";
   /// <summary>The <see cref="DllImportAttribute"/> path to the SDL_gfx library.</summary>
   public const string SDLGFXImportPath    = "sdlgfx";
-  /// <summary>The <see cref="DllImportAttribute"/> path to the GameLib Mixer library.</summary>
-  public const string GLMixerImportPath   = "Mixer";
   /// <summary>The <see cref="DllImportAttribute"/> path to the libsndfile library.</summary>
   public const string SndFileImportPath   = "libsndfile";
   /// <summary>The <see cref="DllImportAttribute"/> path to the GameLib VorbisWrapper library.</summary>
@@ -42,6 +40,8 @@ public sealed class Config
   public const string SDLImportPath       = "SDL";
   /// <summary>The <see cref="DllImportAttribute"/> path to the SDL_ttf library.</summary>
   public const string SDLTTFImportPath    = "SDL_ttf";
+  /// <summary>The <see cref="DllImportAttribute"/> path to the GameLib Mixer library.</summary>
+  public const string GLMixerImportPath   = "Mixer";
   /// <summary>The <see cref="DllImportAttribute"/> path to the GameLib Utility library.</summary>
   public const string GLUtilityImportPath = "Utility";
   /// <summary>The <see cref="DllImportAttribute"/> path to the OpenGL library.</summary>
@@ -53,6 +53,8 @@ public sealed class Config
   public const string SDLImportPath       = "libSDL-1.2.so.0";
   /// <summary>The <see cref="DllImportAttribute"/> path to the SDL_ttf library.</summary>
   public const string SDLTTFImportPath    = "libSDL_ttf-2.0.so.0";
+  /// <summary>The <see cref="DllImportAttribute"/> path to the GameLib Mixer library.</summary>
+  public const string GLMixerImportPath   = "libGameLibMixer.so";
   /// <summary>The <see cref="DllImportAttribute"/> path to the GameLib Utility library.</summary>
   public const string GLUtilityImportPath = "libGameLibUtility.so";
   /// <summary>The <see cref="DllImportAttribute"/> path to the OpenGL library.</summary>
