@@ -122,6 +122,11 @@
                     BuildAction = "Compile"
                 />
                 <File
+                    RelPath = "LinkedList.cs"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
                     RelPath = "OpenGL.cs"
                     SubType = "Code"
                     BuildAction = "Compile"
@@ -133,6 +138,11 @@
                 />
                 <File
                     RelPath = "PriorityQueue.cs"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "RedBlackTree.cs"
                     SubType = "Code"
                     BuildAction = "Compile"
                 />

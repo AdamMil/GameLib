@@ -1,7 +1,7 @@
 using System;
-using System.Collections;
 using System.Drawing;
 using GameLib.Video;
+using GameLib.Collections;
 using GameLib.Interop.SDL;
 using GameLib.Interop.SDLTTF;
 
@@ -11,7 +11,8 @@ namespace GameLib.Fonts
 #region Abstract classes
 public abstract class Font
 { public Font()
-  { Video.Video.ModeChanged += handler;
+  { handler = new Video.ModeChangedHandler(DisplayFormatChanged);
+    Video.Video.ModeChanged += handler;
   }
 
   public abstract int Height { get; }
@@ -51,7 +52,7 @@ public abstract class Font
 }
 
 [Flags]
-public enum FontStyle
+public enum FontStyle : byte
 { Normal=0, Bold=1, Italic=2, Underlined=4
 }
 public abstract class NonFixedFont : Font
@@ -61,10 +62,10 @@ public abstract class NonFixedFont : Font
 }
 #endregion
 
-#region BmpFont class
-public class BmpFont : Font, IDisposable
-{ public BmpFont(Surface font, string charset, int charWidth) : this(font, charset, charWidth, 1, font.Height+2) { }
-  public BmpFont(Surface font, string charset, int charWidth, int xAdd, int lineSkip)
+#region BitmapFont class
+public class BitmapFont : Font, IDisposable
+{ public BitmapFont(Surface font, string charset, int charWidth) : this(font, charset, charWidth, 1, font.Height+2) { }
+  public BitmapFont(Surface font, string charset, int charWidth, int xAdd, int lineSkip)
   { orig   = font;
     width  = charWidth;
     height = lineSkip;
@@ -72,7 +73,7 @@ public class BmpFont : Font, IDisposable
     this.font    = orig.CloneDisplay();
     this.charset = charset;
   }
-  ~BmpFont() { Dispose(true); }
+  ~BitmapFont() { Dispose(true); }
   public void Dispose() { Dispose(false); GC.SuppressFinalize(this); }
   
   public override int Height   { get { return font.Height; } }
@@ -105,31 +106,31 @@ public class BmpFont : Font, IDisposable
 }
 #endregion
 
-#region TTFont enums & class
-public enum RenderStyle
+#region TrueType enums & class
+public enum RenderStyle : byte
 { Solid, Shaded, Blended
 }
-public class TTFont : NonFixedFont, IDisposable
-{ public TTFont(string filename, int pointSize)
+public class TrueTypeFont : NonFixedFont, IDisposable
+{ public TrueTypeFont(string filename, int pointSize)
   { TTF.Initialize();
     font = TTF.OpenFont(filename, pointSize);
     Init();
   }
-  public TTFont(string filename, int pointSize, int fontIndex)
+  public TrueTypeFont(string filename, int pointSize, int fontIndex)
   { font = TTF.OpenFontIndex(filename, pointSize, fontIndex);
     Init();
   }
-  public TTFont(System.IO.Stream stream, int pointSize)
+  public TrueTypeFont(System.IO.Stream stream, int pointSize)
   { StreamSource source = new StreamSource(stream);
     unsafe { fixed(SDL.RWOps* ops = &source.ops) font = TTF.OpenFontRW(ops, 0, pointSize); }
     Init();
   }
-  public TTFont(System.IO.Stream stream, int pointSize, int fontIndex)
+  public TrueTypeFont(System.IO.Stream stream, int pointSize, int fontIndex)
   { StreamSource source = new StreamSource(stream);
     unsafe { fixed(SDL.RWOps* ops = &source.ops) font = TTF.OpenFontIndexRW(ops, 0, pointSize, fontIndex); }
     Init();
   }
-  ~TTFont() { Dispose(true); }
+  ~TrueTypeFont() { Dispose(true); }
   public void Dispose() { Dispose(false); GC.SuppressFinalize(this); }
 
   public override FontStyle Style
@@ -148,7 +149,22 @@ public class TTFont : NonFixedFont, IDisposable
   public override int LineSkip { get { return TTF.FontLineSkip(font); } }
   public int Ascent  { get { return TTF.FontAscent(font); } }
   public int Descent { get { return TTF.FontDescent(font); } }
-  public int CacheSize { get { throw new NotImplementedException(); } set { throw new NotImplementedException(); } }
+
+  public string FamilyName { get { return TTF.FontFaceFamilyName(font); } }
+  public string StyleName  { get { return TTF.FontFaceStyleName(font);  } }
+
+  public int CacheSize
+  { get { return cacheMax; }
+    set
+    { if(value<0) throw new ArgumentException("Cache size cannot be negative");
+      if(value==0) ClearCache();
+      else if(value<list.Count)
+      { LinkedList.Node n=list.Tail;
+        for(int i=0,num=list.Count-value; i<num; n=n.Prev,i++) CacheRemove(n);
+      }
+      cacheMax = value;
+    }
+  }
   
   public override Size CalculateSize(string text)
   { int width, height;
@@ -163,7 +179,7 @@ public class TTFont : NonFixedFont, IDisposable
     }
   }
 
-  protected class CacheIndex : IComparable
+  protected struct CacheIndex : IComparable
   { public CacheIndex(char c, Color color, Color bgColor, FontStyle fstyle, RenderStyle rstyle)
     { Char=c; Color=color; BackColor=bgColor; FontStyle=fstyle; RenderStyle=rstyle;
     }
@@ -181,9 +197,9 @@ public class TTFont : NonFixedFont, IDisposable
     }
     public Color       Color;
     public Color       BackColor;
+    public char        Char;
     public FontStyle   FontStyle;
     public RenderStyle RenderStyle;
-    public char        Char;
   }
   protected class CachedChar : IDisposable
   { public CachedChar() { }
@@ -191,6 +207,7 @@ public class TTFont : NonFixedFont, IDisposable
     ~CachedChar() { Dispose(true); }
     public void Dispose() { Dispose(false); GC.SuppressFinalize(this); }
     
+    public CacheIndex Index;
     public Surface Surface;
     public int     OffsetX, OffsetY, Advance;
     public char    Char;
@@ -201,10 +218,13 @@ public class TTFont : NonFixedFont, IDisposable
   // TODO: implement a priority queue to efficiently limit the cache size
   protected CachedChar GetChar(char c)
   { CacheIndex ind = new CacheIndex(c, color, bgColor, fstyle, rstyle);
-    if(cache.Contains(ind)) return (CachedChar)cache[ind];
+    LinkedList.Node node = (LinkedList.Node)tree[ind];
+    if(node!=null) return (CachedChar)node.Data;
+
     CachedChar cc = new CachedChar(c);
     int minx, maxx, miny, maxy, advance;
     TTF.Check(TTF.GlyphMetrics(font, c, out minx, out maxx, out miny, out maxy, out advance));
+    cc.Index   = ind;
     cc.OffsetX = Math.Max(minx, 0);
     cc.OffsetY = Ascent-maxy;
     cc.Advance = advance;
@@ -218,11 +238,26 @@ public class TTFont : NonFixedFont, IDisposable
       if(surface==null) TTF.RaiseError();
       cc.Surface = new Surface(surface, true).CloneDisplay();
     }
-    cache[ind] = cc;
+
+    if(cacheMax!=0)
+    { if(list.Count>=cacheMax) CacheRemove(list.Tail);
+      tree[ind]=list.Prepend(cc);
+    }
     return cc;
   }
   
-  protected override void DisplayFormatChanged() { cache.Clear(); }
+  protected override void DisplayFormatChanged() { ClearCache(); }
+
+  protected void ClearCache()
+  { tree.Clear();
+    list.Clear();
+  }
+  protected void CacheRemove(LinkedList.Node n)
+  { CachedChar cc = (CachedChar)n.Data;
+    cc.Dispose();
+    tree.Remove(cc.Index);
+    list.Remove(n);
+  }
 
   protected void Dispose(bool destructor)
   { unsafe
@@ -232,9 +267,9 @@ public class TTFont : NonFixedFont, IDisposable
         font = new IntPtr(null);
       }
     }
-    if(cache.Count>0)
-    { foreach(CachedChar c in cache.Values) c.Dispose();
-      cache.Clear();
+    if(list.Count>0)
+    { foreach(CachedChar c in list) c.Dispose();
+      ClearCache();
     }
     base.Deinit();
   }
@@ -246,10 +281,12 @@ public class TTFont : NonFixedFont, IDisposable
     RenderStyle = RenderStyle.Solid;
   }
 
-  protected Hashtable    cache = new Hashtable();
+  protected RedBlackTree tree = new RedBlackTree();
+  protected LinkedList   list = new LinkedList();
+  protected Color        color, bgColor;
+  protected int          cacheMax=512;
   protected FontStyle    fstyle;
   protected RenderStyle  rstyle;
-  protected Color        color, bgColor;
   private SDL.Color sdlColor, sdlBgColor;
   private IntPtr    font;
 }
