@@ -90,7 +90,7 @@ class Complex : INetSerializeable
   #region INetSerializeable Members
   public int SizeOf() { return IOH.CalculateSize(">d?dp", Array, String); }
 
-  public void SerializeTo(byte[] buf, int index) // use I/O similar to python's
+  public void SerializeTo(byte[] buf, int index) // use formatted binary IO
   { IOH.Write(buf, index, ">d?dp", Array.Length, Array, String);
   }
 
