@@ -1,6 +1,7 @@
 // TODO: implement mouse cursor
 // TODO: add 'other control' to focus events?
 // TODO: examine Layout further (implemented properly?)
+// TODO: implement optional backing surface
 using System;
 using System.Collections;
 using System.Drawing;
@@ -65,9 +66,25 @@ public class PaintEventArgs : EventArgs
   /// This rectangle is used to generated the <see cref="DisplayRect"/> field.
   /// </param>
   /// <param name="surface">The surface onto which the control should be drawn. This is expected to be the
-  /// same surface that's associated with the control's <see cref="Control.Desktop"/> property.</param>
-  public PaintEventArgs(Control control, Rectangle rect, Surface surface)
-  { Surface=surface; WindowRect=rect; DisplayRect=control.WindowToDisplay(rect);
+  /// same surface that's associated with the control's <see cref="Control.Desktop"/> property. If the child
+  /// has a backing surface, the surface passed will be ignored, and the child's backing surface will be used
+  /// instead. Also, the rectangle passed in will be clipped against the surface's bounds by the constructor.
+  /// </param>
+  public PaintEventArgs(Control control, Rectangle windowRect, Surface surface)
+  { WindowRect = windowRect;
+    if(control.backingSurface==null)
+    { Surface = surface;
+      DisplayRect = control.WindowToDisplay(windowRect);
+      if(!Surface.Bounds.Contains(DisplayRect))
+      { DisplayRect.Intersect(Surface.Bounds);
+        WindowRect = control.DisplayToWindow(DisplayRect);
+      }
+    }
+    else
+    { Surface = control.backingSurface;
+      WindowRect.Intersect(Surface.Bounds);
+      DisplayRect = WindowRect;
+    }
   }
   /// <summary>This field holds a reference to the surface upon which the control should be painted.</summary>
   public Surface Surface;
@@ -146,6 +163,11 @@ public enum ControlStyle
   /// <summary>This flag is the same as specifying <c>Clickable</c>, <c>DoubleClickable</c>, and <c>Draggable</c>.
   /// </summary>
   Anyclick=NormalClick|Draggable,
+  /// <summary>Instead of drawing to the desktop directly, the control will have a backing surface to which all
+  /// drawing will be done. This is especially useful if it's difficult for the control to keep its drawing within
+  /// its window. Transparent background colors for controls with backing surfaces is not supported.
+  /// </summary>
+  BackingSurface=16
 }
 
 /// <summary>
@@ -636,7 +658,16 @@ public class Control
     }
   }
 
-  public ControlStyle Style { get { return style; } set { style=value; } }
+  public ControlStyle Style
+  { get { return style; }
+    set
+    { if(value!=style)
+      { style=value;
+        if((value&ControlStyle.BackingSurface)==0) backingSurface=null;
+        else if(backingSurface==null) UpdateBackingSurface(false);
+      }
+    }
+  }
 
   public int TabIndex
   { get { return tabIndex; }
@@ -909,6 +940,7 @@ public class Control
       UpdateDock();
       Invalidate();
     }
+    UpdateBackingSurface(false);
   }
 
   protected virtual void OnSizeChanged(ValueChangedEventArgs e)
@@ -919,6 +951,7 @@ public class Control
     { if(!layoutSuspended && Events.Events.Initialized) Events.Events.PushEvent(new WindowLayoutEvent(this));
       pendingLayout=true;
     }
+    UpdateBackingSurface(false);
     Size old = (Size)e.OldValue;
     if(parent!=null && (bounds.Width<old.Width || bounds.Height<old.Height))
     { if(bounds.Width<old.Width && bounds.Height<old.Height) // invalidate the smallest rectangle necessary
@@ -1029,7 +1062,7 @@ public class Control
     if(parent!=null) parent.OnControlAdded(ce);
     if(!mychange) OnParentChanged(ve);
   }
-  
+
   protected internal Control FocusedControl
   { get { return focused; }
     set
@@ -1043,11 +1076,23 @@ public class Control
       }
     }
   }
-  
+
   protected internal bool HasStyle(ControlStyle test) { return (style & test) != ControlStyle.None; }
-  
+
   protected internal int dragThreshold = -1;
 
+  internal void UpdateBackingSurface(bool forceNew)
+  { DesktopControl desktop = Desktop;
+    bool hasStyle = (style&ControlStyle.BackingSurface)!=0;
+    if(forceNew || ((!hasStyle || desktop==null) && backingSurface!=null) ||
+       ((hasStyle || desktop!=null) && (backingSurface==null || Size!=backingSurface.Size)))
+    { if(hasStyle && desktop!=null && desktop.Surface!=null)
+        backingSurface = desktop.Surface.CreateCompatible(Width, Height, SurfaceFlag.None);
+      else backingSurface = null;
+    }
+  }
+
+  internal Surface backingSurface;
   internal uint lastClickTime = int.MaxValue;
 
   protected void AssertParent()
@@ -1080,7 +1125,7 @@ public class Control
     }
     mychange=false;
   }
-
+  
   ControlCollection controls;
   Control parent, focused;
   GameLib.Fonts.Font font;
@@ -1150,8 +1195,11 @@ public class DesktopControl : ContainerControl, IDisposable
   public Surface Surface
   { get { return surface; }
     set
-    { surface = value;
-      if(surface!=null) Invalidate();
+    { if(value!=surface)
+      { surface = value;
+        if(surface!=null) Invalidate();
+        UpdateBackingSurfaces();
+      }
     }
   }
 
@@ -1176,12 +1224,13 @@ public class DesktopControl : ContainerControl, IDisposable
   public void DoPaint(Control child)
   { if(surface!=null && child.InvalidRect.Width>0)
     { PaintEventArgs pe = new PaintEventArgs(child, child.InvalidRect, surface);
-      if(!Surface.Bounds.Contains(pe.DisplayRect))
-      { pe.DisplayRect.Intersect(Surface.Bounds);
-        pe.WindowRect = child.DisplayToWindow(pe.DisplayRect);
-      }
       child.OnPaintBackground(pe);
       child.OnPaint(pe);
+      if(pe.Surface==child.backingSurface)
+      { Point pt = new Point(pe.DisplayRect.X+child.Left, pe.DisplayRect.Y+child.Top);
+        pe.Surface.Blit(surface, pe.DisplayRect, pt);
+        pe.DisplayRect.Location = pt;
+      }
 
       // TODO: combine rectangles more efficiently
       if(trackUpdates) AddUpdatedArea(pe.DisplayRect);
@@ -1421,7 +1470,9 @@ public class DesktopControl : ContainerControl, IDisposable
 
   protected void Dispose(bool destructor)
   { if(init)
-    { Events.Events.Initialize();
+    { Video.Video.ModeChanged -= modeChanged;
+      modeChanged = null;
+      Events.Events.Deinitialize();
       init = false;
     }
     if(krTimer!=null)
@@ -1506,16 +1557,32 @@ public class DesktopControl : ContainerControl, IDisposable
   }
   #endregion
 
+  void EndDrag()
+  { dragging=null;
+    dragStarted=false;
+    drag.Buttons=0;
+  }
+
+  void Init()
+  { Events.Events.Initialize();
+    init = true;
+    drag = new DragEventArgs();
+    modeChanged = new ModeChangedHandler(UpdateBackingSurfaces);
+    Video.Video.ModeChanged += modeChanged;
+  }
+
   void RepeatKey(object dummy) { if(!keyProcessing) Events.Events.PushEvent(new KeyRepeatEvent()); }
+
   void TabToNext(bool reverse)
   { Control fc = this;
     while(fc.FocusedControl!=null) fc=fc.FocusedControl;
     (fc==this ? this : fc.Parent).TabToNextControl(reverse);
   }
-  void EndDrag()
-  { dragging=null;
-    dragStarted=false;
-    drag.Buttons=0;
+
+  void UpdateBackingSurfaces() { UpdateBackingSurfaces(this); }
+  void UpdateBackingSurfaces(Control control)
+  { control.UpdateBackingSurface(true);
+    foreach(Control child in control.Controls) UpdateBackingSurfaces(child);
   }
 
   [Flags] enum ClickStatus { None=0, UpDown=1, Click=2, All=UpDown|Click };
@@ -1527,17 +1594,12 @@ public class DesktopControl : ContainerControl, IDisposable
   KeyboardEvent heldKey;
   DragEventArgs drag;
   Rectangle[] updated = new Rectangle[8];
+  ModeChangedHandler modeChanged;
   Input.Key tab=Input.Key.Tab;
   ClickStatus clickStatus;
   int   dragThresh=16, enteredLen, updatedLen;
   uint  dcDelay=350, krDelay, krRate=40;
   bool  keys=true, clicks=true, moves=true, init, dragStarted, trackUpdates=true, keyProcessing;
-  
-  void Init()
-  { Events.Events.Initialize();
-    init = true;
-    drag = new DragEventArgs();
-  }
 }
 #endregion
 

@@ -1071,7 +1071,8 @@ public class TextBox : TextBoxBase
 
 #region MenuItemBase
 public class MenuItemBase : Control
-{ public char HotKey   { get { return hotKey; } set { hotKey=char.ToUpper(value); } }
+{ public KeyCombo GlobalHotKey { get { return globalHotKey; } set { globalHotKey=value; } }
+  public char HotKey { get { return hotKey; } set { hotKey=char.ToUpper(value); } }
   public MenuBase Menu { get { return (MenuBase)Parent; } }
 
   public event EventHandler Click;
@@ -1080,6 +1081,7 @@ public class MenuItemBase : Control
 
   protected internal virtual void OnClick(EventArgs e) { if(Click!=null) Click(this, e); }
 
+  KeyCombo globalHotKey;
   char hotKey;
 }
 #endregion
@@ -1176,9 +1178,12 @@ public class MenuBase : ContainerControl
 
 #region MenuItem
 public class MenuItem : MenuItemBase
-{ public MenuItem() { TextAlign = ContentAlignment.MiddleLeft; }
-  public MenuItem(string text) { Text=text; TextAlign = ContentAlignment.MiddleLeft; }
-  public MenuItem(string text, char hotKey) { Text=text; HotKey=hotKey; TextAlign = ContentAlignment.MiddleLeft; }
+{ public MenuItem() { }
+  public MenuItem(string text) { Text=text; }
+  public MenuItem(string text, char hotKey) { Text=text; HotKey=hotKey; }
+  public MenuItem(string text, char hotKey, KeyCombo globalHotKey)
+  { Text=text; HotKey=hotKey; GlobalHotKey=globalHotKey;
+  }
 
   public Color RawSelectedBackColor { get { return selBack; } }
   public Color RawSelectedForeColor { get { return selFore; } }
@@ -1199,16 +1204,6 @@ public class MenuItem : MenuItemBase
       return menu==null || menu.SelectedForeColor==Color.Transparent ? BackColor : menu.SelectedForeColor;
     }
     set { selFore=value; if(mouseOver) Invalidate(); }
-  }
-
-  public ContentAlignment TextAlign
-  { get { return textAlign; }
-    set
-    { if(textAlign != value)
-      { textAlign = value;
-        Invalidate();
-      }
-    }
   }
 
   protected internal override void OnMouseEnter(EventArgs e) { mouseOver=true;  Invalidate(); base.OnMouseEnter(e); }
@@ -1232,9 +1227,12 @@ public class MenuItem : MenuItemBase
     if(Text.Length>0)
     { GameLib.Fonts.Font f = Font;
       if(f != null)
-      { f.Color     = mouseOver ? SelectedForeColor : ForeColor;
+      { Rectangle rect = DisplayRect;
+        rect.Inflate(-2, -3);
+        f.Color     = mouseOver ? SelectedForeColor : ForeColor;
         f.BackColor = mouseOver ? SelectedBackColor : BackColor;
-        f.Render(e.Surface, Text, DisplayRect, TextAlign);
+        f.Render(e.Surface, Text, rect, ContentAlignment.MiddleLeft);
+        if(GlobalHotKey.Valid) f.Render(e.Surface, GlobalHotKey.ToString(), rect, ContentAlignment.MiddleRight);
       }
     }
   }
@@ -1243,11 +1241,16 @@ public class MenuItem : MenuItemBase
   { GameLib.Fonts.Font f = Font;
     if(f==null) return base.MeasureItem();
     Size size = f.CalculateSize(Text);
+    if(GlobalHotKey.Valid)
+    { Size hotkey = f.CalculateSize(GlobalHotKey.ToString());
+      size.Width += hotkey.Width + hotKeyPadding;
+      if(hotkey.Height>size.Height) size.Height=hotkey.Height;
+    }
     size.Width += 4; size.Height += 6;
     return size;
   }
 
-  ContentAlignment textAlign=ContentAlignment.TopLeft;
+  const int hotKeyPadding=20;
   Color selFore=Color.Transparent, selBack=Color.Transparent;
   bool mouseOver;
 }
