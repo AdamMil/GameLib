@@ -382,10 +382,21 @@ public sealed class Mouse
 
   public static System.Drawing.Point Point
   { get { return new System.Drawing.Point(x, y); }
-    set { x=value.X; y=value.Y; }
+    set
+    { if(value.X<0) value.X=0;
+      if(value.Y<0) value.Y=0;
+      SDL.WarpMouse((ushort)value.X, (ushort)value.Y);
+      SDL.GetMouseState(out x, out y);
+    }
   }
-  public static int X { get { return x; } set { x=value; } }
-  public static int Y { get { return y; } set { y=value; } }
+  public static int X
+  { get { return x; }
+    set { Point = new System.Drawing.Point(value,  y); }
+  }
+  public static int Y
+  { get { return y; }
+    set { Point = new System.Drawing.Point(x, value); }
+  }
   public static int Z { get { return z; } set { z=value; } }
   
   public static bool SystemCursorVisible

@@ -23,7 +23,8 @@ using GameLib.Events;
 using GameLib.Input;
 using GameLib.Video;
 using GameLib.Interop.OpenGL;
-using GameLib.Mathematics.ThreeD;
+using GameLib.Mathematics;
+using GameLib.Mathematics.TwoD;
 
 namespace OpenGLTest
 {
@@ -36,7 +37,7 @@ class App
   static string dataPath = "./data/"; 
   #endif
 
-  const int NUM_PARTICLES=500;
+  const int NUM_PARTICLES=125;
   const float ZOOM=-15f;
 
   struct Particle
@@ -51,9 +52,12 @@ class App
 
     Events.Initialize();
     Input.Initialize();
+    Mouse.Point = new System.Drawing.Point(Video.Width*6/10, Video.Height*4/10);
 
-    R=Rand.Next(256)/256f; G=Rand.Next(256)/256f; B=Rand.Next(256)/256f;
-    Ri=Rand.Next(64)/256f+0.01f; Gi=Rand.Next(64)/256f+0.01f; Bi=Rand.Next(64)/256f+0.01f;
+    for(int i=0; i<3; i++)
+    { Color[i] = Rand.Next(256)/256f;
+      Cinc [i] = Rand.Next(64)/256f+0.01f;
+    }
 
     float lastTime = (float)Timing.Seconds;
     while(true)
@@ -78,17 +82,19 @@ class App
   
   static void Initialize()
   { Video.Initialize();
-    Video.SetGLMode(640, 480, 32); //SurfaceFlag.Fullscreen); 
+    Video.SetGLMode(640, 480, 32, SurfaceFlag.Fullscreen); 
 
-    GL.glShadeModel(GL.GL_SMOOTH);
-    GL.glClearColor(0.0f, 0.0f, 0.0f, 0.5f);
-    GL.glClearDepth(1.0f);
+    GL.glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    GL.glDisable(GL.GL_DITHER);
     GL.glEnable(GL.GL_BLEND);
     GL.glEnable(GL.GL_TEXTURE_2D);
     GL.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE);
-    GL.glDepthFunc(GL.GL_LEQUAL);
-    GL.glHint(GL.GL_PERSPECTIVE_CORRECTION_HINT, GL.GL_NICEST);
+    // perspective correction is not necessary because all objects are
+    // parallel to the screen
+    GL.glHint(GL.GL_PERSPECTIVE_CORRECTION_HINT, GL.GL_FASTEST);
+    GL.glShadeModel(GL.GL_FLAT); // smooth shading is also unnecessary
 
+    uint[] textures = new uint[1];
     GL.glGenTextures(textures);
     GL.glBindTexture(GL.GL_TEXTURE_2D, textures[0]);
     OpenGL.TexImage2D(new Surface(dataPath+"particle.png"));
@@ -103,18 +109,18 @@ class App
   }
   
   static void Draw()
-  { GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT);
+  { GL.glClear(GL.GL_COLOR_BUFFER_BIT);
 
     foreach(Particle p in Particles)
     { GL.glPushMatrix();
-      GL.glTranslatef(p.Pos.X, p.Pos.Y, p.Pos.Z+ZOOM);
+      GL.glTranslatef(p.Pos.X, p.Pos.Y, ZOOM);
       GL.glRotatef(p.Angle, 0, 0, 1);
       GL.glBegin(GL.GL_QUADS);
       GL.glColor4f(p.R, p.G, p.B, p.Life);
-      GL.glTexCoord2f(0, 1); GL.glVertex3f(-0.5f, -0.5f, 0);
-      GL.glTexCoord2f(1, 1); GL.glVertex3f( 0.5f, -0.5f, 0);
-      GL.glTexCoord2f(1, 0); GL.glVertex3f( 0.5f,  0.5f, 0);
-      GL.glTexCoord2f(0, 0); GL.glVertex3f(-0.5f,  0.5f, 0);
+      GL.glTexCoord2f(0, 1); GL.glVertex2f(-0.5f, -0.5f);
+      GL.glTexCoord2f(1, 1); GL.glVertex2f( 0.5f, -0.5f);
+      GL.glTexCoord2f(1, 0); GL.glVertex2f( 0.5f,  0.5f);
+      GL.glTexCoord2f(0, 0); GL.glVertex2f(-0.5f,  0.5f);
       GL.glEnd();
       GL.glPopMatrix();
     }
@@ -123,23 +129,18 @@ class App
   }
   
   static void UpdateParticles(float timeDelta)
-  { Vector gravity = Gravity*timeDelta;
-    R+=Ri*timeDelta; G+=Gi*timeDelta; B+=Bi*timeDelta;
-    if(R<0.3f || R>1f)
-    { if(R<0.3f) { R=0.3f; Ri=Rand.Next(32)/256f+0.01f; }
-      else if(R>1f) { R=1f; Ri=-Rand.Next(32)/256f-0.01f; }
-    }
-    if(G<0.3f || G>1f)
-    { if(G<0.3f) { G=0.3f; Gi=Rand.Next(32)/256f+0.01f; }
-      else if(G>1f) { G=1f; Gi=-Rand.Next(32)/256f-0.01f; }
-    }
-    if(B<0.3f || B>1f)
-    { if(B<0.3f) { B=0.3f; Bi=Rand.Next(32)/256f+0.01f; }
-      else if(B>1f) { B=1f; Bi=-Rand.Next(32)/256f-0.01f; }
+  { Vector gravity = Gravity*timeDelta; // gravity for this update
+
+    for(int i=0; i<3; i++) // smooth, random color transitions
+    { Color[i] += Cinc[i]*timeDelta;
+      if(Color[i]<0.3f || Color[i]>1f)
+      { if(Color[i]<0.3f) { Color[i]=0.3f; Cinc[i]=Rand.Next(1, 32)/256f; }
+        else if(Color[i]>1) { Color[i]=1; Cinc[i]=-Rand.Next(1, 32)/256f; }
+      }
     }
 
-    float angle;
-    float length;
+    float angle;  // angle between the spigot and the mouse (in radians)
+    float length; // distance to the mouse from the spigot
     { Vector dir;
       double[] model=new double[16], proj=new double[16];
       int[] view=new int[4];
@@ -147,14 +148,10 @@ class App
       GL.glGetDoublev(GL.GL_MODELVIEW_MATRIX, model);
       GL.glGetDoublev(GL.GL_PROJECTION_MATRIX, proj);
       GL.glGetIntegerv(GL.GL_VIEWPORT, view);
-      GLU.gluUnProject(Mouse.X, view[3]-Mouse.Y, 1, model, proj, view, out x, out y, out z);
-      dir = new Vector((float)x/2, (float)y/2, 0);
+      GLU.gluUnProject(Mouse.X, Mouse.Y, 1, model, proj, view, out x, out y, out z);
+      dir = new Vector((float)x/2, (float)y/2);
       length = dir.Length;
-      angle  = (float)Math.Acos(dir.DotProduct(new Vector(1, 0, 0))/length);
-      if(y>0)
-      { if(x>0) angle = (float)(Math.PI*2-angle);
-        else angle += (float)((Math.PI-angle)*2);
-      }
+      angle  = dir.Angle;
     }
 
     for(int i=0; i<Particles.Length; i++)
@@ -167,24 +164,26 @@ class App
         else if(Particles[i].Angle>360) Particles[i].Angle -= 360;
       }
       else
-      { Particles[i].Vel = new Vector(Rand.Next(100)/250f, (Rand.Next(100)-50)/2500f, 0).RotatedZ(angle) * length;
-        Particles[i].Vel.Y = -Particles[i].Vel.Y;
-        Particles[i].Decay = Rand.Next(1000)/25f+0.0025f;
+      { // make a velocity pointing at 0 degrees, then rotate by 'angle'
+        Vector vel = new Vector((Rand.Next(200)+800)/2500f,
+                                (Rand.Next(100)-50)/1500f)
+                      .Rotated(angle)*length; // and multiply by 'length'
+        Particles[i].Vel   = vel;
+        Particles[i].Decay = Math.Max((float)Rand.NextDouble(), 0.1f);
         Particles[i].Life  = 1f;
-        Particles[i].Pos   = new Point(0, 0, 0);
-        Particles[i].R=R; Particles[i].G=G; Particles[i].B=B;
+        Particles[i].Pos   = new Point(0, 0); // position of the spigot
         Particles[i].Angle = 0;
-        Particles[i].AngleVel = (Rand.Next(360)-180)*Particles[i].Vel.LengthSqr/10;
+        // rotate faster for higher velocities
+        Particles[i].AngleVel = (Rand.Next(360)-180)*vel.LengthSqr/10;
+        Particles[i].R=Color[0]; Particles[i].G=Color[1]; Particles[i].B=Color[2];
       }
     }
   }
 
   static Particle[] Particles = new Particle[NUM_PARTICLES];
-  static Vector Gravity = new Vector(0, -1, 0);
+  static Vector Gravity = new Vector(0, -1);
   static Random Rand = new Random();
-  static float R, G, B, Ri, Gi, Bi;
-
-  static uint[] textures = new uint[1];
+  static float[] Color=new float[3], Cinc=new float[3];
 }
 
 } // namespace OpenGLTest

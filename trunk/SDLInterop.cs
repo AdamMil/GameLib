@@ -479,11 +479,14 @@ internal sealed class SDL
   public static extern int EnableKeyRepeat(int delay, int interval);
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_GetKeyState", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern byte* GetKeyState(int* numkeys);
+  [DllImport(Config.SDLImportPath, EntryPoint="SDL_GetKeyState", CallingConvention=CallingConvention.Cdecl)]
+  public unsafe static extern byte* GetKeyState(out int numkeys);
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_GetModState", CallingConvention=CallingConvention.Cdecl)]
   public static extern KeyMod GetModState();
-
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_GetMouseState", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern byte GetMouseState(int* x, int* y);
+  [DllImport(Config.SDLImportPath, EntryPoint="SDL_GetMouseState", CallingConvention=CallingConvention.Cdecl)]
+  public unsafe static extern byte GetMouseState(out int x, out int y);
   #endregion
 
   #region Window manager
