@@ -30,7 +30,7 @@ public sealed class GLMixer
 
   [Flags]
   internal enum Format : ushort
-  { Eight=8, Sixteen=16, BitsPart=0xFF, Signed=0x8000, BigEndian=0x1000,
+  { Eight=8, Sixteen=16, BitsPart=0xFF, BigEndian=0x1000, FloatingPoint=0x4000, Signed=0x8000,
     U8=Eight, U16=Sixteen, S8=Eight|Signed, S16=Sixteen|Signed,
     U8BE=U8|BigEndian, U16BE=U16|BigEndian, S8BE=S8|BigEndian, S16BE=S16|BigEndian,
     #if BIGENDIAN
@@ -38,6 +38,8 @@ public sealed class GLMixer
     #else
     U8Sys=U8, U16Sys=U16, S8Sys=S8, S16Sys=S16,
     #endif
+
+    Float=32|0x4000, Double=64|0x4000,
 
     MixerFormat=32
   }
@@ -78,7 +80,7 @@ public sealed class GLMixer
   [DllImport(Config.GLMixerImportPath, EntryPoint="GLM_Mix", CallingConvention=CallingConvention.Cdecl)]
   internal unsafe static extern int Mix(int* dest, int* src, uint samples, ushort leftVolume, ushort rightVolume);
   [DllImport(Config.GLMixerImportPath, EntryPoint="GLM_ConvertMix", CallingConvention=CallingConvention.Cdecl)]
-  internal unsafe static extern int ConvertMix(int* dest, void* src, uint samples, ushort srcFormat, ushort leftVolume, ushort rightVolume);
+  internal unsafe static extern int ConvertMix(int* dest, void* src, uint samples, ushort channels, ushort srcFormat, ushort leftVolume, ushort rightVolume);
   [DllImport(Config.GLMixerImportPath, EntryPoint="GLM_DivideAccumulator", CallingConvention=CallingConvention.Cdecl)]
   internal static extern int DivideAccumulator(int divisor);
 
