@@ -26,7 +26,7 @@ class App
 { static void Main()
   { CD.Initialize();
     Drive playDrive = null;
-    Track playTrack = null;
+    int playTrack = -1;
     
     foreach(Drive drive in CD.Drives)
     { Console.Write("Drive {0} - ", drive.Number);
@@ -35,8 +35,8 @@ class App
         foreach(Track track in drive.Tracks)
         { Console.WriteLine("  Track {0}: type={1}, start={2}, length={3}",
                             track.Number, track.Type, track.Start, track.Length);
-          if(playTrack==null && track.Type==TrackType.Audio)
-          { playDrive = drive; playTrack = track;
+          if(playTrack==-1 && track.Type==TrackType.Audio)
+          { playDrive = drive; playTrack = track.Number;
           }
         }
       }
@@ -44,11 +44,11 @@ class App
     }
 
     Console.WriteLine();
-    if(playTrack==null) Console.WriteLine("Nothing to play!");
+    if(playTrack==-1) Console.WriteLine("Nothing to play!");
     else
-    { Console.WriteLine("Playing track {0} of drive {1}...", playTrack.Number,
+    { Console.WriteLine("Playing track {0} of drive {1}...", playTrack,
                         playDrive.Number);
-      playDrive.Play(playTrack.Number);
+      playDrive.Play(playTrack);
     }
 
     Console.WriteLine("Press [ENTER] to quit.");

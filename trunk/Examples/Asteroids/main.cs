@@ -224,8 +224,8 @@ class App
       { Event e;
         while((e=Events.NextEvent(0))!=null)
         { Input.ProcessEvent(e);
-          if(Keyboard.Pressed(Key.Escape) || e is QuitEvent) goto done;
-          if(e is ExceptionEvent) throw ((ExceptionEvent)e).Exception;
+          if(Keyboard.Pressed(Key.Escape) || e.Type==EventType.Quit) goto done;
+          if(e.Type==EventType.Exception) throw ((ExceptionEvent)e).Exception;
         }
         if(asteroids.Count==0)
         { int xv=(int)(160*difficulty), yv=(int)(120*difficulty);

@@ -146,7 +146,7 @@ public enum SurfaceFlag : uint
 }
 #endregion
 
-// TODO: allowing Surface to be inherited from
+// TODO: allow Surface to be inherited from
 [System.Security.SuppressUnmanagedCodeSecurity()]
 public sealed class Surface : IDisposable
 { 
@@ -459,8 +459,8 @@ public sealed class Surface : IDisposable
   /// <remarks>The color key is used during blitting to mark source pixels as transparent. Source pixels matching
   /// the color key will not be copied.
   /// This property will not cause blits to respect the color key unless the color key is also enabled.
-  /// The <see cref="UsingKey"/> property can be used to enable and disable the use of the color key. The default
-  /// value is <see cref="Color.Magenta"/>. If this property is set to <see cref="Color.Transparent"/>,
+  /// The <see cref="UsingKey"/> property can be used to enable and disable the use of the color key. If this
+  /// property is set to <see cref="Color.Transparent"/>,
   /// <see cref="UsingKey"/> will automatically be set to false. The color key will be ignored if the surface has
   /// an alpha channel. In that case, use the alpha channel to mark pixels as transparent by setting the alpha value
   /// to zero (transparent).
@@ -1127,8 +1127,8 @@ public sealed class Surface : IDisposable
   
   unsafe void Init()
   { format = new PixelFormat(surface->Format);
-    if(UsingKey) ColorKey = key;
-    else rawKey = MapColor(key);
+    rawKey = surface->Format->Key;
+    key = MapColor(rawKey);
   }
 
   unsafe void InitFromFormat(int width, int height, PixelFormat format, SurfaceFlag flags)
@@ -1138,7 +1138,7 @@ public sealed class Surface : IDisposable
 
   Bitmap ToBitmap(bool forSaving)
   { System.Drawing.Imaging.PixelFormat format;
-    switch(Depth) // TODO: support 555 packing
+    switch(Depth) // TODO: support 555 packing (15-bit color)
     { case 8:  format = System.Drawing.Imaging.PixelFormat.Format8bppIndexed; break;
       case 16: format = System.Drawing.Imaging.PixelFormat.Format16bppRgb565; break;
       case 24: format = System.Drawing.Imaging.PixelFormat.Format24bppRgb; break;
@@ -1338,7 +1338,7 @@ public sealed class Surface : IDisposable
   }
 
   PixelFormat format;
-  Color key=Color.Magenta;
+  Color key;
   uint  lockCount, rawKey;
   byte  alpha=255;
 

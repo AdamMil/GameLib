@@ -711,61 +711,70 @@ public class Server
   }
 
   void ThreadFunc()
-  { while(!quit)
-    { bool did=false;
-      while(listening && server.Pending())
-      { Socket sock = server.AcceptSocket();
-        try
-        { ServerPlayer p = new ServerPlayer(new NetLink(sock), nextID++);
-          if(!quit && (PlayerConnecting==null || PlayerConnecting(this, p)))
-          { p.Link.LagAverage      = lagAverage;
-            p.Link.LagVariance     = lagVariance;
-            p.Link.MessageSent    += new LinkMessageHandler(OnMessageSent);
-            p.Link.RemoteReceived += new LinkMessageHandler(OnRemoteReceived);
-            lock(this)
-            { players.Array.Add(p);
-              links.Add(p.Link);
-            }
-            if(PlayerConnected!=null) PlayerConnected(this, p);
-          }
-          else sock.Close();
-        }
-        catch(SocketException) { sock.Close(); }
-        catch(HandshakeException) { sock.Close(); }
-      }
-
-      lock(this)
-      { ArrayList disconnected=null;
-        for(int i=0; i<players.Count; i++)
-        { ServerPlayer p = players[i];
+  { try
+    { while(!quit)
+      { bool did=false;
+        while(listening && server.Pending())
+        { Socket sock = server.AcceptSocket();
           try
-          { if(p.DelayedDrop && ((p.DropTime!=0 && Timing.Msecs>=p.DropTime) ||
-                                p.Link.GetQueueStats(SendFlag.SendStats).SendMessages==0))
-              p.Link.Close();
-
-            p.Link.Poll();
-
-            LinkMessage msg = p.Link.ReceiveMessage();
-            if(msg!=null)
-            { did=true;
-              if(MessageReceived!=null) MessageReceived(this, p, cvt.ToObject(msg));
+          { ServerPlayer p = new ServerPlayer(new NetLink(sock), nextID++);
+            if(!quit && (PlayerConnecting==null || PlayerConnecting(this, p)))
+            { p.Link.LagAverage      = lagAverage;
+              p.Link.LagVariance     = lagVariance;
+              p.Link.MessageSent    += new LinkMessageHandler(OnMessageSent);
+              p.Link.RemoteReceived += new LinkMessageHandler(OnRemoteReceived);
+              lock(this)
+              { players.Array.Add(p);
+                links.Add(p.Link);
+              }
+              if(PlayerConnected!=null) PlayerConnected(this, p);
             }
-            else if(!p.Link.Connected)
-            { did=true;
-              players.Array.RemoveAt(i--);
-              links.Remove(p.Link);
-              if(PlayerDisconnected!=null)
-              { if(disconnected==null) disconnected=new ArrayList();
-                disconnected.Add(p);
+            else sock.Close();
+          }
+          catch(SocketException) { sock.Close(); }
+          catch(HandshakeException) { sock.Close(); }
+        }
+
+        lock(this)
+        { ArrayList disconnected=null;
+          for(int i=0; i<players.Count; i++)
+          { ServerPlayer p = players[i];
+            try
+            { if(p.DelayedDrop && ((p.DropTime!=0 && Timing.Msecs>=p.DropTime) ||
+                                  p.Link.GetQueueStats(SendFlag.SendStats).SendMessages==0))
+                p.Link.Close();
+
+              p.Link.Poll();
+
+              LinkMessage msg = p.Link.ReceiveMessage();
+              if(msg!=null)
+              { did=true;
+                if(MessageReceived!=null) MessageReceived(this, p, cvt.ToObject(msg));
+              }
+              else if(!p.Link.Connected)
+              { did=true;
+                players.Array.RemoveAt(i--);
+                links.Remove(p.Link);
+                if(PlayerDisconnected!=null)
+                { if(disconnected==null) disconnected=new ArrayList();
+                  disconnected.Add(p);
+                }
               }
             }
+            catch(SocketException) { }
           }
-          catch(SocketException) { }
+          if(disconnected!=null) foreach(ServerPlayer p in disconnected) PlayerDisconnected(this, p);
         }
-        if(disconnected!=null) foreach(ServerPlayer p in disconnected) PlayerDisconnected(this, p);
-      }
 
-      if(!did) NetLink.WaitForEvent(links, 250);
+        if(!did) NetLink.WaitForEvent(links, 250);
+      }
+    }
+    catch(Exception e)
+    { try
+      { if(Events.Events.Initialized)
+          Events.Events.PushEvent(new Events.ExceptionEvent(Events.ExceptionLocation.NetworkThread, e));
+      }
+      catch { throw e; }
     }
   }
 
@@ -897,30 +906,39 @@ public class Client
   void AssertClosed() { if(link!=null) throw new InvalidOperationException("Client is already connected"); }
 
   void ThreadFunc()
-  { NetLink[] links = new NetLink[] { link };
-    while(!quit)
-    { bool did=false;
-      try
-      { if(delayedDrop && ((dropTime!=0 && Timing.Msecs>=dropTime) ||
-                            link.GetQueueStats(SendFlag.SendStats).SendMessages==0))
-          link.Close();
+  { try
+    { NetLink[] links = new NetLink[] { link };
+      while(!quit)
+      { bool did=false;
+        try
+        { if(delayedDrop && ((dropTime!=0 && Timing.Msecs>=dropTime) ||
+                              link.GetQueueStats(SendFlag.SendStats).SendMessages==0))
+            link.Close();
 
-        link.Poll();
+          link.Poll();
 
-        LinkMessage msg = link.ReceiveMessage();
-        if(msg!=null)
-        { did=true;
-          if(MessageReceived!=null) MessageReceived(this, cvt.ToObject(msg));
+          LinkMessage msg = link.ReceiveMessage();
+          if(msg!=null)
+          { did=true;
+            if(MessageReceived!=null) MessageReceived(this, cvt.ToObject(msg));
+          }
+          else if(!link.Connected)
+          { if(Disconnected!=null) Disconnected(this);
+            link = null;
+            return;
+          }
         }
-        else if(!link.Connected)
-        { if(Disconnected!=null) Disconnected(this);
-          link = null;
-          return;
-        }
+        catch(SocketException) { }
+
+        if(!did) NetLink.WaitForEvent(links, 250);
       }
-      catch(SocketException) { }
-
-      if(!did) NetLink.WaitForEvent(links, 250);
+    }
+    catch(Exception e)
+    { try
+      { if(Events.Events.Initialized)
+          Events.Events.PushEvent(new Events.ExceptionEvent(Events.ExceptionLocation.NetworkThread, e));
+      }
+      catch { throw e; }
     }
   }
 

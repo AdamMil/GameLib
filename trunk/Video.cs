@@ -683,7 +683,7 @@ public sealed class Video
 /// <summary>This class provides some support for communicating with the Windowing Manager, if running in a
 /// windowed video mode.
 /// </summary>
-public class WM
+public sealed class WM
 { private WM() { }
 
   /// <summary>Gets or sets the title displayed in the application's window.</summary>
