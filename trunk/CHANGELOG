@@ -11,6 +11,7 @@ Changes
   the control was actually removed from its parent's control array. This was
   almost never a real problem, but it could cause an exception if multiple
   modal windows were opened.
+* Added the Control.DrawSurface property
 
 2004.02.07 (beta)
 -----------------
