@@ -53,23 +53,10 @@ public class GammaRamp
 }
 
 [System.Security.SuppressUnmanagedCodeSecurity()]
-public class Video
+public sealed class Video
 { private Video() { }
   
-  public static void Initialize()
-  { if(initCount++==0)
-    { SDL.Initialize();
-      SDL.InitSubSystem(SDL.InitFlag.Video);
-    }
-  }
-  public static void Deinitialize()
-  { if(initCount==0) throw new InvalidOperationException("Deinitialize called too many times!");
-    if(--initCount==0)
-    { SDL.QuitSubSystem(SDL.InitFlag.Video);
-      SDL.Deinitialize();
-    }
-  }
-
+  public bool Initialized { get { return initCount>0; } }
   public static Surface     DisplaySurface { get { return display; } }
   public static PixelFormat DisplayFormat { get { return display.Format; } }
   public static OpenGL      OpenGL { get { throw new NotImplementedException(); } }
@@ -92,6 +79,22 @@ public class Video
         ramp = value;
         SDL.SetGammaRamp(ramp.Red, ramp.Green, ramp.Blue);
       }
+    }
+  }
+
+  public static void Initialize()
+  { if(initCount++==0)
+    { SDL.Initialize();
+      Events.Events.Initialize();
+      SDL.InitSubSystem(SDL.InitFlag.Video);
+    }
+  }
+  public static void Deinitialize()
+  { if(initCount==0) throw new InvalidOperationException("Deinitialize called too many times!");
+    if(--initCount==0)
+    { SDL.QuitSubSystem(SDL.InitFlag.Video);
+      Events.Events.Deinitialize();
+      SDL.Deinitialize();
     }
   }
 
