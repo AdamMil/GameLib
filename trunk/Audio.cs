@@ -264,7 +264,7 @@ public class ToneGenerator : AudioSource
     }
   }
   
-  public ToneType Type { get { return type; } set { type=value; } }
+  public ToneType Type { get { return type; } set { type=value; num=float.NaN; } }
   
   public override byte[] ReadAll()
   { throw new InvalidOperationException("ToneGenerator is an infinite data source and can't be read in its entirety.");
@@ -568,6 +568,7 @@ public class VorbisSource : AudioSource
 
   public unsafe override bool CanRewind { get { return file->Seekable!=0; } }
   public unsafe override bool CanSeek   { get { return file->Seekable!=0; } }
+
   public unsafe override int Position
   { get { return curPos; }
     set

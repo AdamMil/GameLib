@@ -16,8 +16,9 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
-// TODO: implement more controls (listbox, dropdown, color picker)
+// TODO: implement more controls (color picker)
 // TODO: make System.Threading.Timer instances static (optimization)
+// TODO: evaluate usage of base.Handler() and e.Handled
 using System;
 using System.Collections;
 using System.Drawing;
@@ -65,15 +66,7 @@ public class ContainerControl : Control
   }
 
   protected internal override void OnPaint(PaintEventArgs e)
-  { foreach(Control c in Controls)
-      if(c.Visible)
-      { Rectangle paint = Rectangle.Intersect(c.Bounds, e.WindowRect);
-        if(paint.Width>0)
-        { paint.X -= c.Left; paint.Y -= c.Top;
-          c.AddInvalidRect(paint);
-          c.Update();
-        }
-      }
+  { PaintChildren(e);
     base.OnPaint(e); // yes, this needs to be at the bottom, not the top! (TODO: why?)
   }
 
@@ -142,7 +135,9 @@ public class ScrollableControl : Control
   }
 
   protected internal override void OnLayout(LayoutEventArgs e)
-  { Rectangle rect = PaddingRect;
+  { base.OnLayout(e);
+
+    Rectangle rect = PaddingRect;
     if(horz!=null)
     { horz.Top   = rect.Bottom - horz.Height;
       horz.Width = rect.Width  - (vert==null ? 0 : vert.Height);
@@ -151,12 +146,10 @@ public class ScrollableControl : Control
     { vert.Left   = rect.Right  - vert.Width;
       vert.Height = rect.Height - (horz==null ? 0 : horz.Width);
     }
-    base.OnLayout(e);
   }
 
   protected internal override void OnPaint(PaintEventArgs e)
-  { if(horz!=null) PaintBar(horz, e);
-    if(vert!=null) PaintBar(vert, e);
+  { PaintChildren(e);
     base.OnPaint(e); // yes, this needs to be at the bottom, not the top! (TODO: why?)
   }
 
@@ -168,15 +161,6 @@ public class ScrollableControl : Control
   
   protected virtual void OnHorzizontalScroll(object bar, ValueChangedEventArgs e) { }
   protected virtual void OnVerticalScroll(object bar, ValueChangedEventArgs e) { }
-
-  void PaintBar(ScrollBarBase bar, PaintEventArgs e)
-  { Rectangle paint = Rectangle.Intersect(bar.Bounds, e.WindowRect);
-    if(paint.Width>0)
-    { paint.X -= bar.Left; paint.Y -= bar.Top;
-      bar.AddInvalidRect(paint);
-      bar.Update();
-    }
-  }
 
   ScrollBarBase horz, vert;
 }
@@ -820,12 +804,10 @@ public class ScrollBar : ScrollBarBase
   protected override void OnMouseUp() { down=Place.None; Invalidate(); }
 
   void DrawEnd(Surface surface, Rectangle rect, Place place)
-  { surface.Fill(rect, ForeColor);
-    Helpers.DrawBorder(surface, rect, BorderStyle.FixedThick, ForeColor, down==place);
-    if(down==place) rect.Offset(1, 1);
-    Helpers.DrawArrow(surface, rect, place==Place.Up ? Horizontal ? Helpers.Arrow.Right : Helpers.Arrow.Down
-                                                     : Horizontal ? Helpers.Arrow.Left  : Helpers.Arrow.Up,
-                      EndSize/4, Enabled ? Color.Black : SystemColors.GrayText);
+  { Helpers.DrawArrowBox(surface, rect,
+                         place==Place.Up ? Horizontal ? Helpers.Arrow.Right : Helpers.Arrow.Down
+                                         : Horizontal ? Helpers.Arrow.Left  : Helpers.Arrow.Up,
+                         EndSize/4, down==place, ForeColor, Enabled ? Color.Black : SystemColors.GrayText);
   }
 
   Place down;
@@ -898,6 +880,8 @@ public abstract class TextBoxBase : Control
     set { if(value) throw new NotImplementedException("MultiLine text boxes not implemented"); }
   }
 
+  public bool ReadOnly { get { return readOnly; } set { readOnly=value; } }
+
   public string SelectedText
   { get
     { return selectLen<0 ? Text.Substring(caret+selectLen, -selectLen) : Text.Substring(caret, selectLen);
@@ -963,7 +947,7 @@ public abstract class TextBoxBase : Control
   }
 
   protected internal override void OnKeyPress(KeyEventArgs e)
-  { if(e.KE.Char>=32)
+  { if(e.KE.Char>=32 && !readOnly)
     { if(maxLength==-1 || Text.Length<maxLength) { Modified=true; InsertText(e.KE.Char.ToString()); }
       e.Handled=true;
     }
@@ -1004,7 +988,7 @@ public abstract class TextBoxBase : Control
         e.Handled=true;
       }
     }
-    else if(e.KE.Key==Key.Backspace)
+    else if(e.KE.Key==Key.Backspace && !readOnly)
     { if(e.KE.KeyMods==KeyMod.None)
       { if(selectLen!=0) { Modified=true; SelectedText=""; }
         else if(caret>0)
@@ -1024,7 +1008,7 @@ public abstract class TextBoxBase : Control
         e.Handled=true;
       }
     }
-    else if(e.KE.Key==Key.Delete && !e.KE.HasAnyMod(KeyMod.Shift))
+    else if(e.KE.Key==Key.Delete && !e.KE.HasAnyMod(KeyMod.Shift) && !readOnly)
     { if(e.KE.KeyMods==KeyMod.None || e.KE.HasOnlyKeys(KeyMod.Ctrl))
       { if(selectLen!=0) { Modified=true; SelectedText=""; }
         else if(caret<Text.Length)
@@ -1062,11 +1046,13 @@ public abstract class TextBoxBase : Control
     else if(c=='X'-64 && e.KE.HasOnlyKeys(KeyMod.Ctrl) || e.KE.Key==Key.Delete && e.KE.HasOnlyKeys(KeyMod.Shift))
     { if(selectLen!=0)
       { Modified=true;
-        Cut();
+        if(readOnly) Copy();
+        else Cut();
       }
       e.Handled=true;
     }
-    else if(c=='V'-64 && e.KE.HasOnlyKeys(KeyMod.Ctrl) || e.KE.Key==Key.Insert && e.KE.HasOnlyKeys(KeyMod.Shift))
+    else if(c=='V'-64 && e.KE.HasOnlyKeys(KeyMod.Ctrl) || e.KE.Key==Key.Insert && e.KE.HasOnlyKeys(KeyMod.Shift) &&
+            !readOnly)
     { if(maxLength==-1 || Text.Length<maxLength)
       { Modified=true;
         if(maxLength==-1) Paste();
@@ -1084,6 +1070,12 @@ public abstract class TextBoxBase : Control
   { if(e is CaretFlashEvent) OnCaretFlash();
     else base.OnCustomEvent(e);
   }
+
+  protected override void OnTextChanged(ValueChangedEventArgs e)
+  { base.OnTextChanged(e);
+    if(caret>Text.Length) caret=Text.Length;
+  }
+
   #endregion
 
   #region Methods
@@ -1097,7 +1089,7 @@ public abstract class TextBoxBase : Control
   { if(selectLen!=0) { SelectedText = text; Select(caret+selectLen, 0); }
     else if(text.Length>0)
     { Text = Text.Substring(0, caret) + text + Text.Substring(caret, Text.Length-caret);
-      CaretPosition += text.Length;
+      CaretPosition = Math.Min(Text.Length, CaretPosition+text.Length);
     }
   }
 
@@ -1129,7 +1121,7 @@ public abstract class TextBoxBase : Control
   bool IsPunctuation(char c) { return char.IsPunctuation(c) || char.IsSymbol(c); }
 
   int  caret, selectLen, maxLength=-1;
-  bool hideSelection=true, modified, wordWrap, selectOnFocus=true;
+  bool hideSelection=true, modified, wordWrap, selectOnFocus=true, readOnly;
 
   #region Statics
   public static int CaretFlashRate
@@ -1325,12 +1317,15 @@ public class TextBox : TextBoxBase
 // TODO: document
 public abstract class ListControl : ScrollableControl
 { protected ListControl() { items = new ItemCollection(this); }
-  protected ListControl(IEnumerable items) { this.items = new ItemCollection(this, items); }
+  protected ListControl(IEnumerable items) { this.items=new ItemCollection(this, items); OnListChanged(); }
 
   #region ItemCollection
   public sealed class ItemCollection : CollectionBase
   { public ItemCollection(ListControl list) { parent=list; }
-    public ItemCollection(ListControl list, IEnumerable items) { parent=list; AddRange(items); }
+    public ItemCollection(ListControl list, IEnumerable items)
+    { parent=list;
+      foreach(object o in items) InnerList.Add(new Item(o));
+    }
 
     public object this[int index] { get { return ((Item)InnerList[index]).Object; } }
 
@@ -1536,6 +1531,8 @@ public abstract class ListControl : ScrollableControl
   }
   #endregion
   
+  public event EventHandler SelectedIndexChanged;
+
   public ItemCollection Items { get { return items; } }
   public abstract int SelectedIndex { get; set; }
 
@@ -1624,15 +1621,20 @@ public abstract class ListControl : ScrollableControl
   protected virtual string GetObjectText(object item) { return item.ToString(); }
   protected virtual void InvalidateItem(int index) { }
   protected virtual void OnListChanged() { }
+  protected virtual void OnSelectedIndexChanged(EventArgs e)
+  { if(SelectedIndexChanged!=null) SelectedIndexChanged(this, e);
+  }
 
   [Flags]
   protected internal enum ItemState // TODO: this Custom1-5 stuff is not very clean...
-  { None=0, Selected=1, Disabled=2, Checked=4, Custom1=8, Custom2=16, Custom3=32, Custom4=64, Custom5=128
+  { None=0, Selected=1, Disabled=2, Checked=4, Expanded=8, Custom1=16, Custom2=32, Custom3=64, Custom4=128
   }
 
   protected internal struct Item
   { public Item(object item) { Object=item; State=ItemState.None; }
     public bool Is(ItemState state) { return (State&state)!=0; }
+    public override string ToString() { return Object==null ? "" : Object.ToString(); }
+
     public object    Object;
     public ItemState State;
   }
@@ -1648,7 +1650,6 @@ public enum SelectionMode { None, One, MultiSimple, MultiExtended }
 
 public abstract class ListBoxBase : ListControl
 { protected ListBoxBase() { Init(); }
-  protected ListBoxBase(ICollection items) : base(items) { Init(); }
   protected ListBoxBase(IEnumerable items) : base(items) { Init(); }
   void Init()
   { cursor=bottom=-1; selMode=SelectionMode.One; selBack=SystemColors.Highlight; selFore=SystemColors.HighlightText;
@@ -1683,13 +1684,18 @@ public abstract class ListBoxBase : ListControl
     set
     { int newValue = value<0 || value>=Items.Count ? -1 : value;
       if(newValue!=SelectedIndex || SelectedIndices.Count>1)
-      { if(newValue==-1) ClearSelected();
+      { string text = Text;
+
+        if(newValue==-1) ClearSelected();
         else if(selMode==SelectionMode.One)
         { int old = SelectedIndex;
           if(old>=0) SetSelected(old, false);
           if(newValue>=0) SetSelected(newValue, true);
         }
         else SetSelected(newValue, true, true);
+
+        OnSelectedIndexChanged(new EventArgs());
+        if(Text!=text) OnTextChanged(new ValueChangedEventArgs(text));
       }
     }
   }
@@ -1701,6 +1707,11 @@ public abstract class ListBoxBase : ListControl
       else if(value==SelectionMode.One && SelectedIndex>=0) SetSelected(SelectedIndex, true, true);
       selMode=value;
     }
+  }
+
+  public override string Text
+  { get { return SelectedIndex<0 ? "" : GetItemText(SelectedIndex); }
+    set { SelectedIndex = FindStringExact(value); }
   }
 
   public int TopIndex
@@ -1729,6 +1740,11 @@ public abstract class ListBoxBase : ListControl
     }
 
     return ContentOffset.Grow(ret);
+  }
+
+  public void ScrollTo(int index)
+  { if(index<TopIndex) TopIndex = index;
+    else if(index>GetBottomIndex()) TopIndex = GetTopIndex(index);
   }
 
   protected abstract void DrawItem(int index, PaintEventArgs e, Rectangle bounds);
@@ -1895,7 +1911,6 @@ public abstract class ListBoxBase : ListControl
       }
       CursorPosition = index;
     }
-    base.OnMouseDown(e);
   }
 
   protected internal override void OnMouseMove(Events.MouseMoveEvent e)
@@ -2045,11 +2060,6 @@ public abstract class ListBoxBase : ListControl
     DragTo(newindex, e);
   }
 
-  void ScrollTo(int index)
-  { if(index<TopIndex) TopIndex = index;
-    else if(index>GetBottomIndex()) TopIndex = GetTopIndex(index);
-  }
-
   void ScrollUp() { ScrollUp(null); }
   void ScrollUp(KeyEventArgs e)
   { int newindex=CursorPosition;
@@ -2133,29 +2143,229 @@ public class ListBox : ListBoxBase
 #endregion
 
 #region ComboBoxBase
+public enum ComboBoxStyle { DropDown, DropDownList, Simple }
+
 public abstract class ComboBoxBase : ListControl
-{ protected ComboBoxBase() { }
-  protected ComboBoxBase(IEnumerable items) : base(items) { }
+{ protected ComboBoxBase() { Init(); }
+  protected ComboBoxBase(IEnumerable items) : base(items) { Init(); }
+  void Init()
+  { BorderStyle = BorderStyle.FixedThick|BorderStyle.Depressed;
+    Padding = new RectOffset();
+    Style  |= ControlStyle.CanFocus;
+  }
+
+  public ComboBoxStyle DropDownStyle
+  { get { return style; }
+    set
+    { if(style!=value)
+      { TextBox.ReadOnly = value==ComboBoxStyle.DropDownList;
+
+        if(value==ComboBoxStyle.DropDownList) TextBox.Style &= ~(ControlStyle.CanFocus|ControlStyle.Draggable);
+        else TextBox.Style |= ControlStyle.CanFocus|ControlStyle.Draggable;
+
+        if(style==ComboBoxStyle.Simple || value==ComboBoxStyle.Simple)
+        { style=value;
+          if(value==ComboBoxStyle.Simple)
+          { ListBox.BorderStyle = style==ComboBoxStyle.Simple ? BorderStyle.None : BorderStyle.FixedFlat;
+            Open();
+          }
+          else
+          { Close();
+            Height = TextBox.Height+ContentOffset.Vertical;
+          }
+          TriggerLayout();
+        }
+        else style=value;
+      }
+    }
+  }
+
+  public bool IsOpen { get { return open || style==ComboBoxStyle.Simple; } }
+
+  public int ListBoxHeight
+  { get { return listHeight; }
+    set
+    { if(value<0) throw new ArgumentOutOfRangeException("ListBoxHeight", value, "Height cannot be negative.");
+      if(value!=listHeight)
+      { listHeight = value;
+        if(style!=ComboBoxStyle.Simple && open) ListBox.Height = value;
+      }
+    }
+  }
 
   public override int SelectedIndex
-  { get { return selected; }
-    set { selected = ListBox.SelectedIndex = value; }
+  { get { return ListBox.SelectedIndex; }
+    set { ListBox.SelectedIndex = value; }
+  }
+
+  public override string Text
+  { get { return TextBox.Text; }
+    set { TextBox.Text=value; }
+  }
+
+  protected Rectangle BoxRect
+  { get
+    { if(style==ComboBoxStyle.Simple) return new Rectangle();
+      Rectangle content = ContentRect;
+      return new Rectangle(content.Right-16, content.Top, 16, TextBox.Height);
+    }
   }
 
   protected ListBoxBase ListBox
   { get
-    { if(listBox==null || listBox.Items.Version!=Items.Version)
-      { listBox  = MakeListBox(Items);
-        selected = listBox.SelectedIndex = selected;
+    { if(listBox==null)
+      { listBox = MakeListBox(Items);
+        listBox.BorderStyle  = style==ComboBoxStyle.Simple ? BorderStyle.None : BorderStyle.FixedFlat;
+        listBox.MouseUp     += new ClickEventHandler(listBox_MouseUp);
+        listBox.TextChanged += new ValueChangedEventHandler(listBox_TextChanged);
+      }
+      if(Items.Version!=oldVersion)
+      { listBox.Items.Clear();
+        listBox.Items.AddRange(Items);
+        oldVersion = Items.Version;
       }
       return listBox;
     }
   }
 
+  protected TextBoxBase TextBox
+  { get
+    { if(textBox==null)
+      { textBox = MakeTextBox();
+        textBox.BorderStyle  = BorderStyle.None;
+        textBox.Parent       = this;
+        textBox.ReadOnly     = style==ComboBoxStyle.DropDownList;
+        textBox.MouseDown   += new ClickEventHandler(textBox_MouseDown);
+        textBox.TextChanged += new ValueChangedEventHandler(textBox_TextChanged);
+        if(Font!=null) TextBox.Height = Font.LineSkip + TextBox.ContentOffset.Vertical;
+        if(style!=ComboBoxStyle.Simple) Height = TextBox.Height+ContentOffset.Vertical;
+      }
+      return textBox;
+    }
+  }
+
+  protected void Close()
+  { if(style!=ComboBoxStyle.Simple)
+    { ListBox.Visible = false;
+      ListBox.Parent  = null;
+    }
+    Capture = mouseDown = open = false;
+    OnBoxPress(false);
+  }
+
   protected virtual ListBoxBase MakeListBox(ItemCollection items) { return new ListBox(items); }
+  protected virtual TextBoxBase MakeTextBox() { return new TextBox(); }
+  protected virtual void OnBoxPress(bool down) { }
+
+  protected override void OnFontChanged(ValueChangedEventArgs e)
+  { base.OnFontChanged(e);
+    GameLib.Fonts.Font font = Font;
+    if(font==null) return;
+    int height = font.LineSkip + TextBox.ContentOffset.Vertical;
+    if(TextBox.Height!=height)
+    { TextBox.Height=height;
+      if(style!=ComboBoxStyle.Simple) Height = TextBox.Height+ContentOffset.Vertical;
+      TriggerLayout();
+    }
+  }
+
+  protected internal override void OnMouseDown(ClickEventArgs e)
+  { if(e.CE.Button==MouseButton.Left && BoxRect.Contains(e.CE.Point))
+    { if(open) { Close(); mouseDown=false; }
+      else { Open(); Capture=true; OnBoxPress(true); }
+      e.Handled = true;
+    }
+    base.OnMouseDown(e);
+  }
+
+  protected internal override void OnMouseEnter(EventArgs e)
+  { if(mouseDown) OnBoxPress(true);
+    base.OnMouseEnter(e);
+  }
+
+  protected internal override void OnMouseLeave(EventArgs e)
+  { if(mouseDown) OnBoxPress(false);
+    base.OnMouseLeave(e);
+  }
+
+  protected internal override void OnMouseUp(ClickEventArgs e)
+  { if(e.CE.Button==MouseButton.Left && open)
+    { OnBoxPress(false);
+      Capture   = mouseDown = false;
+      e.Handled = true;
+    }
+    base.OnMouseUp(e);
+  }
+
+  protected internal override void OnLayout(LayoutEventArgs e)
+  { base.OnLayout(e);
+    Rectangle content = ContentRect;
+    int endWidth   = style==ComboBoxStyle.Simple ? 0 : 16;
+    TextBox.Bounds = new Rectangle(content.Left, content.Top, content.Width-endWidth, TextBox.Height);
+    ListBox.Bounds = new Rectangle(content.Left, TextBox.Bottom+1, content.Width,
+                                   style==ComboBoxStyle.Simple ? content.Bottom-TextBox.Bottom-1 : listHeight);
+  }
+
+  protected internal override void OnPaint(PaintEventArgs e)
+  { PaintChildren(e);
+    base.OnPaint(e);
+  }
+
+  protected void Open()
+  { if(!open)
+    { Control parent = style==ComboBoxStyle.Simple ? this : (Control)Parent;
+      if(parent==null) return;
+      ListBox.Parent = parent;
+      if(parent==this)
+      { Rectangle content = ContentRect;
+        ListBox.Bounds = new Rectangle(content.Left, TextBox.Bottom+1, content.Width, content.Bottom-TextBox.Bottom-1);
+      }
+      else ListBox.SetBounds(WindowToParent(new Rectangle(0, Height, Width, listHeight)), true);
+      ListBox.Visible = true;
+      open = true;
+    }
+  }
+
+  void listBox_MouseUp(object sender, ClickEventArgs e)
+  { if(e.CE.Button==MouseButton.Left && ListBox.ContentRect.Contains(e.CE.Point) && ListBox.SelectedIndex!=-1)
+    { Close();
+      e.Handled=true;
+    }
+  }
+
+  void listBox_TextChanged(object sender, ValueChangedEventArgs e)
+  { if(ourChange) return;
+
+    ourChange=true;
+    string text=TextBox.Text;
+    TextBox.Text=ListBox.Text;
+    ourChange=false;
+    if(text!=ListBox.Text) OnTextChanged(e);
+  }
+
+  void textBox_MouseDown(object sender, ClickEventArgs e)
+  { if(!open && (TextBox.Style&ControlStyle.CanFocus)==0 && e.CE.Button==MouseButton.Left)
+    { Open();
+      Capture = true;
+    }
+  }
+
+  void textBox_TextChanged(object sender, ValueChangedEventArgs e)
+  { if(!ourChange)
+    { OnTextChanged(e);
+      int index = ListBox.FindStringExact(TextBox.Text);
+      ourChange=true;
+      SelectedIndex = index;
+      if(index!=-1) ListBox.ScrollTo(index);
+      ourChange=false;
+    }
+  }
 
   ListBoxBase listBox;
-  int selected=-1;
+  TextBoxBase textBox;
+  int oldVersion=-1, listHeight=100;
+  ComboBoxStyle style=ComboBoxStyle.DropDown;
+  bool open, mouseDown, ourChange;
 }
 #endregion
 
@@ -2163,8 +2373,19 @@ public abstract class ComboBoxBase : ListControl
 public class ComboBox : ComboBoxBase
 { public ComboBox() { }
   public ComboBox(IEnumerable items) : base(items) { }
-  
-  
+
+  protected override void OnBoxPress(bool down)
+  { if(down!=this.down) { this.down=down; Invalidate(BoxRect); }
+    base.OnBoxPress(down);
+  }
+
+  protected internal override void OnPaint(PaintEventArgs e)
+  { base.OnPaint(e);
+    Helpers.DrawArrowBox(e.Surface, WindowToDisplay(BoxRect), Helpers.Arrow.Down, BoxRect.Width/4, down,
+                         SystemColors.Control, Enabled ? Color.Black : SystemColors.GrayText);
+  }
+
+  bool down;
 }
 #endregion
 #endregion

@@ -1305,6 +1305,8 @@ public class Control
     set
     { if(value!=visible)
       { visible = value;
+        if(value) Invalidate();
+        else if(parent!=null) parent.Invalidate(Bounds);
         OnVisibleChanged(new ValueChangedEventArgs(!value));
       }
     }
@@ -1887,6 +1889,25 @@ public class Control
   /// <summary>Occurs immediately before a control is to be repainted.</summary>
   public event PaintEventHandler Paint;
 
+  /// <summary>Paints the control's children.</summary>
+  /// <param name="e">The <see cref="PaintEventArgs"/> object describing the area to paint.</param>
+  /// <remarks>This method can be used to simplify the implementation of controls which contain other controls.
+  /// It simply loops through child controls and forces them to paint themselves, giving them the correct
+  /// slice of the current <see cref="InvalidRect"/> to draw within. This method within the <see cref="OnPaint"/>
+  /// method, before the call to the parent's version of the handler.
+  /// </remarks>
+  protected void PaintChildren(PaintEventArgs e)
+  { foreach(Control c in Controls)
+      if(c.Visible)
+      { Rectangle paint = Rectangle.Intersect(c.Bounds, e.WindowRect);
+        if(paint.Width>0)
+        { paint.X -= c.Left; paint.Y -= c.Top;
+          c.AddInvalidRect(paint);
+          c.Update();
+        }
+      }
+  }
+
   /// <summary>Raises the <see cref="BackColorChanged"/> event and performs default handing.</summary>
   /// <param name="e">A <see cref="ValueChangedEventArgs"/> that contains the event data.</param>
   /// <remarks>This method raises the <see cref="BackColorChanged"/> event, invalidates the control (using
@@ -2096,7 +2117,7 @@ public class Control
 
   /// <summary>Raises the <see cref="VisibleChanged"/> event and performs default handing.</summary>
   /// <param name="e">A <see cref="ValueChangedEventArgs"/> that contains the event data.</param>
-  /// <remarks>This method raises the <see cref="VisibleChanged"/> event, invalidates and possibly blurs the
+  /// <remarks>This method raises the <see cref="VisibleChanged"/> event, possibly blurs the
   /// control, and calls <see cref="OnParentVisibleChanged"/> on each child. When overriding this method in a
   /// derived class, be sure to call the base class' version to ensure that the default processing gets
   /// performed. The proper place to do this is at the beginning of the derived version.
@@ -2106,7 +2127,6 @@ public class Control
     if(Visible!=(bool)e.OldValue)
     { if(!Visible) Blur();
       foreach(Control c in controls) c.OnParentVisibleChanged(e);
-      Invalidate();
     }
   }
 
@@ -3025,7 +3045,7 @@ public class DesktopControl : ContainerControl, IDisposable
       if(we.SubType==WindowEvent.MessageType.Custom && (desktop==this || desktop==null))
       { we.Control.OnCustomEvent(we); return true;
       }
-      if(desktop!=this) return false;
+      if(desktop!=this && desktop!=null) return false;
 
       switch(we.SubType)
       { case WindowEvent.MessageType.KeyRepeat:
@@ -3035,7 +3055,7 @@ public class DesktopControl : ContainerControl, IDisposable
             keyProcessing=false;
           }
           break;
-        case WindowEvent.MessageType.Paint: DoPaint(we.Control); break;
+        case WindowEvent.MessageType.Paint: if(desktop!=null) DoPaint(we.Control); break;
         case WindowEvent.MessageType.Layout:
           we.Control.OnLayout(new LayoutEventArgs(((WindowLayoutEvent)we).Recursive));
           break;
@@ -3450,6 +3470,14 @@ public sealed class Helpers
         for(int i=0; i<size; s+=si,i++) Primitives.Line(surface, x+i, y-s, x+i, y+s, color);
         break;
     }
+  }
+
+  public static void DrawArrowBox(Surface surface, Rectangle rect, Arrow arrow, int size, bool depressed,
+                                  Color bgColor, Color arrowColor)
+  { surface.Fill(rect, bgColor);
+    Helpers.DrawBorder(surface, rect, BorderStyle.FixedThick, bgColor, depressed);
+    if(depressed) rect.Offset(1, 1);
+    Helpers.DrawArrow(surface, rect, arrow, size, arrowColor);
   }
 
   /// <summary>Draws a border using default colors.</summary>
