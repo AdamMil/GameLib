@@ -42,7 +42,7 @@ internal sealed class Image
   }
 
 	[DllImport(Config.SDLImageImportPath, EntryPoint="IMG_Load", CallingConvention=CallingConvention.Cdecl)]
-	public static extern SDL.SDL.Surface* Load(string file);
+	public unsafe static extern SDL.SDL.Surface* Load(string file);
 	[DllImport(Config.SDLImageImportPath, EntryPoint="IMG_Load_RW", CallingConvention=CallingConvention.Cdecl)]
 	public unsafe static extern SDL.SDL.Surface* Load_RW(SDL.SDL.RWOps* ops, int freesrc);
   [DllImport(Config.SDLImageImportPath, EntryPoint="IMG_LoadTyped_RW", CallingConvention=CallingConvention.Cdecl)]
