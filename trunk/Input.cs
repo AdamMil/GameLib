@@ -394,6 +394,8 @@ public sealed class Input
 
   public static Joystick[] Joysticks { get { return joysticks; } }
 
+  // FIXME: the event filter operates as soon as the event is posted, and we want this to work as the event is
+  // released
   public static void Initialize(bool useJoysticks)
   { if(initCount++==0)
     { Events.Events.Initialize();

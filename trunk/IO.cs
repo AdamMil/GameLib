@@ -14,6 +14,7 @@ public class IOH
     Read(stream, buf, 0, length);
     return buf;
   }
+  public static int Read(Stream stream, byte[] buf) { return Read(stream, buf, 0, buf.Length); }
   public static int Read(Stream stream, byte[] buf, int length) { return Read(stream, buf, 0, length); }
   public static int Read(Stream stream, byte[] buf, int offset, int length)
   { if(stream.Read(buf, offset, length)!=length) throw new EndOfStreamException();
@@ -159,14 +160,35 @@ public class IOH
   { unsafe { fixed(byte* ptr=buf) return *(double*)(ptr+index); }
   }
 
+  public static void Skip(Stream stream, int bytes)
+  { if(stream.CanSeek) stream.Position += bytes;
+    else if(bytes<8) while(bytes-- > 0) stream.ReadByte();
+    else if(bytes<=512) Read(stream, bytes);
+    else
+    { byte[] buf = new byte[512];
+      while(bytes>0)
+      { stream.Read(buf, 0, Math.Min(bytes, 512));
+        bytes -= 512;
+      }
+    }
+  }
+
+  public static void Write(Stream stream, byte[] data) { stream.Write(data, 0, data.Length); }
+
   public static int WriteString(Stream stream, string str)
-  { byte[] buf = System.Text.Encoding.ASCII.GetBytes(str);
+  { return WriteString(stream, str, System.Text.Encoding.ASCII);
+  }
+  public static int WriteString(Stream stream, string str, System.Text.Encoding encoding)
+  { byte[] buf = encoding.GetBytes(str);
     stream.Write(buf, 0, buf.Length);
     return buf.Length;
   }
   
   public static int WriteString(byte[] buf, int index, string str)
-  { byte[] sbuf = System.Text.Encoding.ASCII.GetBytes(str);
+  { return WriteString(buf, index, str, System.Text.Encoding.ASCII);
+  }
+  public static int WriteString(byte[] buf, int index, string str, System.Text.Encoding encoding)
+  { byte[] sbuf = encoding.GetBytes(str);
     Array.Copy(sbuf, 0, buf, index, sbuf.Length);
     return sbuf.Length;
   }

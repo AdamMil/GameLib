@@ -130,12 +130,14 @@ internal class SDL
     }
     public Rect(int x, int y) { X=(short)x; Y=(short)y; Width=Height=1; }
     public System.Drawing.Rectangle ToRectangle() { return new System.Drawing.Rectangle(X, Y, Width, Height); }
+    public override string ToString() { return ToRectangle().ToString(); }
     public short  X, Y;
     public ushort Width, Height;
   }
   [StructLayout(LayoutKind.Explicit, Size=4)]
   public struct Color
   { public Color(System.Drawing.Color c) { Value=0; Red=c.R; Green=c.G; Blue=c.B; Alpha=c.A; }
+    public override string ToString() { return string.Format("{0},{1},{2},{3}",Red,Green,Blue,Alpha); }
     [FieldOffset(0)] public byte Red;
     [FieldOffset(1)] public byte Green;
     [FieldOffset(2)] public byte Blue;
