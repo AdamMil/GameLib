@@ -40,6 +40,8 @@ internal sealed class Utility
   public static extern long GetTimerCounter();
   [DllImport(Config.GLUtilityImportPath, EntryPoint="GLU_GetSeconds", CallingConvention=CallingConvention.Cdecl)]
   public static extern double GetSeconds();
+  [DllImport(Config.GLUtilityImportPath, EntryPoint="GLU_ResetTimer", CallingConvention=CallingConvention.Cdecl)]
+  public static extern void ResetTimer();
 
   [DllImport(Config.GLUtilityImportPath, EntryPoint="GLU_Getch", CallingConvention=CallingConvention.Cdecl)]
   public static extern char Getch();
