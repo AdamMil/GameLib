@@ -85,7 +85,7 @@ public class MouseMoveEvent : Event
   internal MouseMoveEvent(ref SDL.MouseMoveEvent evt) : base(EventType.MouseMove)
   { X=(int)evt.X; Y=(int)evt.Y; Xrel=(int)evt.Xrel; Yrel=(int)evt.Yrel; Buttons=evt.State;
   }
-  public bool OnlyPressed(Input.MouseButton button) { return Buttons==(byte)button; }
+  public bool OnlyPressed(Input.MouseButton button) { return Buttons==(1<<(byte)button); }
   public bool Pressed(Input.MouseButton button) { return (Buttons&(1<<(byte)button))!=0; }
   public void SetPressed(Input.MouseButton button, bool down)
   { if(down) Buttons|=(byte)(1<<(byte)button); else Buttons&=(byte)~(1<<(byte)button);
