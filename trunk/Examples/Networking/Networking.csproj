@@ -72,7 +72,12 @@
             </References>
         </Build>
         <Files>
-            <Include/>
+            <Include>
+                <File
+                    RelPath = "main.cs"
+                    BuildAction = "Compile"
+                />
+            </Include>
         </Files>
     </CSHARP>
 </VisualStudioProject>

@@ -26,6 +26,7 @@ using System.Reflection;
 using GameLib.IO;
 
 // TODO: stress test the locking, changes were made that may have destabilized it
+// TODO: expose low-level networking by cleaning up the NetLink class and making it public
 
 namespace GameLib.Network
 {
