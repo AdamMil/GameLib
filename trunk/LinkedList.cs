@@ -16,6 +16,8 @@ public class LinkedList : ICollection, IEnumerable
   public class Node
   { internal Node(object data) { this.data=data; }
     internal Node(object data, Node prev, Node next) { this.data=data; Prev=prev; Next=next; }
+    public Node   PrevNode { get { return Prev; } }
+    public Node   NextNode { get { return Next; } }
     public object Data { get { return data; } }
     internal Node Prev, Next;
     object data;
@@ -56,7 +58,7 @@ public class LinkedList : ICollection, IEnumerable
     public bool MoveNext()
     { if(changed) throw new InvalidOperationException("The collection has changed");
       if(cur==null)
-      { if(!reset && head==null) return false;
+      { if(!reset || head==null) return false;
         cur   = head;
         reset = false;
         return true;

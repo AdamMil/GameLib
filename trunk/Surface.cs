@@ -1,7 +1,9 @@
 using System;
 using System.Drawing;
-using GameLib.Interop.SDL;
+using System.IO;
+using GameLib.IO;
 using GameLib.Interop;
+using GameLib.Interop.SDL;
 
 namespace GameLib.Video
 {
@@ -47,6 +49,11 @@ public class Surface : IDisposable
   }
   
   public unsafe Surface(string filename) { InitFromSurface(Interop.SDLImage.Image.Load(filename)); }
+  public unsafe Surface(string filename, ImageType type)
+  { SDL.RWOps* ops = SDL.RWFromFile(filename, "rb");
+    if(ops==null) throw new System.IO.FileNotFoundException();
+    InitFromSurface(Interop.SDLImage.Image.LoadTyped_RW(ops, 1, Interop.SDLImage.Image.Type.Types[(int)type]));
+  }
   public unsafe Surface(System.IO.Stream stream) : this(stream, true) { }
   public unsafe Surface(System.IO.Stream stream, bool autoClose)
   { SeekableStreamRWOps ss = new SeekableStreamRWOps(stream, autoClose);
@@ -86,7 +93,7 @@ public class Surface : IDisposable
   }
   public bool HasHWPalette { get { return (Flags&SurfaceFlag.HWPalette) != 0; } }
 
-  public unsafe bool  Locked   { get { return surface->Locked!=0; } }
+  public unsafe bool        Locked { get { return lockCount!=0; } }
   public unsafe SurfaceFlag  Flags { get { return (SurfaceFlag)surface->Flags; } }
 
   public unsafe Rectangle ClipRect
@@ -125,47 +132,68 @@ public class Surface : IDisposable
   public void Fill(Rectangle rect, Color color) { Fill(rect, MapColor(color)); }
   public unsafe void Fill(Rectangle rect, uint color)
   { SDL.Rect drect = new SDL.Rect(rect);
-    SDL.Check(SDL.FillRect(surface, ref drect, color));
+    bool locked = Locked;
+    if(locked) Unlock();
+    try { SDL.Check(SDL.FillRect(surface, ref drect, color)); }
+    finally { if(locked) Lock(); }
   }
 
   public void Blit(Surface dest) { Blit(dest, 0, 0); }
   public void Blit(Surface dest, Point dpt) { Blit(dest, dpt.X, dpt.Y); }
   public unsafe void Blit(Surface dest, int dx, int dy)
   { SDL.Rect rect = new SDL.Rect(dx, dy);
-    SDL.Check(SDL.BlitSurface(surface, null, dest.surface, &rect));
+    bool sl = Locked, dl = dest.Locked;
+    try
+    { if(sl) Unlock();
+      if(dl) dest.Unlock();
+      SDL.Check(SDL.BlitSurface(surface, null, dest.surface, &rect));
+    }
+    finally
+    { if(sl) Lock();
+      if(dl) dest.Lock();
+    }
   }
   public void Blit(Surface dest, Rectangle src, Point dpt) { Blit(dest, src, dpt.X, dpt.Y); }
   public unsafe void Blit(Surface dest, Rectangle src, int dx, int dy)
   { SDL.Rect srect = new SDL.Rect(src), drect = new SDL.Rect(dx, dy);
-    SDL.Check(SDL.BlitSurface(surface, &srect, dest.surface, &drect));
+    bool sl = Locked, dl = dest.Locked;
+    try
+    { if(sl) Unlock();
+      if(dl) dest.Unlock();
+      SDL.Check(SDL.BlitSurface(surface, &srect, dest.surface, &drect));
+    }
+    finally
+    { if(sl) Lock();
+      if(dl) dest.Lock();
+    }
   }
 
   public void  PutPixel(int x, int y, Color color) { PutPixelRaw(x, y, MapColor(color)); }
   public Color GetPixel(int x, int y) { return MapColor(GetPixelRaw(x, y)); }
   public void  PutPixelRaw(int x, int y, uint color)
   { if(!ClipRect.Contains(x, y)) return;
-    bool locked=Locked;
-    if(!locked) Lock();
-    unsafe
-    { byte* line = (byte*)Data+y*Pitch;
-      switch(Depth)
-      { case 8:  *(line+x) = (byte)color; break;
-        case 16: *((ushort*)line+x) = (ushort)color; break;
-        case 24:
-          byte* ptr = line+x*3;
-          *(ushort*)ptr = (ushort)color; // TODO: make big-endian safe
-          *(ptr+2) = (byte)(color>>16);
-          break;
-        case 32: *((uint*)line+x) = color; break;
-        default: throw new VideoException("Unhandled depth: "+Depth);
+    Lock();
+    try
+    { unsafe
+      { byte* line = (byte*)Data+y*Pitch;
+        switch(Depth)
+        { case 8:  *(line+x) = (byte)color; break;
+          case 16: *((ushort*)line+x) = (ushort)color; break;
+          case 24:
+            byte* ptr = line+x*3;
+            *(ushort*)ptr = (ushort)color; // TODO: make big-endian safe
+            *(ptr+2) = (byte)(color>>16);
+            break;
+          case 32: *((uint*)line+x) = color; break;
+          default: throw new VideoException("Unhandled depth: "+Depth);
+        }
       }
     }
-    if(!locked) Unlock();
+    finally { Unlock(); }
   }
   public uint GetPixelRaw(int x, int y)
   { if(!Bounds.Contains(x, y)) throw new ArgumentOutOfRangeException();
-    bool locked=Locked;
-    if(!locked) Lock();
+    Lock();
     try
     { unsafe
       { byte* line = (byte*)Data+y*Pitch;
@@ -174,13 +202,17 @@ public class Surface : IDisposable
           case 16: return *((ushort*)line+x);
           case 24:
             byte* ptr = line+x*3;
+            #if BIGENDIAN
+            return (*(ushort*)ptr<<8) | *(ptr+2); // TODO: make big-endian safe
+            #else
             return *(ushort*)ptr | (uint)(*(ptr+2)<<16); // TODO: make big-endian safe
+            #endif
           case 32: return *((uint*)line+x);
           default: throw new VideoException("Unhandled depth: "+Depth);
         }
       }
     }
-    finally { if(!locked) Unlock(); }
+    finally { Unlock(); }
   }
   
   public Color GetColorKey() { return key; }
@@ -196,8 +228,11 @@ public class Surface : IDisposable
   }
   public unsafe void DisableAlpha() { SDL.Check(SDL.SetAlpha(surface, 0, 0)); }
 
-  public unsafe void Lock()   { SDL.Check(SDL.LockSurface(surface)); }
-  public unsafe void Unlock() { SDL.UnlockSurface(surface); }
+  public unsafe void Lock()   { if(lockCount++==0) SDL.Check(SDL.LockSurface(surface)); }
+  public unsafe void Unlock()
+  { if(lockCount==0) throw new InvalidOperationException("Unlock called too many times");
+    if(--lockCount==0) SDL.UnlockSurface(surface);
+  }
 
   public unsafe uint MapColor(Color color)
   { return SDL.MapRGBA(surface->Format, color.R, color.G, color.B, color.A);
@@ -268,6 +303,23 @@ public class Surface : IDisposable
   }
 
   public Bitmap ToBitmap() { throw new NotImplementedException(); }
+  
+  public void Save(string filename, ImageType type)
+  { Stream stream = new FileStream(filename, FileMode.Create, FileAccess.Write);
+    Save(stream, type);
+    stream.Close();
+  }
+  public void Save(Stream stream, ImageType type)
+  { switch(type)
+    { case ImageType.PCX: WritePCX(stream); break;
+      case ImageType.BMP: ToBitmap().Save(stream, System.Drawing.Imaging.ImageFormat.Bmp);  break;
+      case ImageType.GIF: ToBitmap().Save(stream, System.Drawing.Imaging.ImageFormat.Gif);  break;
+      case ImageType.JPG: ToBitmap().Save(stream, System.Drawing.Imaging.ImageFormat.Jpeg); break;
+      case ImageType.PNG: ToBitmap().Save(stream, System.Drawing.Imaging.ImageFormat.Png);  break;
+      case ImageType.TIF: ToBitmap().Save(stream, System.Drawing.Imaging.ImageFormat.Tiff); break;
+      default: throw new NotImplementedException();
+    }
+  }
 
   internal unsafe void InitFromSurface(SDL.Surface* surface)
   { if(surface==null) SDL.RaiseError();
@@ -275,6 +327,7 @@ public class Surface : IDisposable
     autoFree = true;
     Init();
   }
+
   protected unsafe void Init()
   { format   = new PixelFormat(surface->Format);
     usingKey = usingAlpha = false;
@@ -294,6 +347,106 @@ public class Surface : IDisposable
     if(colors==null) throw new ArgumentNullException("array");
   }
 
+  protected void WritePCX(Stream stream)
+  { byte[] pbuf = new byte[768];
+    stream.WriteByte(10);           // manufacturer. 10 = z-soft
+    stream.WriteByte(5);            // version
+    stream.WriteByte(1);            // encoding. 1 = RLE
+    stream.WriteByte(8);            // bits per pixel (where pixel is a single item on a plane)
+    IOH.WriteLE2(stream, 0);        // xmin
+    IOH.WriteLE2(stream, 0);        // ymin
+    IOH.WriteLE2(stream, (short)(Width-1));  // xmax
+    IOH.WriteLE2(stream, (short)(Height-1)); // ymax
+    IOH.WriteLE2(stream, 72);       // DPI
+    IOH.WriteLE2(stream, 72);       // DPI
+    stream.Write(pbuf, 0, 48);      // color map
+    stream.WriteByte(0);            // reserved field
+    int bpp = Width, bpl;
+    if((bpp&1)!=0) bpp++;
+    if(Depth==8)
+    { bpl = bpp;
+      stream.WriteByte(1); // planes
+    }
+    else
+    { bpl = bpp*3;
+      stream.WriteByte(3); // planes
+    }
+    IOH.WriteLE2(stream, (short)bpp); // bytes per plane line
+    IOH.WriteLE2(stream, 1);          // palette type. 1 = color
+    stream.Write(pbuf, 0, 58);        // filler
+    
+    Lock();
+    unsafe
+    { try
+      { byte* mem = (byte*)Data;
+        int   x, y, width=Width;
+        if(Depth==8)
+        { byte  c, count;
+          for(y=0; y<Height; y++)
+          { for(x=0; x<width;)
+            { count=0; c=mem[x];
+              do
+              { count++; x++;
+                if(count==63 || x==width) break;
+              } while(mem[x]==c);
+              if(c>=192 || count>1) stream.WriteByte((byte)(192+count)); // encode as a run
+              stream.WriteByte(c);
+            }
+            if((Width&1)!=0) stream.WriteByte(0);
+            mem += Pitch;
+          }
+          stream.WriteByte(12); // byte 12 precedes palette
+          Color[] pal = new Color[256];
+          GetPalette(pal);
+          for(int i=0,j=0; i<256; i++)
+          { pbuf[j++] = pal[i].R;
+            pbuf[j++] = pal[i].G;
+            pbuf[j++] = pal[i].B;
+          }
+          stream.Write(pbuf, 0, 768); // palette
+        }
+        else // Depth > 8
+        { byte[] linebuf = new byte[bpl];
+          fixed(byte* line = linebuf)
+          { byte*  omem = mem;
+            Color  c;
+            int    i;
+            byte   p, count;
+            for(y=0; y<Height; y++)
+            { if(Depth==16)
+                for(x=0; x<width; mem+=2,x++)
+                { c = MapColor((uint)*(ushort*)mem);
+                  line[x]=c.R; line[x+bpp]=c.G; line[x+bpp*2]=c.B;
+                }
+              else if(Depth==24)
+                for(x=0; x<width; mem+=3,x++)
+                { c = MapColor((uint)(mem[0]+(mem[1]<<8)+(mem[2]<<16))); // TODO: big-endian safe?
+                  line[x]=c.R; line[x+bpp]=c.G; line[x+bpp*2]=c.B;
+                }
+              else if(Depth==32)
+                for(x=0; x<width; mem+=4,x++)
+                { c = MapColor(*(uint*)mem);
+                  line[x]=c.R; line[x+bpp]=c.G; line[x+bpp*2]=c.B;
+                }
+              omem += Pitch; mem = omem;
+
+              for(i=0; i<bpl; )
+              { count=0; p=line[i];
+                do
+                { count++; i++;
+                  if(count==63 || i==bpl) break;
+                } while(line[i]==p);
+                if(p>=192 || count>1) stream.WriteByte((byte)(192+count)); // encode as a run
+                stream.WriteByte(p);
+              }
+            }
+          }
+        }
+      }
+      finally { Unlock(); }
+    }
+  }
+  
   protected unsafe void Dispose(bool destructor)
   { if(autoFree && surface!=null)
     { SDL.FreeSurface(surface);
@@ -303,6 +456,7 @@ public class Surface : IDisposable
 
   protected PixelFormat format;
   protected Color key;
+  protected uint  lockCount;
   protected byte  alpha;
   protected bool  usingKey, usingAlpha;
 

@@ -33,6 +33,13 @@ public abstract class Font
       y += LineSkip;
     }
   }
+  
+  public void Center(Surface dest, string text) { Center(dest, text, 0, 0); }
+  public void Center(Surface dest, string text, int yoffset) { Center(dest, text, yoffset, 0); }
+  public void Center(Surface dest, string text, int yoffset, int xoffset)
+  { Size size = CalculateSize(text);
+    Render(dest, text, (dest.Width-size.Width)/2+xoffset, (dest.Height-size.Height)/2+yoffset);
+  }
 
   public int[] WordWrap(string text, Rectangle rect) { return WordWrap(text, rect, breakers); }
   public virtual int[] WordWrap(string text, Rectangle rect, char[] breakers)
@@ -113,11 +120,13 @@ public enum RenderStyle : byte
 public class TrueTypeFont : NonFixedFont, IDisposable
 { public TrueTypeFont(string filename, int pointSize)
   { TTF.Initialize();
-    font = TTF.OpenFont(filename, pointSize);
+    try { font = TTF.OpenFont(filename, pointSize); }
+    catch(NullReferenceException) { unsafe { font = new IntPtr(null); } }
     Init();
   }
   public TrueTypeFont(string filename, int pointSize, int fontIndex)
-  { font = TTF.OpenFontIndex(filename, pointSize, fontIndex);
+  { try { font = TTF.OpenFontIndex(filename, pointSize, fontIndex); }
+    catch(NullReferenceException) { unsafe { font = new IntPtr(null); } }
     Init();
   }
   public TrueTypeFont(System.IO.Stream stream, int pointSize) : this(stream, pointSize, true) { }
