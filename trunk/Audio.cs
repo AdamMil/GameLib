@@ -86,30 +86,34 @@ public abstract class AudioSource : IDisposable
 
   public virtual void Rewind() { Position=0; }
 
-  public int Play() { return Play(0, Audio.Infinite, 0, Audio.FreeChannel); }
-  public int Play(int loops) { return Play(loops, Audio.Infinite, 0, Audio.FreeChannel); }
-  public int Play(int loops, int timeoutMs) { return Play(loops, timeoutMs, 0, Audio.FreeChannel); }
-  public int Play(int loops, int timeoutMs, int position) { return Play(loops, timeoutMs, position, Audio.FreeChannel); }
-  public int Play(int loops, int timeoutMs, int position, int channel)
+  public Channel Play() { return Play(0, Audio.Infinite, 0, Audio.FreeChannel); }
+  public Channel Play(int loops) { return Play(loops, Audio.Infinite, 0, Audio.FreeChannel); }
+  public Channel Play(int loops, int timeoutMs) { return Play(loops, timeoutMs, 0, Audio.FreeChannel); }
+  public Channel Play(int loops, int timeoutMs, int position) { return Play(loops, timeoutMs, position, Audio.FreeChannel); }
+  public Channel Play(int loops, int timeoutMs, int position, int channel)
   { if(channel<0) return Audio.StartPlaying(channel, this, loops, position, Fade.None, 0, timeoutMs);
     else
-      lock(Audio.Channels[channel])
-      { Audio.Channels[channel].StartPlaying(this, loops, position, Fade.None, 0, timeoutMs);
-        return channel;
+    { Channel c = Audio.Channels[channel];
+      lock(c)
+      { c.StartPlaying(this, loops, position, Fade.None, 0, timeoutMs);
+        return c;
       }
+    }
   }
 
-  public int FadeIn(uint fadeMs) { return FadeIn(fadeMs, 0, Audio.Infinite, Audio.FreeChannel, 0); }
-  public int FadeIn(uint fadeMs, int loops) { return FadeIn(fadeMs, loops, Audio.Infinite, Audio.FreeChannel, 0); }
-  public int FadeIn(uint fadeMs, int loops, int timeoutMs) { return FadeIn(fadeMs, loops, timeoutMs, Audio.FreeChannel, 0); }
-  public int FadeIn(uint fadeMs, int loops, int timeoutMs, int channel) { return FadeIn(fadeMs, loops, timeoutMs, channel, 0); }
-  public int FadeIn(uint fadeMs, int loops, int timeoutMs, int channel, int position)
+  public Channel FadeIn(uint fadeMs) { return FadeIn(fadeMs, 0, Audio.Infinite, Audio.FreeChannel, 0); }
+  public Channel FadeIn(uint fadeMs, int loops) { return FadeIn(fadeMs, loops, Audio.Infinite, Audio.FreeChannel, 0); }
+  public Channel FadeIn(uint fadeMs, int loops, int timeoutMs) { return FadeIn(fadeMs, loops, timeoutMs, Audio.FreeChannel, 0); }
+  public Channel FadeIn(uint fadeMs, int loops, int timeoutMs, int channel) { return FadeIn(fadeMs, loops, timeoutMs, channel, 0); }
+  public Channel FadeIn(uint fadeMs, int loops, int timeoutMs, int channel, int position)
   { if(channel<0) return Audio.StartPlaying(channel, this, loops, position, Fade.In, fadeMs, timeoutMs);
     else
+    { Channel c = Audio.Channels[channel];
       lock(Audio.Channels[channel])
-      { Audio.Channels[channel].StartPlaying(this, loops, position, Fade.In, fadeMs, timeoutMs);
-        return channel;
+      { c.StartPlaying(this, loops, position, Fade.In, fadeMs, timeoutMs);
+        return c;
       }
+    }
   }
   
   protected void SizeBuffer(int size) { if(buffer==null || buffer.Length<size) buffer=new byte[size]; }
@@ -1003,9 +1007,9 @@ public class Audio
   { if(ChannelFinished!=null) ChannelFinished(channel);
   }
   
-  internal static int StartPlaying(int channel, AudioSource source, int loops, int position, Fade fade, uint fadeMs, int timeoutMs)
+  internal static Channel StartPlaying(int channel, AudioSource source, int loops, int position, Fade fade, uint fadeMs, int timeoutMs)
   { AssertInit();
-    if(reserved==chans.Length) return -1;
+    if(reserved==chans.Length) return null;
 
     IList group=null;
     bool  tried=false;
@@ -1017,7 +1021,7 @@ public class Audio
             lock(chans[i])
               if(chans[i].Status==AudioStatus.Stopped)
               { chans[i].StartPlaying(source, loops, position, fade, fadeMs, timeoutMs);
-                return i;
+                return chans[i];
               }
           }
       }
@@ -1032,7 +1036,7 @@ public class Audio
               lock(chans[chan])
                 if(chans[chan].Status==AudioStatus.Stopped)
                 { chans[chan].StartPlaying(source, loops, position, fade, fadeMs, timeoutMs);
-                  return chan;
+                  return chans[chan];
                 }
             }
           }
@@ -1054,7 +1058,7 @@ public class Audio
                 if(chans[chan].Age>age) { age=chans[chan].Age; oi=chan; }
               }
           lock(chans[oi]) chans[oi].StartPlaying(source, loops, position, fade, fadeMs, timeoutMs);
-          return oi;
+          return chans[oi];
         }
       case PlayPolicy.Priority:
         lock(callback)
@@ -1069,7 +1073,7 @@ public class Audio
                 if(chans[chan].Priority<prio) { prio=chans[chan].Priority; pi=chan; }
               }
           lock(chans[pi]) chans[pi].StartPlaying(source, loops, position, fade, fadeMs, timeoutMs);
-          return pi;
+          return chans[pi];
         }
       case PlayPolicy.OldestPriority:
         lock(callback)
@@ -1096,9 +1100,9 @@ public class Audio
               }
             }
           lock(chans[oi]) chans[oi].StartPlaying(source, loops, position, fade, fadeMs, timeoutMs);
-          return oi;
+          return chans[oi];
         }
-      default: return -1;
+      default: return null;
     }
   }
 
@@ -1107,7 +1111,7 @@ public class Audio
   }
   internal static void CheckChannel(int channel)
   { AssertInit();
-    if(channel!=FreeChannel && channel<0) throw new ArgumentOutOfRangeException("channel");
+    if(channel!=FreeChannel && (channel<0 || channel>=chans.Length)) throw new ArgumentOutOfRangeException("channel");
   }
   internal static void CheckVolume(int volume)
   { if(volume<0 || volume>Audio.MaxVolume) throw new ArgumentOutOfRangeException("value");
