@@ -67,6 +67,14 @@ public class MouseMoveEvent : Event
   public void SetPressed(byte button, bool down)
   { if(down) Buttons|=(byte)(1<<button); else Buttons&=(byte)~(1<<button);
   }
+  public System.Drawing.Point Point
+  { get { return new System.Drawing.Point(X, Y); }
+    set { X=value.X; Y=value.Y; }
+  }
+  public System.Drawing.Size Offset
+  { get { return new System.Drawing.Size(Xrel, Yrel); }
+    set { Xrel=value.Width; Yrel=value.Height; }
+  }
 
   public int X, Y, Xrel, Yrel;
   public byte Buttons;
@@ -138,9 +146,21 @@ public class RepaintEvent : Event
 { public RepaintEvent() : base(EventType.Repaint) { }
 }
 
-public class WindowEvent : Event
-{ public WindowEvent(GameLib.Forms.Control control) : base(EventType.Window) { Control=control; }
+public abstract class WindowEvent : Event
+{ public WindowEvent(GameLib.Forms.Control control, MessageType subType) : base(EventType.Window)
+  { Control=control; SubType=subType;
+  }
+  public enum MessageType { Unknown, Paint, KeyRepeat };
   public GameLib.Forms.Control Control;
+  public MessageType SubType;
+}
+
+public class WindowPaintEvent : WindowEvent
+{ public WindowPaintEvent(GameLib.Forms.Control control) : base(control, WindowEvent.MessageType.Paint) { }
+}
+
+public class KeyRepeatEvent : WindowEvent
+{ public KeyRepeatEvent() : base(null, WindowEvent.MessageType.KeyRepeat) { }
 }
 
 public class UserEvent : Event

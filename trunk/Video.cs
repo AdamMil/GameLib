@@ -95,8 +95,8 @@ public sealed class Video
   public static event ModeChangedHandler ModeChanged;
 
   public static bool Initialized { get { return initCount>0; } }
-  public static int        Width  { get { return display.Width; } }
-  public static int        Height { get { return display.Height; } }
+  public static int         Width  { get { return display.Width; } }
+  public static int         Height { get { return display.Height; } }
   public static VideoInfo   Info { get { AssertInit(); return info; } }
   public static Surface     DisplaySurface { get { return display; } }
   public static PixelFormat DisplayFormat { get { return display.Format; } }

@@ -11,11 +11,11 @@ public class Timing
     timerFreq = Utility.GetTimerFrequency();
   }
 
-  // tick timer (since GameLib was initialized)
+  // tick timer (since Timing was initialized [first usage])
   public static long Frequency { get { return timerFreq; } }
   public static long Counter { get { return Utility.GetTimerCounter(); } }
 
-  // real-time timers (since GameLib was initialized)
+  // real-time timers (since Timing was initialized [first usage])
   public static uint   Msecs   { get { return Utility.GetMilliseconds(); } }
   public static double Seconds { get { return Utility.GetSeconds(); } }
 
