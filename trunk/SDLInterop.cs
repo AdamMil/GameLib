@@ -116,6 +116,10 @@ internal class SDL
   public enum AudioStatus : int
   { Stopped, Playing, Paused
   }
+  
+  public enum GrabMode : int
+  { Query=-1, Off=0, On=1
+  }
   #endregion
 
   #region Structs
@@ -462,11 +466,11 @@ internal class SDL
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_WM_GetCaption", CallingConvention=CallingConvention.Cdecl)]
   public static extern void WM_GetCaption(out string title, out string icon);
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_WM_SetIcon", CallingConvention=CallingConvention.Cdecl)]
-  public unsafe static extern void WM_SetIcon(Surface* icon, ref byte mask);
+  public unsafe static extern void WM_SetIcon(Surface* icon, byte* mask);
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_WM_IconifyWindow", CallingConvention=CallingConvention.Cdecl)]
   public static extern int WM_IconifyWindow();
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_WM_GrabInput", CallingConvention=CallingConvention.Cdecl)]
-  public static extern int WM_GrabInput(int grab);
+  public static extern GrabMode WM_GrabInput(GrabMode mode);
   #endregion
   
   #region Joysticks

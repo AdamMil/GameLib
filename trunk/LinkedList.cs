@@ -18,7 +18,7 @@ public class LinkedList : ICollection, IEnumerable
     internal Node(object data, Node prev, Node next) { this.data=data; Prev=prev; Next=next; }
     public Node   PrevNode { get { return Prev; } }
     public Node   NextNode { get { return Next; } }
-    public object Data { get { return data; } }
+    public object Data { get { return data; } set { data=value; } }
     internal Node Prev, Next;
     object data;
   }

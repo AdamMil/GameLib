@@ -205,8 +205,10 @@ public enum Key : int
 public enum KeyMod : uint
 { None=0, LShift=SDL.KeyMod.LShift, RShift=SDL.KeyMod.RShift, LCtrl=SDL.KeyMod.LCtrl, RCtrl=SDL.KeyMod.RCtrl,
   LAlt=SDL.KeyMod.LAlt, RAlt=SDL.KeyMod.RAlt, LMeta=SDL.KeyMod.LMeta, RMeta=SDL.KeyMod.RMeta,
+  Shift=LShift|RShift, Ctrl=LCtrl|RCtrl, Alt=LAlt|RAlt, Meta=LMeta|RMeta,
   NumLock=SDL.KeyMod.NumLock, CapsLock=SDL.KeyMod.CapsLock, Mode=SDL.KeyMod.Mode,
-  Shift=LShift|RShift, Ctrl=LCtrl|RCtrl, Alt=LAlt|RAlt, Meta=LMeta|RMeta
+
+  StatusMask=NumLock|CapsLock|Mode, KeyMask=Alt|Shift|Ctrl|Meta
 }
 
 public delegate void KeyPressHandler(KeyboardEvent evt);

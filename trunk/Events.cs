@@ -43,6 +43,9 @@ public class KeyboardEvent : Event
     Scan = evt.Key.Scan;
     Down = evt.Down!=0;
   }
+  public bool HasAnyMod (Input.KeyMod mod) { return (Mods&mod)!=Input.KeyMod.None; }
+  public bool HasAllMods(Input.KeyMod mod) { return (Mods&mod)==mod; }
+
   public Input.Key    Key;
   public Input.KeyMod Mods;
   public char Char;
@@ -169,7 +172,7 @@ public sealed class Events
 
   public static bool PumpEvents()
   { lock(queue)
-    { CheckInit();
+    { AssertInit();
       Event evt;
       bool  ret=false;
       while(true)
@@ -187,7 +190,7 @@ public sealed class Events
   public static Event NextEvent(int timeout) { return NextEvent(timeout, true);  }
   public static Event NextEvent(int timeout, bool remove)
   { lock(queue)
-    { CheckInit();
+    { AssertInit();
       if(queue.Count>0) return (Event)(remove ? queue.Dequeue() : queue.Peek());
 
       Event ret = PeekSDLEvent();
@@ -217,7 +220,7 @@ public sealed class Events
   public static bool PushEvent(Event evt, bool filter)
   { if(evt==null) throw new ArgumentNullException("evt");
     lock(queue)
-    { CheckInit();
+    { AssertInit();
       if(initCount==0) return false;
       if(filter && !FilterEvent(evt)) return false;
       QueueEvent(evt);
@@ -253,7 +256,7 @@ public sealed class Events
     }
   }
   
-  static void CheckInit() { if(initCount==0) throw new InvalidOperationException("Events not initialized yet"); }
+  static void AssertInit() { if(initCount==0) throw new InvalidOperationException("Events not initialized yet"); }
   static bool FilterEvent(Event evt)
   { if(evt==null) return false;
     if(EventFilter!=null)
