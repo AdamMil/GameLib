@@ -36,7 +36,7 @@ class App
 
   static void Main()
   { Video.Initialize();
-    Video.SetMode(640, 480, 32); // set 640x480x32bpp windowed mode
+    Video.SetMode(640, 480, 16); // set 640x480x32bpp windowed mode
     WM.WindowTitle = "BasicVideo Example";
 
     font = new TrueTypeFont(dataPath+"mstrr.ttf", 24); // load a font

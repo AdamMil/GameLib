@@ -75,7 +75,7 @@ public class ContainerControl : Control
       }
     base.OnPaint(e); // yes, this needs to be at the bottom, not the top!
   }
-  
+
   protected internal override void OnLayout(LayoutEventArgs e)
   { base.OnLayout(e);
     DoLayout(e.Recursive);

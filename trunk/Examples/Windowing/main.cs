@@ -24,6 +24,8 @@ using GameLib.Forms;
 using GameLib.Input;
 using GameLib.Video;
 
+/* I hate being limited to ~80 columns */
+
 namespace WindowingTest
 {
 
@@ -118,6 +120,13 @@ class SampleForm : Form
   void bar_ValueChanged(object sender, GameLib.ValueChangedEventArgs e)
   { UpdateAlpha(); // update the alpha value when the scrollbar changes
   }
+
+  void btn_Click(object sender, ClickEventArgs e)
+  { Random rand = new Random(); // change everything to a random color
+    BackColor = bar.ForeColor = Color.FromArgb(rand.Next(255), rand.Next(255),
+                                               rand.Next(255));
+    bar.BackColor = Helpers.GetDarkColor(bar.ForeColor);
+  }
   #endregion
 
   #region Controls
@@ -127,11 +136,6 @@ class SampleForm : Form
   CheckBox chk  = new CheckBox("Check, please.");
   Button   btn  = new Button("Hit me!");
   #endregion
-
-  void btn_Click(object sender, ClickEventArgs e)
-  { Random rand = new Random();
-    BackColor = Color.FromArgb(rand.Next(255), rand.Next(255), rand.Next(255));
-  }
 }
 #endregion
 
@@ -154,14 +158,18 @@ class App
       desktop.KeyRepeatDelay = 350; // 350 ms delay before key repeat
       
       Menu menu = new Menu("Menu", new KeyCombo(KeyMod.Alt, 'M'));
-
       menu.Add(new MenuItem("MessageBox", 'M', new KeyCombo(KeyMod.Ctrl, 'M')))
         .Click += new EventHandler(MessageBox_Click);
       menu.Add(new MenuItem("Form", 'F', new KeyCombo(KeyMod.Ctrl, 'F')))
         .Click += new EventHandler(Form_Click);
       menu.Add(new MenuItem("Exit", 'X', new KeyCombo(KeyMod.Ctrl, 'X')))
         .Click += new EventHandler(Exit_Click);
-
+      desktop.Menu.Add(menu);
+      
+      menu = new Menu("Dummy", new KeyCombo(KeyMod.Alt, 'D'));
+      menu.Add(new MenuItem("Dummy 1", '1', new KeyCombo(KeyMod.Alt, Key.F1)));
+      menu.Add(new MenuItem("Dummy 2", '2', new KeyCombo(KeyMod.Alt, Key.F2)));
+      menu.Add(new MenuItem("Dummy 3", '3', new KeyCombo(KeyMod.Alt, Key.F3)));
       desktop.Menu.Add(menu);
     }
     #endregion

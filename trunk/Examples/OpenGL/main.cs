@@ -56,7 +56,7 @@ class App
       double time = Timing.Seconds, timeDelta = time - lastTime;
       lastTime = time;
       xrot += 60*timeDelta; // rotate 60, 40, and 80 degrees per second,
-      yrot += 40*timeDelta; // respectively, regardless of the framerate
+      yrot += 40*timeDelta; // respectively
       zrot += 80*timeDelta;
     }
 
@@ -66,29 +66,25 @@ class App
   
   static void Initialize()
   { Video.Initialize();
-    Video.SetGLMode(640, 480, 16); 
+    Video.SetGLMode(640, 480, 32); 
 
-    GL.glShadeModel(GL.GL_SMOOTH);                
-    GL.glClearColor(0.0f, 0.0f, 0.0f, 0.5f);      
-    GL.glClearDepth(1.0f);                        
-    GL.glEnable(GL.GL_DEPTH_TEST);             
-    GL.glDepthFunc(GL.GL_LEQUAL);                
-    GL.glHint(GL.GL_PERSPECTIVE_CORRECTION_HINT, GL.GL_NICEST);  
+    GL.glShadeModel(GL.GL_SMOOTH);
+    GL.glClearColor(0.0f, 0.0f, 0.0f, 0.5f);
+    GL.glClearDepth(1.0f);
+    GL.glEnable(GL.GL_BLEND);
+    GL.glDepthFunc(GL.GL_LEQUAL);
+    GL.glHint(GL.GL_PERSPECTIVE_CORRECTION_HINT, GL.GL_NICEST);
     GL.glEnable(GL.GL_TEXTURE_2D);
+    GL.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_DST_COLOR); // too lazy to sort
 
-    Surface smiley = new Surface(dataPath+"smiley.png");
-    Primitives.Box(smiley, smiley.Bounds, Color.FromArgb(0, 96, 48));
-    Bitmap image = smiley.ToBitmap();
-    BitmapData data = image.LockBits(new Rectangle(new Point(0,0), image.Size), ImageLockMode.ReadOnly,
-                                     System.Drawing.Imaging.PixelFormat.Format24bppRgb);
     GL.glGenTextures(textures);
     GL.glBindTexture(GL.GL_TEXTURE_2D, textures[0]);
-    GL.glTexImage2D(GL.GL_TEXTURE_2D, 0, GL.GL_RGB8, image.Width, image.Height,
-                    0, GL.GL_BGR_EXT, GL.GL_UNSIGNED_BYTE, data.Scan0);
+    Surface smiley = new Surface(dataPath+"smiley.png");
+    // give the image a dark greenish border
+    Primitives.Box(smiley, smiley.Bounds, Color.FromArgb(0, 96, 48));
+    OpenGL.TexImage2D(smiley);
     GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_LINEAR);
     GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_LINEAR);
-
-    image.UnlockBits(data);
 
     GL.glMatrixMode(GL.GL_PROJECTION);
     GL.glLoadIdentity();
@@ -96,7 +92,7 @@ class App
   }
   
   static void Draw()
-  { GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT);
+  { GL.glClear(GL.GL_COLOR_BUFFER_BIT);
     GL.glMatrixMode(GL.GL_MODELVIEW);
 
     GL.glLoadIdentity();
