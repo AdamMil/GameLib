@@ -41,9 +41,9 @@ internal sealed class Utility
   [DllImport(Config.GLUtilityImportPath, EntryPoint="GLU_GetSeconds", CallingConvention=CallingConvention.Cdecl)]
   public static extern double GetSeconds();
 
-  [DllImport(Config.GLUtilityImportPath, EntryPoint="GLU_Getch()", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.GLUtilityImportPath, EntryPoint="GLU_Getch", CallingConvention=CallingConvention.Cdecl)]
   public static extern char Getch();
-  [DllImport(Config.GLUtilityImportPath, EntryPoint="GLU_Getche()", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.GLUtilityImportPath, EntryPoint="GLU_Getche", CallingConvention=CallingConvention.Cdecl)]
   public static extern char Getche();
 
   public static void Check(int result) { if(result<0) RaiseError(); }

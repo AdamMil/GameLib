@@ -87,34 +87,40 @@ public delegate void ChannelFinishedHandler(Channel channel);
 
 #region AudioSource
 public abstract class AudioSource : IDisposable
-{ public abstract bool CanRewind { get; }
+{ public int Both
+  { get { return left; }
+    set { Audio.CheckVolume(value); left=right=value; }
+  }
+
+  public abstract bool CanRewind { get; }
   public abstract bool CanSeek   { get; }
-  public abstract int  Position  { get; set; }
+
   public AudioFormat Format { get { return format; } }
-  public int Length   { get { return length; } }
-  public int Priority { get { return priority; } set { priority=value; } }
-  
-  public virtual void Dispose() { buffer=null; }
 
   public int Left
   { get { return left; }
     set { Audio.CheckVolume(value); left=value; }
   }
+
+  public int Length { get { return length; } }
+
+  public float PlaybackRate { get { return rate; } set { Audio.CheckRate(rate); lock(this) rate=value; } }
+
+  public abstract int  Position  { get; set; }
+
+  public int Priority { get { return priority; } set { priority=value; } }
+
   public int Right
   { get { return right; }
     set { Audio.CheckVolume(value); right=value; }
   }
-  public int Both
-  { get { return left; }
-    set { Audio.CheckVolume(value); left=right=value; }
-  }
-
-  public float PlaybackRate { get { return rate; } set { Audio.CheckRate(rate); lock(this) rate=value; } }
+  
+  public virtual void Dispose() { buffer=null; }
 
   public virtual void Rewind() { Position=0; }
 
-  public void SetVolume(int left, int right) { Left=left; Right=right; }
   public void GetVolume(out int left, out int right) { left=this.left; right=this.right; }
+  public void SetVolume(int left, int right) { Left=left; Right=right; }
 
   public Channel Play() { return Play(0, Audio.Infinite, 0, Audio.FreeChannel); }
   public Channel Play(int loops) { return Play(loops, Audio.Infinite, 0, Audio.FreeChannel); }
@@ -146,30 +152,14 @@ public abstract class AudioSource : IDisposable
     }
   }
   
-  protected void SizeBuffer(int size) { if(buffer==null || buffer.Length<size) buffer=new byte[size]; }
-
   protected int BytesToFrames(int bytes)
   { int frames = bytes/format.FrameSize;
     if(frames*format.FrameSize != bytes) throw new ArgumentException("length must be multiple of the frame size");
     return frames;
   }
 
-  protected byte[] ReadAllUL()
-  { byte[] buf = new byte[16384];
-    int toRead=buf.Length, index=0, read = ReadBytes(buf, index, toRead), length;
-    while(read!=0 && read==toRead)
-    { index = buf.Length;
-      byte[] nb = new byte[buf.Length*2];
-      Array.Copy(buf, nb, buf.Length);
-      buf = nb;
-      read = ReadBytes(buf, index, index);
-    }
-    length = index+read;
-    if(length==buf.Length) return buf;
-    byte[] ret = new byte[length];
-    Array.Copy(buf, ret, length);
-    return ret;
-  }
+  public int ReadBytes(byte[] buf, int length) { return ReadBytes(buf, 0, length); }
+  public abstract int ReadBytes(byte[] buf, int index, int length);
 
   public virtual byte[] ReadAll()
   { lock(this)
@@ -189,8 +179,22 @@ public abstract class AudioSource : IDisposable
     }
   }
 
-  public int ReadBytes(byte[] buf, int length) { return ReadBytes(buf, 0, length); }
-  public abstract int ReadBytes(byte[] buf, int index, int length);
+  protected byte[] ReadAllUL()
+  { byte[] buf = new byte[16384];
+    int toRead=buf.Length, index=0, read = ReadBytes(buf, index, toRead), length;
+    while(read!=0 && read==toRead)
+    { index = buf.Length;
+      byte[] nb = new byte[buf.Length*2];
+      Array.Copy(buf, nb, buf.Length);
+      buf = nb;
+      read = ReadBytes(buf, index, index);
+    }
+    length = index+read;
+    if(length==buf.Length) return buf;
+    byte[] ret = new byte[length];
+    Array.Copy(buf, ret, length);
+    return ret;
+  }
 
   public unsafe int ReadFrames(int* dest, int frames) { return ReadFrames(dest, frames, -1, -1); }
   public unsafe int ReadFrames(int* dest, int frames, int volume) { return ReadFrames(dest, frames, volume, volume); }
@@ -208,6 +212,8 @@ public abstract class AudioSource : IDisposable
       return read;
     }
   }
+
+  protected void SizeBuffer(int size) { if(buffer==null || buffer.Length<size) buffer=new byte[size]; }
 
   protected byte[] buffer;
   protected AudioFormat format;
@@ -309,7 +315,6 @@ public class SoundFileSource : AudioSource
     Init(ref info);
   }
   ~SoundFileSource() { Dispose(true); }
-
   public override void Dispose() { Dispose(false); GC.SuppressFinalize(this); }
   
   public override bool CanRewind { get { return true; } }
@@ -342,17 +347,6 @@ public class SoundFileSource : AudioSource
     }
   }
   
-  void InitInfo(ref SF.Info info, AudioFormat format)
-  { info.channels   = format.Channels;
-    info.samplerate = (int)format.Frequency;
-    info.format     = SF.Format.RAW;
-    if((format.Format&SampleFormat.S16)==SampleFormat.S16) info.format |= SF.Format.PCM_S16;
-    else if((format.Format&SampleFormat.U8)==SampleFormat.U8) info.format |= SF.Format.PCM_U8;
-    else if((format.Format&SampleFormat.S8)==SampleFormat.S8) info.format |= SF.Format.PCM_S8;
-    if((format.Format&SampleFormat.BigEndian)!=0) info.format |= SF.Format.BigEndian;
-    else info.format |= SF.Format.LittleEndian;
-  }
-
   void Init(ref SF.Info info)
   { unsafe { if(sndfile.ToPointer()==null) throw new FileNotFoundException(); }
     format.Channels  = (byte)info.channels;
@@ -369,6 +363,17 @@ public class SoundFileSource : AudioSource
     length = (int)info.frames;
   }
   
+  void InitInfo(ref SF.Info info, AudioFormat format)
+  { info.channels   = format.Channels;
+    info.samplerate = (int)format.Frequency;
+    info.format     = SF.Format.RAW;
+    if((format.Format&SampleFormat.S16)==SampleFormat.S16) info.format |= SF.Format.PCM_S16;
+    else if((format.Format&SampleFormat.U8)==SampleFormat.U8) info.format |= SF.Format.PCM_U8;
+    else if((format.Format&SampleFormat.S8)==SampleFormat.S8) info.format |= SF.Format.PCM_S8;
+    if((format.Format&SampleFormat.BigEndian)!=0) info.format |= SF.Format.BigEndian;
+    else info.format |= SF.Format.LittleEndian;
+  }
+
   IntPtr sndfile;
   StreamIOCalls calls;
 }
@@ -376,21 +381,7 @@ public class SoundFileSource : AudioSource
 
 #region SampleSource
 public class SampleSource : AudioSource
-{ public override bool CanRewind { get { return true; } }
-  public override bool CanSeek   { get { return true; } }
-  public override int  Position
-  { get { return curPos; }
-    set
-    { if(value!=curPos)
-      { if(value<0 || value>length) throw new ArgumentOutOfRangeException("Position");
-        lock(this) curPos = value;
-      }
-    }
-  }
-
-  public override void Dispose() { base.Dispose(); data=null; }
-
-  public SampleSource(AudioSource stream) : this(stream, true) { }
+{ public SampleSource(AudioSource stream) : this(stream, true) { }
   public SampleSource(AudioSource stream, bool mixerFormat)
   { data   = stream.ReadAll();
     format = stream.Format;
@@ -401,10 +392,22 @@ public class SampleSource : AudioSource
     }
     length = data.Length/format.FrameSize;
   }
-
   public SampleSource(AudioSource stream, AudioFormat convertTo)
   { data = Audio.Convert(stream.ReadAll(), stream.Format, format=convertTo).Shrunk;
     length = data.Length/format.FrameSize;
+  }
+  public override void Dispose() { base.Dispose(); data=null; }
+
+  public override bool CanRewind { get { return true; } }
+  public override bool CanSeek   { get { return true; } }
+  public override int  Position
+  { get { return curPos; }
+    set
+    { if(value!=curPos)
+      { if(value<0 || value>length) throw new ArgumentOutOfRangeException("Position");
+        lock(this) curPos = value;
+      }
+    }
   }
 
   public override byte[] ReadAll() { return (byte[])data.Clone(); }
@@ -589,35 +592,39 @@ public sealed class Channel
   public event MixFilter Filters;
   public event ChannelFinishedHandler Finished;
 
-  public int Number { get { return number; } }
-  public int Left
-  { get { return left; }
-    set { Audio.CheckVolume(value); left=value; }
-  }
-  public int Right
-  { get { return right; }
-    set { Audio.CheckVolume(value); right=value; }
-  }
+  public uint Age { get { return source==null ? 0 : Timing.Msecs-startTime; } }
+
   public int Both
   { get { return left; }
     set { Audio.CheckVolume(value); left=right=value; }
   }
+
+  public Fade Fading { get { return fade; } }
+
+  public int Left
+  { get { return left; }
+    set { Audio.CheckVolume(value); left=value; }
+  }
+
+  public int Number { get { return number; } }
+  public bool Paused { get { return paused; } set { paused=value; } }
+  public float PlaybackRate { get { return rate; } set { Audio.CheckRate(rate); lock(this) rate=value; } }
+  public bool Playing { get { return Status==ChannelStatus.Playing; } }
+  public int Position { get { return position; } set { lock(this) position=value; } }
+  public int Priority { get { return priority; } }
+
+  public int Right
+  { get { return right; }
+    set { Audio.CheckVolume(value); right=value; }
+  }
+
   public AudioSource Source { get { return source; } }
-  public int  Priority { get { return priority; } }
-  public uint Age { get { return source==null ? 0 : Timing.Msecs-startTime; } }
+
   public ChannelStatus Status
   { get { return source==null ? ChannelStatus.Stopped : paused ? ChannelStatus.Paused : ChannelStatus.Playing; }
   }
-  public Fade  Fading { get { return fade; } }
-  public int   Position { get { return position; } set { lock(this) position=value; } }
-  public float PlaybackRate { get { return rate; } set { Audio.CheckRate(rate); lock(this) rate=value; } }
 
-  public void SetVolume(int left, int right) { Left=left; Right=right; }
-  public void GetVolume(out int left, out int right) { left=this.left; right=this.right; }
-
-  public void Pause()  { paused=true; }
-  public void Resume() { paused=false; }
-  public void Stop()   { lock(this) StopPlaying(); }
+  public bool Stopped { get { return Status==ChannelStatus.Stopped; } }
 
   public void FadeOut(uint fadeMs)
   { lock(this)
@@ -629,6 +636,13 @@ public sealed class Channel
       fadeRight = EffectiveRight;
     }
   }
+
+  public void GetVolume(out int left, out int right) { left=this.left; right=this.right; }
+  public void SetVolume(int left, int right) { Left=left; Right=right; }
+
+  public void Pause()  { paused=true; }
+  public void Resume() { paused=false; }
+  public void Stop()   { lock(this) StopPlaying(); }
 
   internal void Reset() { rate=1f; left=Audio.MaxVolume; right=Audio.MaxVolume; }
 

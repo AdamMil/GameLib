@@ -19,7 +19,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // TODO: implement mouse cursor
 // TODO: add 'other control' to focus events?
 // TODO: examine Layout further (implemented properly?)
-// TODO: implement optional backing surface
 using System;
 using System.Collections;
 using System.Drawing;
@@ -232,8 +231,8 @@ public enum AnchorStyle // TODO: support more than just corners
   TopBottom=Top|Bottom,
   /// <summary>The control will be anchored to all four corners of its parent.</summary>
   All=TopLeft|BottomRight,
-  /// <summary>The default anchoring mode (equal to TopLeft).</summary>
-  Default=TopLeft
+  /// <summary>The default anchoring mode, which performs no anchoring (equal to TopLeft).</summary>
+  None=TopLeft
 }
 
 /// <summary>
@@ -422,7 +421,7 @@ public class Control
   #endregion
 
   #region Properties
-  /// <summary>This property determines where the control will be anchored in relation to its parent.</summary>
+  /// <summary>Determines where the control will be anchored in relation to its parent.</summary>
   /// <remarks>When a control is anchored, it will be automatically moved and/or resized when its parent is resized
   ///   in order to maintain the same spacing to the anchored edges. Setting this property will automatically set
   ///   the <see cref="Dock"/> property to <see cref="DockStyle.None"/> because the two properties are incompatible.
@@ -431,13 +430,20 @@ public class Control
   { get { return anchor; }
     set
     { if(anchor!=value)
-      { if(value!=AnchorStyle.Default) dock=DockStyle.None;
+      { if(value!=AnchorStyle.None) dock=DockStyle.None;
         anchor=value;
         if(parent!=null) UpdateAnchor();
       }
     }
   }
 
+  /// <summary>Gets or sets the effective background color for this control.</summary>
+  /// <remarks>Setting this property will alter the <see cref="RawBackColor"/> property of this control. Setting
+  /// it to <see cref="System.Drawing.Color.Transparent">Color.Transparent</see> will cause it to inherit the
+  /// background color of its parent. Reading this property will return the effective background color, after
+  /// taking inheritance into account.
+  /// </remarks>
+  /// <value>The effective background color of this control.</value>
   public Color BackColor
   { get
     { Control c = this;
@@ -453,17 +459,37 @@ public class Control
     }
   }
 
+  /// <summary>Gets or sets the background image for this control.</summary>
+  /// <remarks>Setting the background image causes the image to be displayed in the background of the control.
+  /// The alignment of the background image can be controlled using the <see cref="BackImageAlign"/> property.
+  /// </remarks>
   public IBlittable BackImage
-  { get { return backimg; }
+  { get { return backImage; }
     set
-    { if(value!=backimg)
-      { ValueChangedEventArgs e = new ValueChangedEventArgs(backimg);
-        backimg = value;
+    { if(value!=backImage)
+      { ValueChangedEventArgs e = new ValueChangedEventArgs(backImage);
+        backImage = value;
         OnBackImageChanged(e);
       }
     }
   }
 
+  /// <summary>Gets or sets the alignment of the background image.</summary>
+  /// <remarks>This setting controls where the <see cref="BackImage"/> will be displayed relative to the control.
+  /// </remarks>
+  public ContentAlignment BackImageAlign
+  { get { return backImageAlign; }
+    set
+    { if(value!=backImageAlign)
+      { ValueChangedEventArgs e = new ValueChangedEventArgs(backImageAlign);
+        backImageAlign = value;
+        OnBackImageAlignChanged(e);
+      }
+    }
+  }
+
+  /// <summary>Gets or sets the position of the bottom edge of the control relative to its parent.</summary>
+  /// <remarks>Setting this property will move the control.</remarks>
   public int Bottom
   { get { return bounds.Bottom; }
     set
@@ -475,6 +501,8 @@ public class Control
     }
   }
 
+  /// <summary>Gets or sets the location and size of the control relative to its parent.</summary>
+  /// <remarks>Setting this property will both move and resize the control.</remarks>
   public Rectangle Bounds
   { get { return bounds; }
     set
@@ -483,7 +511,20 @@ public class Control
     }
   }
 
+  /// <summary>This property is true if the control can receive focus.</summary>
+  /// <remarks>This property will return true if the <see cref="ControlStyle"/> property has the
+  /// <see cref="ControlStyle.CanFocus"/> flag, and the control is visible and enabled. Otherwise, it will return
+  /// false.
+  /// </remarks>
   public bool CanFocus { get { return (style&ControlStyle.CanFocus)!=ControlStyle.None && visible && enabled; } }
+
+  /// <summary>Enables or disables mouse capture for this control.</summary>
+  /// <remarks>Mouse capture allows a control to receive mouse events even if the mouse is not within the bounds
+  /// of the control. Because mouse capture requires an active desktop, this property cannot be set unless the
+  /// control is associated with a desktop. For information on associating a control with a desktop, see the
+  /// <see cref="Desktop"/> property. Since only one control can capture the mouse at a time, setting this to true
+  /// will take the mouse capture away from any other control that has mouse capture.
+  /// </remarks>
   public bool Capture
   { get
     { DesktopControl desktop = Desktop;
@@ -499,8 +540,14 @@ public class Control
     }
   }
 
+  /// <summary>Gets the <see cref="ControlCollection"/> containing this control's children.</summary>
   public ControlCollection Controls { get { return controls; } }
   
+  /// <summary>Gets or sets the effective mouse cursor associated with this control.</summary>
+  /// <remarks>Setting this property sets the <see cref="RawCursor"/> property. Setting this property to null will
+  /// cause the mouse cursor to be inherited from the control's parent. Getting this property takes inheritance into
+  /// account and returns the effective mouse cursor.
+  /// </remarks>
   public IBlittable Cursor
   { get
     { Control c = this;
@@ -510,6 +557,11 @@ public class Control
     set { cursor=value; }
   }
   
+  /// <summary>Gets the desktop with which this control is associated.</summary>
+  /// <remarks>Controls are associated with other controls through their <see cref="Parent"/> and
+  /// <see cref="Controls"/> properties. If an ancestor of a control is derived from <see cref="DesktopControl"/>,
+  /// the control is associated with that desktop.
+  /// </remarks>
   public DesktopControl Desktop
   { get
     { Control p = this;
@@ -518,13 +570,36 @@ public class Control
     }
   }
 
+  /// <summary>Gets the that rectangle this control occupies on the display surface.</summary>
+  /// <remarks>The display surface is the <see cref="GameLib.Video.Surface"/> that's associated with this control's
+  /// desktop (see <see cref="Desktop"/>). This property returns the rectangle that this control occupies on the
+  /// display surface. This is not necessarily the rectangle that is safe to draw into during a paint event!
+  /// More specifically, if the control has a backing surface (that is to say, if the <see cref="ControlStyle"/>
+  /// property has the <see cref="ControlStyle.BackingSurface"/> flag), this property is not the same as the
+  /// rectangle in which you can draw. For controls that have backing surface, the rectangle in which you can draw
+  /// is the entire backing surface. For controls that don't have a backing surface, this is the rectangle in which
+  /// it's safe to draw during a paint operation.
+  /// </remarks>
   public Rectangle DisplayRect { get { return WindowToDisplay(WindowRect); } }
 
+  /// <summary>Gets or sets how this control will be docked to its parent.</summary>
+  /// <remarks>When a control is docked, it will be automatically moved and/or resized when its parent is resized
+  /// in order to fill the entire edge that it's docked to. Multiple controls can be docked at once, even to the
+  /// same edge. The docking calculations for the controls are performed in the same order that the controls are
+  /// in the <see cref="Controls"/> collections. Setting this property will automatically set the
+  /// <see cref="Anchor"/> property to <see cref="AnchorStyle.None"/> because the two properties are incompatible.
+  /// </remarks>
   public DockStyle Dock
   { get { return dock; }
     set { if(value!=dock) { throw new NotImplementedException(); } }
   }
 
+  /// <summary>Gets or sets whether this control can receive input.</summary>
+  /// <remarks>Setting this property will alter the <see cref="RawEnabled"/> property of this control. 
+  /// Setting it to true will cause it to inherit the enabled status of its parent. Reading this property will
+  /// return whether this control is effectively enabled, taking inheritance into account. A control that is not
+  /// enabled will not be able to receive user input events.
+  /// </remarks>
   public bool Enabled
   { get
     { Control c = this;
@@ -539,6 +614,12 @@ public class Control
     }
   }
 
+  /// <summary>Returns true if this control has input focus.</summary>
+  /// <remarks>The control that has input focus will receive keyboard events. Many controls can be focused
+  /// (relative to their parent) but only one control can have input focus -- the control whose ancestors are
+  /// all focused as well. This property returns true if this control has input focus. To set input focus, use
+  /// the <see cref="Focus"/> method.
+  /// </remarks>
   public bool Focused
   { get
     { Control p = this;
@@ -546,6 +627,7 @@ public class Control
       return p is DesktopControl ? true : false;
     }
   }
+
   public GameLib.Fonts.Font Font
   { get
     { Control c = this;
@@ -782,9 +864,11 @@ public class Control
 
   public void Blur() { if(parent!=null && parent.FocusedControl==this) parent.FocusedControl=null; }
 
-  public void Focus()
+  public void Focus() { Focus(false); }
+  public void Focus(bool focusAncestors)
   { AssertParent();
     if(CanFocus) parent.FocusedControl = this;
+    if(focusAncestors && parent.parent!=null) parent.Focus(true);
   }
 
   public Control GetChildAtPoint(Point point)
@@ -909,8 +993,9 @@ public class Control
   #endregion
   
   #region Events
-  public event ValueChangedEventHandler BackColorChanged, BackImageChanged, EnabledChanged, FontChanged,
-    ForeColorChanged, LocationChanged, ParentChanged, SizeChanged, TabIndexChanged, TextChanged, VisibleChanged;
+  public event ValueChangedEventHandler BackColorChanged, BackImageChanged, BackImageAlignChanged, EnabledChanged,
+    FontChanged, ForeColorChanged, LocationChanged, ParentChanged, SizeChanged, TabIndexChanged, TextChanged,
+    VisibleChanged;
   public event EventHandler GotFocus, LostFocus, Layout, MouseEnter, MouseLeave, Move, Resize;
   public event ControlEventHandler ControlAdded, ControlRemoved;
   public event KeyEventHandler KeyDown, KeyUp, KeyPress;
@@ -929,6 +1014,11 @@ public class Control
   protected virtual void OnBackImageChanged(ValueChangedEventArgs e)
   { if(BackImageChanged!=null) BackImageChanged(this, e);
     Invalidate();
+  }
+
+  protected virtual void OnBackImageAlignChanged(ValueChangedEventArgs e)
+  { if(BackImageAlignChanged!=null) BackImageAlignChanged(this, e);
+    if(backImage!=null) Invalidate();
   }
 
   protected virtual void OnEnabledChanged(ValueChangedEventArgs e)
@@ -1049,7 +1139,10 @@ public class Control
 
   protected internal virtual void OnPaintBackground(PaintEventArgs e)
   { if(back!=Color.Transparent) e.Surface.Fill(e.DisplayRect, back);
-    if(backimg!=null) backimg.Blit(e.Surface, e.WindowRect, e.DisplayRect.X, e.DisplayRect.Y);
+    if(backImage!=null)
+    { Point at = Helpers.CalculateAlignment(DisplayRect, new Size(backImage.Width, backImage.Height), backImageAlign);
+      backImage.Blit(e.Surface, at.X, at.Y);
+    }
     if(PaintBackground!=null) PaintBackground(this, e);
   }
   protected internal virtual void OnPaint(PaintEventArgs e)
@@ -1136,6 +1229,8 @@ public class Control
   internal Surface backingSurface;
   internal uint lastClickTime = int.MaxValue;
 
+  protected Surface BackingSurface { get { return backingSurface; } }
+
   protected void AssertParent()
   { if(parent==null) throw new InvalidOperationException("This control has no parent");
   }
@@ -1147,7 +1242,7 @@ public class Control
     else desktop.UnsetModal(this);
   }
 
-  public void TriggerLayout()
+  protected void TriggerLayout()
   { if(!pendingLayout && Events.Events.Initialized)
     { if(!layoutSuspended) Events.Events.PushEvent(new WindowLayoutEvent(this));
       pendingLayout=true;
@@ -1178,13 +1273,14 @@ public class Control
   Control parent, focused;
   GameLib.Fonts.Font font;
   Color back=Color.Transparent, fore=Color.Transparent;
-  IBlittable backimg, cursor;
+  IBlittable backImage, cursor;
   string name=string.Empty, text=string.Empty;
   object tag;
   int tabIndex=-1, bottomAnchor, rightAnchor;
   ControlStyle style;
-  AnchorStyle  anchor=AnchorStyle.Default;
+  AnchorStyle  anchor=AnchorStyle.None;
   DockStyle    dock;
+  ContentAlignment backImageAlign=ContentAlignment.TopLeft;
   bool enabled=true, visible=true, mychange, keyPreview;
 }
 #endregion
@@ -1555,6 +1651,14 @@ public class DesktopControl : ContainerControl, IDisposable
     { krTimer.Dispose();
       krTimer=null;
     }
+  }
+
+  protected override void OnParentChanged(ValueChangedEventArgs e)
+  { if(Parent!=null)
+    { Parent=null;
+      throw new InvalidOperationException("A desktop cannot be the child of another control!");
+    }
+    base.OnParentChanged(e);
   }
 
   internal void SetModal(Control control)
