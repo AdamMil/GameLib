@@ -62,7 +62,7 @@ public delegate void DragEventHandler(object sender, DragEventArgs e);
 public class PaintEventArgs : EventArgs
 { 
   /// <param name="control">The control that is to be painted.</param>
-  /// <param name="rect">The area within the control to be painted, in window coordinates.
+  /// <param name="windowRect">The area within the control to be painted, in window coordinates.
   /// This rectangle is used to generated the <see cref="DisplayRect"/> field.
   /// </param>
   /// <param name="surface">The surface onto which the control should be drawn. This is expected to be the
@@ -381,7 +381,7 @@ public class Control
     }
     protected override void OnRemove(int index, object value)
     { ((Control)value).SetParent(null);
-      base.OnRemoveComplete(index, value);
+      base.OnRemove(index, value);
     }
     protected override void OnSet(int index, object oldValue, object newValue)
     { Control control = (Control)newValue;
@@ -899,7 +899,6 @@ public class Control
   protected virtual void OnBackImageChanged(ValueChangedEventArgs e)
   { if(BackImageChanged!=null) BackImageChanged(this, e);
     Invalidate();
-    foreach(Control c in controls) c.OnParentBackImageChanged(e);
   }
 
   protected virtual void OnEnabledChanged(ValueChangedEventArgs e)
@@ -935,22 +934,21 @@ public class Control
 
   protected virtual void OnParentChanged(ValueChangedEventArgs e)
   { if(ParentChanged!=null) ParentChanged(this, e);
+    UpdateBackingSurface(false);
     if(parent!=null)
     { UpdateAnchor();
       UpdateDock();
       Invalidate();
+      parent.TriggerLayout();
     }
-    UpdateBackingSurface(false);
+    if(e.OldValue!=null) ((Control)e.OldValue).TriggerLayout();
   }
 
   protected virtual void OnSizeChanged(ValueChangedEventArgs e)
   { if(SizeChanged!=null) SizeChanged(this, e);
     if(invalid.Right>bounds.Width) invalid.Width-=invalid.Right-bounds.Width;
     if(invalid.Bottom>bounds.Height) invalid.Height-=invalid.Bottom-bounds.Height;
-    if(!pendingLayout && !mychange) // 'mychange' is true when docking
-    { if(!layoutSuspended && Events.Events.Initialized) Events.Events.PushEvent(new WindowLayoutEvent(this));
-      pendingLayout=true;
-    }
+    if(!mychange) TriggerLayout(); // 'mychange' is true when docking
     UpdateBackingSurface(false);
     Size old = (Size)e.OldValue;
     if(parent!=null && (bounds.Width<old.Width || bounds.Height<old.Height))
@@ -1031,17 +1029,28 @@ public class Control
   }
   
   protected virtual void OnParentBackColorChanged(ValueChangedEventArgs e)
-  { if(back==Color.Transparent) Invalidate();
-  }
-  protected virtual void OnParentBackImageChanged(ValueChangedEventArgs e)
-  { if(back==Color.Transparent) Invalidate();
+  { if(back==Color.Transparent)
+    { Invalidate();
+      foreach(Control c in controls) c.OnBackColorChanged(e);
+    }
   }
   protected virtual void OnParentEnabledChanged(ValueChangedEventArgs e)
-  { if(Enabled==(bool)e.OldValue) Invalidate();
+  { if(Enabled==(bool)e.OldValue)
+    { Invalidate();
+      foreach(Control c in controls) c.OnEnabledChanged(e);
+    }
   }
-  protected virtual void OnParentFontChanged(ValueChangedEventArgs e) { if(font==null) Invalidate(); }
+  protected virtual void OnParentFontChanged(ValueChangedEventArgs e)
+  { if(font==null)
+    { Invalidate();
+      foreach(Control c in controls) c.OnFontChanged(e);
+    }
+  }
   protected virtual void OnParentForeColorChanged(ValueChangedEventArgs e)
-  { if(fore==Color.Transparent) Invalidate();
+  { if(fore==Color.Transparent)
+    { Invalidate();
+      foreach(Control c in controls) c.OnForeColorChanged(e);
+    }
   }
   protected virtual void OnParentResized(EventArgs e) { }
   protected virtual void OnParentVisibleChanged(ValueChangedEventArgs e) { if(Visible) Invalidate(); }
@@ -1104,6 +1113,13 @@ public class Control
     if(desktop==null) throw new InvalidOperationException("This control has no desktop");
     if(modal) desktop.SetModal(this);
     else desktop.UnsetModal(this);
+  }
+
+  public void TriggerLayout()
+  { if(!pendingLayout && Events.Events.Initialized)
+    { if(!layoutSuspended) Events.Events.PushEvent(new WindowLayoutEvent(this));
+      pendingLayout=true;
+    }
   }
 
   protected Rectangle bounds = new Rectangle(0, 0, 100, 100), invalid;
@@ -1188,6 +1204,8 @@ public class DesktopControl : ContainerControl, IDisposable
       if(krTimer!=null) krTimer.Change(krRate, krRate);
     }
   }
+
+  public Control ModalWindow { get { return modal.Count==0 ? null : (Control)modal[modal.Count-1]; } }
 
   public bool ProcessKeys      { get { return keys; } set { keys=value; } }
   public bool ProcessMouseMove { get { return moves; } set { moves=value; } }
@@ -1429,7 +1447,7 @@ public class DesktopControl : ContainerControl, IDisposable
         { if(!DispatchClickEvent(p, ea, time)) break;
           ea.CE.Point = p.WindowToParent(ea.CE.Point);
           p = p.Parent;
-        } while(p != this && p.Enabled && p.Visible);
+        } while(p!=null && p!=this && p.Enabled && p.Visible);
       }
       done:
       // lastClicked is used to track if the button release occurred over the same control it was pressed over

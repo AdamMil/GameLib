@@ -224,7 +224,8 @@ public struct KeyCombo
   public bool Matches(KeyMod keyMods, char character) { return Matches(keyMods, Key.None, character); }
   public bool Matches(KeyMod keyMods, Key key, char character)
   { if(Char!=0)
-    { if(char.ToUpper(character)!=Char) return false;
+    { character = character<32 ? (char)(character+64) : char.ToUpper(character);
+      if(character!=Char) return false;
     }
     else if(key!=Key) return false;
     for(int i=0; i<masks.Length; i++)
