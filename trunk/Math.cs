@@ -1091,6 +1091,7 @@ public struct Rectangle
   public Point Location { get { return new Point(X, Y); } }
   public float Right { get { return X+Width; } }
   public Vector Size { get { return new Vector(Width, Height); } }
+  public Point TopLeft { get { return new Point(X, Y); } }
   
   public bool Contains(Point point) { return point.Y>=Y && point.Y<Bottom && point.X>=X && point.X<Right; }
 
