@@ -77,6 +77,7 @@ public struct Point
 
   public void Offset(float xd, float yd) { X+=xd; Y+=yd; }
 
+  public System.Drawing.Point ToPoint() { return new System.Drawing.Point((int)Math.Round(X), (int)Math.Round(Y)); }
   public override string ToString() { return string.Format("({0:f},{1:f})", X, Y); }
 
   public static Point Invalid { get { return new Point(float.NaN, float.NaN); } }

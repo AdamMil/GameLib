@@ -211,7 +211,9 @@ public enum AnchorStyle // TODO: support more than just corners
   /// <summary>The control will be anchored to its parent's bottom left corner.</summary>
   BottomLeft=Bottom|Left,
   /// <summary>The control will be anchored to its parent's bottom right corner.</summary>
-  BottomRight=Bottom|Right
+  BottomRight=Bottom|Right,
+  /// <summary>The control will be anchored to all four corners of its parent.</summary>
+  All=TopLeft|BottomRight
 }
 
 /// <summary>
@@ -261,11 +263,6 @@ public class Control
     /// <exception cref="ArgumentException"><paramref name="control"/> already belongs to another control (ie,
     /// its <see cref="Control.Parent"/> property is not null).
     /// </exception>
-    /// <event cref="Control.ControlAdded">Raised on this control to notify the application that a new control
-    /// was added.
-    /// </event>
-    /// <event cref="Control.ParentChanged">Raised on the child control to notify it that its parent has changed.
-    /// </event>
     public int Add(Control control) { return List.Add(control); }
     /// <summary>Adds several new child controls at once.</summary>
     /// <remarks>This method effectively calls <see cref="Add"/> on each member of <paramref name="controls"/>.
@@ -330,20 +327,10 @@ public class Control
     /// <exception cref="ArgumentException"><paramref name="control"/> already belongs to another control (ie,
     /// its <see cref="Control.Parent"/> property is not null).
     /// </exception>
-    /// <event cref="Control.ControlAdded">Raised on this control to notify the application that a new control
-    /// was added.
-    /// </event>
-    /// <event cref="Control.ParentChanged">Raised on the child control to notify it that its parent has changed.
-    /// </event>
     public void Insert(int index, Control control) { List.Insert(index, control); }
     /// <summary>Removes a child control.</summary>
     /// <param name="control">A reference to the control to remove.</param>
     /// <exception cref="ArgumentException"><paramref name="control"/> cannot be found in this collection.</exception>
-    /// <event cref="Control.ControlRemoved">Raised on this control to notify the application that a control
-    /// was removed.
-    /// </event>
-    /// <event cref="Control.ParentChanged">Raised on the child control to notify it that its parent has changed.
-    /// </event>
     public void Remove(Control control) { List.Remove(control); }
     /// <summary>Returns a value indicating whether the given control exists in this collection.</summary>
     /// <param name="control">The control to search for.</param>
@@ -415,6 +402,11 @@ public class Control
   #endregion
 
   #region Properties
+  /// <summary>This property determines where the control will be anchored in relation to its parent.</summary>
+  /// <remarks>When a control is anchored, it will be automatically moved and/or resized when its parent is resized
+  ///   in order to maintain the same spacing to the anchored edges. Setting this property will automatically set
+  ///   the <see cref="Dock"/> property to <see cref="DockStyle.None"/> because the two properties are incompatible.
+  /// </remarks>
   public AnchorStyle Anchor
   { get { return anchor; }
     set
@@ -1178,7 +1170,27 @@ public class Control
 #endregion
 
 #region DesktopControl class
-public enum AutoFocus { None=0, Click=1, Over=2, OverSticky=3 }
+/// <summary>
+/// This enum is used with the <see cref="DesktopControl.AutoFocusing"/> property to determine how the
+/// desktop will automatically focus controls.
+/// </summary>
+public enum AutoFocus
+{ 
+  /// <summary>The desktop will not autofocus controls. The code will have to call <see cref="Control.Focus"/> and
+  /// <see cref="Control.Blur"/> manually in order to alter the focus.
+  /// </summary>
+  None=0,
+  /// <summary>When a focusable control is clicked with any button, the desktop will focus it and all its ancestors.
+  /// </summary>
+  Click=1,
+  /// <summary>When the mouse moves over a focusable control, it and its ancestors will be focused. When the
+  /// mouse moves off of a control, it will be blurred, even if the mouse did not move onto another focusable
+  /// control.
+  /// </summary>
+  Over=2,
+  /// <summary>When the mouse moves over a focusable control, it and its ancestors will be focused.</summary>
+  OverSticky=3
+}
 
 public class DesktopControl : ContainerControl, IDisposable
 { public DesktopControl() { Init(); }
