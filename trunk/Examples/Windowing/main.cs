@@ -62,8 +62,7 @@ class CustomDesktop : DesktopControl
 #region SampleForm
 class SampleForm : Form
 { public SampleForm()
-  { Style |= ControlStyle.BackingSurface;
-    Text = "Sample Form";
+  { Text = "Sample Form";
     MinimumSize = Size = new Size(256, 192);
     BorderStyle = BorderStyle.Resizeable; // allow the form to be resized
 
@@ -86,32 +85,38 @@ class SampleForm : Form
 
     Controls.AddRange(bar, label1, edit, chk, btn);
     #endregion
+
+    UpdateAlpha();
   }
 
   void UpdateAlpha() // called to change the window alpha
-  { if(BackingSurface!=null)
-    { BackingSurface.SetSurfaceAlpha((byte)bar.Value);
-      Invalidate();
+  { if(bar.Value<255)
+    { Style |= ControlStyle.BackingSurface;
+      BackingSurface.SetSurfaceAlpha((byte)bar.Value);
     }
+    else Style &= ~ControlStyle.BackingSurface;
+    Invalidate();
     edit.Text = "Alpha = "+bar.Value;
   }
 
   #region Event handlers
   protected override void OnBackingSurfaceChanged(EventArgs e)
-  { UpdateAlpha();
-    base.OnBackingSurfaceChanged(e);
+  { base.OnBackingSurfaceChanged(e);
+    if(BackingSurface!=null) BackingSurface.SetSurfaceAlpha((byte)bar.Value);
   }
 
   // make everything scale to the font size. normally not necessary if you
   // know the font, but want we everything to work properly regardless
   protected override void OnFontChanged(GameLib.ValueChangedEventArgs e)
   { if(Font!=null)
-    { int height = Font.LineSkip*3/2;
+    { int height    = Font.LineSkip*3/2;
       label1.Height = height;
-      edit.Bounds = new Rectangle(5, 0, ContentWidth-10, height);
-      chk.Bounds = new Rectangle(5, edit.Bottom, edit.Width, height);
+      edit.Bounds   = new Rectangle(5, 0, ContentWidth-10, height);
+      chk.Bounds    = new Rectangle(5, edit.Bottom, edit.Width, height);
+
       int wid = Font.CalculateSize(btn.Text).Width*2;
       btn.Bounds = new Rectangle((ContentWidth-wid)/2, chk.Bottom, wid, height);
+
       Height = Math.Max(192, height*7);
     }
     base.OnFontChanged(e);
@@ -148,10 +153,14 @@ public class ControlsForm : Form
 
     #region Add Controls
     ListBox list = new ListBox();
-    for(int i=1; i<=100; i++) list.Items.Add("Item "+i);
-    list.Size = new Size(75, 100);
+    list.Items.AddRange("Apple", "Beet", "Cabbage", "Carrot", "Coconut",
+                        "Date", "Grape", "Kiwifruit", "Limes", "Mango",
+                        "Orange", "Papaya");
+    for(int i=1; i<=50; i++) list.Items.Add("Item "+i);
 
-    Controls.AddRange(list);
+    Controls.Add(list); // we add it first so GetPreferredSize is correct
+    list.Size = new Size(75, list.GetPreferredSize(10).Height);
+
     TriggerLayout(true);
     #endregion
   }
@@ -168,16 +177,19 @@ class App
 
   static void Main()
   { Video.Initialize();
-    SetMode(640, 480);
+    SetMode(640, 480, false);
 
     #region Setup controls
     { TrueTypeFont font = new TrueTypeFont(dataPath+"vera.ttf", 11);
-      font.RenderStyle = RenderStyle.Shaded; // make the font look pretty
-      desktop.Font = font; // set the default font
+      font.RenderStyle  = RenderStyle.Shaded; // make the font look pretty
+      desktop.Font = font;          // set the default font
       desktop.KeyRepeatDelay = 350; // 350 ms delay before key repeat
-      
+
       Menu menu = new Menu("Menu", new KeyCombo(KeyMod.Alt, 'M'));
-      menu.Add(new MenuItem("MessageBox", 'M', new KeyCombo(KeyMod.Ctrl, 'M')))
+      menu.Add(new MenuItem("Toggle fullscreen", 'T',
+                            new KeyCombo(KeyMod.Alt, Key.Enter)))
+        .Click += new EventHandler(ToggleFS_Click);
+      menu.Add(new MenuItem("Message box", 'M', new KeyCombo(KeyMod.Ctrl, 'M')))
         .Click += new EventHandler(MessageBox_Click);
       menu.Add(new MenuItem("Form 1", 'F', new KeyCombo(KeyMod.Ctrl, 'F')))
         .Click += new EventHandler(Form1_Click);
@@ -186,10 +198,12 @@ class App
       menu.Add(new MenuItem("Exit", 'Q', new KeyCombo(KeyMod.Ctrl, 'Q')))
         .Click += new EventHandler(Exit_Click);
       desktop.Menu.Add(menu);
-      
+
+      desktop.Menu.Add(new Menu("Disabled")).Enabled=false;
+
       menu = new Menu("Dummy", new KeyCombo(KeyMod.Alt, 'D'));
       menu.Add(new MenuItem("Dummy 1", '1', new KeyCombo(KeyMod.Alt, Key.F1)));
-      menu.Add(new MenuItem("Dummy 2", '2', new KeyCombo(KeyMod.Alt, Key.F2)));
+      menu.Add(new MenuItem("Dummy 2", '2', new KeyCombo(KeyMod.Alt, Key.F2))).Enabled=false;
       menu.Add(new MenuItem("Dummy 3", '3', new KeyCombo(KeyMod.Alt, Key.F3)));
       desktop.Menu.Add(menu);
     }
@@ -202,7 +216,13 @@ class App
   }
   
   static void SetMode(int width, int height)
-  { Video.SetMode(width, height, 32, SurfaceFlag.Resizeable);
+  { SetMode(width, height,
+            Video.DisplaySurface.HasFlag(SurfaceFlag.Fullscreen));
+  }
+
+  static void SetMode(int width, int height, bool fullScreen)
+  { Video.SetMode(width, height, 32, fullScreen ? SurfaceFlag.Fullscreen :
+                                                  SurfaceFlag.Resizeable);
     WM.WindowTitle = "Windowing Example";
     desktop.Bounds  = Video.DisplaySurface.Bounds;
     desktop.Surface = Video.DisplaySurface;
@@ -223,32 +243,42 @@ class App
   }
   
   static CustomDesktop desktop = new CustomDesktop();
+  static ControlsForm  conForm;
 
   #region Event handlers
+  static void ToggleFS_Click(object sender, EventArgs e)
+  { SetMode(640, 480, !Video.DisplaySurface.HasFlag(SurfaceFlag.Fullscreen));
+  }
+
+  // uses simple and complex message boxes
   static void MessageBox_Click(object sender, EventArgs e)
-  { string text = "This is a message box. It works much like the message boxes "+
-                  "you may be used to. Would you like to blow up the monitor?";
+  { string text = "This is a message box. It works much like the ones you "+
+                  "may be used to. Would you like to blow up the monitor?";
     if(MessageBox.Show(desktop, "Hello", text,
                        new string[] { "Blow it up!", "I think not." }, 1) == 0)
       MessageBox.Show(desktop, "Boom?", "Boom!!! Wait... no, that didn't "+
                                         "quite work.");
     else MessageBox.Show(desktop, "Boom?", "Okay, fine. I guess I'll just "+
-                         "format the hard drive.");
+                                           "format the hard drive.");
   }
 
-  private static void Form1_Click(object sender, EventArgs e)
+  static void Form1_Click(object sender, EventArgs e)
   { SampleForm form = new SampleForm();
     form.Parent = desktop;
 
     Random rand = new Random(); // place it randomly on the desktop
     form.Location = new Point(rand.Next(desktop.ContentWidth-form.Width),
                               rand.Next(desktop.ContentHeight-form.Height));
+    form.Focus(); // make it the active form
   }
 
-  private static void Form2_Click(object sender, EventArgs e)
-  { ControlsForm form = new ControlsForm();
-    form.Parent   = desktop;
-    form.Location = new Point(10, 10);
+  static void Form2_Click(object sender, EventArgs e)
+  { if(conForm==null || conForm.Parent==null) // if closed or never opened,
+    { conForm = new ControlsForm();           // create a new one
+      conForm.Parent   = desktop;
+      conForm.Location = new Point(160, 130); // place it at a fixed point
+    }
+    conForm.Focus(); // bring it to the front
   }
 
   static void Exit_Click(object sender, EventArgs e)
