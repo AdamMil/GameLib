@@ -12,6 +12,8 @@ Changes
   almost never a real problem, but it could cause an exception if multiple
   modal windows were opened.
 * Added the Control.DrawSurface property
+* Whoops -- the audio quality in the Audio example was set to low. Changed
+  it back to the default.
 
 2004.02.07 (beta)
 -----------------

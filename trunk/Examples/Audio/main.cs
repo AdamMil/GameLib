@@ -31,7 +31,7 @@ class App
     string dataPath = "data/"; // set to something correct
     #endif
     
-    Audio.Initialize(11025); // 44100 hz 16-bit stereo
+    Audio.Initialize(); // default: 44100 hz 16-bit stereo
     Audio.AllocateChannels(8); // allocate 8 audio channels
     Audio.ReservedChannels = 1; // reserve the first channel for the music
 
