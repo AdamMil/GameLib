@@ -87,7 +87,7 @@ class SampleForm : Form
   void UpdateAlpha()
   { if(BackingSurface!=null)
     { BackingSurface.SetSurfaceAlpha((byte)bar.Value);
-      Parent.Invalidate(WindowToParent(WindowRect));
+      Invalidate();
     }
     edit.Text = "Alpha = "+bar.Value;
   }
