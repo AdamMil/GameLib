@@ -1536,7 +1536,6 @@ public class Control
 
     if(parent!=null)
     { UpdateAnchor();
-      UpdateDock();
       Invalidate();
       parent.TriggerLayout();
     }
@@ -1870,6 +1869,47 @@ public class Control
   protected internal virtual void OnCustomEvent(WindowEvent e) { }
   #endregion
   
+  /// <summary>Gets or sets this control's focused control.</summary>
+  /// <remarks>Changing this property will call <see cref="OnLostFocus"/> and <see cref="OnGotFocus"/> to raise
+  /// the appropriate events.
+  /// </remarks>
+  protected internal Control FocusedControl
+  { get { return focused; }
+    set
+    { if(value!=focused)
+      { if(value != null && !controls.Contains(value))
+          throw new ArgumentException("Not a child of this control", "FocusedControl");
+        // TODO: make sure controls can call .Focus() inside OnLostFocus()
+        if(focused!=null) focused.OnLostFocus(new EventArgs());
+        focused = value;
+        if(value!=null) value.OnGotFocus(new EventArgs());
+      }
+    }
+  }
+
+  /// <summary>Tests whether the control has a certain <see cref="ControlStyle"/> flag.</summary>
+  /// <param name="test">The <see cref="ControlStyle"/> flag to test for.</param>
+  /// <returns>Returns true if the <see cref="Style"/> property contains the specified flag.</returns>
+  protected internal bool HasStyle(ControlStyle test) { return (style & test) != ControlStyle.None; }
+
+  /// <summary>Gets or sets the drag threshold for this control.</summary>
+  /// <remarks>The drag threshold controls how far the mouse has to be dragged for it to register as a drag event.
+  /// The value is stored as the distance in pixels, squared, so if a movement of 4 pixels is required to signify
+  /// a drag, this property should be set to 16, which is 4 squared. As a special case, setting it to -1 causes it
+  /// to inherit the desktop's <see cref="DesktopControl.DragThreshold"/> property value. Reading this property does
+  /// not take inheritance into account and may return -1. The default value is -1.
+  /// </remarks>
+  /// <value>The drag threshold, as the distance squared, in pixels, or -1 to inherit the desktop's
+  /// <see cref="DesktopControl.DragThreshold"/> property.
+  /// </value>
+  protected internal int DragThreshold
+  { get { return dragThreshold; }
+    set
+    { if(value<-1) throw new ArgumentOutOfRangeException("DragThreshold", value, "must be >=0 or -1");
+      dragThreshold=value;
+    }
+  }
+
   internal void SetParent(Control control)
   { ValueChangedEventArgs ve = new ValueChangedEventArgs(parent);
     ControlEventArgs ce = new ControlEventArgs(this);
@@ -1886,30 +1926,6 @@ public class Control
     if(!mychange) OnParentChanged(ve);
   }
 
-  protected internal Control FocusedControl
-  { get { return focused; }
-    set
-    { if(value!=focused)
-      { if(value != null && !controls.Contains(value))
-          throw new ArgumentException("Not a child of this control", "FocusedControl");
-        // TODO: make sure controls can call .Focus() inside OnLostFocus()
-        if(focused!=null) focused.OnLostFocus(new EventArgs());
-        focused = value;
-        if(value!=null) value.OnGotFocus(new EventArgs());
-      }
-    }
-  }
-
-  protected internal bool HasStyle(ControlStyle test) { return (style & test) != ControlStyle.None; }
-
-  protected internal int DragThreshold
-  { get { return dragThreshold; }
-    set
-    { if(value<-1) throw new ArgumentOutOfRangeException("DragThreshold", value, "must be >=0 or -1");
-      dragThreshold=value;
-    }
-  }
-
   internal void UpdateBackingSurface(bool forceNew)
   { DesktopControl desktop = Desktop;
     bool hasStyle = (style&ControlStyle.BackingSurface)!=0;
@@ -1924,12 +1940,24 @@ public class Control
   internal Surface backingSurface;
   internal uint lastClickTime = int.MaxValue;
 
+  /// <summary>Gets the <see cref="Surface"/> used as the backing surface for this control.</summary>
+  /// <remarks>This property will return null if there is no backing surface being used.</remarks>
   protected Surface BackingSurface { get { return backingSurface; } }
-
+  
+  /// <summary>Throws an exception if the control has no parent.</summary>
+  /// <remarks>This method will raise an <see cref="InvalidOperationException"/> if the control has no parent.
+  /// </remarks>
+  /// <exception cref="InvalidOperationException">Thrown if the control has no parent.</exception>
   protected void AssertParent()
   { if(parent==null) throw new InvalidOperationException("This control has no parent");
   }
 
+  /// <summary>Changes the control's modal status.</summary>
+  /// <param name="modal">Makes the control modal if true, and nonmodal if false.</param>
+  /// <remarks>After calling this with <paramref name="modal"/> set to true, the control will be the topmost modal
+  /// control, even if it was previously modal.
+  /// </remarks>
+  /// <exception cref="InvalidOperationException">Thrown if the control has no associated desktop.</exception>
   protected void SetModal(bool modal)
   { DesktopControl desktop = Desktop;
     if(desktop==null) throw new InvalidOperationException("This control has no desktop");
@@ -1937,6 +1965,10 @@ public class Control
     else desktop.UnsetModal(this);
   }
 
+  /// <summary>Triggers a relayout of this control's children.</summary>
+  /// <remarks>Calling this method pushes a new <see cref="WindowLayoutEvent"/> onto the event queue for this
+  /// control, if one is not already there.
+  /// </remarks>
   protected void TriggerLayout()
   { if(!pendingLayout && Events.Events.Initialized)
     { Events.Events.PushEvent(new WindowLayoutEvent(this));
@@ -1944,24 +1976,10 @@ public class Control
     }
   }
 
-  protected Rectangle bounds = new Rectangle(0, 0, 100, 100), invalid;
-  protected bool pendingPaint, pendingLayout;
-  
+  /// <summary>Updates information needed to anchor this control.</summary>
   void UpdateAnchor()
   { if((anchor&AnchorStyle.Right) != 0) rightAnchor=parent.Width-bounds.Right;
     if((anchor&AnchorStyle.Bottom) != 0) bottomAnchor=parent.Height-bounds.Bottom;
-  }
-  
-  void UpdateDock()
-  { mychange=true;
-    // TODO: move other controls out of the way, etc
-    switch(dock)
-    { case DockStyle.Left:   Bounds = new Rectangle(0, 0, Width, parent.Height); break;
-      case DockStyle.Top:    Bounds = new Rectangle(0, 0, parent.Width, Height); break;
-      case DockStyle.Right:  Bounds = new Rectangle(parent.Width-Width, 0, Width, parent.Height); break;
-      case DockStyle.Bottom: Bounds = new Rectangle(0, parent.Height-Height, parent.Width, Height); break;
-    }
-    mychange=false;
   }
   
   ControlCollection controls;
@@ -1971,12 +1989,13 @@ public class Control
   IBlittable backImage, cursor;
   string name=string.Empty, text=string.Empty;
   object tag;
+  Rectangle bounds = new Rectangle(0, 0, 100, 100), invalid;
   int tabIndex=-1, bottomAnchor, rightAnchor, dragThreshold=-1;
   ControlStyle style;
   AnchorStyle  anchor=AnchorStyle.None;
   DockStyle    dock;
   ContentAlignment backImageAlign=ContentAlignment.TopLeft;
-  bool enabled=true, visible=true, mychange, keyPreview;
+  bool enabled=true, visible=true, mychange, keyPreview, pendingPaint, pendingLayout;
 }
 #endregion
 
