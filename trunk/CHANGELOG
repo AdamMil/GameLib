@@ -14,6 +14,14 @@ Changes
 * Added the Control.DrawSurface property
 * Whoops -- the audio quality in the Audio example was set to low. Changed
   it back to the default.
++ Added a property to FormBase that gets which button was clicked on a form
++ Added a simple color picker dialog
+* Made Button control only depress when clicked with the left mouse button
++ Added a property to the ButtonBase control that controlled whether or not
+  it would automatically update the Pressed property
++ Added a property to the Button control that controlled whether or not it
+  can draw pressed even when the mouse was not over the button
++ Added BorderColor properties to the FormBase and LabelBase controls
 
 2004.02.07 (beta)
 -----------------

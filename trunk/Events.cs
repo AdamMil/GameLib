@@ -223,6 +223,7 @@ public class ExceptionEvent : Event
 public enum FilterAction { Continue, Drop, Queue }
 public delegate FilterAction EventFilter(Event evt);
 public delegate bool EventProcedure(Event evt);
+public delegate bool IdleProcedure();
 
 public sealed class Events
 { private Events() { }
@@ -231,6 +232,7 @@ public sealed class Events
 
   public static event EventFilter EventFilter;
   public static event EventProcedure EventProcedure;
+  public static event IdleProcedure IdleProcedure;
 
   public static bool Initialized { get { return initCount>0; } }
   public static int  MaxQueueSize
@@ -337,16 +339,30 @@ public sealed class Events
   public static bool PumpEvent()
   { if(EventProcedure==null) throw new InvalidOperationException("No event procedure has been registered");
     if(quit) return false;
-    quit=!EventProcedure(NextEvent());
+    Event e = NextEvent(0);
+    if(e==null)
+    { if(IdleProcedure!=null) while(IdleProcedure() && !quit && PeekEvent(0)==null);
+      e = NextEvent();
+    }
+    quit = !EventProcedure(e) || quit;
     return !quit;
   }
 
   public static void PumpEvents() { PumpEvents(null); }
 
-  public static void PumpEvents(EventProcedure proc)
+  public static void PumpEvents(EventProcedure proc) { PumpEvents(proc, null); }
+  public static void PumpEvents(EventProcedure proc, IdleProcedure idle)
   { if(proc!=null) EventProcedure += proc;
-    else if(EventProcedure==null) throw new InvalidOperationException("No event procedure has been registered");
-    while(!quit && EventProcedure(NextEvent()));
+    if(idle!=null) IdleProcedure += idle;
+    if(EventProcedure==null) throw new InvalidOperationException("No event procedure has been registered");
+    while(!quit)
+    { Event e = NextEvent(0);
+      if(e==null)
+      { if(IdleProcedure!=null) while(IdleProcedure() && !quit && PeekEvent(0)==null);
+        if(quit || !EventProcedure(NextEvent())) break;
+      }
+      else if(!EventProcedure(e)) break;
+    }
     quit=true;
   }
   
