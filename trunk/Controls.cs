@@ -11,7 +11,60 @@ using GameLib.Input;
 namespace GameLib.Forms
 {
 
-public enum BorderStyle { None, Flat, ThreeDimensional };
+public enum BorderStyle { None, FixedFlat, Fixed3D, FixedThick, Resizeable };
+
+#region Helper
+class Helper
+{ private Helper() { }
+
+  public static void DrawBorder(Surface surface, Rectangle rect, BorderStyle border, bool depressed)
+  { switch(border)
+    { case BorderStyle.FixedFlat: DrawBorder(surface, rect, border, Color.Black, depressed); break;
+      case BorderStyle.Fixed3D: case BorderStyle.FixedThick: case BorderStyle.Resizeable:
+        DrawBorder(surface, rect, border, Color.FromArgb(96, 96, 96), depressed);
+        break;
+    }
+  }
+
+  public static void DrawBorder(Surface surface, Rectangle rect, BorderStyle border, Color color, bool depressed)
+  { switch(border)
+    { case BorderStyle.FixedFlat: DrawBorder(surface, rect, border, color, color, depressed); break;
+      case BorderStyle.Fixed3D: case BorderStyle.FixedThick: case BorderStyle.Resizeable:
+        DrawBorder(surface, rect, border,
+                   Color.FromArgb(color.R+(255-color.R)/2, color.G+(255-color.G)/2, color.B+(255-color.B)/2),
+                   Color.FromArgb(color.R*2/3, color.G*2/3, color.B*2/3), depressed);
+        break;
+    }
+  }
+
+  public static void DrawBorder(Surface surface, Rectangle rect, BorderStyle border, Color c1, Color c2, bool depressed)
+  { switch(border)
+    { case BorderStyle.FixedFlat: Primitives.Box(surface, rect, c1); break;
+      case BorderStyle.Fixed3D:
+        if(depressed) { Color t=c1; c1=c2; c2=t; }
+        Primitives.Line(surface, rect.X, rect.Y, rect.Right-1, rect.Y, c1);
+        Primitives.Line(surface, rect.X, rect.Y, rect.X, rect.Bottom-1, c1);
+        Primitives.Line(surface, rect.X, rect.Bottom-1, rect.Right-1, rect.Bottom-1, c2);
+        Primitives.Line(surface, rect.Right-1, rect.Y, rect.Right-1, rect.Bottom-1, c2);
+        break;
+      case BorderStyle.FixedThick: case BorderStyle.Resizeable:
+        Color c3, c4;
+        if(depressed) { c3=c2; c4=Color.White; c2=c1; c1=Color.Black; }
+        else { c4=c2; c2=Color.Black; c3=Color.White; }
+        Primitives.Line(surface, rect.X, rect.Y, rect.Right-1, rect.Y, c1);
+        Primitives.Line(surface, rect.X, rect.Y, rect.X, rect.Bottom-1, c1);
+        Primitives.Line(surface, rect.X, rect.Bottom-1, rect.Right-1, rect.Bottom-1, c2);
+        Primitives.Line(surface, rect.Right-1, rect.Y, rect.Right-1, rect.Bottom-1, c2);
+        rect.Inflate(-1, -1);
+        Primitives.Line(surface, rect.X, rect.Y, rect.Right-1, rect.Y, c3);
+        Primitives.Line(surface, rect.X, rect.Y, rect.X, rect.Bottom-1, c3);
+        Primitives.Line(surface, rect.X, rect.Bottom-1, rect.Right-1, rect.Bottom-1, c4);
+        Primitives.Line(surface, rect.Right-1, rect.Y, rect.Right-1, rect.Bottom-1, c4);
+        break;
+    }
+  }
+}
+#endregion
 
 #region ContainerControl
 public class ContainerControl : Control
@@ -138,14 +191,34 @@ public abstract class ButtonBase : LabelBase
 { public ButtonBase() { Style|=ControlStyle.Clickable|ControlStyle.CanFocus; }
 
   public event ClickEventHandler Click;
+  public event EventHandler PressedChanged;
+
+  public bool Pressed
+  { get { return pressed; }
+    set
+    { if(value!=pressed)
+      { pressed=value;
+        OnPressedChanged(new EventArgs());
+      }
+    }
+  }
+
+  public void PerformClick() { PerformClick(0); }
+  public void PerformClick(byte button)
+  { ClickEventArgs e = new ClickEventArgs();
+    e.CE.Button = button;
+    e.CE.Down   = true;
+    e.CE.Point  = new Point(Width/2, Height/2);
+    OnClick(e);
+  }
 
   protected internal override void OnMouseDown(ClickEventArgs e)
-  { Capture = pressed = true;
+  { Capture = Pressed = true;
     base.OnMouseDown(e);
   }
 
   protected internal override void OnMouseUp(ClickEventArgs e)
-  { Capture = pressed = false;
+  { Capture = Pressed = false;
     base.OnMouseUp(e);
   }
 
@@ -156,16 +229,15 @@ public abstract class ButtonBase : LabelBase
     }
     base.OnMouseClick(e);
   }
-  
+
   protected internal override void OnKeyDown(KeyEventArgs e)
   { if((e.KE.Key==Key.Return || e.KE.Key==Key.Space || e.KE.Key==Key.KpEnter) && !e.Handled)
       OnClick(new ClickEventArgs());
   }
 
   protected virtual void OnClick(ClickEventArgs e) { if(Click!=null) Click(this, e); }
-  
-  protected bool Pressed { get { return pressed; } set { pressed=value; } }
-  
+  protected virtual void OnPressedChanged(EventArgs e) { if(PressedChanged!=null) PressedChanged(this, e); }
+
   bool pressed;
 }
 #endregion
@@ -174,9 +246,6 @@ public abstract class ButtonBase : LabelBase
 public class Button : ButtonBase
 { public Button() { ImageAlign=TextAlign=ContentAlignment.MiddleCenter; }
   public Button(string text) { ImageAlign=TextAlign=ContentAlignment.MiddleCenter; Text=text; }
-
-  protected internal override void OnMouseDown(ClickEventArgs e) { Invalidate(); base.OnMouseDown(e); }
-  protected internal override void OnMouseUp(ClickEventArgs e) { Invalidate(); base.OnMouseUp(e); }
 
   protected internal override void OnPaint(PaintEventArgs e)
   { base.OnPaint(e);
@@ -200,7 +269,7 @@ public class Button : ButtonBase
       }
     }
     
-    Color bright, dark, back=BackColor, fore=ForeColor;
+    Color bright, dark, back=BackColor;
     bright = Color.FromArgb(back.R+(255-back.R)*3/5, back.G+(255-back.G)*3/5, back.B+(255-back.B)*3/5);
     dark   = Color.FromArgb(back.R/2, back.G/2, back.B/2);
     if(Pressed) { Color t=bright; bright=dark; dark=t; }
@@ -213,6 +282,8 @@ public class Button : ButtonBase
   
   protected override void OnLostFocus(EventArgs e) { Invalidate(); base.OnLostFocus(e); }
   protected override void OnGotFocus(EventArgs e)  { Invalidate(); base.OnGotFocus(e); }
+
+  protected override void OnPressedChanged(EventArgs e) { Invalidate(); base.OnPressedChanged(e); }
 }
 #endregion
 
@@ -858,7 +929,7 @@ public class MenuBase : ContainerControl
     Visible = true;
     Modal   = true;
     Capture = true;
-    if(wait) while(Events.Events.PumpEvent() && source!=null);
+    if(wait) while(Events.Events.PumpEvent() && this.source!=null);
   }
   
   protected virtual void OnPopup(EventArgs e) { if(Popup!=null) Popup(this, e); }
@@ -886,18 +957,30 @@ public class MenuBase : ContainerControl
   protected internal override void OnMouseClick(ClickEventArgs e)
   { if(!e.Handled)
     { foreach(MenuItemBase item in Controls)
-        if(item.Bounds.Contains(e.CE.Point)) { Click(item); break; }
+        if(item.Bounds.Contains(e.CE.Point)) { PostClickEvent(item); break; }
       Close();
       e.Handled=true;
     }
     base.OnMouseClick(e);
   }
 
+  protected internal override void OnCustomEvent(GameLib.Events.WindowEvent e)
+  { if(e is ItemClickedEvent) Click(((ItemClickedEvent)e).Item);
+    base.OnCustomEvent(e);
+  }
+
+  protected void PostClickEvent(MenuItemBase item) { Events.Events.PushEvent(new ItemClickedEvent(this, item)); }
+
+  class ItemClickedEvent : Events.WindowEvent
+  { public ItemClickedEvent(Control menu, MenuItemBase item) : base(menu) { Item=item; }
+    public MenuItemBase Item;
+  }
+
   void Click(MenuItemBase item)
   { item.OnClick(new EventArgs());
     Close();
   }
-  
+
   void Close()
   { if(source!=null)
     { Parent=null;
@@ -1009,15 +1092,7 @@ public class Menu : MenuBase
   
   protected internal override void OnPaintBackground(PaintEventArgs e)
   { base.OnPaintBackground(e);
-
-    Rectangle rect = DisplayRect;
-    Color bright, dark, back=BackColor, fore=ForeColor;
-    bright = Color.FromArgb(back.R+(255-back.R)/2, back.G+(255-back.G)/2, back.B+(255-back.B)/2);
-    dark   = Color.FromArgb(back.R*2/3, back.G*2/3, back.B*2/3);
-    Primitives.Line(e.Surface, rect.X, rect.Y, rect.Right-1, rect.Y, bright);
-    Primitives.Line(e.Surface, rect.X, rect.Y, rect.X, rect.Bottom-1, bright);
-    Primitives.Line(e.Surface, rect.X, rect.Bottom-1, rect.Right-1, rect.Bottom-1, dark);
-    Primitives.Line(e.Surface, rect.Right-1, rect.Y, rect.Right-1, rect.Bottom-1, dark);
+    Helper.DrawBorder(e.Surface, DisplayRect, BorderStyle.Fixed3D, BackColor, false);
   }
 
   Color selFore=Color.Transparent, selBack=Color.Transparent;
@@ -1025,11 +1100,12 @@ public class Menu : MenuBase
 #endregion
 
 #region FormBase
+// TODO: implement resizing
 public class FormBase : ContainerControl
-{ public object ReturnValue { get { return returnValue; } set { returnValue=value; } }
+{ public object DialogResult { get { return returnValue; } set { returnValue=value; } }
 
   public void Close()
-  { if(Parent!=null) return;
+  { if(Parent==null) return;
     System.ComponentModel.CancelEventArgs e = new System.ComponentModel.CancelEventArgs();
     OnClosing(e);
     if(!e.Cancel)
@@ -1038,9 +1114,10 @@ public class FormBase : ContainerControl
     }
   }
 
-  public object ShowDialog(Control parent)
-  { if(parent==null) throw new ArgumentNullException("parent");
-    Parent = parent;
+  public object ShowDialog(DesktopControl desktop)
+  { if(desktop==null) throw new ArgumentNullException("desktop");
+    Visible = true;
+    Parent  = desktop;
     BringToFront();
     Modal = true;
     while(Events.Events.PumpEvent() && Parent!=null);
@@ -1054,24 +1131,102 @@ public class FormBase : ContainerControl
   { if(Closing!=null) Closing(this, e);
   }
   protected virtual void OnClosed(EventArgs e) { if(Closed!=null) Closed(this, e); }
-  
+
   object returnValue;
 }
 #endregion
 
 #region Form
 public class Form : FormBase
-{
+{ public Form() { ForeColor=Color.Black; BackColor=Color.FromArgb(212, 208, 200); }
+
+  public BorderStyle BorderStyle
+  { get { return border; }
+    set
+    { if(border!=value)
+      { border=value;
+        Invalidate();
+      }
+    }
+  }
+
+  protected internal override void OnPaintBackground(PaintEventArgs e)
+  { base.OnPaintBackground(e);
+    Helper.DrawBorder(e.Surface, DisplayRect, border, BackColor, false);
+  }
+
+  BorderStyle border=BorderStyle.FixedThick;
 }
 #endregion
 
 #region MessageBox
 public enum MessageBoxButtons { Ok, OkCancel, YesNo, YesNoCancel }
-public class MessageBox : Form
-{ internal MessageBox(string text, string[] buttons) { message=text; buttonText=buttons; }
+public sealed class MessageBox : Form
+{ internal MessageBox(string text, string[] buttons) { DialogResult=-1; message=text; buttonTexts=buttons; }
 
-  string[] buttonText;
+  string[] buttonTexts;
   string   message;
+
+  public int Show(DesktopControl desktop)
+  { if(Controls.Count==0)
+    { GameLib.Fonts.Font font = RawFont==null ? desktop.Font : RawFont;
+      if(font!=null)
+      { int btnWidth=0, btnHeight=font.LineSkip*3/2, height=font.LineSkip*3+btnHeight, btnSpace=12;
+        int[] sizes = new int[buttonTexts.Length];
+        for(int i=0; i<buttonTexts.Length; i++)
+        { sizes[i] = font.CalculateSize(buttonTexts[i]).Width * 3/2; // padding inside button
+          if(sizes[i]<40) sizes[i]=40;
+          btnWidth += sizes[i];
+        }
+        btnWidth += (buttonTexts.Length-1) * btnSpace; // space between buttons
+        
+        int textWidth = btnWidth < desktop.Width/2 ? desktop.Width/2 : btnWidth, textHeight;
+        Rectangle rect = new Rectangle(0, 0, textWidth, int.MaxValue);
+        int lines = font.WordWrap(message, rect).Length;
+        if(lines==1) textWidth = font.CalculateSize(message).Width;
+        textHeight = lines*font.LineSkip;
+        height += textHeight;
+
+        Size = new Size(Math.Max(btnWidth*3/2, textWidth+font.LineSkip*2), height);
+        Location = new Point((desktop.Width-Width)/2, (desktop.Height-Height)/2);
+        
+        Label label  = new Label(message);
+        label.Bounds = new Rectangle((Width-textWidth)/2, font.LineSkip, Width-font.LineSkip*2, textHeight);
+        label.TextAlign = ContentAlignment.TopCenter;
+        Controls.Add(label);
+        
+        int x = (Width-btnWidth)/2, y = Height-font.LineSkip-btnHeight;
+        for(int i=0; i<buttonTexts.Length; i++)
+        { Button btn = new Button(buttonTexts[i]);
+          btn.Bounds = new Rectangle(x, y, sizes[i], btnHeight);
+          btn.Click += new ClickEventHandler(btn_OnClick);
+          btn.Tag    = i;
+          x += sizes[i]+btnSpace;
+          Controls.Add(btn);
+        }
+      }
+    }
+    return (int)ShowDialog(desktop);
+  }
+
+  protected internal override void OnKeyPress(KeyEventArgs e)
+  { if(!e.Handled)
+      foreach(Control c in Controls)
+        if(c is ButtonBase)
+        { ButtonBase button = (ButtonBase)c;
+          if(char.ToUpper(button.Text[0])==char.ToUpper(e.KE.Char))
+          { button.PerformClick();
+            e.Handled = true;
+            break;
+          }
+        }
+    base.OnKeyPress(e);
+  }
+
+  private void btn_OnClick(object sender, ClickEventArgs e)
+  { DialogResult = ((Control)sender).Tag;
+    Close();
+  }
 
   public static MessageBox Create(string caption, string text) { return Create(caption, text, MessageBoxButtons.Ok); }
   public static MessageBox Create(string caption, string text, MessageBoxButtons buttons)
@@ -1089,12 +1244,14 @@ public class MessageBox : Form
     return box;
   }
 
-  public static void Show(Control parent, string caption, string text) { Create(caption, text).ShowDialog(parent); }
-  public static int Show(Control parent, string caption, string text, MessageBoxButtons buttons)
-  { return (int)Create(caption, text, buttons).ShowDialog(parent);
+  public static void Show(DesktopControl desktop, string caption, string text)
+  { Create(caption, text).Show(desktop);
   }
-  public static int Show(Control parent, string caption, string text, string[] buttonText)
-  { return (int)Create(caption, text, buttonText).ShowDialog(parent);
+  public static int Show(DesktopControl desktop, string caption, string text, MessageBoxButtons buttons)
+  { return Create(caption, text, buttons).Show(desktop);
+  }
+  public static int Show(DesktopControl desktop, string caption, string text, string[] buttonText)
+  { return Create(caption, text, buttonText).Show(desktop);
   }
 
   static string[] ok = new string[] { "Ok" };
