@@ -389,7 +389,7 @@ public class CheckBox : CheckBoxBase
     Rectangle box = new Rectangle(rect.X, rect.Y+(rect.Height-boxSize)/2, boxSize, boxSize);
     Helpers.DrawBorder(e.Surface, box, BorderStyle, BackColor, true);
     box.Inflate(-borderSize, -borderSize);
-    e.Surface.Fill(box, down ? SystemColors.Control : Color.White);
+    e.Surface.Fill(box, down ? SystemColors.Control : SystemColors.Window);
     if(Checked)
       for(int yo=0; yo<3; yo++)
       { Primitives.Line(e.Surface, box.X+1, box.Y+yo+3, box.X+3, box.Y+yo+5, Color.Black);
@@ -1889,8 +1889,10 @@ public class TitleBar : TitleBarBase
       int bwidth = Helpers.BorderSize(BorderStyle);
       rect.Inflate(-bwidth, -bwidth);
 
-      rect.X += 2; rect.Width  -= 6-(rect.Width&1);
-      rect.Y += 2; rect.Height -= 7-(rect.Height&1);
+      float size = (float)rect.Width*3/5;
+      int pad = (int)Math.Round((rect.Width-size)/2), isize = (int)Math.Round(size);
+      rect.X += pad; rect.Width  -= isize-(rect.Width&1)-1;
+      rect.Y += pad; rect.Height -= isize-(rect.Height&1);
       if(Pressed && Over) { rect.X++; rect.Y++; }
       int right=rect.Right-1, bottom=rect.Bottom-1;
       Color c = ForeColor;

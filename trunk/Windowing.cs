@@ -1221,12 +1221,12 @@ public class Control
     }
   }
 
-  /// <summary>Returns true if this control or one of its children is the control specified.</summary>
+  /// <summary>Returns true if this control or one of its ancestors is the control specified.</summary>
   /// <param name="control">The control to compare to.</param>
-  /// <returns>Returns true if this control or one of its children is the control specified, and false
+  /// <returns>Returns true if this control or one of its ancestors is the control specified, and false
   /// otherwise.
   /// </returns>
-  public bool IsOrHas(Control control) { return this==control || Controls.Contains(control); }
+  public bool IsOrHas(Control control) { return this==control || Controls.Contains(control, true); }
 
   /// <summary>Sets the <see cref="Bounds"/> property and performs layout logic.</summary>
   /// <param name="x">The new X coordinate of the left edge of the control.</param>
@@ -2150,7 +2150,7 @@ public class Control
   { ValueChangedEventArgs ve = new ValueChangedEventArgs(parent);
     ControlEventArgs ce = new ControlEventArgs(this);
     if(parent!=null)
-    { DesktopControl desktop = parent is DesktopControl ? (DesktopControl)parent : parent.Desktop;
+    { DesktopControl desktop = parent.Desktop;
       if(desktop!=null)
       { if(desktop.capturing!=null && ce.Control.IsOrHas(desktop.capturing)) desktop.capturing=null;
         desktop.UnsetModal(this);
@@ -2779,7 +2779,7 @@ public class DesktopControl : ContainerControl, IDisposable
     }
     base.OnParentChanged(e);
   }
-
+  
   internal void SetModal(Control control)
   { if(control.Desktop!=this) throw new InvalidOperationException("The control is not associated with this desktop!");
     if(modal.Contains(control)) UnsetModal(control);
