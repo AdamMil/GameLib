@@ -116,7 +116,16 @@ public class Line : Control
 
 #region LabelBase
 public abstract class LabelBase : Control
-{ public BorderStyle BorderStyle
+{ public Color BorderColor
+  { get { return borderColor==Color.Transparent ? BackColor : borderColor; }
+    set
+    { Color old = BorderColor;
+      borderColor = value;
+      if(value != old) Invalidate();
+    }
+  }
+  
+  public BorderStyle BorderStyle
   { get { return border; }
     set
     { if(border!=value)
@@ -165,7 +174,8 @@ public abstract class LabelBase : Control
   protected virtual void OnTextAlignChanged(ValueChangedEventArgs e) { Invalidate(); }
 
   IBlittable image;
-  BorderStyle border; 
+  BorderStyle border;
+  Color borderColor=Color.Transparent;
   ContentAlignment imageAlign=ContentAlignment.TopLeft, textAlign=ContentAlignment.TopLeft;
 }
 #endregion
@@ -188,7 +198,7 @@ public class Label : LabelBase
 
   protected internal override void OnPaintBackground(PaintEventArgs e)
   { base.OnPaintBackground(e);
-    Helpers.DrawBorder(e.Surface, e.DisplayRect, BorderStyle, BackColor, true);
+    Helpers.DrawBorder(e.Surface, e.DisplayRect, BorderStyle, BorderColor, true);
   }
 
   protected internal override void OnPaint(PaintEventArgs e)
@@ -218,10 +228,18 @@ public class Label : LabelBase
 
 #region ButtonBase
 public abstract class ButtonBase : LabelBase
-{ public ButtonBase() { BorderStyle=BorderStyle.FixedThick; Style|=ControlStyle.Clickable|ControlStyle.CanFocus; }
+{ public ButtonBase()
+  { BorderStyle=BorderStyle.FixedThick; Style|=ControlStyle.Clickable|ControlStyle.CanFocus;
+    autoPress=true;
+  }
 
   public event ClickEventHandler Click;
   public event EventHandler PressedChanged;
+
+  public bool AutoPress
+  { get { return autoPress; }
+    set { autoPress = value; }
+  }
 
   public bool Pressed
   { get { return pressed; }
@@ -243,12 +261,12 @@ public abstract class ButtonBase : LabelBase
   }
 
   protected internal override void OnMouseDown(ClickEventArgs e)
-  { Capture = Pressed = true;
+  { if(e.CE.Button==MouseButton.Left) { Capture = true; if(autoPress) Pressed = true; }
     base.OnMouseDown(e);
   }
 
   protected internal override void OnMouseUp(ClickEventArgs e)
-  { Capture = Pressed = false;
+  { if(e.CE.Button==MouseButton.Left) { Capture = false; if(autoPress) Pressed = false; }
     base.OnMouseUp(e);
   }
 
@@ -268,20 +286,23 @@ public abstract class ButtonBase : LabelBase
   protected virtual void OnClick(ClickEventArgs e) { if(Click!=null) Click(this, e); }
   protected virtual void OnPressedChanged(EventArgs e) { if(PressedChanged!=null) PressedChanged(this, e); }
 
-  bool pressed;
+  bool pressed, autoPress;
 }
 #endregion
 
 #region Button
 public class Button : ButtonBase
-{ public Button() { ImageAlign=TextAlign=ContentAlignment.MiddleCenter; }
-  public Button(string text) { ImageAlign=TextAlign=ContentAlignment.MiddleCenter; Text=text; }
+{ public Button() { ImageAlign=TextAlign=ContentAlignment.MiddleCenter; alwaysUse=false; }
+  public Button(string text) { ImageAlign=TextAlign=ContentAlignment.MiddleCenter; Text=text; alwaysUse=false; }
+
+  public bool AlwaysUsePressed { get { return alwaysUse; } set { alwaysUse=value; } }
 
   protected bool Over { get { return over; } }
 
   protected internal override void OnPaintBackground(PaintEventArgs e)
   { base.OnPaintBackground(e);
-    Helpers.DrawBorder(e.Surface, DrawRect, BorderStyle, Focused ? ForeColor : BackColor, Pressed && over);
+    Helpers.DrawBorder(e.Surface, DrawRect, BorderStyle, Focused ? ForeColor : BorderColor,
+                       Pressed && (over || alwaysUse));
   }
 
   protected internal override void OnPaint(PaintEventArgs e)
@@ -289,7 +310,7 @@ public class Button : ButtonBase
 
     Rectangle rect = DrawRect;
     int bsize = Helpers.BorderSize(BorderStyle);
-    bool pressed = Pressed && over;
+    bool pressed = Pressed && (over || alwaysUse);
     rect.Inflate(-bsize, -bsize);
 
     if(Image!=null)
@@ -324,7 +345,7 @@ public class Button : ButtonBase
 
   protected override void OnPressedChanged(EventArgs e) { Invalidate(); base.OnPressedChanged(e); }
   
-  bool over;
+  bool over, alwaysUse;
 }
 #endregion
 
@@ -392,7 +413,7 @@ public class CheckBox : CheckBoxBase
     }
 
     Rectangle box = new Rectangle(rect.X, rect.Y+(rect.Height-boxSize)/2, boxSize, boxSize);
-    Helpers.DrawBorder(e.Surface, box, BorderStyle, BackColor, true);
+    if(!Focused) Helpers.DrawBorder(e.Surface, box, BorderStyle, BorderColor, true);
     box.Inflate(-borderSize, -borderSize);
     e.Surface.Fill(box, down ? SystemColors.Control : SystemColors.Window);
     if(Checked)
@@ -1922,11 +1943,21 @@ public class TitleBar : TitleBarBase
 #endregion
 
 #region FormBase
+public enum ButtonClicked { Ok, Yes, No, Cancel }
 public abstract class FormBase : ContainerControl
 { public FormBase()
   { Style |= ControlStyle.CanFocus|ControlStyle.Draggable;
     ForeColor=SystemColors.ControlText; BackColor=SystemColors.Control;
     DragThreshold=3;
+  }
+
+  public Color BorderColor
+  { get { return borderColor==Color.Transparent ? BackColor : borderColor; }
+    set
+    { Color old = BorderColor;
+      borderColor = value;
+      if(value != old) Invalidate();
+    }
   }
 
   public BorderStyle BorderStyle
@@ -1940,6 +1971,8 @@ public abstract class FormBase : ContainerControl
     }
   }
   
+  public ButtonClicked Button { get { return button; } set { button=value; }  }
+
   public int MinimumHeight
   { get { return min.Height; }
     set
@@ -2105,9 +2138,11 @@ public abstract class FormBase : ContainerControl
   }
 
   object returnValue;
-  BorderStyle border;
-  DragEdge    drag;
-  Size        min = new Size(100, 24), max = new Size(-1, -1);
+  Size          min = new Size(100, 24), max = new Size(-1, -1);
+  BorderStyle   border;
+  ButtonClicked button;
+  Color         borderColor = Color.Transparent;
+  DragEdge      drag;
 }
 #endregion
 
@@ -2120,7 +2155,7 @@ public class Form : FormBase
 
   protected internal override void OnPaintBackground(PaintEventArgs e)
   { base.OnPaintBackground(e);
-    Helpers.DrawBorder(e.Surface, DrawRect, BorderStyle, BackColor, false);
+    Helpers.DrawBorder(e.Surface, DrawRect, BorderStyle, BorderColor, false);
   }
 
   TitleBar titleBar;
@@ -2258,6 +2293,12 @@ public sealed class MessageBox : Form
   static string[] okCancel = new string[] { "Ok", "Cancel" };
   static string[] yesNo = new string[] { "Yes", "No" };
   static string[] yesNoCancel = new string[] { "Yes", "No", "Cancel" };
+}
+#endregion
+
+#region ColorPicker
+public class ColorPicker : Form
+{
 }
 #endregion
 
