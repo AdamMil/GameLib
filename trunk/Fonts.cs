@@ -34,9 +34,13 @@ public abstract class Font
     }
   }
   
-  public void Center(Surface dest, string text) { Center(dest, text, 0, 0); }
-  public void Center(Surface dest, string text, int yoffset) { Center(dest, text, yoffset, 0); }
-  public void Center(Surface dest, string text, int yoffset, int xoffset)
+  public void Center(Surface dest, string text) { CenterOff(dest, text, 0, 0); }
+  public void Center(Surface dest, string text, int y)
+  { int width = CalculateSize(text).Width;
+    Render(dest, text, (dest.Width-width)/2, y);
+  }
+  public void CenterOff(Surface dest, string text, int yoffset) { CenterOff(dest, text, yoffset, 0); }
+  public void CenterOff(Surface dest, string text, int yoffset, int xoffset)
   { Size size = CalculateSize(text);
     Render(dest, text, (dest.Width-size.Width)/2+xoffset, (dest.Height-size.Height)/2+yoffset);
   }

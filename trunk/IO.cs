@@ -4,6 +4,8 @@ using System.IO;
 namespace GameLib.IO
 {
 
+// TODO: add unsigned writing
+
 public class IOH
 { private IOH() {}
 
@@ -135,6 +137,28 @@ public class IOH
   { return ((ulong)ReadBE4U(buf, index)<<32)|ReadBE4U(buf, index+4);
   }
 
+  public static float ReadFloat(Stream stream)
+  { unsafe
+    { byte[] buf = Read(stream, sizeof(float));
+      fixed(byte* ptr=buf) return *(float*)ptr;
+    }
+  }
+
+  public static float ReadFloat(byte[] buf, int index)
+  { unsafe { fixed(byte* ptr=buf) return *(float*)(ptr+index); }
+  }
+
+  public static double ReadDouble(Stream stream)
+  { unsafe
+    { byte[] buf = Read(stream, sizeof(double));
+      fixed(byte* ptr=buf) return *(double*)ptr;
+    }
+  }
+
+  public static double ReadDouble(byte[] buf, int index)
+  { unsafe { fixed(byte* ptr=buf) return *(double*)(ptr+index); }
+  }
+
   public static int WriteString(Stream stream, string str)
   { byte[] buf = System.Text.Encoding.ASCII.GetBytes(str);
     stream.Write(buf, 0, buf.Length);
@@ -213,6 +237,30 @@ public class IOH
   public static void WriteBE8(byte[] buf, int index, long val)
   { WriteLE4(buf, index, (int)(val>>32));
     WriteLE4(buf, index+4, (int)val);
+  }
+  
+  public static void WriteFloat(Stream stream, float val)
+  { unsafe
+    { byte[] buf = new byte[sizeof(float)];
+      fixed(byte* pbuf=buf) *(float*)pbuf = val;
+      stream.Write(buf, 0, sizeof(float));
+    }
+  }
+  
+  public static void WriteFloat(byte[] buf, int index, float val)
+  { unsafe { fixed(byte* pbuf=buf) *(float*)(pbuf+index) = val; }
+  }
+
+  public static void WriteDouble(Stream stream, double val)
+  { unsafe
+    { byte[] buf = new byte[sizeof(double)];
+      fixed(byte* pbuf=buf) *(double*)pbuf = val;
+      stream.Write(buf, 0, sizeof(double));
+    }
+  }
+  
+  public static void WriteDouble(byte[] buf, int index, double val)
+  { unsafe { fixed(byte* pbuf=buf) *(double*)(pbuf+index) = val; }
   }
 }
 
