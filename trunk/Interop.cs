@@ -26,31 +26,71 @@ namespace GameLib.Interop
 [Serializable, AttributeUsage(AttributeTargets.Delegate)]
 internal sealed class CallConvCdeclAttribute : Attribute { }
 
+/// <summary>This class allows you to get an unmanaged function pointer to a managed method.</summary>
+/// <remarks>
+/// <para>When interfacing with unmanaged code that uses callbacks, it is often necessary to get an unmanaged
+/// function pointer to a managed method. This class allows you to do that. You'll want to keep an instance of this
+/// class around as long as you need the callback, just to be safe.
+/// </para>
+/// <para>Take note of the expected calling
+/// convention of the callback, however. The default calling convention for delegates may not be the same as is
+/// expected by the unmanaged code. This is especially common under Microsoft .NET for Windows. It is possible to
+/// alter the calling convention of a delegate, but no .NET languages support that as a standard feature yet.
+/// In that case, you'll have to rely on hacking the MSIL code for your assembly as GameLib does in order to
+/// interface with some libraries. Using this class improperly can result in stack corruption, application crashes,
+/// and possibly system crashes too, so only use it if you know what you're doing!
+/// </para>
+/// </remarks>
 // HACK: get a function pointer for a delegate
-[StructLayout(LayoutKind.Explicit, Size=4)]
+[StructLayout(LayoutKind.Explicit, Size=4)] // TODO: make this work on systems where a pointer is not 4 bytes
 public sealed class DelegateMarshaller
-{ public DelegateMarshaller(Delegate func) { this.func=func; }
+{ 
+  /// <summary>Initializes this class from a delegate.</summary>
+  /// <param name="func">A delegate for which you want an unmanaged function pointer.</param>
+  public DelegateMarshaller(Delegate func) { this.func=func; }
+  /// <summary>Converts the delegate given to the constructor into an <see cref="IntPtr"/>.</summary>
+  /// <returns>An <see cref="IntPtr"/> that holds an unmanaged function pointer to the delegate.</returns>
   public unsafe IntPtr ToIntPtr()  { IntPtr ptr; Marshal.StructureToPtr(this, new IntPtr(&ptr), false); return ptr; }
-  public unsafe void*  ToPointer() { void* ptr; Marshal.StructureToPtr(this, new IntPtr(&ptr), false); return ptr; }
+  /// <summary>Converts the delegate given to the constructor into a raw pointer.</summary>
+  /// <returns>An unmanaged function pointer to the delegate.</returns>
+  public unsafe void* ToPointer() { void* ptr; Marshal.StructureToPtr(this, new IntPtr(&ptr), false); return ptr; }
+
   [MarshalAs(UnmanagedType.FunctionPtr),FieldOffset(0)] Delegate func;
 }
 
+/// <summary>This class provides methods to help when working with unsafe code.</summary>
 public sealed class Unsafe
-{ // TODO: consider using memcpy
-  public static unsafe void Copy(byte* src, byte* dest, int length)
+{ 
+  /// <summary>This method copies a block of memory to another location.</summary>
+  /// <param name="src">A pointer to the beginning of the source block of memory.</param>
+  /// <param name="dest">The destination into which the source data will be copied.</param>
+  /// <param name="length">The number of bytes to copy.</param>
+  /// <remarks>This method does not handle the case where the regions of memory overlap. For that, use
+  /// <see cref="SafeCopy"/>.
+  /// </remarks>
+  public static unsafe void Copy(void* src, void* dest, int length)
   { if(src==null || dest==null) throw new ArgumentNullException();
     if(length<0) throw new ArgumentOutOfRangeException("length", length, "must not be negative");
-    int len=length/4;
-    for(; len!=0; src+=4,dest+=4,len--) *((int*)dest) = *((int*)src);
-    for(len=length&3; len!=0; len--) *dest++ = *src++;
+    GLUtility.Utility.MemCopy(src, dest, length);
   }
-  // TODO: consider using memset
-  public static unsafe void Fill(byte* dest, byte value, int length)
-  { if(dest==null) throw new ArgumentNullException();
+  /// <summary>This method fills a block of memory with a specified byte value.</summary>
+  /// <param name="dest">The pointer to the memory region that will be filled.</param>
+  /// <param name="value">The byte value with which the memory region will be filled.</param>
+  /// <param name="length">The number of bytes to fill.</param>
+  public static unsafe void Fill(void* dest, byte value, int length)
+  { if(dest==null) throw new ArgumentNullException("dest");
     if(length<0) throw new ArgumentOutOfRangeException("length", length, "must not be negative");
-    int len=length/4, iv = value|(value<<8)|(value<<16)|(value<<24);
-    for(; len!=0; dest+=4,len--) *((int*)dest) = iv;
-    for(len=length&3; len!=0; len--) *dest++ = value;
+    GLUtility.Utility.MemFill(dest, value, length);
+  }
+  /// <summary>This method copies a block of memory to another location.</summary>
+  /// <param name="src">A pointer to the beginning of the source block of memory.</param>
+  /// <param name="dest">The destination into which the source data will be copied.</param>
+  /// <param name="length">The number of bytes to copy.</param>
+  /// <remarks>This method correctly handles the case where the regions of memory overlap.</remarks>
+  public static unsafe void SafeCopy(void* src, void* dest, int length)
+  { if(src==null || dest==null) throw new ArgumentNullException();
+    if(length<0) throw new ArgumentOutOfRangeException("length", length, "must not be negative");
+    GLUtility.Utility.MemMove(src, dest, length);
   }
 }
 
@@ -155,4 +195,4 @@ internal abstract class StreamCallbackSource : IDisposable
   protected bool autoClose;
 }
 
-}
+} // namespace GameLib.Interop
