@@ -3398,6 +3398,12 @@ public sealed class Helpers
            align==ContentAlignment.BottomRight;
   }
 
+  /// <summary>Blends two colors together.</summary>
+  /// <param name="a">The first color.</param>
+  /// <param name="b">The second color.</param>
+  /// <returns>A <see cref="Color"/> that is the average of <paramref name="a"/> and <paramref name="b"/>.</returns>
+  public static Color Blend(Color a, Color b) { return Color.FromArgb((a.R+b.R)/2, (a.G+b.G)/2, (a.B+b.B)/2); }
+
   /// <summary>Returns the thickness of a border, in pixels.</summary>
   /// <param name="border">The border style thats thickness will be returned.</param>
   /// <returns>The thickness of the specified border, in pixels.</returns>

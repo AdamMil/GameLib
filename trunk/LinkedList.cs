@@ -102,17 +102,7 @@ public sealed class LinkedList : ICollection, IEnumerable
   #region IEnumerable
   /// <summary>Represents an enumerator for a <see cref="LinkedList"/> collection.</summary>
   public sealed class Enumerator : IEnumerator
-  { internal Enumerator(LinkedList list)
-    { head = list.head;
-      if(head==null) GC.SuppressFinalize(this);
-      else
-      { handler = new ListChangeHandler(OnListChanged);
-        list.ListChanged += handler;
-        this.list=list;
-      }
-      Reset();
-    }
-    ~Enumerator() { list.ListChanged -= handler; }
+  { internal Enumerator(LinkedList list) { this.list=list; head=list.head; version=list.Version; Reset(); }
 
     /// <summary>Gets the current element in the collection.</summary>
     /// <remarks>See <see cref="IEnumerator.Current"/> for more information. <seealso cref="IEnumerator.Current"/></remarks>
@@ -141,26 +131,19 @@ public sealed class LinkedList : ICollection, IEnumerable
     /// <remarks>See <see cref="IEnumerator.Reset"/> for more information. <seealso cref="IEnumerator.Reset"/></remarks>
     public void Reset() { AssertNotChanged(); cur=null; reset=true; }
 
-    void AssertNotChanged() { if(changed) throw new InvalidOperationException("The collection has changed"); }
-
-    void OnListChanged()
-    { changed=true;
-      list.ListChanged -= handler;
-      GC.SuppressFinalize(this);
+    void AssertNotChanged()
+    { if(list.Version!=version) throw new InvalidOperationException("The collection has changed");
     }
 
-    ListChangeHandler handler;
     LinkedList list;
     Node  head, cur;
-    bool  reset, changed;
+    int   version;
+    bool  reset;
   }
 
   /// <summary>Returns an enumerator that can iterate through the linked list.</summary>
   /// <returns>An <see cref="IEnumerator"/> that can be used to iterate through the list.</returns>
   IEnumerator IEnumerable.GetEnumerator() { return new Enumerator(this); }
-
-  internal delegate void ListChangeHandler();
-  internal event ListChangeHandler ListChanged;
   #endregion
 
   /// <summary>Gets the node at the head (beginning) of the linked list or null if the list is empty.</summary>
@@ -316,8 +299,7 @@ public sealed class LinkedList : ICollection, IEnumerable
     node.Next    = newNode;
     if(node==tail) tail=newNode;
     else newNode.Next.Prev=newNode;
-    count++;
-    if(ListChanged!=null) ListChanged();
+    count++; Version++;
     return newNode;
   }
   /// <summary>Inserts the given object before the specified <see cref="Node"/>.</summary>
@@ -341,8 +323,7 @@ public sealed class LinkedList : ICollection, IEnumerable
     node.Prev    = newNode;
     if(node==head) head=newNode;
     else newNode.Prev.Next=newNode;
-    count++;
-    if(ListChanged!=null) ListChanged();
+    count++; Version++;
     return newNode;
   }
   /// <summary>Removes the given <see cref="Node"/> from the linked list.</summary>
@@ -353,14 +334,15 @@ public sealed class LinkedList : ICollection, IEnumerable
     else node.Prev.Next=node.Next;
     if(node==tail) tail=node.Prev;
     else node.Next.Prev=node.Prev;
-    count--;
-    if(ListChanged!=null) ListChanged();
+    count--; Version++;
     #if DEBUG
     node.Next = node.Prev = null;
     #endif
   }
   /// <summary>Removes all elements from the linked list.</summary>
   public void Clear() { head=tail=null; count=0; }
+
+  internal int Version;
 
   IComparer cmp;
   Node head, tail;

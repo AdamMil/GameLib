@@ -17,6 +17,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 // TODO: implement more controls (listbox, dropdown, color picker)
+// TODO: make System.Threading.Timer instances static (optimization)
 using System;
 using System.Collections;
 using System.Drawing;
@@ -1315,7 +1316,6 @@ public class TextBox : TextBoxBase
   int start, end;
 }
 #endregion
-
 #endregion
 
 #region List controls
@@ -1324,81 +1324,246 @@ public class TextBox : TextBoxBase
 // TODO: document
 public abstract class ListControl : ScrollableControl
 { protected ListControl() { items = new ItemCollection(this); }
-  protected ListControl(ICollection items) { this.items=new ItemCollection(this, items); }
-  protected ListControl(IEnumerable items)
-  { this.items = new ItemCollection(this);
-    foreach(object o in items) this.items.InnerAdd(o);
-  }
+  protected ListControl(IEnumerable items) { this.items = new ItemCollection(this, items); }
 
   #region ItemCollection
   public sealed class ItemCollection : CollectionBase
   { public ItemCollection(ListControl list) { parent=list; }
-    public ItemCollection(ListControl list, ICollection items) { parent=list; InnerList.AddRange(items); }
-    
-    public object this[int index] { get { return InnerList[index]; } }
+    public ItemCollection(ListControl list, IEnumerable items) { parent=list; AddRange(items); }
 
-    public int Add(object item) { return List.Add(item); }
-    public void AddRange(params object[] items) { for(int i=0; i<items.Length; i++) List.Add(items[i]); }
-    public void AddRange(ICollection items) { foreach(object o in items) List.Add(o); }
+    public object this[int index] { get { return ((Item)InnerList[index]).Object; } }
 
-    // TODO: handle updating the selection when an item moves
-    public void Insert(int index, object item)
-    { if(sorted) Add(item);
-      else List.Insert(index, item);
+    public int Add(object item) { return List.Add(new Item(item)); }
+
+    public void AddRange(params object[] items)
+    { for(int i=0; i<items.Length; i++) InnerList.Add(new Item(items[i]));
+      Updated();
+      parent.Invalidate(parent.ContentRect);
+    }
+    public void AddRange(IEnumerable items)
+    { foreach(object o in items) InnerList.Add(new Item(o));
+      Updated();
+      parent.Invalidate(parent.ContentRect);
     }
 
-    // TODO: handle updating the selection when an item is removed
-    public void Remove(object item) { List.Remove(item); }
+    public bool Contains(object item) { return IndexOf(item)!=-1; }
+
+    public void Insert(int index, object item)
+    { if(sorted) List.Insert(FindInsertionPoint(item), new Item(item));
+      else List.Insert(index, new Item(item));
+    }
+
+    public int IndexOf(object item) // TODO: use a binary search if possible
+    { for(int i=0; i<InnerList.Count; i++)
+      { Item it = (Item)InnerList[i];
+        if(it.Object==item) return i;
+      }
+      return -1;
+    }
+
+    public void Remove(object item)
+    { int index = IndexOf(item);
+      if(index!=-1) List.RemoveAt(index);
+    }
 
     internal bool Sorted
     { get { return sorted; }
       set
       { if(value && !sorted)
-        { // TODO: updated the indexes of the parent (ie, CalcIndexes)
-          throw new NotImplementedException(); // TODO: implement sorted lists (be sure to preserve selected items)
+        { InnerList.Sort(Comparer);
+          Updated();
           parent.Invalidate(parent.ContentRect);
         }
         sorted=value;
       }
     }
-    internal int IndexOf(object item) { return InnerList.IndexOf(item); } // TODO: use sorted list
-    internal void InnerAdd(object item) { InnerList.Add(item); }
+
+    internal int Version { get { return version; } }
+    internal Item InnerGet(int index) { return (Item)InnerList[index]; }
+    internal ArrayList InnerGetList() { return InnerList; }
+    internal void InnerSet(int index, Item item) { InnerList[index]=item; }
+    internal void Updated() { version++; parent.OnListChanged(); }
 
     protected override void OnClearComplete()
-    { parent.OnCountChanged();
+    { Updated();
       parent.Invalidate(parent.ContentRect);
     }
-    protected override void OnInsertComplete(int index, object value) { RedrawFrom(index); }
-    protected override void OnRemoveComplete(int index, object value) { RedrawFrom(index); }
+    protected override void OnInsertComplete(int index, object value)
+    { Updated();
+      RedrawFrom(index);
+    }
+    protected override void OnRemoveComplete(int index, object value)
+    { Updated();
+      RedrawFrom(index);
+    }
     protected override void OnSetComplete(int index, object oldValue, object newValue)
-    { parent.OnCountChanged();
+    { Updated();
       parent.Invalidate(parent.GetItemRectangle(index, true));
     }
-    
+
+    class TextComparer : IComparer
+    { public TextComparer(ListControl list) { this.list=list; }
+      public int Compare(object a, object b)
+      { return list.GetObjectText(((Item)a).Object).CompareTo(list.GetObjectText(((Item)b).Object));
+      }
+      ListControl list;
+    }
+
+    TextComparer Comparer
+    { get
+      { if(comparer==null) comparer = new TextComparer(parent);
+        return comparer;
+      }
+    }
+
+    int FindInsertionPoint(object item) { throw new NotImplementedException(); }
+
     void RedrawFrom(int index)
-    { parent.OnCountChanged();
-      Rectangle rect = parent.GetItemRectangle(index, true);
+    { Rectangle rect = parent.GetItemRectangle(index, true);
       rect.Height += parent.Bottom-rect.Bottom; // invalidate all the items after this one, too
       parent.Invalidate(rect);
     }
 
     ListControl parent;
+    TextComparer comparer;
+    int  version;
     bool sorted;
   }
   #endregion
 
   #region SelectedIndexCollection
-  protected class SelectedIndexCollection : CollectionBase
-  { 
+  public sealed class SelectedIndexCollection : ICollection
+  { internal SelectedIndexCollection(ListControl list) { items=list.Items; version=items.Version-1; }
+
+    #region IndexEnumerator
+    sealed class IndexEnumerator : IEnumerator
+    { public IndexEnumerator(SelectedIndexCollection indices)
+      { this.indices=indices; count=indices.Count; version=indices.items.Version; index=-1;
+      }
+
+      public object Current
+      { get
+        { if(index<0 || index>=count) throw new InvalidOperationException();
+          return current;
+        }
+      }
+
+      public bool MoveNext()
+      { if(version!=indices.items.Version) throw new InvalidOperationException();
+        if(index>=count-1) return false;
+        current = indices[++index];
+        return true;
+      }
+
+      public void Reset()
+      { if(version!=indices.items.Version) throw new InvalidOperationException();
+        index = -1;
+      }
+
+      SelectedIndexCollection indices;
+      int index, count, current, version;
+    }
+    #endregion
+
+    public int this[int index] { get { return Indices[index]; } }
+    public int Count { get { return Indices.Length; } }
+    public bool   IsSynchronized { get { return false; } }
+    public object SyncRoot { get { return this; } }
+
+    public bool Contains(int index) { return IndexOf(index)!=-1; }
+    public void CopyTo(Array array, int index) { Indices.CopyTo(array, index); }
+    public IEnumerator GetEnumerator() { return new IndexEnumerator(this); }
+    
+    public int IndexOf(int index)
+    { int[] array = Indices;
+      for(int i=0; i<array.Length; i++) if(array[i]==index) return i;
+      return -1;
+    }
+
+    internal int[] Indices
+    { get
+      { if(version!=items.Version)
+        { ArrayList list = items.InnerGetList();
+          ArrayList sel  = new ArrayList();
+          for(int i=0; i<list.Count; i++)
+          { Item it = (Item)list[i];
+            if(it.Is(ItemState.Selected)) sel.Add(i);
+          }
+          indices = (int[])sel.ToArray(typeof(int));
+          version = items.Version;
+        }
+        return indices;
+      }
+    }
+
+    ItemCollection items;
+    int[] indices;
+    int version;
   }
   #endregion
 
+  #region SelectedObjectCollection
+  public sealed class SelectedObjectCollection : ICollection
+  { internal SelectedObjectCollection(ListControl list) { this.list=list; indices=list.SelectedIndices; }
+
+    #region ObjectEnumerator
+    sealed class ObjectEnumerator : IEnumerator
+    { public ObjectEnumerator(SelectedObjectCollection objs) { this.objs=objs; indices=objs.indices.GetEnumerator(); }
+      public object Current { get { return objs[(int)indices.Current]; } }
+      public bool MoveNext() { return indices.MoveNext(); }
+      public void Reset() { indices.Reset(); }
+
+      SelectedObjectCollection objs;
+      IEnumerator indices;
+    }
+    #endregion
+
+    public object this[int index] { get { return list.items[indices.Indices[index]]; } }
+    public int Count { get { return indices.Indices.Length; } }
+    public bool IsSynchronized { get { return indices.IsSynchronized; } }
+    public object SyncRoot { get { return indices.SyncRoot; } }
+
+    public bool Contains(object item) { return IndexOf(item)!=-1; }
+    public void CopyTo(Array array, int index)
+    { int[] indices = this.indices.Indices;
+      for(int i=0; i<indices.Length; i++) array.SetValue(list.items[indices[i]], i+index);
+    }
+    public int IndexOf(object item)
+    { int[] indices = this.indices.Indices;
+      for(int i=0; i<indices.Length; i++) if(list.items[indices[i]]==item) return i;
+      return -1;
+    }
+
+    public IEnumerator GetEnumerator() { return new ObjectEnumerator(this); }
+
+    ListControl list;
+    SelectedIndexCollection indices;
+  }
+  #endregion
+  
   public ItemCollection Items { get { return items; } }
   public abstract int SelectedIndex { get; set; }
 
+  public SelectedIndexCollection SelectedIndices
+  { get
+    { if(selectedIndices==null) selectedIndices = new SelectedIndexCollection(this);
+      return selectedIndices;
+    }
+  }
+
   public object SelectedItem
-  { get { return items[SelectedIndex]; }
+  { get
+    { int index = SelectedIndex;
+      return index==-1 ? null : items[index];
+    }
     set { SelectedIndex = items.IndexOf(value); }
+  }
+
+  public SelectedObjectCollection SelectedItems
+  { get
+    { if(selectedItems==null) selectedItems=new SelectedObjectCollection(this);
+      return selectedItems;
+    }
   }
 
   public bool Sorted { get { return items.Sorted; } set { items.Sorted=value; } }
@@ -1409,6 +1574,19 @@ public abstract class ListControl : ScrollableControl
   }
 
   public abstract int TopIndex { get; set; }
+
+  public void ClearSelected()
+  { int[] indices = SelectedIndices.Indices;
+    if(indices.Length>0)
+    { for(int i=0; i<indices.Length; i++)
+      { Item it = items.InnerGet(indices[i]);
+        it.State &= ~ItemState.Selected;
+        items.InnerSet(indices[i], it);
+      }
+      items.Updated();
+      Invalidate(ContentRect);
+    }
+  }
 
   public int FindString(string startsWith) { return FindString(startsWith, 0); }
   public int FindString(string startsWith, int from)
@@ -1422,46 +1600,113 @@ public abstract class ListControl : ScrollableControl
     return -1;
   }
 
-  public string GetItemText(int index) { return items[index].ToString(); }
+  public string GetItemText(int index) { return GetObjectText(items[index]); }
   public Size GetPreferredSize() { return GetPreferredSize(items.Count); }
   public abstract Size GetPreferredSize(int numItems);
 
+  public bool GetSelected(int index) { return Items.InnerGet(index).Is(ItemState.Selected); }
+  public void SetSelected(int index, bool selected) { SetSelected(index, selected, false); }
+  public void SetSelected(int index, bool selected, bool deselectOthers)
+  { Item rit = items.InnerGet(index);
+    bool was = rit.Is(ItemState.Selected);
+
+    if(deselectOthers) ClearSelected();
+
+    if(selected) rit.State |= ItemState.Selected;
+    else rit.State &= ~ItemState.Selected;
+    items.InnerSet(index, rit);
+
+    if(deselectOthers) Invalidate(ContentRect);
+    else if(was!=selected) Invalidate(GetItemRectangle(index, true));
+    else return;
+    items.Updated();
+  }
+
+  public void ToggleSelected(int index)
+  { Item it = items.InnerGet(index);
+    it.State ^= ItemState.Selected;
+    items.InnerSet(index, it);
+    items.Updated();
+    Invalidate(GetItemRectangle(index, true));
+  }
+
   protected abstract void DrawItem(int index, PaintEventArgs e, Rectangle bounds);
   protected abstract Rectangle GetItemRectangle(int index, bool onlySeen);
-  protected abstract bool IsSelected(int index);
+  protected virtual string GetObjectText(object item) { return item.ToString(); }
   protected abstract Size MeasureItem(int index);
-  protected virtual void OnCountChanged() { }
+  protected virtual void OnListChanged() { }
   protected abstract int PointToItem(Point clientPoint);
 
+  [Flags]
+  protected internal enum ItemState // TODO: this Custom1-5 stuff is not very clean...
+  { None=0, Selected=1, Disabled=2, Checked=4, Custom1=8, Custom2=16, Custom3=32, Custom4=64, Custom5=128
+  }
+
+  protected internal struct Item
+  { public Item(object item) { Object=item; State=ItemState.None; }
+    public bool Is(ItemState state) { return (State&state)!=0; }
+    public object    Object;
+    public ItemState State;
+  }
+
   ItemCollection items;
+  SelectedIndexCollection selectedIndices;
+  SelectedObjectCollection selectedItems;
 }
 #endregion
 
 #region ListBoxBase
+public enum SelectionMode { None, One, MultiSimple, MultiExtended }
+
 public abstract class ListBoxBase : ListControl
 { protected ListBoxBase() { Init(); }
   protected ListBoxBase(ICollection items) : base(items) { Init(); }
   protected ListBoxBase(IEnumerable items) : base(items) { Init(); }
   void Init()
-  { selected=-1; bottom=-1;
-    selBack=SystemColors.Highlight;
-    selFore=SystemColors.HighlightText;
-    Padding=new RectOffset(1);
-    Style|=ControlStyle.CanFocus;
+  { cursor=bottom=-1; selMode=SelectionMode.One; selBack=SystemColors.Highlight; selFore=SystemColors.HighlightText;
+    Padding=new RectOffset(1); Style|=ControlStyle.CanFocus;
   }
 
   public Color SelectedBackColor { get { return selBack; } set { selBack=value; } }
   public Color SelectedForeColor { get { return selFore; } set { selFore=value; } }
 
-  public override int SelectedIndex
-  { get { return selected; }
+  protected int CursorPosition
+  { get { return cursor; }
     set
     { int newValue = value<-1 || value>=Items.Count ? -1 : value;
-      if(newValue!=selected)
-      { if(selected>=0) Invalidate(GetItemRectangle(selected, true));
+      if(newValue!=cursor)
+      { if(cursor>=0) Invalidate(GetItemRectangle(cursor, true));
         if(newValue>=0) Invalidate(GetItemRectangle(newValue, true));
-        selected = newValue;
+        cursor = newValue;
       }
+    }
+  }
+
+  public override int SelectedIndex
+  { get
+    { SelectedIndexCollection coll = SelectedIndices;
+      return coll.Count>0 ? coll[0] : -1;
+    }
+    set
+    { int newValue = value<0 || value>=Items.Count ? -1 : value;
+      if(newValue!=SelectedIndex || SelectedIndices.Count>1)
+      { if(newValue==-1) ClearSelected();
+        else if(selMode==SelectionMode.One)
+        { int old = SelectedIndex;
+          if(old>=0) SetSelected(old, false);
+          if(newValue>=0) SetSelected(newValue, true);
+        }
+        else SetSelected(newValue, true, true);
+      }
+    }
+  }
+  
+  public SelectionMode SelectionMode
+  { get { return selMode; }
+    set
+    { if(value==SelectionMode.None) ClearSelected();
+      else if(value==SelectionMode.One && SelectedIndex>=0) SetSelected(SelectedIndex, true, true);
+      selMode=value;
     }
   }
 
@@ -1512,6 +1757,13 @@ public abstract class ListBoxBase : ListControl
     return bottom;
   }
 
+  protected int GetTopIndex() { return GetTopIndex(Items.Count-1); }
+  protected int GetTopIndex(int bottom)
+  { Rectangle bounds = ContentRect;
+    for(; bottom>=0 && bounds.Height>0; bottom--) bounds.Height -= MeasureItem(bottom).Height;
+    return bottom+1;
+  }
+
   protected override Rectangle GetItemRectangle(int index, bool onlySeen)
   { if(index<0 || index>=Items.Count) throw new ArgumentOutOfRangeException("index", index, "out of range");
     if(onlySeen && index<TopIndex) return new Rectangle(-1, -1, 0, 0);
@@ -1536,85 +1788,110 @@ public abstract class ListBoxBase : ListControl
     }
   }
 
-  protected override bool IsSelected(int index) { return index==selected; }
-
   protected override ScrollBarBase MakeScrollBar(bool horizontal)
   { ScrollBarBase bar = base.MakeScrollBar(horizontal);
     bar.Style &= ~ControlStyle.CanFocus;
     return bar;
   }
 
-  protected override void OnCountChanged()
-  { base.OnCountChanged();
-    CalcIndexes();
-  }
-
   protected internal override void OnCustomEvent(Events.WindowEvent e)
-  { if(e is ScrollEvent) DoScroll();
+  { if(e is ScrollEvent) MouseScroll();
     else base.OnCustomEvent(e);
   }
 
   protected internal override void OnKeyDown(KeyEventArgs e)
-  { if(e.KE.KeyMods==KeyMod.None)
-    { if(e.KE.Key==Key.Up || e.KE.Key==Key.Down)
-      { StopScrolling();
-        Capture = down = false;
-        if(e.KE.Key==Key.Up) ScrollUp();
-        else ScrollDown();
-        e.Handled=true;
-      }
-      else if(e.KE.Key==Key.PageUp)
-      { ScrollTo(SelectedIndex);
-        if(SelectedIndex>TopIndex) SelectedIndex=TopIndex;
-        else SelectedIndex=TopIndex=BottomToTop(TopIndex);
-      }
-      else if(e.KE.Key==Key.PageDown)
-      { ScrollTo(SelectedIndex);
-        if(SelectedIndex<GetBottomIndex()) SelectedIndex=bottom;
-        else { TopIndex=bottom; SelectedIndex=GetBottomIndex(); }
-      }
-      else if(e.KE.Key==Key.Home) TopIndex=SelectedIndex=0;
-      else if(e.KE.Key==Key.End)
-      { TopIndex = lastTop;
-        SelectedIndex = Items.Count-1;
-      }
+  { if(e.KE.Key==Key.Up || e.KE.Key==Key.Down)
+    { StopScrolling();
+      Capture   = mouseDown = false;
+      e.Handled = true;
+      if(e.KE.Key==Key.Up) ScrollUp(e);
+      else ScrollDown(e);
+    }
+    else if(e.KE.Key==Key.PageUp)
+    { int newIndex = CursorPosition;
+      ScrollTo(newIndex);
+      if(newIndex>TopIndex) newIndex=TopIndex;
+      else newIndex=TopIndex=GetTopIndex(TopIndex);
+      DragTo(newIndex, e);
+    }
+    else if(e.KE.Key==Key.PageDown)
+    { int newIndex = CursorPosition;
+      ScrollTo(newIndex);
+      if(newIndex<GetBottomIndex()) newIndex=bottom;
+      else { TopIndex=bottom; newIndex=GetBottomIndex(); }
+      DragTo(newIndex, e);
+    }
+    else if(e.KE.Key==Key.Home) DragTo(TopIndex=0, e);
+    else if(e.KE.Key==Key.End) { TopIndex=lastTop; DragTo(Items.Count-1, e); }
+    else if(e.KE.Key==Key.Space)
+    { if(selMode==SelectionMode.One) SelectedIndex = GetSelected(CursorPosition) ? -1 : CursorPosition;
+      else if(selMode!=SelectionMode.None) ToggleSelected(CursorPosition);
     }
     base.OnKeyDown(e);
   }
 
   protected internal override void OnKeyPress(KeyEventArgs e)
-  { int next = FindChar(e.KE.Char, SelectedIndex+1);
-    if(next==-1) next = FindChar(e.KE.Char);
-    if(next!=-1) ScrollTo(SelectedIndex=next);
+  { char c = e.KE.Char;
+    if(c<=26) c += (char)64;
+    int next=FindChar(c, CursorPosition+1);
+    if(next==-1) next = FindChar(c);
+    if(next!=-1)
+    { ScrollTo(next);
+      DragTo(next, e);
+    }
     base.OnKeyPress(e);
+  }
+
+  protected override void OnListChanged()
+  { base.OnListChanged();
+    CalcIndexes();
   }
 
   protected internal override void OnMouseDown(ClickEventArgs e)
   { if(!e.Handled && e.CE.Button==MouseButton.Left)
-    { SelectedIndex = PointToItem(e.CE.Point);
-      Capture = e.Handled = down = true;
+    { int index = PointToItem(e.CE.Point);
+      Capture   = e.Handled = mouseDown = true;
+
+      bool ctrl = Keyboard.HasAnyMod(KeyMod.Ctrl), shift=Keyboard.HasAnyMod(KeyMod.Shift);
+      selecting = (!ctrl && selMode!=SelectionMode.MultiSimple) || index<0 || !GetSelected(index);
+
+      if(selMode==SelectionMode.One)
+      { if(!ctrl || SelectedIndex!=index) SelectedIndex = index;
+        else SetSelected(index, false);
+      }
+      else if(selMode!=SelectionMode.None)
+      { if(shift && selMode!=SelectionMode.MultiSimple)
+        { if(!ctrl) ClearSelected();
+          SelectRange(Math.Max(CursorPosition, 0), index, selecting);
+        }
+        else if(index>=0)
+        { if(ctrl || selMode==SelectionMode.MultiSimple) ToggleSelected(index);
+          else SelectedIndex = index;
+        }
+      }
+      CursorPosition = index;
     }
     base.OnMouseDown(e);
   }
 
   protected internal override void OnMouseMove(Events.MouseMoveEvent e)
-  { if(down)
+  { if(mouseDown)
     { int index = PointToItem(new Point(Width/2, e.Y)); // assumes that Width/2 is within ContentRect
       if(index==-1)
       { StartScrolling();
-        DoScroll();
+        MouseScroll();
       }
       else
       { StopScrolling();
-        SelectedIndex = index;
+        DragTo(index);
       }
     }
     base.OnMouseMove(e);
   }
 
   protected internal override void OnMouseUp(ClickEventArgs e)
-  { if(!e.Handled && down && e.CE.Button==MouseButton.Left)
-    { Capture = down = false;
+  { if(!e.Handled && mouseDown && e.CE.Button==MouseButton.Left)
+    { Capture = mouseDown = false;
       StopScrolling();
       e.Handled = true;
     }
@@ -1624,7 +1901,7 @@ public abstract class ListBoxBase : ListControl
   protected internal override void OnPaint(PaintEventArgs e)
   { base.OnPaint(e);
 
-    Rectangle bounds = ContentDrawRect; // TODO: set e.Surface.ClipRect
+    Rectangle bounds = e.Surface.ClipRect = ContentDrawRect;
     bool drew=false;
     for(int i=TopIndex; i<Items.Count; i++)
     { Rectangle itemRect = new Rectangle(bounds.X, bounds.Y, bounds.Width, MeasureItem(i).Height);
@@ -1655,18 +1932,25 @@ public abstract class ListBoxBase : ListControl
     return -1;
   }
 
-  class ScrollEvent : Events.WindowEvent { public ScrollEvent(Control ctrl) : base(ctrl) { } }
-
-  int BottomToTop() { return BottomToTop(Items.Count-1); }
-  int BottomToTop(int start)
-  { Rectangle bounds = ContentRect;
-    for(; start>=0 && bounds.Height>0; start--) bounds.Height -= MeasureItem(start).Height;
-    return start+1;
+  protected void SelectRange(int from, int to, bool selected)
+  { if(from==to) return;
+    int add = to<from ? -1 : 1;
+    while(true)
+    { Item it = Items.InnerGet(from);
+      if(selected) it.State |= ItemState.Selected;
+      else it.State &= ~ItemState.Selected;
+      Items.InnerSet(from, it);
+      if(from==to) break;
+      from+=add;
+    }
+    Items.Updated();
   }
+
+  class ScrollEvent : Events.WindowEvent { public ScrollEvent(Control ctrl) : base(ctrl) { } }
 
   void CalcIndexes()
   { bottom  = -1;
-    lastTop = BottomToTop();
+    lastTop = GetTopIndex();
     if(lastTop>0)
     { ShowVerticalScrollBar = true;
       VerticalScrollBar.Maximum = lastTop;
@@ -1674,36 +1958,63 @@ public abstract class ListBoxBase : ListControl
     else ShowVerticalScrollBar = false;
   }
 
-  void DoScroll()
-  { if(down)
+  void DragTo(int index) { DragTo(index, null); }
+  void DragTo(int index, KeyEventArgs e)
+  { if(index!=CursorPosition)
+    { bool shift, ctrl;
+      if(e!=null) { shift=e.KE.HasAnyMod(KeyMod.Shift); ctrl=e.KE.HasAnyMod(KeyMod.Ctrl); }
+      else { shift=Keyboard.HasAnyMod(KeyMod.Shift); ctrl=Keyboard.HasAnyMod(KeyMod.Ctrl); }
+
+      if(selMode!=SelectionMode.None && (mouseDown || selMode!=SelectionMode.MultiSimple && (!ctrl || shift)))
+      { if(selMode==SelectionMode.One) SelectedIndex = index;
+        else if(shift)
+        { bool select = mouseDown || !ctrl || CursorPosition<0 || GetSelected(CursorPosition);
+          if(!mouseDown && !ctrl && !GetSelected(CursorPosition)) ClearSelected();
+          SelectRange(Math.Max(CursorPosition, 0), index, select);
+        }
+        else if(mouseDown) SetSelected(index, selecting);
+        else SelectedIndex = index;
+      }
+      CursorPosition = index;
+    }
+  }
+
+  void MouseScroll()
+  { if(mouseDown)
     { Point pt = ScreenToWindow(Mouse.Point);
       if(pt.Y<0) ScrollUp();
       else if(pt.Y>=Height) ScrollDown();
     }
   }
 
-  void ScrollDown()
+  void ScrollDown() { ScrollDown(null); }
+  void ScrollDown(KeyEventArgs e)
   { int bi = GetBottomIndex();
-    if(SelectedIndex==bi)
-    { if(bi==-1) SelectedIndex=TopIndex;
+    int newindex = CursorPosition;
+    if(newindex==bi)
+    { if(bi==-1) newindex=TopIndex;
       else if(bi<Items.Count-1)
       { TopIndex++;
-        SelectedIndex=bottom=bi+1;
+        newindex=bottom=bi+1;
       }
     }
-    else ScrollTo(++SelectedIndex);
+    else ScrollTo(++newindex);
+    DragTo(newindex, e);
   }
 
   void ScrollTo(int index)
   { if(index<TopIndex) TopIndex = index;
-    else if(index>GetBottomIndex()) TopIndex = BottomToTop(index);
+    else if(index>GetBottomIndex()) TopIndex = GetTopIndex(index);
   }
 
-  void ScrollUp()
-  { if(SelectedIndex==TopIndex)
-    { if(TopIndex>0) SelectedIndex = --TopIndex;
+  void ScrollUp() { ScrollUp(null); }
+  void ScrollUp(KeyEventArgs e)
+  { int newindex=CursorPosition;
+    if(newindex==TopIndex)
+    { if(TopIndex>0) newindex = --TopIndex;
     }
-    else ScrollTo(--SelectedIndex);
+    else ScrollTo(--newindex);
+    DragTo(newindex, e);
   }
 
   void StartScrolling()
@@ -1724,9 +2035,10 @@ public abstract class ListBoxBase : ListControl
   }
 
   ScrollEvent scroll;
-  int   selected, top, bottom, lastTop;
-  Color selBack,  selFore;
-  bool  down;
+  int   cursor, top, bottom, lastTop;
+  Color selBack, selFore;
+  SelectionMode  selMode;
+  bool  mouseDown, selecting;
 
   static void ScrollIt(object dummy) { Events.Events.PushEvent(staticScroll); }
 
@@ -1739,6 +2051,7 @@ public abstract class ListBoxBase : ListControl
 #endregion
 
 #region ListBox
+// TODO: optimize the scrolling so it doesn't redraw the entire box, but only the newly-uncovered portion
 public class ListBox : ListBoxBase
 { public ListBox() { Init(); }
   public ListBox(ICollection items) : base(items) { Init(); }
@@ -1753,7 +2066,7 @@ public class ListBox : ListBoxBase
   protected override void DrawItem(int index, PaintEventArgs e, Rectangle bounds)
   { Color fore, back;
 
-    if(IsSelected(index))
+    if(GetSelected(index))
     { back=SelectedBackColor; fore=SelectedForeColor;
       if(back!=Color.Transparent) e.Surface.Fill(bounds, back);
     }
@@ -1765,6 +2078,7 @@ public class ListBox : ListBoxBase
     { font.Color     = fore;
       font.BackColor = back;
       font.Render(e.Surface, GetItemText(index), bounds.Location);
+      if(index==CursorPosition) Primitives.Box(e.Surface, bounds, fore, 128);
     }
   }
 
