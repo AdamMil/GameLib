@@ -58,7 +58,7 @@ public sealed class GLMath
   /// rather than truncated towards zero.
   /// </returns>
   public static int FloorDiv(int numerator, int denominator)
-  { return (numerator<0 ? (numerator-denominator+1) : numerator) / denominator;
+  { return (numerator<0 ? (numerator-denominator+Math.Sign(denominator)) : numerator) / denominator;
   }
 
   /// <summary>Returns the absolute value of a <see cref="Fixed32"/>.</summary>
