@@ -195,16 +195,7 @@ public class Surface : IBlittable, IDisposable
 
   public Color ColorKey
   { get { return key; }
-    set
-    { if(value!=key)
-      { key = value;
-        if(key==Color.Transparent) SDL.Check(SDL.SetColorKey(surface, 0, 0));
-        else
-        { rawKey = MapColor(key);
-          SDL.Check(SDL.SetColorKey(surface, (uint)SDL.VideoFlag.SrcColorKey, rawKey));
-        }
-      }
-    }
+    set { if(UsingKey) SetColorKey(value); else key=value; }
   }
 
   public byte Alpha
@@ -212,13 +203,16 @@ public class Surface : IBlittable, IDisposable
     set { if(UsingAlpha) SetSurfaceAlpha(value); else alpha=value; }
   }
 
+  public bool UsingKey
+  { get { unsafe { return (surface->Flags&(uint)SDL.VideoFlag.SrcColorKey)!=0; } }
+    set { if(value!=UsingKey) if(value) SetColorKey(key); else DisableColorKey(); }
+  }
+
   public bool UsingAlpha
   { get { return (Flags&SurfaceFlag.SrcAlpha) != SurfaceFlag.None; }
     set { if(value!=UsingAlpha) if(value) EnableAlpha(); else DisableAlpha(); }
   }
   
-  public bool UsingKey { get { return key!=Color.Transparent; } }
-
   public bool UsingRLE
   { get { return (Flags&SurfaceFlag.RLE) != SurfaceFlag.None; }
     set { if(value) EnableRLE(); else DisableRLE(); }
@@ -315,6 +309,12 @@ public class Surface : IBlittable, IDisposable
     finally { Unlock(); }
   }
   
+  public Color GetColorKey() { return key; }
+  public unsafe void SetColorKey(Color color) // automatically enables color key
+  { SDL.Check(SDL.SetColorKey(surface, (uint)SDL.VideoFlag.SrcColorKey, rawKey=MapColor(key=color)));
+  }
+  public unsafe void DisableColorKey() { SDL.Check(SDL.SetColorKey(surface, 0, 0)); }
+
   public byte GetSurfaceAlpha() { return alpha; }
   public unsafe void SetSurfaceAlpha(byte alpha) // automatically enables alpha if 'alpha' != AlphaLevel.Opaque
   { if(alpha==AlphaLevel.Opaque) DisableAlpha();
@@ -681,8 +681,8 @@ public class Surface : IBlittable, IDisposable
   }
 
   protected PixelFormat format;
-  protected Color key=Color.Transparent;
-  protected uint  lockCount, rawKey=0;
+  protected Color key;
+  protected uint  lockCount, rawKey;
   protected byte  alpha=AlphaLevel.Opaque;
 
   internal unsafe SDL.Surface* surface;
