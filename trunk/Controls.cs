@@ -18,8 +18,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 // TODO: implement more controls (checkbox, listbox, dropdown)
 // TODO: have controls display differently when disabled
-// TODO: implement a menubar control
-// TODO: implement docking
 // TODO: make sure everything uses Helpers.BorderSize()
 using System;
 using System.Collections;
@@ -48,16 +46,30 @@ public class ContainerControl : Control
   
   protected internal override void OnLayout(EventArgs e)
   { base.OnLayout(e);
+    Rectangle avail = WindowRect;
+
     foreach(Control c in Controls)
-      if(c.Dock==DockStyle.None && c.Anchor!=AnchorStyle.TopLeft)
-      { Rectangle bounds = c.Bounds;
-        if((c.Anchor&AnchorStyle.LeftRight)==AnchorStyle.LeftRight) bounds.Width = Right-c.RightAnchorOffset-bounds.X;
-        else if((c.Anchor&AnchorStyle.Right)!=0) bounds.X = Right-c.RightAnchorOffset-bounds.Width;
-        if((c.Anchor&AnchorStyle.TopBottom)==AnchorStyle.TopBottom)
-          bounds.Height = Bottom-c.BottomAnchorOffset-bounds.Y;
-        else if((c.Anchor&AnchorStyle.Bottom)!=0) bounds.Y = Bottom-c.BottomAnchorOffset-bounds.Height;
-        c.Bounds = bounds;
+      switch(c.Dock)
+      { case DockStyle.Left:
+          c.SetBounds(new Rectangle(avail.X, avail.Y, c.Width, avail.Height), BoundsMode.Layout);
+          avail.X += c.Width; avail.Width -= c.Width;
+          break;
+        case DockStyle.Top:
+          c.SetBounds(new Rectangle(avail.X, avail.Y, avail.Width, c.Height), BoundsMode.Layout);
+          avail.Y += c.Height; avail.Height -= c.Height;
+          break;
+        case DockStyle.Right:
+          c.SetBounds(new Rectangle(avail.Right-c.Width, avail.Y, c.Width, avail.Height), BoundsMode.Layout);
+          avail.Width -= c.Width;
+          break;
+        case DockStyle.Bottom:
+          c.SetBounds(new Rectangle(avail.X, avail.Bottom-c.Height, avail.Width, c.Height), BoundsMode.Layout);
+          avail.Height -= c.Height;
+          break;
       }
+
+    AnchorSpace = avail;
+    foreach(Control c in Controls) if(c.Dock==DockStyle.None) c.DoAnchor();
   }
 }
 #endregion
@@ -1240,9 +1252,9 @@ public abstract class MenuBase : ContainerControl
     if(desktop==null) throw new InvalidOperationException("The source control is not part of a desktop");
     this.source = source;
     this.pullDown = pullDown;
-    Location = source.WindowToAncestor(position, desktop);
     Visible = false;
     Parent  = desktop;
+    SetBounds(new Rectangle(source.WindowToAncestor(position, desktop), Size), BoundsMode.Absolute);
     OnPopup(new EventArgs());
     BringToFront();
     Visible = true;
@@ -1656,8 +1668,10 @@ public class Menu : MenuBase
 
     int width=0, height=0;
     foreach(MenuItemBase item in Controls)
-    { item.Size = item.MeasureItem();
-      if(item.Width>width) width=item.Width;
+    { Size size = item.MeasureItem();
+      if(size.Width>width) { width=size.Width; }
+      else size.Width = width;
+      item.Size = size;
       item.Location = new Point(2, height+2);
       height += item.Height;
     }
@@ -1798,8 +1812,9 @@ public sealed class MessageBox : Form
   string   message;
 
   public int Show(DesktopControl desktop)
-  { if(Controls.Count==0)
-    { GameLib.Fonts.Font font = RawFont==null ? desktop.Font : RawFont;
+  { Parent = desktop;
+    if(Controls.Count==0)
+    { GameLib.Fonts.Font font = Font;
       if(font!=null)
       { int btnWidth=0, btnHeight=font.LineSkip*3/2, height=font.LineSkip*3+btnHeight, btnSpace=12;
         int[] sizes = new int[buttonTexts.Length];
@@ -1820,9 +1835,9 @@ public sealed class MessageBox : Form
         textHeight = lines*font.LineSkip + label.TextPadding*2;
 
         height += textHeight;
-        Size = new Size(Math.Max(Math.Min(desktop.Width, btnWidth*3/2), textWidth+font.LineSkip*2), height);
-        Location = new Point((desktop.Width-Width)/2, (desktop.Height-Height)/2);
-        
+        Size size = new Size(Math.Max(Math.Min(desktop.Width, btnWidth*3/2), textWidth+font.LineSkip*2), height);
+        SetBounds(new Point((desktop.Width-size.Width)/2, (desktop.Height-size.Height)/2), size, BoundsMode.Absolute);
+
         label.Bounds = new Rectangle((Width-textWidth)/2, font.LineSkip, textWidth, textHeight);
         label.TextAlign = ContentAlignment.TopCenter;
         

@@ -172,19 +172,56 @@ public delegate void MouseMoveEventHandler(object sender, MouseMoveEvent e);
 
 #region Control class
 /// <summary>
+/// This enum specifies where the control will be anchored in relation to its parent control. See the
+/// <see cref="Control.Anchor"/> property for more information. The members can be ORed together to combine their
+/// effects.
+/// </summary>
+[Flags]
+public enum AnchorStyle
+{ 
+  /// <summary>The control will be anchored to its parent's left edge.</summary>
+  Left=1,
+  /// <summary>The control will be anchored to its parent's top edge.</summary>
+  Top=2,
+  /// <summary>The control will be anchored to its parent's right edge.</summary>
+  Right=4,
+  /// <summary>The control will be anchored to its parent's bottom edge.</summary>
+  Bottom=8,
+  /// <summary>The control will be anchored to its parent's top left corner.</summary>
+  TopLeft=Top|Left,
+  /// <summary>The control will be anchored to its parent's top right corner.</summary>
+  TopRight=Top|Right,
+  /// <summary>The control will be anchored to its parent's bottom left corner.</summary>
+  BottomLeft=Bottom|Left,
+  /// <summary>The control will be anchored to its parent's bottom right corner.</summary>
+  BottomRight=Bottom|Right,
+  /// <summary>The control will be anchored to its parent's left and right sides.</summary>
+  LeftRight=Left|Right,
+  /// <summary>The control will be anchored to its parent's top and bottom edges.</summary>
+  TopBottom=Top|Bottom,
+  /// <summary>The control will be anchored to all four corners of its parent.</summary>
+  All=TopLeft|BottomRight
+}
+
+/// <summary>This enum is used by <see cref="Control.SetBounds"/> to control how the new bounds will be treated.
+/// </summary>
+public enum BoundsMode
+{ 
+  /// <summary>The specified bounds may be altered according to layout logic.</summary>
+  Normal,
+  /// <summary>The layout logic will be altered so that the new bounds come out the same as the specified
+  /// bounds. This differs from <see cref="Layout"/> in that future layouts will not move the control. This
+  /// allows the control to be placed even above docked areas.
+  /// </summary>
+  Absolute,
+  /// <summary>No layout logic will be considered. The bounds will be used as-is.</summary>
+  Layout
+}
+
+/// <summary>
 /// This enum is generally used by derived controls to control how they will be treated by the
 /// <see cref="DesktopControl">Desktop</see>. The enumeration members can be ORed together to combine their effects.
 /// </summary>
-/// <remarks>
-/// THREADING CONSIDERATIONS
-/// <para>This class, and classes derived from it, are not designed to be used from multiple threads simultaneously.
-/// The thread that reads the events (see <see cref="GameLib.Events.Events">Events</see>) should be the only thread
-/// to use this control. If you want to trigger an event from another thread, the recommended implementation is to
-/// push a custom event, derived from <see cref="WindowEvent"/>, with the <see cref="WindowEvent.Control"/> field
-/// set to the control you want to notify. The control can then use <see cref="Control.OnCustomEvent"/> to handle
-/// the event.
-/// </para>
-/// </remarks>
 [Flags]
 public enum ControlStyle
 { 
@@ -215,40 +252,6 @@ public enum ControlStyle
 }
 
 /// <summary>
-/// This enum specifies where the control will be anchored in relation to its parent control. See the
-/// <see cref="Control.Anchor"/> property for more information. The members can be ORed together to combine their
-/// effects.
-/// </summary>
-[Flags]
-public enum AnchorStyle // TODO: support more than just corners
-{ 
-  /// <summary>The control will be anchored to its parent's left edge.</summary>
-  Left=1,
-  /// <summary>The control will be anchored to its parent's top edge.</summary>
-  Top=2,
-  /// <summary>The control will be anchored to its parent's right edge.</summary>
-  Right=4,
-  /// <summary>The control will be anchored to its parent's bottom edge.</summary>
-  Bottom=8,
-  /// <summary>The control will be anchored to its parent's top left corner.</summary>
-  TopLeft=Top|Left,
-  /// <summary>The control will be anchored to its parent's top right corner.</summary>
-  TopRight=Top|Right,
-  /// <summary>The control will be anchored to its parent's bottom left corner.</summary>
-  BottomLeft=Bottom|Left,
-  /// <summary>The control will be anchored to its parent's bottom right corner.</summary>
-  BottomRight=Bottom|Right,
-  /// <summary>The control will be anchored to its parent's left and right sides.</summary>
-  LeftRight=Left|Right,
-  /// <summary>The control will be anchored to its parent's top and bottom edges.</summary>
-  TopBottom=Top|Bottom,
-  /// <summary>The control will be anchored to all four corners of its parent.</summary>
-  All=TopLeft|BottomRight,
-  /// <summary>The default anchoring mode, which performs no anchoring (equal to TopLeft).</summary>
-  None=TopLeft
-}
-
-/// <summary>
 /// This enum specifies where the control will be docked. See the <see cref="Control.Dock"/> property for more
 /// information.
 /// </summary>
@@ -266,11 +269,21 @@ public enum DockStyle
   Bottom
 }
 
-/// <summary>
-/// This class is the base class of all controls in the windowing system. Those wanting to create new controls
+/// <summary>The base class of all controls in the windowing system.</summary>
+/// <remarks>
+/// <para>This class is the base class of all controls in the windowing system. Those wanting to create new controls
 /// should consider inheriting from the <see cref="Form"/> class (for dialogs), the <see cref="ContainerControl"/>
 /// class (for controls that contain other controls), or one of the other controls that already exist.
-/// </summary>
+/// </para>
+/// <para>THREADING CONSIDERATIONS</para>
+/// <para>This class, and classes derived from it, are not designed to be used from multiple threads simultaneously.
+/// The thread that reads the events (see <see cref="GameLib.Events.Events">Events</see>) should be the only thread
+/// to use this control. If you want to trigger an event from another thread, the recommended implementation is to
+/// push a custom event, derived from <see cref="WindowEvent"/>, with the <see cref="WindowEvent.Control"/> field
+/// set to the control you want to notify. The control can then use <see cref="Control.OnCustomEvent"/> to handle
+/// the event.
+/// </para>
+/// </remarks>
 public class Control
 { public Control() { controls = new ControlCollection(this); }
 
@@ -436,16 +449,16 @@ public class Control
   #region Properties
   /// <summary>Determines where the control will be anchored in relation to its parent.</summary>
   /// <remarks>When a control is anchored, it will be automatically moved and/or resized when its parent is resized
-  ///   in order to maintain the same spacing to the anchored edges. Setting this property will automatically set
-  ///   the <see cref="Dock"/> property to <see cref="DockStyle.None"/> because the two properties are incompatible.
+  /// in order to maintain the same spacing to the anchored edges. Setting this property will automatically set
+  /// the <see cref="Dock"/> property to <see cref="DockStyle.None"/> because the two properties are incompatible.
+  /// The default value is <see cref="AnchorStyle.TopLeft"/>.
   /// </remarks>
   public AnchorStyle Anchor
   { get { return anchor; }
     set
     { if(anchor!=value)
-      { if(value!=AnchorStyle.None) dock=DockStyle.None;
+      { if(value!=AnchorStyle.TopLeft) dock=DockStyle.None;
         anchor=value;
-        if(parent!=null) UpdateAnchor();
       }
     }
   }
@@ -518,10 +531,7 @@ public class Control
   /// <remarks>Changing this property will both move and resize the control.</remarks>
   public Rectangle Bounds
   { get { return bounds; }
-    set
-    { Location = value.Location;
-      Size     = value.Size;
-    }
+    set { SetBounds(value, BoundsMode.Normal); }
   }
 
   /// <summary>This property is true if the control can receive focus.</summary>
@@ -600,11 +610,16 @@ public class Control
   /// in order to fill the entire edge that it's docked to. Multiple controls can be docked at once, even to the
   /// same edge. The docking calculations for the controls are performed in the same order that the controls are
   /// in the <see cref="Controls"/> collections. Setting this property will automatically set the
-  /// <see cref="Anchor"/> property to <see cref="AnchorStyle.None"/> because the two properties are incompatible.
+  /// <see cref="Anchor"/> property to <see cref="AnchorStyle.TopLeft"/> because the two properties are incompatible.
   /// </remarks>
   public DockStyle Dock
   { get { return dock; }
-    set { if(value!=dock) { throw new NotImplementedException(); } }
+    set
+    { if(value!=dock)
+      { dock = value;
+        if(parent!=null) parent.TriggerLayout();
+      }
+    }
   }
 
   /// <summary>Gets or sets whether this control can receive input.</summary>
@@ -738,13 +753,7 @@ public class Control
   /// <remarks>Changing this property will move the control.</remarks>
   public Point Location
   { get { return bounds.Location; }
-    set
-    { if(value!=bounds.Location)
-      { ValueChangedEventArgs e = new ValueChangedEventArgs(bounds.Location);
-        bounds.Location = value;
-        OnLocationChanged(e);
-      }
-    }
+    set { SetBounds(value, bounds.Size, BoundsMode.Normal); }
   }
 
   /// <summary>Returns true if this is a modal control.</summary>
@@ -798,7 +807,7 @@ public class Control
   /// <remarks>Generally, the <see cref="BackColor"/> property should be used to get the background color,
   /// but if you want to get it without taking inheritance into account, use this one.
   /// </remarks>
-  public Color RawBackColor   { get { return back; } }
+  public Color RawBackColor { get { return back; } }
 
   /// <summary>Gets this control's raw cursor.</summary>
   /// <remarks>Generally, the <see cref="Cursor"/> property should be used to get the cursor, but if you want
@@ -810,7 +819,7 @@ public class Control
   /// <remarks>Generally, the <see cref="Enabled"/> property should be used to determine if the control is enabled,
   /// but if you don't want inheritance to be taken into account, use this one.
   /// </remarks>
-  public bool RawEnabled      { get { return enabled; } }
+  public bool RawEnabled { get { return enabled; } }
 
   /// <summary>Gets this control's raw font.</summary>
   /// <remarks>Generally, the <see cref="Font"/> property should be used to get the font, but if you want
@@ -822,13 +831,13 @@ public class Control
   /// <remarks>Generally, the <see cref="ForeColor"/> property should be used to get the foreground color,
   /// but if you want to get it without taking inheritance into account, use this one.
   /// </remarks>
-  public Color RawForeColor   { get { return fore; } }
+  public Color RawForeColor { get { return fore; } }
 
   /// <summary>Gets this control's raw visible value.</summary>
   /// <remarks>Generally, the <see cref="Visible"/> property should be used to determine if the control is visible,
   /// but if you don't want inheritance to be taken into account, use this one.
   /// </remarks>
-  public bool RawVisible      { get { return visible; } }
+  public bool RawVisible { get { return visible; } }
 
   /// <summary>Gets or sets the position of the right edge of the control relative to its parent.</summary>
   /// <remarks>Changing this property will move the control.</remarks>
@@ -859,13 +868,7 @@ public class Control
   /// <remarks>Changing this control will resize the control.</remarks>
   public Size Size
   { get { return bounds.Size; }
-    set
-    { if(value!=bounds.Size)
-      { ValueChangedEventArgs e = new ValueChangedEventArgs(bounds.Size);
-        bounds.Size = value;
-        OnSizeChanged(e);
-      }
-    }
+    set { SetBounds(bounds.Location, value, BoundsMode.Normal); }
   }
 
   /// <summary>Gets or sets this control's <see cref="ControlStyle"/>.</summary>
@@ -989,23 +992,27 @@ public class Control
   /// </remarks>
   public Rectangle WindowRect { get { return new Rectangle(0, 0, bounds.Width, bounds.Height); } }
 
-  /// <summary>Gets this control's offset from its parent's bottom edge.</summary>
+  /*
+  /// <summary>Gets this control's offsets from its parent's edges.</summary>
   /// <remarks>This property is meant to be used by controls handling <see cref="OnLayout"/> and doing custom
-  /// layout. It holds the number of pixels that should be between this control's bottom edge and its parent's.
-  /// The <see cref="ContainerControl"/> class implements the standard <see cref="OnLayout"/> handler, and it's
-  /// recommended that you consider deriving from <see cref="ContainerControl"/> instead of attempting to
-  /// implement anchoring and docking yourself.
+  /// layout. The <see cref="Rectangle.Left"/>, <see cref="Rectangle.Top"/>, <see cref="Rectangle.Right"/>, and
+  /// <see cref="Rectangle.Bottom"/> properties hold the offsets in pixels from the left, top, right, and, bottom
+  /// edges of the parent, respectively. All offsets are positive values, and the <see cref="Rectangle.Width"/>
+  /// and <see cref="Rectangle.Height"/> properties are meaningless. The <see cref="ContainerControl"/> class
+  /// implements the standard <see cref="OnLayout"/> handler, and it's recommended that you consider deriving
+  /// from <see cref="ContainerControl"/> instead of attempting to implement anchoring and docking yourself.
   /// </remarks>
-  public int BottomAnchorOffset { get { return bottomAnchor; } }
+  /// <exception cref="InvalidOperationException">Thrown if control has no parent.</exception>
+  public Rectangle AnchorOffsets { get { return anchorOffsets; } }*/
 
-  /// <summary>Gets this control's offset from its parent's right edge.</summary>
-  /// <remarks>This property is meant to be used by controls handling <see cref="OnLayout"/> and doing custom
-  /// layout. It holds the number of pixels that should be between this control's right edge and its parent's.
-  /// The <see cref="ContainerControl"/> class implements the standard <see cref="OnLayout"/> handler, and it's
-  /// recommended that you consider deriving from <see cref="ContainerControl"/> instead of attempting to
-  /// implement anchoring and docking yourself.
+  /// <summary>Gets the space available for anchoring child controls.</summary>
+  /// <remarks>Anchoring is performed after docking, so the available space for anchoring will not be the same as
+  /// the <see cref="Bounds"/> if there are docked child controls. This property gets the space available for
+  /// anchoring child controls. This property is normally updated by the <see cref="ContainerControl.OnLayout"/>
+  /// method.
   /// </remarks>
-  public int RightAnchorOffset  { get { return rightAnchor;  } }
+  // TODO: move these
+  internal Rectangle AnchorSpace { get { return anchorSpace; } set { anchorSpace=value; } }
   #endregion
   
   #region Public methods
@@ -1163,6 +1170,88 @@ public class Control
   /// otherwise.
   /// </returns>
   public bool IsOrHas(Control control) { return this==control || Controls.Contains(control); }
+
+  /// <summary>Sets the <see cref="Bounds"/> property and performs layout logic.</summary>
+  /// <param name="x">The new X coordinate of the left edge of the control.</param>
+  /// <param name="y">The new Y coordinate of the top edge of the control.</param>
+  /// <param name="width">The new width of the control.</param>
+  /// <param name="height">The new height of the control.</param>
+  /// <param name="mode">A <see cref="BoundsMode"/> that determines how the new bounds will be treated.</param>
+  /// <remarks>Calling this method is equivalent to calling <see cref="SetBounds(Rectangle,BoundsMode)"/> and
+  /// using the <paramref name="x"/>, <paramref name="y"/>, <paramref name="width"/>, and <paramref name="height"/>
+  /// parameters to create a new rectangle. See <see cref="SetBounds(Rectangle,BoundsMode)"/> for more
+  /// information on this method.
+  /// </remarks>
+  public void SetBounds(int x, int y, int width, int height, BoundsMode mode)
+  { SetBounds(new Rectangle(x, y, width, height), mode);
+  }
+
+  /// <summary>Sets the <see cref="Bounds"/> property and performs layout logic.</summary>
+  /// <param name="location">The new location of the control.</param>
+  /// <param name="size">The new size of the control.</param>
+  /// <param name="mode">A <see cref="BoundsMode"/> that determines how the new bounds will be treated.</param>
+  /// <remarks>Calling this method is equivalent to calling <see cref="SetBounds(Rectangle,BoundsMode)"/> and
+  /// using the <paramref name="location"/> and <paramref name="size"/> parameters to create a new rectangle.
+  /// See <see cref="SetBounds(Rectangle,BoundsMode)"/> for more information on this method.
+  /// <seealso cref="SetBounds(Rectangle,BoundsMode)"/>
+  /// </remarks>
+  public void SetBounds(Point location, Size size, BoundsMode mode)
+  { SetBounds(new Rectangle(location, size), mode);
+  }
+  
+  /// <summary>Sets the <see cref="Bounds"/> property and performs layout logic.</summary>
+  /// <param name="newBounds">The new control boundaries.</param>
+  /// <param name="mode">A <see cref="BoundsMode"/> that determines how <paramref name="newBounds"/> will be treated.
+  /// </param>
+  /// <remarks>This method is used to set the bounds of a control and perform operations that need to execute
+  /// whenever the bounds change. If <paramref name="mode"/> is <see cref="BoundsMode.Normal"/>,
+  /// <paramref name="newBounds"/> may be modified due to layout logic. If it's <see cref="BoundsMode.Absolute"/>,
+  /// <paramref name="newBounds"/> is used as-is and the anchor is updated so that it won't be moved by future
+  /// layouts. If it's <see cref="BoundsMode.Layout"/>, <paramref name="newBounds"/> is used as-is and no layout
+  /// logic is executed. This method is also responsible for calling <see cref="OnLocationChanged"/> and
+  /// <see cref="OnSizeChanged"/> as necessary. Overriders should implement their version by calling this base
+  /// method.
+  /// <seealso cref="BoundsMode"/>
+  /// </remarks>
+  public virtual void SetBounds(Rectangle newBounds, BoundsMode mode)
+  { if(mode!=BoundsMode.Layout)
+    { preLayoutBounds = newBounds;
+      anchorSpace.Width  += newBounds.Width  - bounds.Width;
+      anchorSpace.Height += newBounds.Height - bounds.Height;
+      if(parent!=null)
+      { if(dock!=DockStyle.None)
+        { // TODO: do docking more efficiently
+          if(parent!=null) parent.TriggerLayout();
+        }
+        else if(mode==BoundsMode.Normal)
+        { int left=preLayoutBounds.Left-parent.anchorSpace.Left, top=preLayoutBounds.Top-parent.anchorSpace.Top;
+          anchorOffsets = new Rectangle(left, top, parent.anchorSpace.Right-preLayoutBounds.Right-left,
+                                        parent.anchorSpace.Bottom-preLayoutBounds.Bottom-top);
+          DoAnchor();
+          return;
+        }
+        else
+        { int left=newBounds.Left-parent.anchorSpace.Left, top=newBounds.Top-parent.anchorSpace.Top;
+          anchorOffsets = new Rectangle(left, top, parent.anchorSpace.Right-newBounds.Right-left,
+                                        parent.anchorSpace.Bottom-newBounds.Bottom-top);
+        }
+      }
+    }
+    if(bounds!=newBounds)
+    { ValueChangedEventArgs e = new ValueChangedEventArgs(null);
+      Point oldLoc = bounds.Location;
+      Size  oldSize = bounds.Size;
+      bounds = newBounds;
+      if(newBounds.Location!=oldLoc)
+      { e.OldValue = oldLoc;
+        OnLocationChanged(e);
+      }
+      if(newBounds.Size!=oldSize)
+      { e.OldValue = oldSize;
+        OnSizeChanged(e);
+      }
+    }
+  }
 
   /// <summary>Forces an immediate repaint.</summary>
   public void Update()
@@ -1538,7 +1627,6 @@ public class Control
     if(parent!=null)
     { parent.Invalidate(new Rectangle((Point)e.OldValue, bounds.Size));
       Invalidate();
-      UpdateAnchor();
     }
     OnMove(e);
   }
@@ -1553,11 +1641,7 @@ public class Control
   { if(ParentChanged!=null) ParentChanged(this, e);
     UpdateBackingSurface(false);
 
-    if(parent!=null)
-    { UpdateAnchor();
-      Invalidate();
-      parent.TriggerLayout();
-    }
+    if(parent!=null) Invalidate();
 
     if(e.OldValue==null)
     { if(back!=BackColor) OnBackColorChanged(new ValueChangedEventArgs(back));
@@ -1583,8 +1667,6 @@ public class Control
         if(old!=fore) OnBackColorChanged(new ValueChangedEventArgs(old));
       }
       if(visible && !oldPar.Visible) OnEnabledChanged(new ValueChangedEventArgs(false));
-      
-      ((Control)e.OldValue).TriggerLayout();
     }
   }
 
@@ -1599,7 +1681,7 @@ public class Control
   { if(SizeChanged!=null) SizeChanged(this, e);
     if(invalid.Right>bounds.Width) invalid.Width-=invalid.Right-bounds.Width;
     if(invalid.Bottom>bounds.Height) invalid.Height-=invalid.Bottom-bounds.Height;
-    if(!mychange) TriggerLayout(); // 'mychange' is true when docking
+    TriggerLayout();
     UpdateBackingSurface(false);
     Size old = (Size)e.OldValue;
     if(parent!=null && (bounds.Width<old.Width || bounds.Height<old.Height))
@@ -1708,7 +1790,8 @@ public class Control
   /// end of the derived version.
   /// </remarks>
   protected virtual void OnControlAdded(ControlEventArgs e)
-  { if(e.Control.Dock != DockStyle.None) TriggerLayout();
+  { if(e.Control.Dock==DockStyle.None) e.Control.SetBounds(e.Control.bounds, BoundsMode.Normal);
+    else TriggerLayout();
     if(ControlAdded!=null) ControlAdded(this, e);
   }
 
@@ -1929,6 +2012,26 @@ public class Control
     }
   }
 
+  internal void DoAnchor()
+  { Rectangle newBounds=preLayoutBounds, avail=parent.anchorSpace;
+
+    if((anchor&AnchorStyle.LeftRight)==AnchorStyle.LeftRight)
+    { newBounds.X = avail.X+anchorOffsets.Left;
+      newBounds.Width = avail.Width-anchorOffsets.Left-anchorOffsets.Right;
+    }
+    else if((anchor&AnchorStyle.Right)!=0) newBounds.X = avail.Right-anchorOffsets.Right-newBounds.Width;
+    else newBounds.X = avail.X+anchorOffsets.Left;
+
+    if((anchor&AnchorStyle.TopBottom)==AnchorStyle.TopBottom)
+    { newBounds.Y = avail.Y+anchorOffsets.Top;
+      newBounds.Height = avail.Height-anchorOffsets.Top-anchorOffsets.Bottom;
+    }
+    else if((anchor&AnchorStyle.Bottom)!=0) newBounds.Y = avail.Bottom-anchorOffsets.Bottom-newBounds.Height;
+    else newBounds.Y = avail.Y+anchorOffsets.Top;
+
+    SetBounds(newBounds, BoundsMode.Layout);
+  }
+
   internal void SetParent(Control control)
   { ValueChangedEventArgs ve = new ValueChangedEventArgs(parent);
     ControlEventArgs ce = new ControlEventArgs(this);
@@ -1996,12 +2099,6 @@ public class Control
     }
   }
 
-  /// <summary>Updates information needed to anchor this control.</summary>
-  void UpdateAnchor()
-  { if((anchor&AnchorStyle.Right) != 0) rightAnchor=parent.Width-bounds.Right;
-    if((anchor&AnchorStyle.Bottom) != 0) bottomAnchor=parent.Height-bounds.Bottom;
-  }
-  
   ControlCollection controls;
   Control parent, focused;
   GameLib.Fonts.Font font;
@@ -2010,9 +2107,10 @@ public class Control
   string name=string.Empty, text=string.Empty;
   object tag;
   Rectangle bounds = new Rectangle(0, 0, 100, 100), invalid;
-  int tabIndex=-1, bottomAnchor, rightAnchor, dragThreshold=-1;
+  Rectangle anchorSpace = new Rectangle(0, 0, 100, 100), anchorOffsets, preLayoutBounds;
+  int tabIndex=-1, dragThreshold=-1;
   ControlStyle style;
-  AnchorStyle  anchor=AnchorStyle.None;
+  AnchorStyle  anchor=AnchorStyle.TopLeft;
   DockStyle    dock;
   ContentAlignment backImageAlign=ContentAlignment.TopLeft;
   bool enabled=true, visible=true, mychange, keyPreview, pendingPaint, pendingLayout;
