@@ -94,7 +94,8 @@ int GLM_Copy(Sint32 *dest, Sint32 *src, Uint32 samples)
 int GLM_VolumeScale(Sint32 *stream, Uint32 samples, Uint16 volume)
 { Uint32 i;
   int vol=volume;
-  if(!stream) return -1;
+  if(vol==256) return 0;
+  if(!stream) return -1; // TODO: report the cause for the error
   for(i=0; i<samples; i++) stream[i]=(stream[i]*vol)>>8;
   return 0;
 }

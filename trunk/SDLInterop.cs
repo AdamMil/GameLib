@@ -573,13 +573,15 @@ internal class SDL
   static uint[] counts = new uint[6];
 }
 
-#region StreamSource class
-internal class StreamSource
-{ public unsafe StreamSource(Stream stream)
+#region StreamRWOps class
+internal class StreamRWOps
+{ public unsafe StreamRWOps(Stream stream) : this(stream, true) { }
+  public unsafe StreamRWOps(Stream stream, bool autoClose)
   { if(stream==null) throw new ArgumentNullException("stream");
     else if(!stream.CanSeek || !stream.CanRead)
       throw new ArgumentException("Stream must be seekable and readable", "stream");
-    this.stream = stream;
+    this.stream    = stream;
+    this.autoClose = autoClose;
     seek  = new SDL.SeekHandler(OnSeek);
     read  = new SDL.ReadHandler(OnRead);
     write = new SDL.WriteHandler(OnWrite);
@@ -588,7 +590,10 @@ internal class StreamSource
     ops.Read  = new DelegateMarshaller(read).ToPointer();
     ops.Write = new DelegateMarshaller(write).ToPointer();
     ops.Close = new DelegateMarshaller(close).ToPointer();
+
+    if(!autoClose) GC.SuppressFinalize(this);
   }
+  ~StreamRWOps() { if(stream!=null) stream.Close(); }
 
   unsafe int OnSeek(SDL.RWOps* ops, int offset, SDL.SeekType type)
   { long pos=-1;
@@ -633,7 +638,12 @@ internal class StreamSource
     catch { return -1; }
   }
   
-  unsafe int OnClose(SDL.RWOps* ops) { stream=null; return 0; }
+  unsafe int OnClose(SDL.RWOps* ops)
+  { if(autoClose) stream.Close();
+    stream=null;
+    GC.SuppressFinalize(this);
+    return 0;
+  }
   
   internal SDL.RWOps ops;
   Stream stream;
@@ -641,6 +651,7 @@ internal class StreamSource
   SDL.ReadHandler  read;
   SDL.WriteHandler write;
   SDL.CloseHandler close;
+  bool autoClose;
 }
 #endregion
 
