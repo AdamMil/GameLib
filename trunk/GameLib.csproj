@@ -191,11 +191,6 @@
                     BuildAction = "Compile"
                 />
                 <File
-                    RelPath = "MikModInterop.cs"
-                    SubType = "Code"
-                    BuildAction = "Compile"
-                />
-                <File
                     RelPath = "Miscellaneous.cs"
                     SubType = "Code"
                     BuildAction = "Compile"
