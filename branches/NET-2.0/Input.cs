@@ -17,6 +17,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 using System;
+using System.Collections.Generic;
 using GameLib.Interop.SDL;
 using GameLib.Events;
 
@@ -457,10 +458,8 @@ public delegate void JoyButtonHandler(Joystick js, JoyButtonEvent e);
 #region Keyboard
 /// <summary>This class represents the keyboard.</summary>
 /// <remarks>This class is updated by the <see cref="Input.ProcessEvent"/> method.</remarks>
-public sealed class Keyboard
-{ private Keyboard() { }
-
-  /// <summary>Occurs when a keyboard key is pressed or released.</summary>
+public static class Keyboard
+{ /// <summary>Occurs when a keyboard key is pressed or released.</summary>
   /// <remarks>This event is raised by the <see cref="Input.ProcessEvent"/> method.</remarks>
   public static KeyEventHandler KeyEvent;
 
@@ -576,10 +575,8 @@ public sealed class Keyboard
 #region Mouse
 /// <summary>This class represents the mouse.</summary>
 /// <remarks>This class is updated by the <see cref="Input.ProcessEvent"/> method.</remarks>
-public sealed class Mouse
-{ private Mouse() { }
-
-  /// <summary>Occurs when the mouse is moved.</summary>
+public static class Mouse
+{ /// <summary>Occurs when the mouse is moved.</summary>
   /// <remarks>This event is raised by the <see cref="Input.ProcessEvent"/> method.</remarks>
   public static event MouseMoveHandler  MouseMove;
   /// <summary>Occurs when a mouse button is pressed or released, and when the mouse wheel is moved.</summary>
@@ -625,7 +622,12 @@ public sealed class Mouse
   /// <remarks>If false, you will have to draw your own mouse cursor.</remarks>
   public static bool SystemCursorVisible
   { get { return cursorVisible; }
-    set { SDL.ShowCursor(value?1:0); cursorVisible=(SDL.ShowCursor(-1)!=0); }
+    set
+    { if(value!=cursorVisible)
+      { SDL.ShowCursor(value ? 1 : 0);
+        cursorVisible=(SDL.ShowCursor(-1)!=0);
+      }
+    }
   }
 
   /// <summary>Gets a bitfield specifying which buttons are depressed.</summary>
@@ -901,19 +903,20 @@ public sealed class Joystick : IDisposable
 /// <remarks>It's possible for input to be handled manually without using the input classes (by using raw
 /// <see cref="GameLib.Events"/> events), but using them can simplify many types of input processing.
 /// </remarks>
-public sealed class Input
-{ private Input() { }
+public static class Input
+{ public sealed class JoystickCollection : ReadOnlyCollection<Joystick>
+  { public JoystickCollection() : base(new List<Joystick>()) { }
+    internal IList<Joystick> InnerList { get { return base.Items; } }
+  }
 
   /// <summary>Returns true if the input subsystem has been initialized.</summary>
   public static bool Initialized { get { return initCount>0; } }
 
   /// <summary>Returns an array containing the joysticks present in the system.</summary>
-  /// <remarks>The input subsystem must have been initialized with joystick support before this property can be used.
-  /// You can use any available methods and properties of the <see cref="Joystick"/> objects, but do not alter the
-  /// returned array. This property cannot be used unless joystick support is enabled (by either
-  /// <see cref="UseJoysticks"/> or <see cref="Initialize(bool)"/>).
+  /// <remarks>The input subsystem must have been initialized with joystick support before this property becomes
+  /// useful.
   /// </remarks>
-  public static Joystick[] Joysticks { get { return joysticks; } }
+  public static JoystickCollection Joysticks { get { return joysticks; } }
 
   /// <summary>Enables or disables joystick support.</summary>
   /// <remarks>Joysticks cannot be used unless joystick support is enabled. The input system must be initialized
@@ -921,22 +924,23 @@ public sealed class Input
   /// stream of events through the event system, you should not enable joystick support unless it's needed.
   /// </remarks>
   public static bool UseJoysticks
-  { get { return joysticks!=null; }
+  { get { return usingJoysticks; }
     set
-    { if(value!=UseJoysticks)
+    { if(value!=usingJoysticks)
       { if(initCount==0) throw new InvalidOperationException("The input system has not been initialized!");
         if(value)
         { SDL.Initialize(SDL.InitFlag.Joystick);
-          joysticks = new Joystick[SDL.NumJoysticks()];
-          for(int i=0; i<joysticks.Length; i++) joysticks[i] = new Joystick(i);
+          int count = SDL.NumJoysticks();
+          for(int i=0; i<count; i++) joysticks.InnerList.Add(new Joystick(i));
           SDL.JoystickEventState(SDL.JoystickMode.Events);
         }
         else
         { SDL.JoystickEventState(SDL.JoystickMode.Poll);
-          for(int i=0; i<joysticks.Length; i++) joysticks[i].Dispose();
-          joysticks = null;
+          for(int i=0; i<joysticks.Count; i++) joysticks[i].Dispose();
+          joysticks.InnerList.Clear();
           SDL.Deinitialize(SDL.InitFlag.Joystick);
         }
+        usingJoysticks = value;
       }
     }
   }
@@ -1016,8 +1020,9 @@ public sealed class Input
     return false;
   }
 
-  static Joystick[] joysticks;
+  static JoystickCollection joysticks = new JoystickCollection();
   static uint initCount;
+  static bool usingJoysticks;
 }
 #endregion
 

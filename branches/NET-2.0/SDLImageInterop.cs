@@ -24,7 +24,7 @@ namespace GameLib.Interop.SDLImage
 {
 
 [System.Security.SuppressUnmanagedCodeSecurity()]
-internal sealed class Image
+internal static class Image
 { public class Type
   { public const string BMP="BMP";
     public const string PNM="PNM";

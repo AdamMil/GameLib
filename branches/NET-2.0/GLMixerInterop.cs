@@ -23,10 +23,8 @@ namespace GameLib.Interop.GLMixer
 {
 
 [System.Security.SuppressUnmanagedCodeSecurity()]
-public sealed class GLMixer
-{ private GLMixer() { }
-
-  [CallConvCdecl] internal unsafe delegate void MixCallback(int* stream, uint samples, IntPtr context);
+public static class GLMixer
+{ [CallConvCdecl] internal unsafe delegate void MixCallback(int* stream, uint samples, IntPtr context);
 
   [Flags]
   internal enum Format : ushort

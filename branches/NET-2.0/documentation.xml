@@ -182,7 +182,7 @@
         <returns>An array of integers specifying indices into the string. There is one element for each line of text.
           The value of the element is how many characters should be rendered on that line.
         </returns>
-        <remarks>Currently, a newline character will not force a line break. This behavior will be changed in the
+        <remarks>Currently, a newline character will not force a line break. This behavior may be changed in the
           future.
         </remarks>
       </Common>

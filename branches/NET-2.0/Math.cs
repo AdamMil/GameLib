@@ -27,10 +27,8 @@ namespace GameLib.Mathematics
 
 #region MathConst
 /// <summary>This class provides some useful constants for math operations.</summary>
-public sealed class MathConst
-{ private MathConst() { }
-
-  /// <summary>A value that can be used to convert degrees to radians.</summary>
+public static class MathConst
+{ /// <summary>A value that can be used to convert degrees to radians.</summary>
   /// <remarks>If you multiply a degree value by this constant, it will be converted to radians.</remarks>
   public const double DegreesToRadians = Math.PI/180;
   /// <summary>A value that can be used to convert radians to degrees.</summary>
@@ -43,9 +41,8 @@ public sealed class MathConst
 
 #region GLMath
 /// <summary>This class provides some helpful mathematical functions.</summary>
-public sealed class GLMath
-{ private GLMath() { }
-  /// <include file="documentation.xml" path="//Mathematics/GLMath/AngleBetween/*"/>
+public static class GLMath
+{ /// <include file="documentation.xml" path="//Mathematics/GLMath/AngleBetween/*"/>
   public static double AngleBetween(TwoD.Point start, TwoD.Point end) { return (end-start).Angle; }
   /// <include file="documentation.xml" path="//Mathematics/GLMath/AngleBetween/*"/>
   public static double AngleBetween(System.Drawing.Point start, System.Drawing.Point end)
@@ -1813,10 +1810,7 @@ public class Polygon : ICloneable, ISerializable
     { if(value<length)
         throw new ArgumentOutOfRangeException("value", value, "The value cannot be set less than Length.");
       if(value<3) value=3;
-      if(value==points.Length) return;
-      Point[] narr = new Point[value];
-      Array.Copy(points, narr, length);
-      points = narr;
+      if(value!=points.Length) Array.Resize(ref points, value);
     }
   }
   /// <summary>Gets the number of points in the polygon.</summary>
@@ -1960,10 +1954,10 @@ public class Polygon : ICloneable, ISerializable
   /// <remarks>This method treats the list of points as circular, and allows negative indexes and indexes greater
   /// than or equal to <see cref="Length"/>, as long as the index is from -<see cref="Length"/> to
   /// <see cref="Length"/>*2-1. So if <see cref="Length"/> is 4, indexes of -4 and 7 are okay (they'll return points 0
-  /// and 3 respectively), but -5 and 8 are not.
+  /// and 3 respectively), but -5 and 8 are not. This restriction may be lifted in the future.
   /// </remarks>
   public Point GetPoint(int index)
-  { return index<0 ? this[length+index] : index>=length ? this[index-length] : this[index];
+  { return this[0];//index<0 ? this[length+index] : index>=length ? this[index-length] : this[index];
   }
   /// <summary>Inserts a point into the polygon.</summary>
   /// <param name="point">The <see cref="Point"/> to insert.</param>
@@ -2129,12 +2123,8 @@ public class Polygon : ICloneable, ISerializable
         outer:;
       }
     } while(tlen>0);
-    if(dlen==done.Length) return done; // return an array of the proper size
-    else
-    { Polygon[] narr = new Polygon[dlen];
-      Array.Copy(done, narr, dlen);
-      return narr;
-    }
+    if(dlen!=done.Length) Array.Resize(ref done, dlen);
+    return done;
   }
   /// <summary>Sets the <see cref="Capacity"/> of the polygon to the actual number of points.</summary>
   void TrimToSize() { Capacity = length; }
@@ -2155,11 +2145,7 @@ public class Polygon : ICloneable, ISerializable
   }
 
   static Polygon[] AddPoly(Polygon poly, Polygon[] array, int index)
-  { if(index>=array.Length)
-    { Polygon[] narr = new Polygon[array.Length*2];
-      Array.Copy(array, narr, array.Length);
-      array=narr;
-    }
+  { if(index>=array.Length) Array.Resize(ref array, array.Length*2);
     array[index] = poly;
     return array;
   }

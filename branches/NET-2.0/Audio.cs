@@ -18,7 +18,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 using System;
 using System.IO;
-using System.Collections;
+using System.Collections.Generic;
 using GameLib.IO;
 using GameLib.Interop;
 using GameLib.Interop.SDL;
@@ -703,46 +703,32 @@ public class VorbisSource : AudioSource
 
 #region Audio filters
 #region FilterCollection
-public sealed class FilterCollection : CollectionBase
+public sealed class FilterCollection : Collection<AudioFilter>
 { public FilterCollection() { }
   public FilterCollection(object lockObj) { LockObj=lockObj; }
 
-  public AudioFilter this[int index]
-  { get { return (AudioFilter)InnerList[index]; }
-    set { List[index] = value; }
+  protected override void ClearItems()
+  { if(LockObj!=null) lock(LockObj) base.ClearItems();
+    else base.ClearItems();
   }
 
-  public int Add(AudioFilter filter) { return List.Add(filter); }
-  public int IndexOf(AudioFilter filter) { return InnerList.IndexOf(filter); }
-  public void Insert(int index, AudioFilter filter) { List.Insert(index, filter); }
-  public void Remove(AudioFilter filter) { InnerList.Remove(filter); }
-  
-  protected override void OnClear()
-  { if(LockObj!=null) lock(LockObj) base.OnClear();
-    else base.Clear();
+  protected override void InsertItem(int index, AudioFilter item)
+  { if(item==null) throw new ArgumentNullException("Filter cannot be null.");
+    if(LockObj!=null) lock(LockObj) base.InsertItem(index, item);
+    else base.InsertItem(index, item);
   }
 
-  protected override void OnInsert(int index, object value)
-  { if(LockObj!=null) lock(LockObj) base.OnInsert(index, value);
-    else base.OnInsert(index, value);
-  }
-  
-  protected override void OnRemove(int index, object value)
-  { if(LockObj!=null) lock(LockObj) base.OnRemove(index, value);
-    else base.OnRemove(index, value);
+  protected override void SetItem(int index, AudioFilter item)
+  { if(item==null) throw new ArgumentNullException("Filter cannot be null.");
+    if(LockObj!=null) lock(LockObj) base.SetItem(index, item);
+    else base.SetItem(index, item);
   }
 
-  protected override void OnSet(int index, object oldValue, object newValue)
-  { if(LockObj!=null) lock(LockObj) base.OnSet(index, oldValue, newValue);
-    else base.OnSet(index, oldValue, newValue);
+  protected override void RemoveItem(int index)
+  { if(LockObj!=null) lock(LockObj) base.RemoveItem(index);
+    else base.RemoveItem(index);
   }
 
-  protected override void OnValidate(object value)
-  { base.OnValidate(value);
-    if(value==null) throw new ArgumentNullException("filter", "Filter must not be null.");
-    if(!(value is AudioFilter)) throw new ArgumentException("Filter must be a GameLib.Audio.AudioFilter");
-  }
-  
   internal object LockObj;
 }
 #endregion
@@ -1302,6 +1288,11 @@ public class Audio
 
   public const int Infinite=-1, FreeChannel=-1, MaxVolume=256;
 
+  public sealed class ChannelCollection : ReadOnlyCollection<Channel>
+  { public ChannelCollection() : base(new List<Channel>()) { }
+    internal IList<Channel> InnerList { get { return Items; } }
+  }
+
   public static FilterCollection Filters
   { get { if(filters==null) filters=new FilterCollection(callback); return filters; }
   }
@@ -1320,15 +1311,17 @@ public class Audio
   { get { AssertInit(); return (int)GLMixer.GetMixVolume(); }
     set { AssertInit(); CheckVolume(value); GLMixer.SetMixVolume((ushort)value); }
   }
+
   public static int ReservedChannels
   { get { AssertInit(); return reserved; }
     set
     { AssertInit();
-      if(reserved<0 || reserved>chans.Length) throw new ArgumentOutOfRangeException("value");
+      if(reserved<0 || reserved>chans.Count) throw new ArgumentOutOfRangeException("value");
       reserved=value;
     }
   }
-  public static Channel[] Channels { get { return chans; } }
+
+  public static ChannelCollection Channels { get { return chans; } }
   public static PlayPolicy PlayPolicy { get { return playPolicy; } set { playPolicy=value; } }
   public static MixPolicy  MixPolicy  { get { return mixPolicy; } set { mixPolicy=value; } }
 
@@ -1343,8 +1336,7 @@ public class Audio
       throw new ArgumentException("Floating point format not supported by the underlying API.", "format");
 
     callback    = new GLMixer.MixCallback(FillBuffer);
-    Audio.chans = new Channel[0];
-    groups      = new ArrayList();
+    groups      = new List<List<int>>();
     SDL.Initialize(SDL.InitFlag.Audio);
     init        = true;
 
@@ -1374,8 +1366,8 @@ public class Audio
         if(postFilters!=null) for(int i=0; i<postFilters.Count; i++) postFilters[i].Stop(null);
         GLMixer.Quit();
         SDL.Deinitialize(SDL.InitFlag.Audio);
+        chans.InnerList.Clear();
         callback = null;
-        chans    = null;
         groups   = null;
         init     = false;
       }
@@ -1387,14 +1379,12 @@ public class Audio
   { AssertInit();
     if(numChannels<0) throw new ArgumentOutOfRangeException("numChannels");
     lock(callback)
-    { for(int i=numChannels; i<chans.Length; i++)
+    { for(int i=chans.Count-1; i>=numChannels; i--)
       { chans[i].Stop();
         if(resetChannels) chans[i].Reset();
+        chans.InnerList.RemoveAt(i);
       }
-      Channel[] narr = new Channel[numChannels];
-      Array.Copy(chans, narr, chans.Length);
-      for(int i=chans.Length; i<numChannels; i++) narr[i] = new Channel(i);
-      chans = narr;
+      for(int i=chans.Count; i<numChannels; i++) chans.InnerList.Add(new Channel(i));
       if(numChannels<reserved) reserved=numChannels;
     }
   }
@@ -1404,10 +1394,11 @@ public class Audio
     lock(groups)
     { for(int i=0; i<groups.Count; i++)
         if(groups[i]==null)
-        { groups[i] = new ArrayList();
+        { groups[i] = new List<int>();
           return i;
         }
-      return groups.Add(new ArrayList());
+      groups.Add(new List<int>());
+      return groups.Count-1;
     }
   }
 
@@ -1416,7 +1407,7 @@ public class Audio
   public static void GroupChannel(int channel, int group)
   { CheckChannel(channel);
     lock(groups)
-    { ArrayList list = GetGroup(group);
+    { List<int> list = GetGroup(group);
       if(!list.Contains(channel)) list.Add(channel);
     }
   }
@@ -1425,7 +1416,7 @@ public class Audio
   { CheckChannel(start); CheckChannel(end);
     if(start>end) throw new ArgumentException("start should be <= end");
     lock(groups)
-    { ArrayList list = GetGroup(group);
+    { List<int> list = GetGroup(group);
       for(; start<=end; start++) if(!list.Contains(start)) list.Add(start);
     }
   }
@@ -1434,7 +1425,7 @@ public class Audio
 
   public static int GroupSize(int group) { lock(groups) return GetGroup(group).Count; }
 
-  public static int[] GetGroupChannels(int group) { lock(groups) return (int[])GetGroup(group).ToArray(typeof(int)); }
+  public static int[] GetGroupChannels(int group) { lock(groups) return GetGroup(group).ToArray(); }
 
   public static int OldestChannel(bool unreserved) { return OldestChannel(-1, unreserved); }
   public static int OldestChannel(int group, bool unreserved)
@@ -1443,13 +1434,13 @@ public class Audio
     if(group==-1)
     { AssertInit();
       lock(callback)
-        for(oi=unreserved ? 0 : reserved,i=oi; i<chans.Length; i++) if(chans[i].Age>age) { age=chans[i].Age; oi=i; }
+        for(oi=unreserved ? 0 : reserved,i=oi; i<chans.Count; i++) if(chans[i].Age>age) { age=chans[i].Age; oi=i; }
     }
     else
       lock(groups)
-      { ArrayList list = GetGroup(group);
+      { List<int> list = GetGroup(group);
         for(oi=i=0; i<list.Count; i++)
-        { int chan = (int)list[i];
+        { int chan = list[i];
           if(!unreserved && chan<reserved) continue;
           if(chans[chan].Age>age) { age=chans[chan].Age; oi=chan; }
         }
@@ -1459,41 +1450,41 @@ public class Audio
 
   public static void FadeOut(uint fadeMs) { FadeOut(-1, fadeMs); }
   public static void FadeOut(int group, uint fadeMs)
-  { if(group==-1) lock(callback) for(int i=0; i<chans.Length; i++) chans[i].FadeOut(fadeMs);
+  { if(group==-1) lock(callback) for(int i=0; i<chans.Count; i++) chans[i].FadeOut(fadeMs);
     else
       lock(groups)
-      { ArrayList list = GetGroup(group);
-        for(int i=0; i<list.Count; i++) chans[(int)list[i]].FadeOut(fadeMs);
+      { List<int> list = GetGroup(group);
+        for(int i=0; i<list.Count; i++) chans[list[i]].FadeOut(fadeMs);
       }
   }
 
   public static void Pause() { Pause(-1); }
   public static void Pause(int group)
-  { if(group==-1) lock(callback) for(int i=0; i<chans.Length; i++) chans[i].Pause();
+  { if(group==-1) lock(callback) for(int i=0; i<chans.Count; i++) chans[i].Pause();
     else
       lock(groups)
-      { ArrayList list = GetGroup(group);
-        for(int i=0; i<list.Count; i++) chans[(int)list[i]].Pause();
+      { List<int> list = GetGroup(group);
+        for(int i=0; i<list.Count; i++) chans[list[i]].Pause();
       }
   }
 
   public static void Resume() { Resume(-1); }
   public static void Resume(int group)
-  { if(group==-1) lock(callback) for(int i=0; i<chans.Length; i++) chans[i].Resume();
+  { if(group==-1) lock(callback) for(int i=0; i<chans.Count; i++) chans[i].Resume();
     else
       lock(groups)
-      { ArrayList list = GetGroup(group);
-        for(int i=0; i<list.Count; i++) chans[(int)list[i]].Resume();
+      { List<int> list = GetGroup(group);
+        for(int i=0; i<list.Count; i++) chans[list[i]].Resume();
       }
   }
 
   public static void Stop() { Stop(-1); }
   public static void Stop(int group)
-  { if(group==-1) lock(callback) for(int i=0; i<chans.Length; i++) chans[i].Stop();
+  { if(group==-1) lock(callback) for(int i=0; i<chans.Count; i++) chans[i].Stop();
     else
       lock(groups)
-      { ArrayList list = GetGroup(group);
-        for(int i=0; i<list.Count; i++) chans[(int)list[i]].Stop();
+      { List<int> list = GetGroup(group);
+        for(int i=0; i<list.Count; i++) chans[list[i]].Stop();
       }
   }
 
@@ -1615,13 +1606,13 @@ public class Audio
 
   internal static Channel StartPlaying(int channel, AudioSource source, int loops, int position, Fade fade, uint fadeMs, int timeoutMs)
   { AssertInit();
-    if(reserved==chans.Length) return null;
+    if(reserved==chans.Count) return null;
 
-    IList group=null;
-    bool  tried=false;
+    List<int> group=null;
+    bool tried=false;
     do
     { if(channel==FreeChannel)
-      { for(int i=reserved; i<chans.Length; i++)
+      { for(int i=reserved; i<chans.Count; i++)
           if(chans[i].Status==ChannelStatus.Stopped) // try to lock as little as possible
           { tried=true;
             lock(chans[i])
@@ -1635,7 +1626,7 @@ public class Audio
         lock(groups)
         { group = GetGroup(channel);
           for(int i=0; i<group.Count; i++)
-          { int chan = (int)group[i];
+          { int chan = group[i];
             if(chan<reserved) continue;
             if(chans[chan].Status==ChannelStatus.Stopped) // try to lock as little as possible
             { tried=true;
@@ -1655,11 +1646,11 @@ public class Audio
         { int  oi=reserved;
           uint age=0;
           if(channel==FreeChannel)
-            for(int i=reserved; i<chans.Length; i++) { if(chans[i].Age>age) { age=chans[i].Age; oi=i; } }
+            for(int i=reserved; i<chans.Count; i++) { if(chans[i].Age>age) { age=chans[i].Age; oi=i; } }
           else
             lock(groups)
               for(int i=0; i<group.Count; i++)
-              { int chan = (int)group[i];
+              { int chan = group[i];
                 if(chan<reserved) continue;
                 if(chans[chan].Age>age) { age=chans[chan].Age; oi=chan; }
               }
@@ -1670,11 +1661,11 @@ public class Audio
         lock(callback)
         { int pi=reserved, prio=int.MaxValue;
           if(channel==FreeChannel)
-            for(int i=reserved; i<chans.Length; i++) { if(chans[i].Priority<prio) { prio=chans[i].Priority; pi=i; } }
+            for(int i=reserved; i<chans.Count; i++) { if(chans[i].Priority<prio) { prio=chans[i].Priority; pi=i; } }
           else
             lock(groups)
               for(int i=0; i<group.Count; i++)
-              { int chan = (int)group[i];
+              { int chan = group[i];
                 if(chan<reserved) continue;
                 if(chans[chan].Priority<prio) { prio=chans[chan].Priority; pi=chan; }
               }
@@ -1686,21 +1677,21 @@ public class Audio
         { int  pi=reserved, oi, prio=int.MaxValue;
           uint age=0;
           if(channel==FreeChannel)
-          { for(int i=reserved; i<chans.Length; i++) if(chans[i].Priority<prio) { prio=chans[i].Priority; pi=i; }
+          { for(int i=reserved; i<chans.Count; i++) if(chans[i].Priority<prio) { prio=chans[i].Priority; pi=i; }
             oi=pi;
-            for(int i=reserved; i<chans.Length; i++)
+            for(int i=reserved; i<chans.Count; i++)
               if(chans[i].Priority==prio && chans[i].Age>age) { oi=i; age=chans[i].Age; }
           }
           else
             lock(groups)
             { for(int i=0; i<group.Count; i++)
-              { int chan = (int)group[i];
+              { int chan = group[i];
                 if(chan<reserved) continue;
                 if(chans[chan].Priority<prio) { prio=chans[chan].Priority; pi=chan; }
               }
               oi=pi;
               for(int i=0; i<group.Count; i++)
-              { int chan = (int)group[i];
+              { int chan = group[i];
                 if(chan<reserved) continue;
                 if(chans[chan].Priority==prio && chans[chan].Age>age) { oi=chan; age=chans[chan].Age; }
               }
@@ -1717,18 +1708,18 @@ public class Audio
   }
   internal static void CheckChannel(int channel)
   { AssertInit();
-    if(channel!=FreeChannel && (channel<0 || channel>=chans.Length)) throw new ArgumentOutOfRangeException("channel");
+    if(channel!=FreeChannel && (channel<0 || channel>=chans.Count)) throw new ArgumentOutOfRangeException("channel");
   }
   internal static void CheckVolume(int volume)
   { if(volume<0 || volume>Audio.MaxVolume) throw new ArgumentOutOfRangeException("value");
   }
 
   static int ToGroup(int group) { return -group-2; }
-  static ArrayList GetGroup(int group)
+  static List<int> GetGroup(int group)
   { AssertInit();
     int index = ToGroup(group);
     if(index<0 || index>=groups.Count) throw new ArgumentException("Invalid group ID");
-    ArrayList list = (ArrayList)groups[ToGroup(group)];
+    List<int> list = groups[ToGroup(group)];
     if(list==null) throw new ArgumentException("Invalid group ID");
     return list;
   }
@@ -1739,10 +1730,10 @@ public class Audio
   static unsafe void FillBuffer(int* stream, uint frames, IntPtr context)
   { try
     { lock(callback)
-      { for(int i=0; i<chans.Length; i++) lock(chans[i]) chans[i].Mix(stream, (int)frames, filters);
+      { for(int i=0; i<chans.Count; i++) lock(chans[i]) chans[i].Mix(stream, (int)frames, filters);
         if(postFilters!=null)
           for(int i=0; i<postFilters.Count; i++) postFilters[i].MixFilter(null, stream, (int)frames, format);
-        if(MixPolicy==MixPolicy.Divide) GLMixer.Check(GLMixer.DivideAccumulator(chans.Length));
+        if(MixPolicy==MixPolicy.Divide) GLMixer.Check(GLMixer.DivideAccumulator(chans.Count));
       }
     }
     catch(Exception e)
@@ -1755,8 +1746,8 @@ public class Audio
   static AudioFormat format;
   static FilterCollection filters, postFilters;
   static GLMixer.MixCallback callback;
-  static Channel[] chans;
-  static ArrayList groups;
+  static ChannelCollection chans = new ChannelCollection();
+  static List<List<int>> groups;
   static int reserved;
   static PlayPolicy playPolicy = PlayPolicy.Fail;
   static MixPolicy  mixPolicy  = MixPolicy.DontDivide;

@@ -29,9 +29,8 @@ namespace GameLib
 /// timers are based on the tick-based timers. The tick-based timers provide the maximum resolution and
 /// precision.
 /// </remarks>
-public sealed class Timing
-{ private Timing() { }
-  static Timing() // FIXME: Utility never deinitialized
+public static class Timing
+{ static Timing() // FIXME: Utility never deinitialized
   { GLU.Utility.Check(GLU.Utility.Init());
     timerFreq = GLU.Utility.GetTimerFrequency();
   }

@@ -17,10 +17,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 using System;
-using System.Collections;
+using System.Collections.Generic;
 using System.Drawing;
 using GameLib.Video;
-using GameLib.Collections;
 using GameLib.Interop.SDL;
 using GameLib.Interop.SDLTTF;
 
@@ -161,7 +160,9 @@ public abstract class Font : IDisposable
   /// <include file="documentation.xml" path="//Fonts/WordWrap/Rect/*"/>
   public int[] WordWrap(string text, Rectangle rect) { return WordWrap(text, rect, 0, 0, breakers); }
   /// <include file="documentation.xml" path="//Fonts/WordWrap/*[self::Rect or self::Breakers]/*"/>
-  public int[] WordWrap(string text, Rectangle rect, char[] breakers) { return WordWrap(text, rect, 0, 0, breakers); }
+  public int[] WordWrap(string text, Rectangle rect, char[] breakers)
+  { return WordWrap(text, rect, 0, 0, breakers);
+  }
   /// <include file="documentation.xml" path="//Fonts/WordWrap/*[self::Rect or self::Offset]/*"/>
   public int[] WordWrap(string text, Rectangle rect, int startx, int starty)
   { return WordWrap(text, rect, startx, starty, breakers);
@@ -171,11 +172,11 @@ public abstract class Font : IDisposable
   public virtual int[] WordWrap(string text, Rectangle rect, int startx, int starty, char[] breakers)
   { if(text.Length==0) return new int[0];
 
-    ArrayList list = new ArrayList(); // make this a class member?
     int x=rect.X+startx, start=0, end=0, pend, length=0, plen=0, height=LineSkip;
     int rwidth=rect.Width-startx, rheight=rect.Height-starty;
     if(height>rheight) return new int[0];
 
+    List<int> list = new List<int>();
     while(true)
     { for(pend=end; end<text.Length; end++)
       { char c=text[end];
@@ -214,7 +215,7 @@ public abstract class Font : IDisposable
       }
     }
     done:
-    return (int[])list.ToArray(typeof(int));
+    return list.ToArray();
   }
 
   /// <summary>Frees resources used by the font.</summary>
@@ -592,8 +593,8 @@ public class TrueTypeFont : StyledFont
     { if(value<0) throw new ArgumentException("Cache size cannot be negative");
       if(value==0) ClearCache();
       else if(value<list.Count)
-      { LinkedList.Node n=list.Tail, p;
-        for(int i=0,num=list.Count-value; i<num; n=p,i++) { p=n.Prev; CacheRemove(n); }
+      { LinkedListNode<CachedChar> n=list.Tail, p;
+        for(int i=0,num=list.Count-value; i<num; n=p,i++) { p=n.Previous; CacheRemove(n); }
       }
       cacheMax = value;
     }
@@ -649,26 +650,27 @@ public class TrueTypeFont : StyledFont
   protected class CachedChar : IDisposable
   { public CachedChar() { }
     public CachedChar(char c) { Char=c; }
-    ~CachedChar() { Dispose(true); }
-    public void Dispose() { Dispose(false); GC.SuppressFinalize(this); }
+    ~CachedChar() { Surface.Dispose(); }
+    public void Dispose() { Surface.Dispose(); GC.SuppressFinalize(this); }
 
     public Surface Surface;
     public int     OffsetX, OffsetY, Width, Advance;
     public char    Char;
     public bool    Compatible;
     internal CacheIndex Index;
-    void Dispose(bool finalizing) { Surface.Dispose(); }
   }
 
   protected CachedChar GetChar(char c)
   { Color shade = shadeColor!=Color.Transparent ? shadeColor : bgColor!=Color.Transparent ? bgColor : Color.Black;
     CacheIndex ind = new CacheIndex(c, color, shade, fstyle, rstyle);
-    LinkedList.Node node = (LinkedList.Node)map[ind];
+    LinkedListNode<CachedChar> node=null;
+    map.TryGetValue(ind, out node);
     CachedChar cc;
+
     if(node!=null)
-    { cc = (CachedChar)node.Data;
+    { cc = node.Value;
       list.Remove(node);
-      list.Prepend(node);
+      list.AddHead(node);
       goto done;
     }
 
@@ -698,7 +700,7 @@ public class TrueTypeFont : StyledFont
 
     if(cacheMax!=0)
     { while(list.Count>=cacheMax) CacheRemove(list.Tail);
-      map[ind]=list.Prepend(cc);
+      map[ind]=list.AddHead(cc);
     }
     done:
     if(Video.Video.DisplaySurface!=null)
@@ -760,8 +762,8 @@ public class TrueTypeFont : StyledFont
     public RenderStyle RenderStyle;
   }
 
-  void CacheRemove(LinkedList.Node node)
-  { CachedChar cc = (CachedChar)node.Data;
+  void CacheRemove(LinkedListNode<CachedChar> node)
+  { CachedChar cc = node.Value;
     cc.Dispose();
     map.Remove(cc.Index);
     list.Remove(node);
@@ -775,8 +777,8 @@ public class TrueTypeFont : StyledFont
     ShadeColor = Color.Transparent;
   }
 
-  Map           map = new Map();
-  LinkedList   list = new LinkedList();
+  LinkedList<CachedChar> list = new LinkedList<CachedChar>();
+  Dictionary<CacheIndex, LinkedListNode<CachedChar>> map = new Dictionary<CacheIndex,LinkedListNode<CachedChar>>();
   Color        color, bgColor, shadeColor;
   int          cacheMax=192, compatible=-1;
   FontStyle    fstyle;

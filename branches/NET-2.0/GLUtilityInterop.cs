@@ -23,7 +23,7 @@ namespace GameLib.Interop.GLUtility
 {
 
 [System.Security.SuppressUnmanagedCodeSecurity()]
-internal sealed class Utility
+internal static class Utility
 { 
   [DllImport(Config.GLUtilityImportPath, ExactSpelling=true, EntryPoint="GLU_Init", CallingConvention=CallingConvention.Cdecl)]
   public static extern int  Init();
