@@ -55,11 +55,11 @@ public class GLMixer
   [DllImport(Config.GLMixerImportPath, EntryPoint="GLM_Copy", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern int Copy(int* dest, int* src, uint samples);
   [DllImport(Config.GLMixerImportPath, EntryPoint="GLM_VolumeScale", CallingConvention=CallingConvention.Cdecl)]
-  public unsafe static extern int VolumeScale(int* stream, uint samples, ushort volume);
+  public unsafe static extern int VolumeScale(int* stream, uint samples, ushort leftVolume, ushort rightVolume);
   [DllImport(Config.GLMixerImportPath, EntryPoint="GLM_Mix", CallingConvention=CallingConvention.Cdecl)]
-  internal unsafe static extern int Mix(int* dest, int* src, uint samples, ushort srcVolume);
+  internal unsafe static extern int Mix(int* dest, int* src, uint samples, ushort leftVolume, ushort rightVolume);
   [DllImport(Config.GLMixerImportPath, EntryPoint="GLM_ConvertMix", CallingConvention=CallingConvention.Cdecl)]
-  internal unsafe static extern int ConvertMix(int* dest, void* src, uint samples, ushort srcFormat, ushort srcVolume);
+  internal unsafe static extern int ConvertMix(int* dest, void* src, uint samples, ushort srcFormat, ushort leftVolume, ushort rightVolume);
   [DllImport(Config.GLMixerImportPath, EntryPoint="GLM_DivideAccumulator", CallingConvention=CallingConvention.Cdecl)]
   internal static extern int DivideAccumulator(int divisor);
   

@@ -46,7 +46,7 @@ public class PixelFormat
   
   public void GenerateDefaultMasks() { GenerateDefaultMasks(false); }
   public void GenerateDefaultMasks(bool withAlpha)
-  { switch(Depth) // TODO: make big-endian compatible
+  { switch(Depth) // TODO: make big-endian compatible (?)
     { case 16: RedMask=0x0000F800; GreenMask=0x000007E0; BlueMask=0x0000001F; AlphaMask=0; break;
       case 24: RedMask=0x00FF0000; GreenMask=0x0000FF00; BlueMask=0x000000FF; AlphaMask=0; break;
       case 32:
@@ -219,16 +219,16 @@ public sealed class Video
   public static uint MapColor(Color color) { return DisplaySurface.MapColor(color); }
   public Color MapColor(uint color) { return DisplaySurface.MapColor(color); }
 
-  public static void GetPalette(Color[] colors, uint startIndex, uint startColor, uint numColors)
+  public static void GetPalette(Color[] colors, int startIndex, int startColor, int numColors)
   { DisplaySurface.GetPalette(colors, startIndex, startColor, numColors);
   }
-  public static void GetPalette(Color[] colors, uint startIndex, uint startColor, uint numColors, PaletteType type)
+  public static void GetPalette(Color[] colors, int startIndex, int startColor, int numColors, PaletteType type)
   { DisplaySurface.GetPalette(colors, startIndex, startColor, numColors, type);
   }
-  public static bool SetPalette(Color[] colors, uint startIndex, uint startColor, uint numColors)
+  public static bool SetPalette(Color[] colors, int startIndex, int startColor, int numColors)
   { return DisplaySurface.SetPalette(colors, startIndex, startColor, numColors);
   }
-  public static bool SetPalette(Color[] colors, uint startIndex, uint startColor, uint numColors, PaletteType type)
+  public static bool SetPalette(Color[] colors, int startIndex, int startColor, int numColors, PaletteType type)
   { return DisplaySurface.SetPalette(colors, startIndex, startColor, numColors, type);
   }
 

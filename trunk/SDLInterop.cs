@@ -389,7 +389,7 @@ internal class SDL
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_GetVideoSurface", CallingConvention=CallingConvention.Cdecl)]
   public static extern Surface* GetVideoSurface();
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_SetPalette", CallingConvention=CallingConvention.Cdecl)]
-  public unsafe static extern int SetPalette(Surface* surface, uint flags, Color* colors, uint firstColor, uint numColors);
+  public unsafe static extern int SetPalette(Surface* surface, uint flags, Color* colors, int firstColor, int numColors);
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_SetGamma", CallingConvention=CallingConvention.Cdecl)]
   public static extern int SetGamma(float red, float green, float blue);
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_GetGammaRamp", CallingConvention=CallingConvention.Cdecl)]

@@ -30,7 +30,52 @@ public enum SurfaceFlag : uint
 
 [System.Security.SuppressUnmanagedCodeSecurity()]
 public class Surface : IDisposable
-{ public Surface(Bitmap bitmap) { throw new NotImplementedException(); }
+{ public Surface(Bitmap bitmap)
+  { System.Drawing.Imaging.PixelFormat format;
+    byte depth;
+    switch(bitmap.PixelFormat)
+    { case System.Drawing.Imaging.PixelFormat.Format1bppIndexed:
+      case System.Drawing.Imaging.PixelFormat.Format4bppIndexed:
+      case System.Drawing.Imaging.PixelFormat.Format8bppIndexed:
+        format = System.Drawing.Imaging.PixelFormat.Format8bppIndexed;
+        depth  = 8;
+        break;
+      case System.Drawing.Imaging.PixelFormat.Format16bppRgb555:
+      case System.Drawing.Imaging.PixelFormat.Format16bppRgb565:
+        format = System.Drawing.Imaging.PixelFormat.Format16bppRgb565;
+        depth  = 16;
+        break;
+      case System.Drawing.Imaging.PixelFormat.Format24bppRgb:
+      default:
+        format = System.Drawing.Imaging.PixelFormat.Format24bppRgb;
+        depth  = 24;
+        break;
+      case System.Drawing.Imaging.PixelFormat.Format16bppArgb1555:
+      case System.Drawing.Imaging.PixelFormat.Format32bppArgb:
+      case System.Drawing.Imaging.PixelFormat.Format32bppPArgb:
+      case System.Drawing.Imaging.PixelFormat.Format64bppArgb:
+      case System.Drawing.Imaging.PixelFormat.Format64bppPArgb:
+        format = System.Drawing.Imaging.PixelFormat.Format32bppArgb;
+        depth  = 32;
+        break;
+    }
+
+    InitFromFormat(bitmap.Width, bitmap.Height, new PixelFormat(depth, depth==32),
+                   depth==32 ? SurfaceFlag.SrcAlpha : SurfaceFlag.None);
+    try
+    { System.Drawing.Imaging.BitmapData data = bitmap.LockBits(new Rectangle(0, 0, bitmap.Width, bitmap.Height),
+                                                               System.Drawing.Imaging.ImageLockMode.ReadOnly, format);
+      unsafe
+      { if(depth==8) SetPalette(bitmap.Palette.Entries);
+        Lock();
+        byte* src=(byte*)data.Scan0, dest=(byte*)Data;
+        int len=bitmap.Width*(depth/8);
+        for(int i=0; i<bitmap.Height; src+=data.Stride,dest+=Pitch,i++) Unsafe.Copy(dest, src, len); // TODO: big endian safe?
+        Unlock();
+      }
+    }
+    catch { Dispose(); }
+  }
   public Surface(int width, int height, byte depth) : this(width, height, depth, SurfaceFlag.None) { }
   public Surface(int width, int height, byte depth, SurfaceFlag flags)
   { InitFromFormat(width, height, new PixelFormat(depth, (flags&SurfaceFlag.SrcAlpha)!=0), flags);
@@ -85,10 +130,10 @@ public class Surface : IDisposable
   public unsafe void* Data     { get { return surface->Pixels; } }
   public PixelFormat  Format   { get { return format; } }
 
-  public unsafe uint PaletteSize
+  public unsafe int PaletteSize
   { get
     { SDL.Palette* palette = surface->Format->Palette;
-      return palette==null ? 0 : (uint)palette->Entries;
+      return palette==null ? 0 : palette->Entries;
     }
   }
   public bool HasHWPalette { get { return (Flags&SurfaceFlag.HWPalette) != 0; } }
@@ -106,22 +151,27 @@ public class Surface : IDisposable
 
   public Color ColorKey
   { get { return key; }
-    set { if(usingKey) SetColorKey(value); else key=value; }
+    set { if(UsingKey) SetColorKey(value); else key=value; }
   }
 
   public byte Alpha
   { get { return alpha; }
-    set { if(usingAlpha) SetAlpha(value); else alpha=value; }
+    set { if(UsingAlpha) SetSurfaceAlpha(value); else alpha=value; }
   }
 
   public bool UsingKey
-  { get { return usingKey; }
-    set { if(value!=usingKey) if(value) SetColorKey(key); else DisableColorKey(); }
+  { get { unsafe { return (surface->Flags&(uint)SDL.VideoFlag.SrcColorKey)!=0; } }
+    set { if(value!=UsingKey) if(value) SetColorKey(key); else DisableColorKey(); }
   }
 
   public bool UsingAlpha
-  { get { return usingAlpha; }
-    set { if(value!=usingAlpha) if(value) SetAlpha(alpha); else DisableAlpha(); }
+  { get { return (Flags&SurfaceFlag.SrcAlpha) != SurfaceFlag.None; }
+    set { if(value!=UsingAlpha) if(value) EnableAlpha(); else DisableAlpha(); }
+  }
+  
+  public bool UsingRLE
+  { get { return (Flags&SurfaceFlag.RLE) != SurfaceFlag.None; }
+    set { if(value) EnableRLE(); else DisableRLE(); }
   }
 
   public unsafe void Flip() { SDL.Check(SDL.Flip(surface)); }
@@ -217,16 +267,33 @@ public class Surface : IDisposable
   
   public Color GetColorKey() { return key; }
   public unsafe void SetColorKey(Color color) // automatically enables color key
-  { SDL.Check(SDL.SetColorKey(surface, (uint)SDL.VideoFlag.SrcColorKey, MapColor(key=color)));
+  { SDL.Check(SDL.SetColorKey(surface, (uint)SDL.VideoFlag.SrcColorKey, rawKey=MapColor(key=color)));
   }
   public unsafe void DisableColorKey() { SDL.Check(SDL.SetColorKey(surface, 0, 0)); }
 
-  public byte GetAlpha() { return alpha; }
-  public unsafe void SetAlpha(byte alpha) // automatically enables alpha
-  { SDL.Check(SDL.SetAlpha(surface, (uint)((alpha==AlphaLevel.Opaque ? SDL.VideoFlag.None : SDL.VideoFlag.SrcAlpha) |
-                                    (usingRLE ? SDL.VideoFlag.RLEAccel : 0)), alpha));
+  public byte GetSurfaceAlpha() { return alpha; }
+  public unsafe void SetSurfaceAlpha(byte alpha) // automatically enables alpha if 'alpha' != AlphaLevel.Opaque
+  { if(alpha==AlphaLevel.Opaque) DisableAlpha();
+    else
+    { SDL.Check(SDL.SetAlpha(surface, (uint)(SDL.VideoFlag.SrcAlpha | (UsingRLE ? SDL.VideoFlag.RLEAccel : 0)), alpha));
+    }
   }
-  public unsafe void DisableAlpha() { SDL.Check(SDL.SetAlpha(surface, 0, 0)); }
+  public unsafe void EnableAlpha()
+  { SDL.Check(SDL.SetAlpha(surface, (uint)((UsingRLE ? SDL.VideoFlag.RLEAccel : 0) | SDL.VideoFlag.SrcAlpha), alpha));
+  }
+  public unsafe void DisableAlpha()
+  { SDL.Check(SDL.SetAlpha(surface, (uint)(UsingRLE ? SDL.VideoFlag.RLEAccel : 0), AlphaLevel.Opaque));
+  }
+  
+  public unsafe void EnableRLE()
+  { if(UsingRLE) return;
+    SDL.Check(SDL.SetColorKey(surface,
+                              (uint)((UsingKey ? SDL.VideoFlag.SrcColorKey : 0) | SDL.VideoFlag.RLEAccel), rawKey));
+  }
+  public unsafe void DisableRLE()
+  { if(!UsingRLE) return;
+    SDL.Check(SDL.SetColorKey(surface, UsingKey ? (uint)SDL.VideoFlag.SrcColorKey : 0, rawKey));
+  }
 
   public unsafe void Lock()   { if(lockCount++==0) SDL.Check(SDL.LockSurface(surface)); }
   public unsafe void Unlock()
@@ -246,29 +313,31 @@ public class Surface : IDisposable
     return Color.FromArgb(a, r, g, b);
   }
 
-  public void GetPalette(Color[] colors) { GetPalette(colors, 0, 0, 256); }
-  public void GetPalette(Color[] colors, uint startIndex, uint startColor, uint numColors)
+  public void GetPalette(Color[] colors) { GetPalette(colors, 0, 0, colors.Length); }
+  public void GetPalette(Color[] colors, int numColors) { GetPalette(colors, 0, 0, numColors); }
+  public void GetPalette(Color[] colors, int startIndex, int startColor, int numColors)
   { GetPalette(colors, startIndex, startColor, numColors, PaletteType.Both);
   }
-  public unsafe void GetPalette(Color[] colors, uint startIndex, uint startColor, uint numColors, PaletteType type)
+  public unsafe void GetPalette(Color[] colors, int startIndex, int startColor, int numColors, PaletteType type)
   { ValidatePaletteArgs(colors, startColor, numColors);
 
     SDL.Color* palette = surface->Format->Palette->Colors;
-    for(uint i=0; i<numColors; i++)
+    for(int i=0; i<numColors; i++)
     { SDL.Color c = palette[startColor+i];
       colors[startIndex+i] = Color.FromArgb(c.Red, c.Green, c.Blue);
     }
   }
 
-  public bool SetPalette(Color[] colors) { return SetPalette(colors, 0, 0, 256); }
-  public bool SetPalette(Color[] colors, uint startIndex, uint startColor, uint numColors)
+  public bool SetPalette(Color[] colors) { return SetPalette(colors, 0, 0, colors.Length); }
+  public bool SetPalette(Color[] colors, int numColors) { return SetPalette(colors, 0, 0, numColors); }
+  public bool SetPalette(Color[] colors, int startIndex, int startColor, int numColors)
   { return SetPalette(colors, startIndex, startColor, numColors, PaletteType.Both);
   }
-  public unsafe bool SetPalette(Color[] colors, uint startIndex, uint startColor, uint numColors, PaletteType type)
+  public unsafe bool SetPalette(Color[] colors, int startIndex, int startColor, int numColors, PaletteType type)
   { ValidatePaletteArgs(colors, startColor, numColors);
 
-    SDL.Color* array = stackalloc SDL.Color[(int)numColors];
-    for(uint i=0; i<numColors; i++)
+    SDL.Color* array = stackalloc SDL.Color[numColors];
+    for(int i=0; i<numColors; i++)
     { Color c = colors[startIndex+i];
       array[i].Red   = c.R;
       array[i].Green = c.G;
@@ -302,23 +371,81 @@ public class Surface : IDisposable
     return new Surface(ret, true);
   }
 
-  public Bitmap ToBitmap() { throw new NotImplementedException(); }
+  public Bitmap ToBitmap()
+  { System.Drawing.Imaging.PixelFormat format;
+    switch(Depth) // FIXME: make this work with nonstandard byte packing (BGR, 555, etc)
+    { case 8:  format = System.Drawing.Imaging.PixelFormat.Format8bppIndexed; break;
+      case 16: format = System.Drawing.Imaging.PixelFormat.Format16bppRgb565; break;
+      case 24: format = System.Drawing.Imaging.PixelFormat.Format24bppRgb; break;
+      case 32:
+        format = Format.AlphaMask==0 ? System.Drawing.Imaging.PixelFormat.Format32bppRgb :
+                                       System.Drawing.Imaging.PixelFormat.Format32bppArgb;
+        break;
+      default: throw new NotImplementedException("Unhandled depth in ToBitmap()");
+    }
+    Bitmap bitmap;
+    Lock();
+    unsafe
+    { try { bitmap = new Bitmap(Width, Height, (int)Pitch, format, new IntPtr(Data)); }
+      finally { Unlock(); }
+    }
+    if(Depth==8)
+    { System.Drawing.Imaging.ColorPalette pal = bitmap.Palette;
+      GetPalette(pal.Entries, PaletteSize);
+      bitmap.Palette = pal;
+    }
+    return bitmap;
+  }
   
   public void Save(string filename, ImageType type)
   { Stream stream = new FileStream(filename, FileMode.Create, FileAccess.Write);
-    Save(stream, type);
-    stream.Close();
+    try { Save(stream, type); }
+    finally { stream.Close(); }
   }
   public void Save(Stream stream, ImageType type)
-  { switch(type)
+  { Bitmap bitmap=null;
+    switch(type)
     { case ImageType.PCX: WritePCX(stream); break;
-      case ImageType.BMP: ToBitmap().Save(stream, System.Drawing.Imaging.ImageFormat.Bmp);  break;
-      case ImageType.GIF: ToBitmap().Save(stream, System.Drawing.Imaging.ImageFormat.Gif);  break;
-      case ImageType.JPG: ToBitmap().Save(stream, System.Drawing.Imaging.ImageFormat.Jpeg); break;
-      case ImageType.PNG: ToBitmap().Save(stream, System.Drawing.Imaging.ImageFormat.Png);  break;
-      case ImageType.TIF: ToBitmap().Save(stream, System.Drawing.Imaging.ImageFormat.Tiff); break;
+      case ImageType.BMP: (bitmap=ToBitmap()).Save(stream, System.Drawing.Imaging.ImageFormat.Bmp);  break;
+      case ImageType.GIF: (bitmap=ToBitmap()).Save(stream, System.Drawing.Imaging.ImageFormat.Gif);  break;
+      case ImageType.JPG: (bitmap=ToBitmap()).Save(stream, System.Drawing.Imaging.ImageFormat.Jpeg); break;
+      case ImageType.PNG: (bitmap=ToBitmap()).Save(stream, System.Drawing.Imaging.ImageFormat.Png);  break;
+      case ImageType.TIF: (bitmap=ToBitmap()).Save(stream, System.Drawing.Imaging.ImageFormat.Tiff); break;
       default: throw new NotImplementedException();
     }
+    if(bitmap!=null) bitmap.Dispose();
+  }
+  public void Save(string filename, System.Drawing.Imaging.ImageCodecInfo encoder,
+                   System.Drawing.Imaging.EncoderParameters parms)
+  { Stream stream = new FileStream(filename, FileMode.Create, FileAccess.Write);
+    try { Save(stream, encoder, parms); }
+    finally { stream.Close(); }
+  }
+  public void Save(Stream stream, System.Drawing.Imaging.ImageCodecInfo encoder,
+                   System.Drawing.Imaging.EncoderParameters parms)
+  { Bitmap bitmap = ToBitmap();
+    bitmap.Save(stream, encoder, parms);
+    bitmap.Dispose();
+  }
+
+  public void SaveJPEG(string filename, int quality)
+  { Stream stream = new FileStream(filename, FileMode.Create, FileAccess.Write);
+    try { SaveJPEG(stream, quality); }
+    finally { stream.Close(); }
+  }
+  public void SaveJPEG(Stream stream, int quality)
+  { if(quality<0 || quality>100) throw new ArgumentOutOfRangeException("quality", quality, "must be from 0-100");
+    foreach(System.Drawing.Imaging.ImageCodecInfo codec in System.Drawing.Imaging.ImageCodecInfo.GetImageEncoders())
+      if(codec.MimeType.ToLower()=="image/jpeg")
+      { System.Drawing.Imaging.EncoderParameters parms = new System.Drawing.Imaging.EncoderParameters(1);
+        parms.Param[0] =
+          new System.Drawing.Imaging.EncoderParameter(System.Drawing.Imaging.Encoder.Quality, (long)quality);
+        Bitmap bitmap = ToBitmap();
+        bitmap.Save(stream, codec, parms);
+        bitmap.Dispose();
+        return;
+      }
+    throw new CodecNotFoundException("JPEG");
   }
 
   internal unsafe void InitFromSurface(SDL.Surface* surface)
@@ -329,21 +456,19 @@ public class Surface : IDisposable
   }
 
   protected unsafe void Init()
-  { format   = new PixelFormat(surface->Format);
-    usingKey = usingAlpha = false;
-    usingRLE = (surface->Flags&(uint)SDL.VideoFlag.RLEAccel)!=0;
+  { format = new PixelFormat(surface->Format);
   }
   protected unsafe void InitFromFormat(int width, int height, PixelFormat format, SurfaceFlag flags)
   { InitFromSurface(SDL.CreateRGBSurface((uint)flags, width, height, format.Depth, format.RedMask,
                                          format.GreenMask, format.BlueMask, format.AlphaMask));
   }
 
-  protected unsafe void ValidatePaletteArgs(Color[] colors, uint startColor, uint numColors)
+  protected unsafe void ValidatePaletteArgs(Color[] colors, int startColor, int numColors)
   { SDL.Palette* palette = surface->Format->Palette;
     if(palette==null) throw new VideoException("This surface does not have an associated palette.");
-    uint max = (uint)palette->Entries;
-    if(numColors==0) return;
-    if(numColors>max || startColor+numColors>max) throw new ArgumentOutOfRangeException();
+    int max = palette->Entries;
+    if(startColor<0 || numColors<0 || numColors>max || startColor+numColors>max)
+      throw new ArgumentOutOfRangeException();
     if(colors==null) throw new ArgumentNullException("array");
   }
 
@@ -397,7 +522,7 @@ public class Surface : IDisposable
           }
           stream.WriteByte(12); // byte 12 precedes palette
           Color[] pal = new Color[256];
-          GetPalette(pal);
+          GetPalette(pal, PaletteSize);
           for(int i=0,j=0; i<256; i++)
           { pbuf[j++] = pal[i].R;
             pbuf[j++] = pal[i].G;
@@ -456,12 +581,11 @@ public class Surface : IDisposable
 
   protected PixelFormat format;
   protected Color key;
-  protected uint  lockCount;
-  protected byte  alpha;
-  protected bool  usingKey, usingAlpha;
+  protected uint  lockCount, rawKey;
+  protected byte  alpha=AlphaLevel.Opaque;
 
   internal unsafe SDL.Surface* surface;
-  private  bool   autoFree, usingRLE;
+  private  bool   autoFree;
 }
 
 } // namespace GameLib.Video
