@@ -1943,7 +1943,7 @@ public class TitleBar : TitleBarBase
 #endregion
 
 #region FormBase
-public enum ButtonClicked { Ok, Yes, No, Cancel }
+public enum ButtonClicked { None, Abort, Cancel, Ignore, No, Ok, Retry, Yes }
 public abstract class FormBase : ContainerControl
 { public FormBase()
   { Style |= ControlStyle.CanFocus|ControlStyle.Draggable;
@@ -2298,7 +2298,7 @@ public sealed class MessageBox : Form
 
 #region ColorPicker
 public class ColorPicker : Form
-{
+{ 
 }
 #endregion
 
