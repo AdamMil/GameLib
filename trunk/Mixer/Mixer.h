@@ -34,10 +34,10 @@ extern DECLSPEC int SDLCALL GLM_SetupCVT(GLM_AudioCVT *cvt);
 extern DECLSPEC int SDLCALL GLM_Convert(GLM_AudioCVT *cvt);
 
 extern DECLSPEC int SDLCALL GLM_Copy(Sint32 *dest, Sint32 *src, Uint32 samples);
-extern DECLSPEC int SDLCALL GLM_VolumeScale(Sint32 *stream, Uint32 samples, Uint16 volume);
-extern DECLSPEC int SDLCALL GLM_Mix(Sint32 *dest, Sint32 *src, Uint32 samples, Uint16 srcVolume);
-extern DECLSPEC int SDLCALL GLM_ConvertMix(Sint32 *dest, void *src, Uint32 samples,
-                                           Uint16 srcFormat, Uint16 srcVolume);
+extern DECLSPEC int SDLCALL GLM_VolumeScale(Sint32 *stream, Uint32 samples, Uint16 leftVolume, Uint16 rightVolume);
+extern DECLSPEC int SDLCALL GLM_Mix(Sint32 *dest, Sint32 *src, Uint32 samples, Uint16 leftVolume, Uint16 rightVolume);
+extern DECLSPEC int SDLCALL GLM_ConvertMix(Sint32 *dest, void *src, Uint32 samples, Uint16 srcFormat,
+                                           Uint16 leftVolume, Uint16 rightVolume);
 extern DECLSPEC int SDLCALL GLM_DivideAccumulator(Sint32 divisor);
 
 #ifdef __cplusplus

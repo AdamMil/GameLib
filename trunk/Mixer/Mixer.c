@@ -33,7 +33,7 @@ static void GLM_callback(void *userdata, Uint8 *stream, int bytes)
     frames  = samples/mixFormat.channels;
     memset(mixAcc, 0, samples*sizeof(Sint32)); /* zero the accumulator */
     mixCallback(mixAcc, frames, userdata);  /* call the user callback to mix in the audio */
-    GLM_VolumeScale(mixAcc, samples, mixVolume);
+    if(mixVolume<256) GLM_VolumeScale(mixAcc, samples, mixVolume, mixVolume);
     GLM_ConvertAcc(stream, mixAcc, samples, mixFormat.format);
   }
   else if(SIGNED(mixFormat.format)) memset(stream, 0, bytes);
@@ -349,6 +349,108 @@ static void ConvertRate(GLM_AudioCVT *cvt, int destLen)
   }
 }
 
+static void ConvertMixMono(Sint32 *dest, void* data, Uint32 samples, Uint16 srcFormat, int vol)
+{ register Uint32 i=0;
+  if(BITS(srcFormat)==8) /* 8bit */
+  { if(SIGNED(srcFormat))  /* 8bit signed */
+    { Sint8 *src = (Sint8*)data;
+      if(vol>=256) for(; i<samples; i++) dest[i]+=src[i];
+      else for(; i<samples; i++) dest[i]+=(src[i]*vol)>>8;
+    }
+    else /* 8bit unsigned */
+    { Uint8 *src = (Uint8*)data;
+      if(vol>=256) for(; i<samples; i++) dest[i]+=src[i]-128;
+      else for(; i<samples; i++) dest[i]+=((Sint8)(src[i]-128)*vol)>>8;
+    }
+  }
+  else /* 16bit */
+  { if(OPPEND(srcFormat)) /* opposite endianness */
+    { Uint16 *src = (Uint16*)data;
+      if(SIGNED(srcFormat)) /* 16bit signed OE */
+      { if(vol>=256) for(; i<samples; i++) dest[i]+=(Sint16)SWAPEND(src[i]);
+        else for(; i<samples; i++) dest[i]+=((Sint16)SWAPEND(src[i])*vol)>>8;
+      }
+      else /* 16bit unsigned OE */
+      { if(vol>=256) for(; i<samples; i++) dest[i]+=(Sint16)SWAPEND(src[i])-32768;
+        else for(; i<samples; i++) dest[i]+=(((Sint16)SWAPEND(src[i])-32768)*vol)>>8;
+      }
+    }
+    else /* same endianness */
+    { if(SIGNED(srcFormat)) /* 16bit signed SE */
+      { Sint16 *src = (Sint16*)data;
+        if(vol>=256) for(; i<samples; i++) dest[i]+=src[i];
+        else for(; i<samples; i++) dest[i]+=(src[i]*vol)>>8;
+      }
+      else /* 16bit unsigned SE */
+      { Uint16 *src = (Uint16*)data;
+        if(vol>=256) for(; i<samples; i++) dest[i]+=src[i]-32768;
+        else for(; i<samples; i++) dest[i]+=((Sint16)(src[i]-32768)*vol)>>8;
+      }
+    }
+  }
+}
+
+static void ConvertMixStereo(Sint32 *dest, void* data, Uint32 samples, Uint16 srcFormat, int left, int right)
+{ register Uint32 i=0;
+  if(BITS(srcFormat)==8) /* 8bit */
+  { if(SIGNED(srcFormat))  /* 8bit signed */
+    { Sint8 *src = (Sint8*)data;
+      if(left>=256 && right>=256) for(; i<samples; i++) dest[i]+=src[i];
+      else
+        for(; i<samples; )
+        { dest[i]+=(src[i]*left)>>8;  i++;
+          dest[i]+=(src[i]*right)>>8; i++;
+        }
+    }
+    else /* 8bit unsigned */
+    { Uint8 *src = (Uint8*)data;
+      if(left>=256 && right>=256) for(; i<samples; i++) dest[i]+=src[i]-128;
+      else
+        for(; i<samples;)
+        { dest[i]+=((Sint8)(src[i]-128)*left )>>8; i++;
+          dest[i]+=((Sint8)(src[i]-128)*right)>>8; i++;
+        }
+    }
+  }
+  else /* 16bit */
+  { if(OPPEND(srcFormat)) /* opposite endianness */
+    { Uint16 *src = (Uint16*)data;
+      if(SIGNED(srcFormat)) /* 16bit signed OE */
+      { if(left>=256 && right>=256) for(; i<samples; i++) dest[i]+=(Sint16)SWAPEND(src[i]);
+        else for(; i<samples;)
+        { dest[i]+=((Sint16)SWAPEND(src[i])*left )>>8; i++;
+          dest[i]+=((Sint16)SWAPEND(src[i])*right)>>8; i++;
+        }
+      }
+      else /* 16bit unsigned OE */
+      { if(left>=256 && right>=256) for(; i<samples; i++) dest[i]+=(Sint16)SWAPEND(src[i])-32768;
+        else for(; i<samples;)
+        { dest[i]+=(((Sint16)SWAPEND(src[i])-32768)*left )>>8; i++;
+          dest[i]+=(((Sint16)SWAPEND(src[i])-32768)*right)>>8; i++;
+        }
+      }
+    }
+    else /* same endianness */
+    { if(SIGNED(srcFormat)) /* 16bit signed SE */
+      { Sint16 *src = (Sint16*)data;
+        if(left>=256 && right>=256) for(; i<samples; i++) dest[i]+=src[i];
+        else for(; i<samples;)
+        { dest[i]+=(src[i]*left )>>8; i++;
+          dest[i]+=(src[i]*right)>>8; i++;
+        }
+      }
+      else /* 16bit unsigned SE */
+      { Uint16 *src = (Uint16*)data;
+        if(left>=256 && right>=256) for(; i<samples; i++) dest[i]+=src[i]-32768;
+        else for(; i<samples;)
+        { dest[i]+=((Sint16)(src[i]-32768)*left )>>8; i++;
+          dest[i]+=((Sint16)(src[i]-32768)*right)>>8; i++;
+        }
+      }
+    }
+  }
+}
+
 int GLM_Init(Uint32 freq, Uint16 format, Uint8 channels, Uint32 bufferMs, MixCallback callback, void *context)
 { SDL_AudioSpec spec;
   int samples = freq*bufferMs/1000;
@@ -515,76 +617,73 @@ int GLM_Copy(Sint32 *dest, Sint32 *src, Uint32 samples)
   return 0;
 }
 
-int GLM_VolumeScale(Sint32 *stream, Uint32 samples, Uint16 volume)
-{ Uint32 i;
-  int vol=volume;
-  if(vol==256) return 0;
+int GLM_VolumeScale(Sint32 *stream, Uint32 samples, Uint16 leftVolume, Uint16 rightVolume)
+{ register Uint32 i=0;
+  int left=leftVolume, right=rightVolume;
   if(!stream)
   { SDL_SetError("NULL pointer passed");
     return -1;
   }
-  for(i=0; i<samples; i++) stream[i]=(stream[i]*vol)>>8;
+  if(left>=256 && right>=256) return 0;
+  if(left==0 && right==0)
+  { memset(stream, 0, samples*sizeof(int));
+    return 0;
+  }
+  if(mixFormat.channels==1)
+  { left = (left+right)>>1;
+    for(; i<samples; i++) stream[i]=(stream[i]*left)>>8;
+  }
+  else if(left>=256 || right>=256)
+  { if(left>=256) left=right,i=1;
+    for(; i<samples; i+=2) stream[i]=(stream[i]*left)>>8;
+  }
+  else
+    for(; i<samples;)
+    { stream[i]=(stream[i]*left)>>8; i++;
+      stream[i]=(stream[i]*right)>>8; i++;
+    }
   return 0;
 }
 
-int GLM_Mix(Sint32 *dest, Sint32 *src, Uint32 samples, Uint16 srcVolume)
-{ Uint32 i=0;
-  int volume = srcVolume;
+int GLM_Mix(Sint32 *dest, Sint32 *src, Uint32 samples, Uint16 leftVolume, Uint16 rightVolume)
+{ register Uint32 i=0;
+  int left=leftVolume, right=rightVolume;
   if(!dest || !src)
   { SDL_SetError("NULL pointer passed");
     return -1;
   }
-  if(volume>=256) for(; i<samples; i++) dest[i]+=src[i];
-  else for(; i<samples; i++) dest[i]+=(src[i]*volume)>>8;
+  if(left==0 && right==0) return 0;
+  if(mixFormat.channels==1)
+  { left = (left+right)>>1;
+    if(left>=256) for(; i<samples; i++) dest[i]+=src[i];
+    else for(; i<samples; i++) dest[i]+=(src[i]*left)>>8;
+  }
+  else if(left>=256 && right>=256) for(; i<samples; i++) dest[i]+=src[i];
+  else if(left>=256)
+    for(; i<samples;)
+    { dest[i] += src[i]; i++;
+      dest[i] += (src[i]*right)>>8; i++;
+    }
+  else if(right>=256)
+    for(; i<samples;)
+    { dest[i] += (src[i]*left)>>8; i++;
+      dest[i] += src[i]; i++;
+    }
+  else
+   for(; i<samples;)
+   { dest[i]+=(src[i]*left)>>8; i++;
+     dest[i]+=(src[i]*right)>>8; i++;
+   }
   return 0;
 }
 
-int GLM_ConvertMix(Sint32 *dest, void* data, Uint32 samples, Uint16 srcFormat, Uint16 srcVolume)
-{ Uint32 i=0;
-  int vol=srcVolume;
-
-  if(!dest || !data)
+int GLM_ConvertMix(Sint32 *dest, void* data, Uint32 samples, Uint16 srcFormat, Uint16 leftVolume, Uint16 rightVolume)
+{ if(!dest || !data)
   { SDL_SetError("NULL pointer passed");
     return -1;
   }
-
-  if(BITS(srcFormat)==8) /* 8bit */
-  { if(SIGNED(srcFormat))  /* 8bit signed */
-    { Sint8 *src = (Sint8*)data;
-      if(vol>=256) for(; i<samples; i++) dest[i]+=src[i];
-      else for(; i<samples; i++) dest[i]+=(src[i]*vol)>>8;
-    }
-    else /* 8bit unsigned */
-    { Uint8 *src = (Uint8*)data;
-      if(vol>=256) for(; i<samples; i++) dest[i]+=src[i]-128;
-      else for(; i<samples; i++) dest[i]+=((Sint8)(src[i]-128)*vol)>>8;
-    }
-  }
-  else /* 16bit */
-  { if(OPPEND(srcFormat)) /* opposite endianness */
-    { Uint16 *src = (Uint16*)data;
-      if(SIGNED(srcFormat)) /* 16bit signed OE */
-      { if(vol>=256) for(; i<samples; i++) dest[i]+=(Sint16)SWAPEND(src[i]);
-        else for(; i<samples; i++) dest[i]+=((Sint16)SWAPEND(src[i])*vol)>>8;
-      }
-      else /* 16bit unsigned OE */
-      { if(vol>=256) for(; i<samples; i++) dest[i]+=(Sint16)SWAPEND(src[i])-32768;
-        else for(; i<samples; i++) dest[i]+=(((Sint16)SWAPEND(src[i])-32768)*vol)>>8;
-      }
-    }
-    else /* same endianness */
-    { if(SIGNED(srcFormat)) /* 16bit signed SE */
-      { Sint16 *src = (Sint16*)data;
-        if(vol>=256) for(; i<samples; i++) dest[i]+=src[i];
-        else for(; i<samples; i++) dest[i]+=(src[i]*vol)>>8;
-      }
-      else /* 16bit unsigned SE */
-      { Uint16 *src = (Uint16*)data;
-        if(vol>=256) for(; i<samples; i++) dest[i]+=src[i]-32768;
-        else for(; i<samples; i++) dest[i]+=((Sint16)(src[i]-32768)*vol)>>8;
-      }
-    }
-  }
+  if(mixFormat.channels==1) ConvertMixMono(dest, data, samples, srcFormat, ((int)leftVolume+(int)rightVolume)>>1);
+  else ConvertMixStereo(dest, data, samples, srcFormat, leftVolume, rightVolume);
   return 0;
 }
 

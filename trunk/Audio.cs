@@ -78,13 +78,25 @@ public abstract class AudioSource : IDisposable
   
   public virtual void Dispose() { buffer=null; }
 
-  public int Volume
-  { get { return volume; }
-    set { Audio.CheckVolume(value); volume=value; }
+  public int Left
+  { get { return left; }
+    set { Audio.CheckVolume(value); left=value; }
   }
+  public int Right
+  { get { return right; }
+    set { Audio.CheckVolume(value); right=value; }
+  }
+  public int Both
+  { get { return left; }
+    set { Audio.CheckVolume(value); left=right=value; }
+  }
+
   public float PlaybackRate { get { return rate; } set { Audio.CheckRate(rate); lock(this) rate=value; } }
 
   public virtual void Rewind() { Position=0; }
+
+  public void SetVolume(int left, int right) { Left=left; Right=right; }
+  public void GetVolume(out int left, out int right) { left=this.left; right=this.right; }
 
   public Channel Play() { return Play(0, Audio.Infinite, 0, Audio.FreeChannel); }
   public Channel Play(int loops) { return Play(loops, Audio.Infinite, 0, Audio.FreeChannel); }
@@ -162,8 +174,9 @@ public abstract class AudioSource : IDisposable
   public int ReadBytes(byte[] buf, int length) { return ReadBytes(buf, 0, length); }
   public abstract int ReadBytes(byte[] buf, int index, int length);
 
-  public unsafe int ReadFrames(int* dest, int frames) { return ReadFrames(dest, frames, -1); }
-  public virtual unsafe int ReadFrames(int* dest, int frames, int volume)
+  public unsafe int ReadFrames(int* dest, int frames) { return ReadFrames(dest, frames, -1, -1); }
+  public unsafe int ReadFrames(int* dest, int frames, int volume) { return ReadFrames(dest, frames, volume, volume); }
+  public virtual unsafe int ReadFrames(int* dest, int frames, int left, int right)
   { lock(this)
     { int toRead=length<0 ? frames : Math.Min(length-curPos, frames), bytes=toRead*format.FrameSize, read, samples;
       SizeBuffer(bytes);
@@ -171,7 +184,8 @@ public abstract class AudioSource : IDisposable
       samples = read/format.SampleSize;
       fixed(byte* src = buffer)
         GLMixer.Check(GLMixer.ConvertMix(dest, src, (uint)samples, (ushort)format.Format,
-                                          (ushort)(volume<0 ? Audio.MaxVolume : volume)));
+                                         (ushort)(left <0 ? Audio.MaxVolume : left),
+                                         (ushort)(right<0 ? Audio.MaxVolume : right)));
       read = format.Channels==1 ? samples : samples/2;
       return read;
     }
@@ -180,7 +194,7 @@ public abstract class AudioSource : IDisposable
   protected byte[] buffer;
   protected AudioFormat format;
   protected float rate=1f;
-  protected int   volume=Audio.MaxVolume, curPos=0, length=-1, priority;
+  protected int   left=Audio.MaxVolume, right=Audio.MaxVolume, curPos=0, length=-1, priority;
   internal  int   playing;
 }
 #endregion
@@ -387,12 +401,13 @@ public class SampleSource : AudioSource
     }
   }
 
-  public override unsafe int ReadFrames(int *dest, int frames, int volume)
+  public override unsafe int ReadFrames(int *dest, int frames, int left, int right)
   { lock(this)
     { int toRead=Math.Min(length-curPos, frames), samples=toRead*format.Channels;
       fixed(byte* src = data)
         GLMixer.Check(GLMixer.ConvertMix(dest, src+curPos*format.FrameSize, (uint)samples, (ushort)format.Format,
-                                          (ushort)(volume<0 ? Audio.MaxVolume : volume)));
+                                         (ushort)(left <0 ? Audio.MaxVolume : left),
+                                         (ushort)(right<0 ? Audio.MaxVolume : right)));
       curPos += toRead;
       return toRead;
     }
@@ -551,15 +566,23 @@ public class VorbisSource : AudioSource
 
 #region Channel class
 public sealed class Channel
-{ internal Channel(int channel) { number=channel; volume=Audio.MaxVolume; }
+{ internal Channel(int channel) { number=channel; }
   
   public event MixFilter Filters;
   public event ChannelFinishedHandler Finished;
 
   public int Number { get { return number; } }
-  public int Volume
-  { get { return volume; }
-    set { Audio.CheckVolume(value); volume = value; }
+  public int Left
+  { get { return left; }
+    set { Audio.CheckVolume(value); left=value; }
+  }
+  public int Right
+  { get { return right; }
+    set { Audio.CheckVolume(value); right=value; }
+  }
+  public int Both
+  { get { return left; }
+    set { Audio.CheckVolume(value); left=right=value; }
   }
   public AudioSource Source { get { return source; } }
   public int  Priority { get { return priority; } }
@@ -567,9 +590,12 @@ public sealed class Channel
   public AudioStatus Status
   { get { return source==null ? AudioStatus.Stopped : paused ? AudioStatus.Paused : AudioStatus.Playing; }
   }
-  public Fade Fading { get { return fade; } }
-  public int  Position { get { return position; } set { lock(this) position=value; } }
+  public Fade  Fading { get { return fade; } }
+  public int   Position { get { return position; } set { lock(this) position=value; } }
   public float PlaybackRate { get { return rate; } set { Audio.CheckRate(rate); lock(this) rate=value; } }
+
+  public void SetVolume(int left, int right) { Left=left; Right=right; }
+  public void GetVolume(out int left, out int right) { left=this.left; right=this.right; }
 
   public void Pause()  { paused=true; }
   public void Resume() { paused=false; }
@@ -578,10 +604,11 @@ public sealed class Channel
   public void FadeOut(uint fadeMs)
   { lock(this)
     { if(source==null) return;
-      fade        = Fade.Out;
-      fadeTime    = fadeMs;
-      fadeStart   = Timing.Msecs;
-      fadeVolume  = EffectiveVolume;
+      fade      = Fade.Out;
+      fadeTime  = fadeMs;
+      fadeStart = Timing.Msecs;
+      fadeLeft  = EffectiveLeft;
+      fadeRight = EffectiveRight;
     }
   }
 
@@ -608,9 +635,10 @@ public sealed class Channel
       }
       else convBuf=null;
       if(fade!=Fade.None)
-      { fadeTime   = fadeMs;
-        fadeVolume = fade==Fade.In ? 0 : EffectiveVolume;
-        fadeStart  = Timing.Msecs;
+      { fadeTime  = fadeMs;
+        fadeLeft  = fade==Fade.In ? 0 : EffectiveLeft;
+        fadeRight = fade==Fade.In ? 0 : EffectiveRight;
+        fadeStart = Timing.Msecs;
       }
     }
   }
@@ -632,8 +660,8 @@ public sealed class Channel
     { if(source.Length==0) return;
       AudioFormat format = source.Format;
       float rate = EffectiveRate;
-      int volume = EffectiveVolume, read, toRead, samples;
-      bool convert = this.convert;
+      int   left = EffectiveLeft, right=EffectiveRight, read, toRead, samples;
+      bool  convert = this.convert;
 
       if(timeout!=Audio.Infinite && Age>timeout)
       { StopPlaying();
@@ -641,13 +669,19 @@ public sealed class Channel
       }
       if(fade!=Fade.None)
       { uint fadeSoFar = Timing.Msecs-fadeStart;
-        int  target = fade==Fade.In ? volume : 0;
+        int  ltarg, rtarg;
+        if(fade==Fade.In) { ltarg=left; rtarg=right; }
+        else ltarg=rtarg=0;
         if(fadeSoFar>fadeTime)
-        { volume = target;
-          if(fade==Fade.Out) { StopPlaying(); return; }
-          fade = Fade.None;
+        { if(fade==Fade.Out) { StopPlaying(); return; }
+          left  = ltarg;
+          right = rtarg;
+          fade  = Fade.None;
         }
-        else volume = fadeVolume + (target-fadeVolume)*(int)fadeSoFar/(int)fadeTime;
+        else
+        { left  = fadeLeft  + (ltarg-fadeLeft )*(int)fadeSoFar/(int)fadeTime;
+          right = fadeRight + (rtarg-fadeRight)*(int)fadeSoFar/(int)fadeTime;
+        }
       }
 
       if(source.CanSeek) source.Position = position;
@@ -689,15 +723,16 @@ public sealed class Channel
         if(Filters==null && filters==null)
           fixed(byte* src = convBuf)
                 GLMixer.Check(GLMixer.ConvertMix(stream, src, (uint)samples,
-                                                (ushort)Audio.Format.Format, (ushort)volume));
+                                                 (ushort)Audio.Format.Format, (ushort)left, (ushort)right));
         else
         { int* buffer = stackalloc int[samples];
           fixed(byte* src = convBuf)
             GLMixer.Check(GLMixer.ConvertMix(buffer, src, (uint)samples,
-                                            (ushort)Audio.Format.Format, (ushort)Audio.MaxVolume));
+                                             (ushort)Audio.Format.Format,
+                                             (ushort)Audio.MaxVolume, (ushort)Audio.MaxVolume));
           if(Filters!=null) Filters(this, buffer, framesRead, Audio.Format);
           if(filters!=null) filters(this, buffer, framesRead, Audio.Format);
-          GLMixer.Check(GLMixer.Mix(stream, buffer, (uint)samples, (ushort)volume));
+          GLMixer.Check(GLMixer.Mix(stream, buffer, (uint)samples, (ushort)left, (ushort)right));
         }
         
         if(stop) { StopPlaying(); return; }
@@ -706,7 +741,7 @@ public sealed class Channel
       { toRead=frames;
         while(true)
         { if(Filters==null && filters==null)
-          { read=source.ReadFrames(stream, toRead, volume);
+          { read=source.ReadFrames(stream, toRead, left, right);
             samples=read*Audio.Format.Channels;
           }
           else
@@ -716,7 +751,7 @@ public sealed class Channel
             if(read>0)
             { if(Filters!=null) Filters(this, buffer, read, format);
               if(filters!=null) filters(this, buffer, read, format);
-              GLMixer.Check(GLMixer.Mix(stream, buffer, (uint)samples, (ushort)volume));
+              GLMixer.Check(GLMixer.Mix(stream, buffer, (uint)samples, (ushort)left, (ushort)right));
             }
           }
           toRead -= read;
@@ -736,14 +771,16 @@ public sealed class Channel
     }
   }
 
-  int   EffectiveVolume { get { int v=source.Volume; return v==Audio.MaxVolume ? volume : (volume*v)>>8; } }
-  float EffectiveRate   { get { return source.PlaybackRate*rate; } }
+  int   EffectiveLeft  { get { int v=source.Left;  return v==Audio.MaxVolume ? left  : (left *v)>>8; } }
+  int   EffectiveRight { get { int v=source.Right; return v==Audio.MaxVolume ? right : (right*v)>>8; } }
+  float EffectiveRate  { get { return source.PlaybackRate*rate; } }
 
   AudioSource source;
   byte[] convBuf;
   float rate=1f;
   uint startTime, fadeStart, fadeTime;
-  int  volume, fadeVolume, timeout, number, position, loops, priority, sdMul, sdDiv;
+  int  left=Audio.MaxVolume, right=Audio.MaxVolume, fadeLeft, fadeRight;
+  int  timeout, number, position, loops, priority, sdMul, sdDiv;
   Fade fade;
   bool paused, convert;
 }

@@ -18,6 +18,11 @@ public class DataTooLargeException : NetworkException
   public int MaxSize;
 }
 
+public class CodecNotFoundException : GameLibException
+{ public CodecNotFoundException() : base("The requested codec could not be found") { }
+  public CodecNotFoundException(string codec) : base("The "+codec+" codec could not be found") { }
+}
+
 #region Video
 public class VideoException : GameLibException
 { public VideoException(string message) : base(message) { }
