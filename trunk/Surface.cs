@@ -507,6 +507,15 @@ public sealed class Surface : IDisposable
     }
   }
 
+  /// <summary>Determines whether this surface is compatible with the display surface (meaning that no conversion
+  /// would be required between them.
+  /// </summary>
+  /// <returns>True if the surface is compatible with the display surface, and false if not.</returns>
+  /// <remarks>This method uses <see cref="PixelFormat.IsCompatible"/> to do the comparison. See that method for more
+  /// details about how the check is performed.
+  /// </remarks>
+  public bool IsCompatible() { return Format.IsCompatible(Video.DisplayFormat); }
+  
   /// <summary>Fills the surface with black.</summary>
   public void Fill() { Fill(Bounds, MapColor(Color.Black)); }
   /// <summary>Fills the surface with the specified color.</summary>

@@ -189,6 +189,27 @@ public sealed class PixelFormat
     }
   }
 
+  /// <summary>Checks whether two pixel formats are compatible (whether conversion would be required between them).</summary>
+  /// <param name="format">The pixel format to check against.</param>
+  /// <returns>True if conversion would not be required between these two formats, and false if it would.</returns>
+  /// <remarks>If any of the color depth, channel masks, or palettes of the two formats are different,
+  /// they are not considered compatible. Comparing two paletted formats has more overhead than comparing nonpaletted
+  /// formats, because the entire palettes need to be compared.
+  /// </remarks>
+  public bool IsCompatible(PixelFormat format)
+  { if(format.Depth!=Depth || format.RedMask!=RedMask || format.GreenMask!=GreenMask ||
+       format.BlueMask!=BlueMask || format.AlphaMask!=AlphaMask)
+      return false;
+    unsafe
+    { SDL.Palette* p1=this.format.Palette, p2=format.format.Palette;
+      if(p1==null && p2==null) return true;
+      if(p1==null || p2==null) return false;
+      if(p1->Entries != p2->Entries) return false;
+      for(int i=0; i<p1->Entries; i++) if(p1->Colors[i].Value != p2->Colors[i].Value) return false;
+    }
+    return true;
+  }
+
   internal SDL.PixelFormat format;
 }
 #endregion

@@ -85,8 +85,18 @@ Legend
   used in user code)
 ! Removed the Events.UpdateQueue method and the Events.SyncRoot property.
   They were basically unnecessary.
-+ Added some more documentation (for CD.cs, Events.cs, Surface.cs, and
-  Video.cs).
+! Removed the Font.CenterOff methods
++ Reworked BitmapFont so it can handle variable-width fonts too
+! Renamed NonFixedFont to StyledFont, which is a much better name for it
++ Added a method (PixelFormat.IsCompatible) to check whether a pixel format
+  is compatible with another (which means that no conversion would be
+  necessary between them), and another, related method (Surface.IsCompatible)
++ Added more flexibility to the fonts regarding background color
+! Renamed TrueTypeFont.CacheSize to TrueTypeFont.MaxCacheSize
+* Improved the implementation of shaded fonts with regards to color
+! Made BitmapFont take vertical spacing instead of line skip
++ Added some more documentation (for CD.cs, Events.cs, Fonts.cs, Surface.cs,
+  and Video.cs).
 * A couple bugfixes I forgot to add to the changelog
 
 2004.02.07 (alpha/beta)

@@ -2183,7 +2183,7 @@ public class Control
     if(forceNew || ((!hasStyle || desktop==null) && backingSurface!=null) ||
        ((hasStyle || desktop!=null) && (backingSurface==null || Size!=backingSurface.Size)))
     { if(hasStyle && desktop!=null && desktop.Surface!=null)
-        backingSurface = desktop.Surface.CreateCompatible(Width, Height, SurfaceFlag.None);
+        backingSurface = desktop.Surface.CreateCompatible(Width, Height);
       else backingSurface = null;
       OnBackingSurfaceChanged(new EventArgs());
     }
