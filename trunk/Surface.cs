@@ -10,40 +10,39 @@ public enum ImageType
 { BMP, PNM, XPM, XCF, PCX, GIF, JPG, TIF, PNG, LBM
 }
 
+[Flags]
+public enum SurfaceFlag : uint
+{ None = 0,
+  // any surface
+  Software  = SDL.VideoFlag.SWSurface, Hardware  = SDL.VideoFlag.HWSurface,
+  HWPalette = SDL.VideoFlag.HWPalette, AsyncBlit = SDL.VideoFlag.AsyncBlit,
+  // non-display surfaces only
+  RLE = SDL.VideoFlag.RLEAccel, SrcAlpha=SDL.VideoFlag.SrcAlpha,
+  // display surfaces only
+  DoubleBuffer = SDL.VideoFlag.DoubleBuffer, Fullscreen = SDL.VideoFlag.FullScreen,
+  OpenGL       = SDL.VideoFlag.OpenGL,       OpenGLBlit = SDL.VideoFlag.OpenGLBlit,
+  NoFrame      = SDL.VideoFlag.NoFrame,      Resizeable = SDL.VideoFlag.Resizable,
+  // display surface creation only
+  AnyFormat = SDL.VideoFlag.AnyFormat
+}
+
 [System.Security.SuppressUnmanagedCodeSecurity()]
 public class Surface : IDisposable
-{ 
-  [FlagsAttribute()]
-  public enum Flag : uint
-  { None = 0,
-    // any surface
-    Software  = SDL.VideoFlag.SWSurface, Hardware  = SDL.VideoFlag.HWSurface,
-    HWPalette = SDL.VideoFlag.HWPalette, AsyncBlit = SDL.VideoFlag.AsyncBlit,
-    // non-display surfaces only
-    RLE = SDL.VideoFlag.RLEAccel, SrcAlpha=SDL.VideoFlag.SrcAlpha,
-    // display surfaces only
-    DoubleBuffer = SDL.VideoFlag.DoubleBuffer, Fullscreen = SDL.VideoFlag.FullScreen,
-    OpenGL       = SDL.VideoFlag.OpenGL,       OpenGLBlit = SDL.VideoFlag.OpenGLBlit,
-    NoFrame      = SDL.VideoFlag.NoFrame,      Resizeable = SDL.VideoFlag.Resizable,
-    // display surface creation only
-    AnyFormat = SDL.VideoFlag.AnyFormat
-  }
-
-  public Surface(Bitmap bitmap) { throw new NotImplementedException(); }
-  public Surface(int width, int height, byte depth) : this(width, height, depth, Flag.None) { }
-  public Surface(int width, int height, byte depth, Flag flags)
-  { InitFromFormat(width, height, new PixelFormat(depth, (flags&Flag.SrcAlpha)!=0), flags);
+{ public Surface(Bitmap bitmap) { throw new NotImplementedException(); }
+  public Surface(int width, int height, byte depth) : this(width, height, depth, SurfaceFlag.None) { }
+  public Surface(int width, int height, byte depth, SurfaceFlag flags)
+  { InitFromFormat(width, height, new PixelFormat(depth, (flags&SurfaceFlag.SrcAlpha)!=0), flags);
   }
 
   public Surface(int width, int height, byte depth, uint Rmask, uint Gmask, uint Bmask, uint Amask)
-    : this(width, height, depth, Rmask, Gmask, Bmask, Amask, Flag.None) { }
+    : this(width, height, depth, Rmask, Gmask, Bmask, Amask, SurfaceFlag.None) { }
   public unsafe Surface(int width, int height, byte depth,
-                        uint Rmask, uint Gmask, uint Bmask, uint Amask, Flag flags)
+                        uint Rmask, uint Gmask, uint Bmask, uint Amask, SurfaceFlag flags)
   { InitFromSurface(SDL.CreateRGBSurface((uint)flags, width, height, depth, Rmask, Gmask, Bmask, Amask));
   }
 
-  public Surface(int width, int height, PixelFormat format) : this(width, height, format, Flag.None) { }
-  public Surface(int width, int height, PixelFormat format, Flag flags)
+  public Surface(int width, int height, PixelFormat format) : this(width, height, format, SurfaceFlag.None) { }
+  public Surface(int width, int height, PixelFormat format, SurfaceFlag flags)
   { InitFromFormat(width, height, format, flags);
   }
   
@@ -83,10 +82,10 @@ public class Surface : IDisposable
       return palette==null ? 0 : (uint)palette->Entries;
     }
   }
-  public bool HasHWPalette { get { return (Flags&Flag.HWPalette) != 0; } }
+  public bool HasHWPalette { get { return (Flags&SurfaceFlag.HWPalette) != 0; } }
 
   public unsafe bool  Locked   { get { return surface->Locked!=0; } }
-  public unsafe Flag  Flags    { get { return (Flag)surface->Flags; } }
+  public unsafe SurfaceFlag  Flags { get { return (SurfaceFlag)surface->Flags; } }
 
   public unsafe Rectangle ClipRect
   { get { return surface->ClipRect.ToRectangle(); }
@@ -201,6 +200,9 @@ public class Surface : IDisposable
   public unsafe uint MapColor(Color color)
   { return SDL.MapRGBA(surface->Format, color.R, color.G, color.B, color.A);
   }
+  public unsafe uint MapColor(Color color, byte alpha)
+  { return SDL.MapRGBA(surface->Format, color.R, color.G, color.B, alpha);
+  }
   public unsafe Color MapColor(uint color)
   { byte r, g, b, a;
     SDL.GetRGBA(color, surface->Format, out r, out g, out b, out a);
@@ -239,7 +241,7 @@ public class Surface : IDisposable
   }
 
   public Surface CreateCompatible(int width, int height) { return CreateCompatible(width, height, Flags); }
-  public unsafe Surface CreateCompatible(int width, int height, Flag flags)
+  public unsafe Surface CreateCompatible(int width, int height, SurfaceFlag flags)
   { SDL.Surface* ret = SDL.CreateRGBSurface((uint)flags, width, height, format.Depth, format.RedMask,
                                             format.GreenMask, format.BlueMask, format.AlphaMask);
     if(ret==null) SDL.RaiseError();
@@ -248,8 +250,8 @@ public class Surface : IDisposable
 
   public Surface Clone()                   { return Clone(Format, Flags); }
   public Surface Clone(PixelFormat format) { return Clone(format, Flags); }
-  public Surface Clone(Flag flags)         { return Clone(Format, flags); }
-  public unsafe Surface Clone(PixelFormat format, Flag flags)
+  public Surface Clone(SurfaceFlag flags)  { return Clone(Format, flags); }
+  public unsafe Surface Clone(PixelFormat format, SurfaceFlag flags)
   { SDL.Surface* ret;
     fixed(SDL.PixelFormat* pf = &format.format) ret = SDL.ConvertSurface(surface, pf, (uint)flags);
     if(ret==null) SDL.RaiseError();
@@ -276,7 +278,7 @@ public class Surface : IDisposable
     usingKey = usingAlpha = false;
     usingRLE = (surface->Flags&(uint)SDL.VideoFlag.RLEAccel)!=0;
   }
-  protected unsafe void InitFromFormat(int width, int height, PixelFormat format, Flag flags)
+  protected unsafe void InitFromFormat(int width, int height, PixelFormat format, SurfaceFlag flags)
   { InitFromSurface(SDL.CreateRGBSurface((uint)flags, width, height, format.Depth, format.RedMask,
                                          format.GreenMask, format.BlueMask, format.AlphaMask));
   }

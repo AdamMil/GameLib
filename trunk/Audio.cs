@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 namespace GameLib.Audio
 {
 
-public enum MusicType { None, Command, Wave, Module, Midi, OGG, MP3, Other }
+/*public enum MusicType { None, Command, Wave, Module, Midi, OGG, MP3, Other }
 public enum Fade { None, Out, In };
 public enum Speakers { Mono=1, Stereo=2 };
 public delegate void ChannelHandler(int channel);
@@ -455,5 +455,6 @@ public sealed class Audio
   static bool init;
 }
 #endregion
+*/
 
 } // namespace GameLib.Audio

@@ -108,6 +108,10 @@ internal class SDL
   { Hardware=0x0001, WindowManager=0x0002, HH=0x0200, HHKeyed=0x0400, HHAlpha=0x0800,
     SH=0x1000, SHKeyed=0x2000, SHAlpha=0x4000, Fills=0x8000
   }
+  
+  public enum AudioStatus : int
+  { Stopped, Playing, Paused
+  }
   #endregion
 
   #region Structs
@@ -298,6 +302,27 @@ internal class SDL
     public uint videoMem;
     void* format;
   }
+  [StructLayout(LayoutKind.Sequential, Pack=4)]
+  public unsafe struct AudioSpec
+  { public int   Freq;
+    public short Format;
+    public byte  Channels;
+    public byte  Silence;
+    public short Samples;
+    public uint  Size;
+    public void* Callback, UserData;
+  }
+  [StructLayout(LayoutKind.Sequential, Pack=4)]
+  public unsafe struct AudioCVT
+  { int    needed;
+    short  src_format, dst_format;
+    double rate_incr;
+    public byte*  buf;
+    public int    len, len_cvt, len_mult;
+    public double len_ratio;
+    void*  f0, f1, f2, f3, f4, f5, f6, f7, f8, f9;
+    int    filter_index;
+  }
   #endregion
   
   #region General
@@ -386,7 +411,24 @@ internal class SDL
   #endregion
 
   #region Audio
-  // use Mixer from SDLMixerInterop.cs
+  [DllImport(Config.SDLImportPath, EntryPoint="SDL_OpenAudio", CallingConvention=CallingConvention.Cdecl)]
+  public static extern int OpenAudio(ref AudioSpec desired, out AudioSpec obtained);
+  [DllImport(Config.SDLImportPath, EntryPoint="SDL_PauseAudio", CallingConvention=CallingConvention.Cdecl)]
+  public static extern void PauseAudio(int pause);
+  [DllImport(Config.SDLImportPath, EntryPoint="SDL_GetAudioStatus", CallingConvention=CallingConvention.Cdecl)]
+  public static extern AudioStatus GetAudioStatus();
+  [DllImport(Config.SDLImportPath, EntryPoint="SDL_BuildAudioCVT", CallingConvention=CallingConvention.Cdecl)]
+  public static extern int BuildAudioCVT(out AudioCVT cvt, short src_format, byte src_channels, uint src_rate, short dst_format, byte dst_channels, uint dst_rate);
+  [DllImport(Config.SDLImportPath, EntryPoint="SDL_ConvertAudio", CallingConvention=CallingConvention.Cdecl)]
+  public static extern int ConvertAudio(ref AudioCVT cvt);
+  [DllImport(Config.SDLImportPath, EntryPoint="SDL_MixAudio", CallingConvention=CallingConvention.Cdecl)]
+  public unsafe static extern void MixAudio(byte* dst, byte* src, uint len, int volume);
+  [DllImport(Config.SDLImportPath, EntryPoint="SDL_LockAudio", CallingConvention=CallingConvention.Cdecl)]
+  public static extern void LockAudio();
+  [DllImport(Config.SDLImportPath, EntryPoint="SDL_UnlockAudio", CallingConvention=CallingConvention.Cdecl)]
+  public static extern void UnlockAudio();
+  [DllImport(Config.SDLImportPath, EntryPoint="SDL_CloseAudio", CallingConvention=CallingConvention.Cdecl)]
+  public static extern void CloseAudio();
   #endregion
   
   #region Events

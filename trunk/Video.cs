@@ -123,7 +123,7 @@ public sealed class Video
 
   public static void Flip() { DisplaySurface.Flip(); }
 
-  public unsafe static Rectangle[] GetModes(PixelFormat format, Surface.Flag flags)
+  public unsafe static Rectangle[] GetModes(PixelFormat format, SurfaceFlag flags)
   { CheckInit();
     SDL.Rect** list, p;
 
@@ -138,15 +138,15 @@ public sealed class Video
     return ret;
   }
 
-  public static byte IsModeSupported(int width, int height, byte depth, Surface.Flag flags)
+  public static byte IsModeSupported(int width, int height, byte depth, SurfaceFlag flags)
   { CheckInit();
     return (byte)SDL.VideoModeOK(width, height, depth, (uint)flags);
   }
   
   public unsafe static void SetMode(int width, int height, byte depth)
-  { SetMode(width, height, depth, Surface.Flag.None);
+  { SetMode(width, height, depth, SurfaceFlag.None);
   }
-  public unsafe static void SetMode(int width, int height, byte depth, Surface.Flag flags)
+  public unsafe static void SetMode(int width, int height, byte depth, SurfaceFlag flags)
   { CheckInit();
     SDL.Surface* surface = SDL.SetVideoMode(width, height, depth, (uint)flags);
     if(surface==null) SDL.RaiseError();
