@@ -24,7 +24,7 @@ using System.Text;
 using GameLib.IO;
 using GameLib.Network;
 
-namespace Networking
+namespace NetworkingTest
 {
 
 #region Message classes
@@ -107,7 +107,7 @@ class Complex : INetSerializeable
 }
 #endregion
 
-class NetworkTest
+class App
 { static void Main()
   { IPEndPoint ep = new IPEndPoint(IPAddress.Loopback, 3000); // change port if necessary
     Type[] types = new Type[] // types that we'll be serializing/deserializing
@@ -172,4 +172,4 @@ class NetworkTest
   #endregion
 }
 
-} // namespace Networking
+} // namespace NetworkingTest
