@@ -630,7 +630,8 @@ public class TrueTypeFont : StyledFont
     if(bgColor != Color.Transparent)
     { int width=0;
       for(int i=0; i<text.Length; i++) width += GetChar(text[i]).Advance;
-      dest.Fill(new Rectangle(x, y, width, LineSkip), bgColor);
+      // TODO: it seems like this should be LineSkip, but then it conflicts with CalculateSize. resolve this...
+      dest.Fill(new Rectangle(x, y, width, Height), bgColor);
     }
     for(int i=0; i<text.Length; i++)
     { CachedChar c = GetChar(text[i]);

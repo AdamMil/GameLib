@@ -1390,15 +1390,15 @@ public abstract class ListControl : ScrollableControl
     }
     protected override void OnInsertComplete(int index, object value)
     { Updated();
-      RedrawFrom(index);
+      parent.Invalidate(parent.ContentRect);
     }
     protected override void OnRemoveComplete(int index, object value)
     { Updated();
-      RedrawFrom(index);
+      parent.Invalidate(parent.ContentRect);
     }
     protected override void OnSetComplete(int index, object oldValue, object newValue)
     { Updated();
-      parent.Invalidate(parent.GetItemRectangle(index, true));
+      parent.InvalidateItem(index);
     }
 
     class TextComparer : IComparer
@@ -1417,12 +1417,6 @@ public abstract class ListControl : ScrollableControl
     }
 
     int FindInsertionPoint(object item) { throw new NotImplementedException(); }
-
-    void RedrawFrom(int index)
-    { Rectangle rect = parent.GetItemRectangle(index, true);
-      rect.Height += parent.Bottom-rect.Bottom; // invalidate all the items after this one, too
-      parent.Invalidate(rect);
-    }
 
     ListControl parent;
     TextComparer comparer;
@@ -1573,8 +1567,6 @@ public abstract class ListControl : ScrollableControl
     set { SelectedIndex = FindStringExact(value); }
   }
 
-  public abstract int TopIndex { get; set; }
-
   public void ClearSelected()
   { int[] indices = SelectedIndices.Indices;
     if(indices.Length>0)
@@ -1601,8 +1593,6 @@ public abstract class ListControl : ScrollableControl
   }
 
   public string GetItemText(int index) { return GetObjectText(items[index]); }
-  public Size GetPreferredSize() { return GetPreferredSize(items.Count); }
-  public abstract Size GetPreferredSize(int numItems);
 
   public bool GetSelected(int index) { return Items.InnerGet(index).Is(ItemState.Selected); }
   public void SetSelected(int index, bool selected) { SetSelected(index, selected, false); }
@@ -1617,7 +1607,7 @@ public abstract class ListControl : ScrollableControl
     items.InnerSet(index, rit);
 
     if(deselectOthers) Invalidate(ContentRect);
-    else if(was!=selected) Invalidate(GetItemRectangle(index, true));
+    else if(was!=selected) InvalidateItem(index);
     else return;
     items.Updated();
   }
@@ -1627,15 +1617,12 @@ public abstract class ListControl : ScrollableControl
     it.State ^= ItemState.Selected;
     items.InnerSet(index, it);
     items.Updated();
-    Invalidate(GetItemRectangle(index, true));
+    InvalidateItem(index);
   }
 
-  protected abstract void DrawItem(int index, PaintEventArgs e, Rectangle bounds);
-  protected abstract Rectangle GetItemRectangle(int index, bool onlySeen);
   protected virtual string GetObjectText(object item) { return item.ToString(); }
-  protected abstract Size MeasureItem(int index);
+  protected virtual void InvalidateItem(int index) { }
   protected virtual void OnListChanged() { }
-  protected abstract int PointToItem(Point clientPoint);
 
   [Flags]
   protected internal enum ItemState // TODO: this Custom1-5 stuff is not very clean...
@@ -1664,11 +1651,16 @@ public abstract class ListBoxBase : ListControl
   protected ListBoxBase(IEnumerable items) : base(items) { Init(); }
   void Init()
   { cursor=bottom=-1; selMode=SelectionMode.One; selBack=SystemColors.Highlight; selFore=SystemColors.HighlightText;
-    Padding=new RectOffset(1); Style|=ControlStyle.CanFocus;
+    Padding=new RectOffset(1); Style|=ControlStyle.CanFocus; fixedHeight=true;
   }
 
   public Color SelectedBackColor { get { return selBack; } set { selBack=value; } }
   public Color SelectedForeColor { get { return selFore; } set { selFore=value; } }
+
+  protected bool FixedHeight
+  { get { return fixedHeight; }
+    set { fixedHeight=value; }
+  }
 
   protected int CursorPosition
   { get { return cursor; }
@@ -1710,7 +1702,7 @@ public abstract class ListBoxBase : ListControl
     }
   }
 
-  public override int TopIndex
+  public int TopIndex
   { get { return top; }
     set
     { int newValue = Math.Max(Math.Min(value, lastTop), 0);
@@ -1723,7 +1715,8 @@ public abstract class ListBoxBase : ListControl
     }
   }
 
-  public override Size GetPreferredSize(int numItems)
+  public Size GetPreferredSize() { return GetPreferredSize(Items.Count); }
+  public Size GetPreferredSize(int numItems)
   { if(numItems<0 || numItems>=Items.Count)
       throw new ArgumentOutOfRangeException("numItems", numItems, "out of range");
 
@@ -1737,6 +1730,8 @@ public abstract class ListBoxBase : ListControl
     return ContentOffset.Grow(ret);
   }
 
+  protected abstract void DrawItem(int index, PaintEventArgs e, Rectangle bounds);
+
   protected int FindChar(char c) { return FindChar(c, 0); }
   protected int FindChar(char c, int start)
   { c = char.ToUpper(c);
@@ -1749,32 +1744,38 @@ public abstract class ListBoxBase : ListControl
 
   protected int GetBottomIndex()
   { if(bottom==-1)
-    { Rectangle bounds = ContentRect;
-      int i;
-      for(i=TopIndex; i<Items.Count && bounds.Height>0; i++) bounds.Height -= MeasureItem(i).Height;
-      bottom = i-1;
+    { if(fixedHeight)
+      { bottom = TopIndex-1;
+        if(TopIndex<Items.Count)
+        { int height = MeasureItem(TopIndex).Height;
+          bottom += (ContentHeight+height-1) / height;
+        }
+      }
+      else
+      { Rectangle bounds = ContentRect;
+        int i;
+        for(i=TopIndex; i<Items.Count && bounds.Height>0; i++) bounds.Height -= MeasureItem(i).Height;
+        bottom = i-1;
+      }
     }
     return bottom;
   }
 
-  protected int GetTopIndex() { return GetTopIndex(Items.Count-1); }
-  protected int GetTopIndex(int bottom)
-  { Rectangle bounds = ContentRect;
-    for(; bottom>=0 && bounds.Height>0; bottom--) bounds.Height -= MeasureItem(bottom).Height;
-    return bottom+1;
-  }
-
-  protected override Rectangle GetItemRectangle(int index, bool onlySeen)
+  protected Rectangle GetItemRectangle(int index, bool onlySeen)
   { if(index<0 || index>=Items.Count) throw new ArgumentOutOfRangeException("index", index, "out of range");
     if(onlySeen && index<TopIndex) return new Rectangle(-1, -1, 0, 0);
 
     Rectangle bounds = ContentRect;
-    if(index<TopIndex)
+
+    if(fixedHeight)
+    { bounds.Height = MeasureItem(index).Height;
+      bounds.Y     += (index-TopIndex)*bounds.Height;
+    }
+    else if(index<TopIndex)
     { for(int i=TopIndex; i>=index; i--)
       { int height = MeasureItem(i).Height;
         bounds.Y -= height; bounds.Height = height;
       }
-      return bounds;
     }
     else
     { int i=TopIndex, end=bounds.Bottom;
@@ -1786,13 +1787,32 @@ public abstract class ListBoxBase : ListControl
         bounds.Y += height;
       }
     }
+    return bounds;
   }
+
+  protected int GetTopIndex() { return GetTopIndex(Items.Count-1); }
+  protected int GetTopIndex(int bottom)
+  { if(fixedHeight)
+    { if(Items.Count==0) return 0;
+      int height = MeasureItem(0).Height;
+      return Math.Max(0, bottom - (ContentHeight+height-1)/height + 1);
+    }
+    else
+    { Rectangle bounds = ContentRect;
+      for(; bottom>=0 && bounds.Height>0; bottom--) bounds.Height -= MeasureItem(bottom).Height;
+      return bottom+1;
+    }
+  }
+
+  protected override void InvalidateItem(int index) { Invalidate(GetItemRectangle(index, true)); }
 
   protected override ScrollBarBase MakeScrollBar(bool horizontal)
   { ScrollBarBase bar = base.MakeScrollBar(horizontal);
     bar.Style &= ~ControlStyle.CanFocus;
     return bar;
   }
+
+  protected abstract Size MeasureItem(int index);
 
   protected internal override void OnCustomEvent(Events.WindowEvent e)
   { if(e is ScrollEvent) MouseScroll();
@@ -1831,13 +1851,16 @@ public abstract class ListBoxBase : ListControl
   }
 
   protected internal override void OnKeyPress(KeyEventArgs e)
-  { char c = e.KE.Char;
-    if(c<=26) c += (char)64;
-    int next=FindChar(c, CursorPosition+1);
-    if(next==-1) next = FindChar(c);
-    if(next!=-1)
-    { ScrollTo(next);
-      DragTo(next, e);
+  { if(!e.KE.HasAnyMod(KeyMod.Alt))
+    { char c = e.KE.Char;
+      if(c<=26) c += (char)64;
+      int next=FindChar(c, CursorPosition+1);
+      if(next==-1) next = FindChar(c);
+      if(next!=-1)
+      { ScrollTo(next);
+        DragTo(next, e);
+        e.Handled = true;
+      }
     }
     base.OnKeyPress(e);
   }
@@ -1902,13 +1925,25 @@ public abstract class ListBoxBase : ListControl
   { base.OnPaint(e);
 
     Rectangle bounds = e.Surface.ClipRect = ContentDrawRect;
-    bool drew=false;
-    for(int i=TopIndex; i<Items.Count; i++)
-    { Rectangle itemRect = new Rectangle(bounds.X, bounds.Y, bounds.Width, MeasureItem(i).Height);
-      if(itemRect.Height>bounds.Height) break;
-      if(itemRect.IntersectsWith(e.DisplayRect)) { DrawItem(i, e, itemRect); drew=true; }
-      else if(drew) break;
-      bounds.Y += itemRect.Height; bounds.Height -= itemRect.Height;
+    if(fixedHeight)
+    { bounds.Height = Items.Count>0 ? MeasureItem(0).Height : 0;
+      int i=Math.Max((e.DisplayRect.Y-bounds.Y)/bounds.Height, 0);
+      bounds.Y += i*bounds.Height;
+      for(i+=TopIndex; i<Items.Count; i++)
+      { if(bounds.IntersectsWith(e.DisplayRect)) DrawItem(i, e, bounds);
+        else break;
+        bounds.Y += bounds.Height;
+      }
+    }
+    else
+    { bool drew=false;
+      for(int i=TopIndex; i<Items.Count; i++)
+      { Rectangle itemRect = new Rectangle(bounds.X, bounds.Y, bounds.Width, MeasureItem(i).Height);
+        if(itemRect.Height>bounds.Height) break;
+        if(itemRect.IntersectsWith(e.DisplayRect)) { DrawItem(i, e, itemRect); drew=true; }
+        else if(drew) break;
+        bounds.Y += itemRect.Height; bounds.Height -= itemRect.Height;
+      }
     }
   }
 
@@ -1922,14 +1957,21 @@ public abstract class ListBoxBase : ListControl
     TopIndex = VerticalScrollBar.Value;
   }
 
-  protected override int PointToItem(Point clientPoint)
+  protected int PointToItem(Point clientPoint)
   { Rectangle bounds = ContentRect;
-    for(int i=TopIndex; i<Items.Count && bounds.Height>0; i++)
-    { Rectangle itemRect = new Rectangle(bounds.X, bounds.Y, bounds.Width, MeasureItem(i).Height);
-      if(itemRect.Contains(clientPoint)) return i;
-      bounds.Y += itemRect.Height; bounds.Height -= itemRect.Height;
+    if(fixedHeight)
+    { if(!bounds.Contains(clientPoint)) return -1;
+      int index = TopIndex + (clientPoint.Y-bounds.Y)/MeasureItem(0).Height;
+      return index>=Items.Count ? -1 : index;
     }
-    return -1;
+    else
+    { for(int i=TopIndex; i<Items.Count && bounds.Height>0; i++)
+      { Rectangle itemRect = new Rectangle(bounds.X, bounds.Y, bounds.Width, MeasureItem(i).Height);
+        if(itemRect.Contains(clientPoint)) return i;
+        bounds.Y += itemRect.Height; bounds.Height -= itemRect.Height;
+      }
+      return -1;
+    }
   }
 
   protected void SelectRange(int from, int to, bool selected)
@@ -2038,7 +2080,7 @@ public abstract class ListBoxBase : ListControl
   int   cursor, top, bottom, lastTop;
   Color selBack, selFore;
   SelectionMode  selMode;
-  bool  mouseDown, selecting;
+  bool  mouseDown, selecting, fixedHeight;
 
   static void ScrollIt(object dummy) { Events.Events.PushEvent(staticScroll); }
 
@@ -2086,6 +2128,42 @@ public class ListBox : ListBoxBase
   { GameLib.Fonts.Font font = Font;
     return font==null ? new Size(Width, 14) : font.CalculateSize(GetItemText(index)); // guess 14 for font size
   }
+}
+#endregion
+
+#region ComboBoxBase
+public abstract class ComboBoxBase : ListControl
+{ protected ComboBoxBase() { }
+  protected ComboBoxBase(IEnumerable items) : base(items) { }
+
+  public override int SelectedIndex
+  { get { return selected; }
+    set { selected = ListBox.SelectedIndex = value; }
+  }
+
+  protected ListBoxBase ListBox
+  { get
+    { if(listBox==null || listBox.Items.Version!=Items.Version)
+      { listBox  = MakeListBox(Items);
+        selected = listBox.SelectedIndex = selected;
+      }
+      return listBox;
+    }
+  }
+
+  protected virtual ListBoxBase MakeListBox(ItemCollection items) { return new ListBox(items); }
+
+  ListBoxBase listBox;
+  int selected=-1;
+}
+#endregion
+
+#region ComboBox
+public class ComboBox : ComboBoxBase
+{ public ComboBox() { }
+  public ComboBox(IEnumerable items) : base(items) { }
+  
+  
 }
 #endregion
 #endregion
