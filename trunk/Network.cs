@@ -20,6 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // TODO: implement remote received notification
 // TODO: implement IPv6 support (it might be done already!)
 // TODO: add a 'Peer' class
+// FIXME: allow serialization of arrays
 
 using System;
 using System.Collections;
@@ -532,7 +533,7 @@ public sealed class LinkMessage
 /// sv.Stop();
 /// </code>
 /// </remarks>
-public sealed class NetLink
+public class NetLink
 { 
   /// <summary>Initializes the class, but does not open any connection.</summary>
   public NetLink() { }
@@ -1026,20 +1027,37 @@ public sealed class NetLink
     return null;
   }
 
+  /// <summary>This message raises the <see cref="MessageReceived"/> event.</summary>
+  /// <param name="message">The <see cref="LinkMessage"/> that was received.</param>
+  /// <returns>Returns true if the message was placed in the queue and false otherwise.</returns>
+  /// <remarks>If you override this message, be sure to call the base class' implementation. The proper place
+  /// to do this is at the beginning of the derived version.
+  /// </remarks>
+  protected virtual bool OnMessageReceived(LinkMessage message)
+  { if(MessageReceived==null) lock(recv) recv.Enqueue(message);
+    else
+    { foreach(LinkMessageRecvHandler eh in MessageReceived.GetInvocationList())
+        if(!eh(this, message)) return false;
+      lock(recv) recv.Enqueue(message);
+    }
+    return true;
+  }
+
+  /// <summary>This message raises the <see cref="MessageSent"/> event.</summary>
+  /// <param name="message">The <see cref="LinkMessage"/> that was sent.</param>
+  /// <remarks>This method is only called for messages that have requested notification via the
+  /// <see cref="SendFlag.NotifySent"/> flag. If you override this message, be sure to call the base class'
+  /// implementation. The proper place to do this is at the beginning of the derived version.
+  /// </remarks>
+  protected virtual void OnMessageSent(LinkMessage message)
+  { if(MessageSent!=null) MessageSent(this, message);
+  }
+
   [Flags]
   enum HeadFlag : byte { Ack=32, Mask=0xE0 }
   const int HeaderSize=4, SeqMax=1024;
 
   bool BadSequence(ushort seq) { return recvSeq<nextSeq && nextSeq-recvSeq<=SeqMax*4/10; }
-
-  void OnMessageReceived(LinkMessage msg)
-  { if(MessageReceived==null) lock(recv) recv.Enqueue(msg);
-    else
-    { foreach(LinkMessageRecvHandler eh in MessageReceived.GetInvocationList())
-        if(!eh(this, msg)) return;
-      lock(recv) recv.Enqueue(msg);
-    }
-  }
 
   void SizeBuffer(int len)
   { if(len<256) len=256;
@@ -1120,7 +1138,7 @@ public sealed class NetLink
         }
 
         if(!useTcp && sent>udpMax) udpMax=sent;
-        if((msg.Flags&SendFlag.NotifySent)!=0 && MessageSent!=null) MessageSent(this, msg);
+        if((msg.Flags&SendFlag.NotifySent)!=0) OnMessageSent(msg);
 
         Remove:
         queue.Dequeue();
@@ -1215,10 +1233,7 @@ public class Server
   /// <summary>This event is raised when a player is connecting to the server. If any handler returns false, the
   /// player will be disconnected.
   /// </summary>
-  public event PlayerConnectingHandler PlayerConnecting
-  { add    { lock(this) ePlayerConnecting += value; }
-    remove { lock(this) ePlayerConnecting -= value; }
-  }
+  public event PlayerConnectingHandler PlayerConnecting;
   /// <summary>This event is raised when a player has connected to the server.</summary>
   public event PlayerConnectedHandler PlayerConnected;
   /// <summary>This event is raised when a player has disconnected from the server.</summary>
@@ -1234,10 +1249,7 @@ public class Server
   /// <remarks>Note that this event will only be raised for messages sent with the <see cref="SendFlag.NotifySent"/>
   /// flag.
   /// </remarks>
-  public event ServerMessageHandler MessageSent
-  { add    { lock(this) eMessageSent += value; }
-    remove { lock(this) eMessageSent -= value; }
-  }
+  public event ServerMessageHandler MessageSent;
 
   /// <include file="documentation.xml" path="//Network/Common/DefaultFlags/*"/>
   public SendFlag DefaultFlags { get { return defFlags; } set { defFlags=value; } }
@@ -1464,11 +1476,7 @@ public class Server
           { Socket sock = server.AcceptSocket();
             try
             { ServerPlayer p = new ServerPlayer(new NetLink(sock), nextID++);
-              bool accept = !quit;
-              if(accept && ePlayerConnecting!=null)
-                foreach(PlayerConnectingHandler eh in ePlayerConnecting.GetInvocationList())
-                  if(!eh(this, p)) { accept=false; break; }
-              if(accept)
+              if(!quit && OnPlayerConnecting(p))
               { p.Link.LagAverage      = lagAverage;
                 p.Link.LagVariance     = lagVariance;
                 p.Link.MessageSent    += new LinkMessageHandler(OnMessageSent);
@@ -1494,7 +1502,7 @@ public class Server
               LinkMessage msg = p.Link.ReceiveMessage();
               if(msg!=null)
               { did=true;
-                if(MessageReceived!=null) MessageReceived(this, p, cvt.Deserialize(msg));
+                OnMessageReceived(p, cvt.Deserialize(msg));
               }
               else
               { if(p.DelayedDrop && p.Link.sendQueue==0) p.Link.Close();
@@ -1527,18 +1535,84 @@ public class Server
     }
   }
 
+  /// <summary>This message raises the <see cref="MessageReceived"/> event.</summary>
+  /// <param name="player">The <see cref="ServerPlayer"/> that sent the message.</param>
+  /// <param name="message">The message that was received.</param>
+  /// <remarks>If you override this message, be sure to call the base class' implementation. The proper place
+  /// to do this is at the beginning of the derived version.
+  /// </remarks>
+  protected virtual void OnMessageReceived(ServerPlayer player, object message)
+  { ServerMessageHandler smh = MessageReceived;
+    if(smh!=null) smh(this, player, message);
+  }
+
+  /// <summary>This message raises the <see cref="MessageSent"/> event.</summary>
+  /// <param name="player">The <see cref="ServerPlayer "/>to which the message was sent.</param>
+  /// <param name="message">The message that was sent.</param>
+  /// <remarks>This method is only called for messages that have requested notification via the
+  /// <see cref="SendFlag.NotifySent"/> flag. If you override this message, be sure to call the base class'
+  /// implementation. The proper place to do this is at the beginning of the derived version.
+  /// </remarks>
+  protected virtual void OnMessageSent(ServerPlayer player, object message)
+  { ServerMessageHandler smh = MessageSent;
+    if(smh!=null) smh(this, player, message);
+  }
+
+  /// <summary>This message raises the <see cref="PlayerConnecting"/> event.</summary>
+  /// <param name="player">The <see cref="ServerPlayer"/> that is connecting.</param>
+  /// <returns>True if the player should be allowed to connect, and false if the player should be dropped.</returns>
+  /// <remarks>If you override this message, be sure to call the base class' implementation. The proper place
+  /// to do this is at the beginning of the derived version.
+  /// </remarks>
+  protected virtual bool OnPlayerConnecting(ServerPlayer player)
+  { PlayerConnectingHandler pch = PlayerConnecting;
+    if(pch!=null)
+      foreach(PlayerConnectingHandler eh in pch.GetInvocationList())
+        if(!eh(this, player)) return false;
+    return true;
+  }
+
+  /// <summary>This message raises the <see cref="PlayerConnected"/> event.</summary>
+  /// <param name="player">The <see cref="ServerPlayer"/> that has connected.</param>
+  /// <remarks>If you override this message, be sure to call the base class' implementation. The proper place
+  /// to do this is at the beginning of the derived version.
+  /// </remarks>
+  protected virtual void OnPlayerConnected(ServerPlayer player)
+  { PlayerConnectedHandler pch = PlayerConnected;
+    if(pch!=null) pch(this, player);
+  }
+
+  /// <summary>This message raises the <see cref="PlayerDisconnected"/> event.</summary>
+  /// <param name="player">The <see cref="ServerPlayer"/> that has disconnected.</param>
+  /// <remarks>This method is called for both planned and unplanned disconnections.
+  /// If you override this message, be sure to call the base class' implementation. The proper place
+  /// to do this is at the beginning of the derived version.
+  /// </remarks>
+  protected virtual void OnPlayerDisconnected(ServerPlayer player)
+  { PlayerDisconnectHandler pdh = PlayerDisconnected;
+    if(pdh!=null) pdh(this, player);
+  }
+
+  /// <summary>This message raises the <see cref="RemoteReceived"/> event.</summary>
+  /// <param name="player">The <see cref="ServerPlayer"/> that has received the message.</param>
+  /// <param name="message">The message that was received.</param>
+  /// <remarks>This method is only called for messages that have requested notification via the
+  /// <see cref="SendFlag.NotifyReceived"/> flag. If you override this message, be sure to call the base class'
+  /// implementation. The proper place to do this is at the beginning of the derived version.
+  /// </remarks>
+  protected virtual void OnRemoteReceived(ServerPlayer player, object message)
+  { ServerMessageHandler smh = RemoteReceived;
+    if(smh==null) smh(this, player, message);
+  }
+
   void OnMessageSent(NetLink link, LinkMessage msg)
-  { if(eMessageSent!=null)
-    { DualTag tag = (DualTag)msg.Tag;
-      eMessageSent(this, (ServerPlayer)tag.Tag1, tag.Tag2);
-    }
+  { DualTag tag = (DualTag)msg.Tag;
+    OnMessageSent((ServerPlayer)tag.Tag1, tag.Tag2);
   }
 
   void OnRemoteReceived(NetLink link, LinkMessage msg)
-  { if(RemoteReceived==null)
-    { DualTag tag = (DualTag)msg.Tag;
-      RemoteReceived(this, (ServerPlayer)tag.Tag1, tag.Tag2);
-    }
+  { DualTag tag = (DualTag)msg.Tag;
+    OnRemoteReceived((ServerPlayer)tag.Tag1, tag.Tag2);
   }
 
   void AssertOpen()   { if(thread==null) throw new InvalidOperationException("Server not initialized yet."); }
@@ -1549,8 +1623,6 @@ public class Server
   MessageConverter  cvt = new MessageConverter();
   TcpListener       server;
   Thread            thread;
-  PlayerConnectingHandler ePlayerConnecting;
-  ServerMessageHandler eMessageSent;
   SendFlag          defFlags = SendFlag.ReliableSequential;
   uint              nextID=1, lagAverage, lagVariance;
   bool              quit, listening;
@@ -1592,10 +1664,7 @@ public class Client
   /// <remarks>Note that this event will only be raised for messages sent with the <see cref="SendFlag.NotifySent"/>
   /// flag.
   /// </remarks>
-  public event ClientMessageHandler MessageSent
-  { add    { lock(this) eMessageSent += value; }
-    remove { lock(this) eMessageSent -= value; }
-  }
+  public event ClientMessageHandler MessageSent;
 
   /// <include file="documentation.xml" path="//Network/Common/Common/*"/>
   public bool Connected { get { return link==null ? false : link.Connected; } }
@@ -1733,6 +1802,38 @@ public class Client
     DoSend(cvt.Serialize(data), flags, timeoutMs, data);
   }
 
+  /// <summary>This message raises the <see cref="MessageReceived"/> event.</summary>
+  /// <param name="message">The message that was received.</param>
+  /// <remarks>If you override this message, be sure to call the base class' implementation. The proper place
+  /// to do this is at the beginning of the derived version.
+  /// </remarks>
+  protected virtual void OnMessageReceived(object message)
+  { ClientMessageHandler cmh = MessageReceived;
+    if(cmh!=null) cmh(this, message);
+  }
+
+  /// <summary>This message raises the <see cref="MessageSent"/> event.</summary>
+  /// <param name="message">The message that was sent.</param>
+  /// <remarks>This method is only called for messages that have requested notification via the
+  /// <see cref="SendFlag.NotifySent"/> flag. If you override this message, be sure to call the base class'
+  /// implementation. The proper place to do this is at the beginning of the derived version.
+  /// </remarks>
+  protected virtual void OnMessageSent(object message)
+  { ClientMessageHandler cmh = MessageSent;
+    if(cmh!=null) cmh(this, message);
+  }
+
+  /// <summary>This message raises the <see cref="RemoteReceived"/> event.</summary>
+  /// <param name="message">The message that was received.</param>
+  /// <remarks>This method is only called for messages that have requested notification via the
+  /// <see cref="SendFlag.NotifyReceived"/> flag. If you override this message, be sure to call the base class'
+  /// implementation. The proper place to do this is at the beginning of the derived version.
+  /// </remarks>
+  protected virtual void OnRemoteReceived(object message)
+  { ClientMessageHandler cmh = RemoteReceived;
+    if(cmh!=null) cmh(this, message);
+  }
+
   void DoSend(byte[] data, SendFlag flags, uint timeoutMs, object orig)
   { if((object)data!=orig) flags |= SendFlag.NoCopy;
     link.Send(data, 0, data.Length, flags, timeoutMs, orig);
@@ -1782,11 +1883,10 @@ public class Client
     }
   }
 
-  void OnMessageSent(NetLink link, LinkMessage msg) { lock(this) if(eMessageSent!=null) eMessageSent(this, msg.Tag); }
-  void OnRemoteReceived(NetLink link, LinkMessage msg) { if(RemoteReceived==null) RemoteReceived(this, msg.Tag); }
+  void OnMessageSent(NetLink link, LinkMessage msg) { OnMessageSent(msg.Tag); }
+  void OnRemoteReceived(NetLink link, LinkMessage msg) { OnRemoteReceived(msg.Tag); }
 
-  MessageConverter  cvt = new MessageConverter();
-  ClientMessageHandler eMessageSent;
+  MessageConverter cvt = new MessageConverter();
   NetLink  link;
   Thread   thread;
   uint     dropStart, dropDelay;

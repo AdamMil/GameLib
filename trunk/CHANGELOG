@@ -61,6 +61,9 @@ DEVELOPMENT (alpha/beta)
 * Renamed for the Network.Server class, renamed Open() and Close() to
   Initialize() and Deinitialize(), respectively
 + Added documentation for the networking code
++ Added overridable On*() methods for the NetLink, Server, and Client classes,
+  so that they can be customized via derivation in addition to hooking events.
++ Added support for formatted binary reading.
 
 2004.06.28 (alpha/beta)
 -------------------
