@@ -40,14 +40,22 @@ internal class MessageConverter
     typeIDs.Clear();
   }
 
+  public void RegisterTypes(Type[] types) { foreach(Type type in types) RegisterType(type); }
   public void RegisterType(Type type)
-  { TypeInfo info = new TypeInfo(type, type.IsSubclassOf(typeof(INetSerializeable)));
+  { TypeInfo info;
+    if(type.IsSubclassOf(typeof(INetSerializeable)))
+    { ConstructorInfo cons = type.GetConstructor(Type.EmptyTypes);
+      if(cons==null) throw new ArgumentException(String.Format("Type {0} has no parameterless constructor", type));
+      info = new TypeInfo(type, cons);
+    }
+    else info = new TypeInfo(type, null);
     int  i;
     for(i=0; i<types.Count; i++) if(types[i]==null) break;
     if(i==types.Count) types.Add(info); else types[i] = info;
     typeIDs[type] = i;
   }
 
+  public void UnregisterTypes(Type[] types) { foreach(Type type in types) UnregisterType(type); }
   public void UnregisterType(Type type)
   { if(!typeIDs.Contains(type)) throw new ArgumentException(String.Format("{0} is not a registered type", type));
     int index = (int)typeIDs[type];
@@ -74,8 +82,8 @@ internal class MessageConverter
       else
       { if(id<0 || id>=types.Count || types[id]==null) return null;
         TypeInfo info = (TypeInfo)types[id-1];
-        if(info.UseInterface)
-        { INetSerializeable ns = (INetSerializeable)info.Type.GetConstructor(Type.EmptyTypes).Invoke(null);
+        if(info.ConsInterface!=null)
+        { INetSerializeable ns = (INetSerializeable)info.ConsInterface.Invoke(null);
           ns.DeserializeFrom(msg.Data, msg.Index+4);
           return ns;
         }
@@ -114,7 +122,7 @@ internal class MessageConverter
       int id = (int)typeIDs[type];
       TypeInfo info = (TypeInfo)types[id];
       byte[]   ret;
-      if(info.UseInterface)
+      if(info.ConsInterface!=null)
       { INetSerializeable ns = (INetSerializeable)obj;
         ret = new byte[ns.SizeOf()+4];
         ns.SerializeTo(ret, 4);
@@ -129,9 +137,9 @@ internal class MessageConverter
   }
 
   class TypeInfo
-  { public TypeInfo(Type type, bool useInterface) { Type=type; UseInterface=useInterface; }
+  { public TypeInfo(Type type, ConstructorInfo cons) { Type=type; ConsInterface=cons; }
     public Type Type;
-    public bool UseInterface;
+    public ConstructorInfo ConsInterface;
   }
 
   ArrayList types   = new ArrayList();
@@ -176,7 +184,7 @@ internal class NetLink
   public SendFlag DefaultFlags { get { return defFlags; } set { defFlags=value; } }
 
   public IPEndPoint RemoteEndPoint
-  { get { return udp==null ? tcp==null ? null : (IPEndPoint)tcp.RemoteEndPoint : (IPEndPoint)udp.RemoteEndPoint; }
+  { get { return tcp==null ? udp==null ? null : (IPEndPoint)udp.RemoteEndPoint : (IPEndPoint)tcp.RemoteEndPoint; }
   }
 
   public void OpenClient(IPEndPoint remote)
@@ -262,13 +270,9 @@ internal class NetLink
   public void Send(byte[] data, SendFlag flags) { Send(data, 0, data.Length, flags, NoTimeout, null); }
   public void Send(byte[] data, SendFlag flags, uint timeoutMs) { Send(data, 0, data.Length, flags, timeoutMs, null); }
   public void Send(byte[] data, int index, int length, SendFlag flags, uint timeoutMs, object tag)
-  { if(tcp==null || !connected)
-    { if(udp==null) throw new InvalidOperationException("Link has not been opened");
-      if((flags&SendFlag.Reliable)!=0)
-        throw new InvalidOperationException("Cannot send reliably unless TCP is being used");
-      if((flags&SendFlag.Sequential)!=0)
-        throw new NotImplementedException("Cannot send sequentially unless TCP is being used... yet");
-    }
+  { if(udp==null || !connected) throw new InvalidOperationException("Link is not open");
+    if(tcp==null && (flags&SendFlag.Reliable)!=0)
+      throw new InvalidOperationException("Cannot send reliably unless TCP is being used");
     if((flags&SendFlag.NotifyReceived)!=0)
       throw new NotImplementedException("SendFlag.NotifyReceived is not yet implemented");
     if(!connected) throw new ConnectionLostException();
@@ -276,10 +280,15 @@ internal class NetLink
     if(index<0 || length<0 || index+length>data.Length) throw new ArgumentOutOfRangeException("index or length");
     Queue queue = (flags&SendFlag.HighPriority)!=0 ? high : (flags&SendFlag.LowPriority)!=0 ? low : norm;
     
-    byte[] buf = new byte[length+4];      // add header (NoCopy is currently unimplemented)
-    IOH.WriteLE2(buf, 0, (short)length);  // TODO: implement NoCopy
+    byte[] buf = new byte[length+HeaderSize];         // add header (NoCopy is currently unimplemented)
+    IOH.WriteLE2(buf, 0, (short)length);              // TODO: implement NoCopy
     buf[2] = (byte)(flags&~(SendFlag)HeadFlag.Mask);
-    Array.Copy(data, index, buf, 4, length);
+    if((flags&SendFlag.Sequential)!=0)
+    { buf[2] |= (byte)((sendSeq&0xFF00)>>2);          // sequence number uses top two bits of sendflags field
+      buf[3]  = (byte)sendSeq;
+      if(++sendSeq>=SeqMax) sendSeq=0;
+    }
+    Array.Copy(data, index, buf, HeaderSize, length);
 
     LinkMessage m = new LinkMessage(buf, 0, buf.Length, flags, timeoutMs, tag);
     lock(queue) queue.Enqueue(m);
@@ -313,14 +322,14 @@ internal class NetLink
               break;
             }
             if(nextSize==-1)
-            { if(avail>=4) // check for a message header
-              { SizeBuffer(4);
-                tcp.Receive(recvBuf, 4, SocketFlags.None);
+            { if(avail>=HeaderSize) // check for a message header
+              { SizeBuffer(HeaderSize);
+                tcp.Receive(recvBuf, HeaderSize, SocketFlags.None);
                 nextSize  = IOH.ReadLE2U(recvBuf, 0); // first two bytes are the length
                 nextIndex = 0;
                 recvFlags = (SendFlag)(recvBuf[2]&~(byte)HeadFlag.Mask); // next byte is the send/header flags
-                                                      // final byte is reserved
-                avail -= 4;
+                nextSeq   = (ushort)(((ushort)recvBuf[2]<<2) | recvBuf[3]);
+                avail -= HeaderSize;
               }
             }
             if(nextSize!=-1 && avail>=nextSize)
@@ -328,13 +337,17 @@ internal class NetLink
               int read = tcp.Receive(recvBuf, nextIndex, nextSize, SocketFlags.None);
               nextSize -= read; nextIndex += read;
               if(nextSize==0)
-              { LinkMessage m = new LinkMessage();
+              { nextSize = -1;
+                if((recvFlags&SendFlag.ReliableSequential)==SendFlag.Sequential)
+                  if(nextSeq>recvSeq || recvSeq-nextSeq>SeqMax*4/10) recvSeq=nextSeq; // handles integer wraparound in a probabilistic way
+                  else continue;
+                    
+                LinkMessage m = new LinkMessage();
                 m.Index  = 0;
                 m.Length = nextIndex;
                 m.Data   = new byte[m.Length];
                 m.Flags  = recvFlags;
                 Array.Copy(recvBuf, m.Data, m.Length);
-                nextSize = -1;
                 if(MessageReceived==null || MessageReceived(this, m)) lock(recv) recv.Enqueue(m);
               }
             }
@@ -351,10 +364,10 @@ internal class NetLink
           int read = udp.Receive(recvBuf, 0, avail, SocketFlags.None);
           LinkMessage m = new LinkMessage();
           m.Index  = 0;      
-          m.Length = read-4; // first four bytes are the header (same format as tcp header)
+          m.Length = read-HeaderSize; // first part is the header (same format as tcp header)
           m.Data   = new byte[m.Length];
           m.Flags  = (SendFlag)(recvBuf[0]&~(byte)HeadFlag.Mask);
-          Array.Copy(recvBuf, 4, m.Data, 0, m.Length);
+          Array.Copy(recvBuf, HeaderSize, m.Data, 0, m.Length);
           if(MessageReceived==null || MessageReceived(this, m)) lock(recv) recv.Enqueue(m);
         }
   }
@@ -406,9 +419,8 @@ internal class NetLink
   }
   
   [Flags]
-  enum HeadFlag : byte
-  { Ack=32, Mask=0xE0
-  }
+  enum HeadFlag : byte { Ack=32, Mask=0xE0 }
+  const int HeaderSize=4, SeqMax=1024;
   
   void SizeBuffer(int len)
   { if(len<256) len=256;
@@ -427,7 +439,7 @@ internal class NetLink
         bool useTcp;
         int  sent;
 
-        if(((msg.Flags & (SendFlag.Reliable|SendFlag.Sequential))==0 || msg.Length>udpMax) && udp!=null) useTcp=false;
+        if((msg.Flags&SendFlag.Reliable)==0 && msg.Length<=udpMax && udp!=null) useTcp=false;
         else if(tcp==null || !connected) goto Remove;
         else useTcp=true;
         
@@ -471,11 +483,12 @@ internal class NetLink
 
   SendFlag   defFlags = SendFlag.None;
   Socket     tcp, udp;
+  Queue      low, norm, high, recv;
   byte[]     recvBuf;
   int        nextSize, nextIndex, udpMax;
+  ushort     sendSeq, recvSeq, nextSeq;
   SendFlag   recvFlags;
   bool       connected;
-  Queue      low, norm, high, recv;
 }
 #endregion
 
@@ -515,8 +528,10 @@ public class Server
   public IPEndPoint LocalEndPoint { get { return server==null ? null : (IPEndPoint)server.LocalEndpoint; } }
   public PlayerCollection Players { get { return players; } }
 
-  public void RegisterType(Type type) { CheckClosed(); cvt.RegisterType(type); }
-  public void UnregisterType(Type type) { CheckClosed(); cvt.UnregisterType(type); }
+  public void RegisterTypes(Type[] types)   { CheckClosed(); cvt.RegisterTypes(types); }
+  public void RegisterType(Type type)       { CheckClosed(); cvt.RegisterType(type); }
+  public void UnregisterTypes(Type[] types) { CheckClosed(); cvt.UnregisterTypes(types); }
+  public void UnregisterType(Type type)     { CheckClosed(); cvt.UnregisterType(type); }
   public void ClearTypes() { CheckClosed(); cvt.Clear(); }
 
   public void Open()
@@ -703,8 +718,10 @@ public class Client
     link = null;
   }
 
-  public void RegisterType(Type type) { CheckClosed(); cvt.RegisterType(type); }
-  public void UnregisterType(Type type) { CheckClosed(); cvt.UnregisterType(type); }
+  public void RegisterTypes(Type[] types)   { CheckClosed(); cvt.RegisterTypes(types); }
+  public void RegisterType(Type type)       { CheckClosed(); cvt.RegisterType(type); }
+  public void UnregisterTypes(Type[] types) { CheckClosed(); cvt.UnregisterTypes(types); }
+  public void UnregisterType(Type type)     { CheckClosed(); cvt.UnregisterType(type); }
   public void ClearTypes() { CheckClosed(); cvt.Clear(); }
 
   public void Send(byte[] data, SendFlag flags) { Send(data, 0, data.Length, flags); }
