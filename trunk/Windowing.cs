@@ -29,11 +29,34 @@ namespace GameLib.Forms
 {
 
 #region Supporting types
-// TODO: document
+/// <summary>This structure represents a rectangular set of offsets, one offset for each of the four sides. It
+/// can be used to easily grow and shrink <see cref="Rectangle"/> objects.
+/// </summary>
 public struct RectOffset
-{ public RectOffset(int size) { Left=Top=Right=Bottom=size; }
+{ 
+  /// <summary>This constructor sets all four offsets to a single value.</summary>
+  /// <param name="size">The value to use for all four offsets.</param>
+  public RectOffset(int size) { Left=Top=Right=Bottom=size; }
+  /// <summary>This constructor sets the sets the left and right offsets to one value, and the top and bottom
+  /// offsets to another value.
+  /// </summary>
+  /// <param name="width">The value to use for the <see cref="Left"/> and <see cref="Right"/> offsets.</param>
+  /// <param name="height">The value to use for the <see cref="Top"/> and <see cref="Bottom"/> offsets.</param>
   public RectOffset(int width, int height) { Left=Right=width; Top=Bottom=height; }
+  /// <summary>This constructor sets all four offsets individually.</summary>
+  /// <param name="left">The value to use for the <see cref="Left"/> offset.</param>
+  /// <param name="top">The value to use for the <see cref="Top"/> offset.</param>
+  /// <param name="right">The value to use for the <see cref="Right"/> offset.</param>
+  /// <param name="bottom">The value to use for the <see cref="Bottom"/> offset.</param>
   public RectOffset(int left, int top, int right, int bottom) { Left=left; Top=top; Right=right; Bottom=bottom; }
+  /// <summary>This constructor sets the offsets based on the difference between two rectangles.</summary>
+  /// <param name="outer">The outer <see cref="Rectangle"/>.</param>
+  /// <param name="inner">The inner <see cref="Rectangle"/>.</param>
+  /// <remarks>
+  /// The offsets will be calculated in such a way that if this object is used to <see cref="Shrink"/> the outer
+  /// rectangle, the result will be the inner rectangle, and if you <see cref="Grow"/> the inner rectangle, the
+  /// result will be the outer rectangle.
+  /// </remarks>
   public RectOffset(Rectangle outer, Rectangle inner)
   { Left   = inner.X-outer.X;
     Top    = inner.Y-outer.Y;
@@ -41,9 +64,27 @@ public struct RectOffset
     Bottom = outer.Bottom-inner.Bottom;
   }
 
+  /// <summary>Gets the total horizontal offset.</summary>
+  /// <value>Returns the total horizontal offset, which is equal to <see cref="Right"/> + <see cref="Left"/>.</value>
+  /// <remarks>The total horizontal offset is the amount a given rectangle will be changed in the horizontal
+  /// direction if this object is applied to it.
+  /// </remarks>
   public int Horizontal { get { return Right+Left; } }
+  /// <summary>Gets the total vertical offset.</summary>
+  /// <value>Returns the total vertical offset, which is equal to <see cref="Top"/> + <see cref="Bottom"/>.</value>
+  /// <remarks>The total vertical offset is the amount a given rectangle will be changed in the vertical
+  /// direction if this object is applied to it.
+  /// </remarks>
   public int Vertical { get { return Top+Bottom; } }
+  /// <summary>Gets the top and left offsets as a <see cref="Size"/> object.</summary>
+  /// <value>A <see cref="Size"/> object containing the <see cref="Left"/> and <see cref="Top"/> offsets as
+  /// its <see cref="Size.Width"/> and <see cref="Size.Height"/> respectively.
+  /// </value>
   public Size TopLeft { get { return new Size(Left, Top); } }
+  /// <summary>Gets the bottom and right offsets as a <see cref="Size"/> object.</summary>
+  /// <value>A <see cref="Size"/> object containing the <see cref="Right"/> and <see cref="Bottom"/> offsets as
+  /// its <see cref="Size.Width"/> and <see cref="Size.Height"/> respectively.
+  /// </value>
   public Size BottomRight { get { return new Size(Right, Bottom); } }
 
   public override bool Equals(object obj) { return obj is RectOffset ? this==(RectOffset)obj : false; }
@@ -51,6 +92,11 @@ public struct RectOffset
   { return Left.GetHashCode()^Top.GetHashCode()^Right.GetHashCode()^Bottom.GetHashCode();
   }
 
+  /// <summary>Enlarges a rectangle.</summary>
+  /// <param name="rect">The <see cref="Rectangle"/> to enlarge.</param>
+  /// <returns>A <see cref="Rectangle"/> that has been enlarged by the offsets in this object. Note that if
+  /// this object's offsets are negative, the resulting rectangle may actually shrink.
+  /// </returns>
   public Rectangle Grow(Rectangle rect)
   { rect.X -= Left;
     rect.Width += Right+Left;
@@ -59,6 +105,11 @@ public struct RectOffset
     return rect;
   }
 
+  /// <summary>Shrinks a rectangle.</summary>
+  /// <param name="rect">The <see cref="Rectangle"/> to shrink.</param>
+  /// <returns>A <see cref="Rectangle"/> that has been shrunk by the offsets in this object. Note that if
+  /// this object's offsets are negative, the resulting rectangle may actually grow.
+  /// </returns>
   public Rectangle Shrink(Rectangle rect)
   { rect.X += Left;
     rect.Width -= Right+Left;
@@ -67,15 +118,41 @@ public struct RectOffset
     return rect;
   }
 
-  public int Left, Top, Right, Bottom;
+  /// <summary>The offset that will be applied to the left side of a rectangle.</summary>
+  public int Left;
+  /// <summary>The offset that will be applied to the top side of a rectangle.</summary>
+  public int Top;
+  /// <summary>The offset that will be applied to the right side of a rectangle.</summary>
+  public int Right;
+  /// <summary>The offset that will be applied to the bottom side of a rectangle.</summary>
+  public int Bottom;
   
+  /// <summary>This operator grows a <see cref="Rectangle"/> by a <see cref="RectOffset"/>.</summary>
+  /// <param name="lhs">The <see cref="Rectangle"/> to enlarge.</param>
+  /// <param name="rhs">The <see cref="RectOffset"/> to enlarge by.</param>
+  /// <returns>Returns the result of calling <see cref="Grow"/> on <paramref name="rhs"/> and
+  /// passing <paramref name="lhs"/>.
+  /// </returns>
   public static Rectangle operator+(Rectangle lhs, RectOffset rhs) { return rhs.Grow(lhs); }
+  /// <summary>This operator shrinks a <see cref="Rectangle"/> by a <see cref="RectOffset"/>.</summary>
+  /// <param name="lhs">The <see cref="Rectangle"/> to shrink.</param>
+  /// <param name="rhs">The <see cref="RectOffset"/> to shrink by.</param>
+  /// <returns>Returns the result of calling <see cref="Shrink"/> on <paramref name="rhs"/> and
+  /// passing <paramref name="lhs"/>.
+  /// </returns>
   public static Rectangle operator-(Rectangle lhs, RectOffset rhs) { return rhs.Shrink(lhs); }
 
+  /// <summary>This operator compares two <see cref="RectOffset"/> objects.</summary>
+  /// <param name="a">The first <see cref="RectOffset"/> object to compare.</param>
+  /// <param name="b">The second <see cref="RectOffset"/> object to compare.</param>
+  /// <returns>Returns true if the two <see cref="RectOffset"/> objects are equal, and false otherwise.</returns>
   public static bool operator==(RectOffset a, RectOffset b)
   { return a.Left==b.Left && a.Top==b.Top && a.Right==b.Right && a.Bottom==b.Bottom;
   }
-
+  /// <summary>This operator compares two <see cref="RectOffset"/> objects.</summary>
+  /// <param name="a">The first <see cref="RectOffset"/> object to compare.</param>
+  /// <param name="b">The second <see cref="RectOffset"/> object to compare.</param>
+  /// <returns>Returns true if the two <see cref="RectOffset"/> objects are unequal, and false otherwise.</returns>
   public static bool operator!=(RectOffset a, RectOffset b)
   { return a.Left!=b.Left || a.Top!=b.Top || a.Right!=b.Right || a.Bottom!=b.Bottom;
   }
@@ -341,10 +418,26 @@ public enum DockStyle
   Bottom
 }
 
-// TODO: document
+/// <summary>This enum determines what parts of the control will be not be draw with the default drawing code.
+/// The enumeration members can be ORed together to combine their effects.
+/// </summary>
+/// <remarks>
+/// This affects the <see cref="Control.OnPaintBackground"/> and <see cref="Control.OnPaint"/> methods. Normally
+/// those methods would be called before custom paint code in a derived object, and they would perform default
+/// paint operations as necessary. This enum can be used to prevent it from drawing a particular feature, in case
+/// you want to implement that feature yourself.
+/// </remarks>
 [Flags]
 public enum DontDraw
-{ None=0, BackColor=1, BackImage=2, Border=4
+{ 
+  /// <summary>The default drawing code will draw all applicable features.</summary>
+  None=0,
+  /// <summary>The default drawing code will not fill the background of the control with the background color.</summary>
+  BackColor=1,
+  /// <summary>The default drawing code will not draw the background image.</summary>
+  BackImage=2,
+  /// <summary>The default drawing code will not draw the border.</summary>
+  Border=4,
 }
 
 /// <summary>The base class of all controls in the windowing system.</summary>
@@ -594,7 +687,12 @@ public class Control
   /// <exception cref="InvalidOperationException">Thrown if the control has no backing surface.</exception>
   public Rectangle BackingRect { get { return WindowToBacking(WindowRect); } }
 
-  // TODO: document
+  /// <summary>Gets or sets the effective color of the control's border.</summary>
+  /// <remarks>Setting this property will alter the <see cref="RawBorderColor"/> property of this control. Setting
+  /// it to <see cref="System.Drawing.Color.Transparent">Color.Transparent</see> will cause it to choose a default
+  /// color. Reading this property will return the effective background color, after taking the default into account.
+  /// </remarks>
+  /// <value>The effective background color of this control.</value>
   public Color BorderColor
   { get
     { return borderColor==Color.Transparent ? (Focused ? SystemColors.ActiveBorder : SystemColors.InactiveBorder)
@@ -607,14 +705,19 @@ public class Control
     }
   }
 
-  public int BorderWidth { get { return Helpers.BorderSize(border); } }
+  /// <summary>Gets the width of the control's border.</summary>
+  /// <value>The width of the border, in pixels.</value>
+  /// <remarks>The border width is determined by the <see cref="BorderStyle"/> property.</remarks>
+  public int BorderWidth { get { return Helpers.BorderWidth(border); } }
 
-  // TODO: document
+  /// <summary>Gets or sets the control's border style.</summary>
+  /// <value>The control's <see cref="BorderStyle"/>.</value>
   public BorderStyle BorderStyle
   { get { return border; }
     set
     { if(border!=value)
-      { border=value;
+      { if(BorderWidth != Helpers.BorderWidth(value)) TriggerLayout();
+        border=value;
         Invalidate();
       }
     }
@@ -669,24 +772,28 @@ public class Control
     }
   }
 
-  // TODO: document
+  /// <summary>Gets the rectangle on the drawing surface that represents the content area.</summary>
+  /// <value>A <see cref="Rectangle"/> representing the content area in drawing surface coordinates.</value>
+  /// <remarks>The content area of a control is the control's client area, minus the border and padding.
+  /// However, a control can override <see cref="ContentRect"/> to alter the definition of the content area.
+  /// </remarks>
   public Rectangle ContentDrawRect
-  { get
-    { Rectangle ret = DrawRect - padding;
-      int bsize = -BorderWidth;
-      ret.Inflate(bsize, bsize);
-      return ret;
-    }
+  { get { return BackingSurface==null ? WindowToDisplay(ContentRect) : WindowToBacking(ContentRect); }
   }
 
-  // TODO: document
-  public int ContentHeight
-  { get { return bounds.Height-padding.Vertical-BorderWidth; }
-    set { Height=value+padding.Vertical+BorderWidth; }
-  }
+  /// <summary>Gets the height of the content area.</summary>
+  /// <value>The height of the content area, in pixels.</value>
+  /// <remarks>The content area of a control is the control's client area, minus the border and padding.
+  /// However, a control can override <see cref="ContentRect"/> to alter the definition of the content area.
+  /// </remarks>
+  public int ContentHeight { get { return ContentRect.Width; } }
 
-  // TODO: document
-  public Rectangle ContentRect
+  /// <summary>Gets the rectangle representing the content area, in control coordinates.</summary>
+  /// <value>A <see cref="Rectangle"/> representing the content area.</value>
+  /// <remarks>The content area of a control is the control's client area, minus the border and padding.
+  /// However, a control can override this property to alter the definition of the content area.
+  /// </remarks>
+  public virtual Rectangle ContentRect
   { get
     { Rectangle ret = WindowRect - padding;
       int bsize = -BorderWidth;
@@ -695,12 +802,13 @@ public class Control
     }
   }
   
-  // TODO: document
-  public int ContentWidth
-  { get { return bounds.Width-padding.Horizontal-BorderWidth; }
-    set { Width=value+padding.Horizontal+BorderWidth; }
-  }
-  
+  /// <summary>Gets the width of the content area.</summary>
+  /// <value>The width of the content area, in pixels.</value>
+  /// <remarks>The content area of a control is the control's client area, minus the border and padding.
+  /// However, a control can override <see cref="ContentRect"/> to alter the definition of the content area.
+  /// </remarks>
+  public int ContentWidth { get { return ContentRect.Width; } }
+
   /// <summary>Gets the <see cref="ControlCollection"/> containing this control's children.</summary>
   public ControlCollection Controls { get { return controls; } }
 
@@ -944,7 +1052,13 @@ public class Control
     }
   }
 
-  // TODO: document
+  /// <summary>Gets or sets the control's padding.</summary>
+  /// <value>A <see cref="RectOffset"/> object representing the control's padding.</value>
+  /// <remarks>The control's padding is a buffer area inside the border. By default, controls will not be laid out
+  /// in the padding area, and controls will not paint inside the padding (except to fill their background color).
+  /// You can use the padding to set the area in which controls will be laid out, as well as to simply provide buffer
+  /// room around a control's content.
+  /// </remarks>
   public RectOffset Padding
   { get { return padding; }
     set
@@ -952,12 +1066,17 @@ public class Control
       { if(value.Left<0 || value.Top<0 || value.Right<0 || value.Bottom<0)
           throw new ArgumentOutOfRangeException("Padding", value, "offset cannot be negative");
         padding=value;
+        TriggerLayout();
         Invalidate();
       }
     }
   }
 
-  // TODO: document
+  /// <summary>Gets the rectangle surrounding the control's padding area.</summary>
+  /// <value>A <see cref="Rectangle"/> that surrounds the control's padding area. This is the rectangle that
+  /// is just inside the border. Shrinking this rectangle by the <see cref="Padding"/> will produce the content
+  /// area.
+  /// </value>
   public Rectangle PaddingRect
   { get
     { Rectangle ret = WindowRect;
@@ -992,6 +1111,12 @@ public class Control
   /// but if you want to get it without taking inheritance into account, use this one.
   /// </remarks>
   public Color RawBackColor { get { return back; } }
+
+  /// <summary>Gets this control's raw border color.</summary>
+  /// <remarks>Generally, the <see cref="BorderColor"/> property should be used to get the border color,
+  /// but if you want to get it without taking inheritance into the default value, use this one.
+  /// </remarks>
+  public Color RawBorderColor { get { return borderColor; } }
 
   /// <summary>Gets this control's raw cursor.</summary>
   /// <remarks>Generally, the <see cref="Cursor"/> property should be used to get the cursor, but if you want
@@ -1334,7 +1459,7 @@ public class Control
   public bool IsOrHas(Control control) { return this==control || Controls.Contains(control, true); }
 
   /// <summary>Converts a point from the parent's control coordinates to this control's control coordinates.</summary>
-  /// <param name="windowPoint">The point to convert, in the parent's control coordinates.</param>
+  /// <param name="parentPoint">The point to convert, in the parent's control coordinates.</param>
   /// <returns>The converted point, in control coordinates.</returns>
   /// <remarks>This method can be used even if the control is not attached to a parent.</remarks>
   public Point ParentToWindow(Point parentPoint)
@@ -1342,7 +1467,7 @@ public class Control
   }
 
   /// <summary>Converts a rectangle from the parent's control coordinates to this control's control coordinates.</summary>
-  /// <param name="windowRect">The rectangle to convert, in the parent's control coordinates.</param>
+  /// <param name="parentRect">The rectangle to convert, in the parent's control coordinates.</param>
   /// <returns>The converted rectangle, in the control coordinates.</returns>
   /// <remarks>This method can be used even if the control is not attached to a parent.</remarks>
   public Rectangle ParentToWindow(Rectangle parentRect)
@@ -2087,10 +2212,12 @@ public class Control
 
   /// <summary>Raises the <see cref="PaintBackground"/> event and performs default painting.</summary>
   /// <param name="e">A <see cref="PaintEventArgs"/> that contains the event data.</param>
-  /// <remarks>When overriding this method in a derived class, be sure to call the base class'
+  /// <remarks><para>When overriding this method in a derived class, be sure to call the base class'
   /// version to ensure that the default processing gets performed. The proper place to do this is at the start
-  /// of the derived version. The surface's <see cref="Surface.ClipRect">ClipRect</see> property will be set equal
-  /// to the <see cref="PaintEventArgs.DisplayRect"/> property.
+  /// of the derived version. You can use the <see cref="DontDraw"/> property to determine what will and will not
+  /// be drawn by this function.</para>
+  /// <para>The surface's <see cref="Surface.ClipRect">ClipRect</see> property will be set equal to the
+  /// <see cref="PaintEventArgs.DisplayRect"/> property.</para>
   /// </remarks>
   protected internal virtual void OnPaintBackground(PaintEventArgs e)
   { if(PaintBackground!=null) PaintBackground(this, e);
@@ -2182,10 +2309,18 @@ public class Control
     }
   }
 
-  // TODO: document
+  /// <summary>Determines which features the default drawing code will not draw.</summary>
+  /// <value>A <see cref="GameLib.Forms.DontDraw"/> value that controls which features will not be drawn by the
+  /// default drawing code contained in <see cref="OnPaintBackground"/> and <see cref="OnPaint"/>.
+  /// </value>
   protected DontDraw DontDraw
   { get { return dontDraw; }
-    set { dontDraw=value; }
+    set
+    { if(value!=dontDraw)
+      { dontDraw=value;
+        Invalidate();
+      }
+    }
   }
 
   /// <summary>Gets or sets the drag threshold for this control.</summary>
@@ -3164,7 +3299,7 @@ public sealed class Helpers
   /// <summary>Returns the thickness of a border, in pixels.</summary>
   /// <param name="border">The border style thats thickness will be returned.</param>
   /// <returns>The thickness of the specified border, in pixels.</returns>
-  public static int BorderSize(BorderStyle border)
+  public static int BorderWidth(BorderStyle border)
   { switch(border&BorderStyle.TypeMask)
     { case BorderStyle.FixedFlat: case BorderStyle.Fixed3D: return 1;
       case BorderStyle.FixedThick: case BorderStyle.Resizeable: return 2;
@@ -3229,7 +3364,14 @@ public sealed class Helpers
     }
   }
 
-  // TODO: document
+  /// <summary>Draws a border using the specified base color.</summary>
+  /// <param name="surface">The <see cref="Surface"/> into which the border will be drawn.</param>
+  /// <param name="rect">The bounds of the border.</param>
+  /// <param name="border">The border style to use.</param>
+  /// <param name="color">The base color of the border.</param>
+  /// <remarks>The border will be drawn in a depressed style if <paramref name="border"/> contains the
+  /// <see cref="BorderStyle.Depressed"/> flag.
+  /// </remarks>
   public static void DrawBorder(Surface surface, Rectangle rect, BorderStyle border, Color color)
   { DrawBorder(surface, rect, border, color, (border&BorderStyle.Depressed)!=0);
   }
@@ -3292,12 +3434,19 @@ public sealed class Helpers
     }
   }
 
-  // TODO: document
+  /// <summary>Draws a check mark at a given point.</summary>
+  /// <param name="surface">The <see cref="Surface"/> into which the check mark will be drawn.</param>
+  /// <param name="x">The X coordinate of the top-left corner of the check mark.</param>
+  /// <param name="y">The Y coordinate of the top-left corner of the check mark.</param>
+  /// <param name="color">The color to draw the check with.</param>
   public static void DrawCheck(Surface surface, int x, int y, Color color)
   { DrawCheck(surface, new Point(x, y), color);
   }
 
-  // TODO: document
+  /// <summary>Draws a check mark at a given point.</summary>
+  /// <param name="surface">The <see cref="Surface"/> into which the check mark will be drawn.</param>
+  /// <param name="point">The <see cref="Point"/> representing top-left corner of the check mark.</param>
+  /// <param name="color">The color to draw the check with.</param>
   public static void DrawCheck(Surface surface, Point point, Color color)
   { for(int yo=0; yo<3; yo++)
     { Primitives.Line(surface, point.X, point.Y+yo+2, point.X+2, point.Y+yo+4, color);
