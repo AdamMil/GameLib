@@ -87,6 +87,7 @@ public sealed class Video
     { SDL.Initialize();
       Events.Events.Initialize();
       SDL.InitSubSystem(SDL.InitFlag.Video);
+      SDL.EnableUNICODE(1); // for some reason, initializing the video subsystem resets this
     }
   }
   public static void Deinitialize()
