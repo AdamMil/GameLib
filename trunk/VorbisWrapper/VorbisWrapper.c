@@ -17,32 +17,36 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "VorbisWrapper.h"
+#include <stdlib.h>
 
 size_t rwRead(void *ptr, size_t size, size_t nmemb, void *datasource)
-{ VW_Callbacks *calls = (VW_Callbacks*)datasource;
-  return calls->Read(calls->Context, ptr, (Sint32)size, (Sint32)nmemb);
+{ return ((VW_Callbacks*)datasource)->Read(ptr, (Sint32)size, (Sint32)nmemb);
 }
 
 int rwSeek(void *datasource, ogg_int64_t offset, int whence)
-{ VW_Callbacks *calls = (VW_Callbacks*)datasource;
-  return calls->Seek(calls->Context, (Sint32)offset, whence);
+{ return ((VW_Callbacks*)datasource)->Seek((Sint32)offset, whence);
 }
 
 int rwClose(void *datasource)
-{ VW_Callbacks *calls = (VW_Callbacks*)datasource;
-  calls->Close(calls->Context);
+{ ((VW_Callbacks*)datasource)->Close();
   return 0;
 }
 
-long rwTell(void *datasource)
-{ VW_Callbacks *calls = (VW_Callbacks*)datasource;
-  return calls->Tell(calls->Context);
-}
+long rwTell(void *datasource) { return ((VW_Callbacks*)datasource)->Tell(); }
 
 ov_callbacks Callbacks = { rwRead, rwSeek, rwClose, rwTell };
 
-int VW_Open(OggVorbis_File *vf, VW_Callbacks *calls) { return ov_open_callbacks(calls, vf, NULL, 0, Callbacks); }
-void VW_Close(OggVorbis_File *vf) { ov_clear(vf); }
+int VW_Open(OggVorbis_File **vf, VW_Callbacks calls)
+{ int ret;
+  VW_Callbacks *pcalls;
+  *vf = (OggVorbis_File*)malloc(sizeof(OggVorbis_File)+sizeof(VW_Callbacks));
+  pcalls = (VW_Callbacks*)(*vf+1);
+  *pcalls = calls;
+  ret = ov_open_callbacks(pcalls, *vf, NULL, 0, Callbacks);
+  if(ret<=-128) { free(vf); *vf=0; }
+  return ret;
+}
+void VW_Close(OggVorbis_File *vf) { ov_clear(vf); free(vf); }
 
 Sint32 VW_PcmLength(OggVorbis_File *vf, int section) { return (Sint32)ov_pcm_total(vf, section); }
 Sint32 VW_PcmTell(OggVorbis_File *vf) { return (Sint32)ov_pcm_tell(vf); }

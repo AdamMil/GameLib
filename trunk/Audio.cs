@@ -25,7 +25,7 @@ using GameLib.Interop.GLMixer;
 using GameLib.Interop.SndFile;
 using GameLib.Interop.OggVorbis;
 
-// TODO: find out why/if vorbis is unstable
+// FIXME: find out why vorbis is unstable
 
 namespace GameLib.Audio
 {
@@ -446,30 +446,30 @@ public class VorbisSource : AudioSource
   public unsafe VorbisSource(Stream stream, bool autoClose)
   { calls = new VorbisCallbacks(stream, autoClose);
     unsafe
-    { fixed(Ogg.Callbacks* io = &calls.calls) Ogg.Check(Ogg.Open(out file, io));
-      Init(autoClose, new AudioFormat((uint)file.Info->Rate,
+    { fixed(Ogg.VorbisFile** fp=&file) Ogg.Check(Ogg.Open(fp, calls.calls));
+      Init(autoClose, new AudioFormat((uint)file->Info->Rate,
                                       Audio.Initialized ? Audio.Format.Format : SampleFormat.S16Sys,
-                                      (byte)file.Info->Channels));
+                                      (byte)file->Info->Channels));
     }
   }
   public VorbisSource(Stream stream, bool autoClose, AudioFormat format)
   { calls = new VorbisCallbacks(stream, autoClose);
-    unsafe { fixed(Ogg.Callbacks* io = &calls.calls) Ogg.Check(Ogg.Open(out file, io)); }
+    unsafe { fixed(Ogg.VorbisFile** fp=&file) Ogg.Check(Ogg.Open(fp, calls.calls)); }
     Init(autoClose, format);
   }
   ~VorbisSource() { Dispose(true); }
 
   public override void Dispose() { Dispose(false); GC.SuppressFinalize(this); }
 
-  public override bool CanRewind { get { return file.Seekable!=0; } }
-  public override bool CanSeek   { get { return file.Seekable!=0; } }
-  public override int  Position
+  public unsafe override bool CanRewind { get { return file->Seekable!=0; } }
+  public unsafe override bool CanSeek   { get { return file->Seekable!=0; } }
+  public unsafe override int Position
   { get { return curPos; }
     set
     { if(value==curPos) return;
       if(!CanSeek) Ogg.Check((int)Ogg.OggError.NoSeek);
       lock(this)
-      { if(links==null) Ogg.Check(Ogg.PcmSeek(ref file, value));
+      { if(links==null) Ogg.Check(Ogg.PcmSeek(file, value));
         else
         { int i, pos=value, pbase=0;
           for(i=0; i<links.Length && links[i].CvtLen<=pos; i++)
@@ -477,12 +477,12 @@ public class VorbisSource : AudioSource
             pbase += links[i].RealLen;
           }
           if(i==links.Length)
-          { Ogg.Check(Ogg.PcmSeek(ref file, pbase));
+          { Ogg.Check(Ogg.PcmSeek(file, pbase));
             value = length;
             curLink = 0;
           }
           else
-          { Ogg.Check(Ogg.PcmSeek(ref file, pbase+(int)((long)pos*links[i].CVT.lenDiv/links[i].CVT.lenMul)));
+          { Ogg.Check(Ogg.PcmSeek(file, pbase+(int)((long)pos*links[i].CVT.lenDiv/links[i].CVT.lenMul)));
             curLink = i;
           }
         }
@@ -491,15 +491,22 @@ public class VorbisSource : AudioSource
     }
   }
 
+  internal unsafe void CheckVorbisFile(Ogg.VorbisFile* vf)
+  { byte* p1 = *(byte**)((byte*)vf+656);
+    if(p1==null) return;
+    byte* p2 = *(byte**)((byte*)p1+4);
+    short chans = *(short*)((byte*)p2+4);
+    if(chans!=2) throw new Exception("it's fucked");
+  }
+  
   public unsafe override int ReadBytes(byte[] buf, int index, int length)
   { BytesToFrames(length);
     fixed(byte* dest = buf)
     { Ogg.VorbisInfo* info;
       int read, toRead, total=0, section, be=(format.Format&SampleFormat.BigEndian)==0 ? 0 : 1;
       int signed = (format.Format&SampleFormat.Signed)==0 ? 0 : 1;
-
       do
-      { info = file.Info+curLink;
+      { info = file->Info+curLink; // TODO: test with nonseekable streams! (this may be illegal!!)
         if(info->Rate!=format.Frequency || info->Channels!=format.Channels)
         { Link link = links[curLink];
           int   len = Math.Min(length, 16384);
@@ -507,7 +514,7 @@ public class VorbisSource : AudioSource
           len = Math.Max(toRead, len);
           if(cvtBuf==null || cvtBuf.Length<len) cvtBuf = new byte[len];
           fixed(byte* cvtbuf = cvtBuf)
-          { read = Ogg.Read(ref file, cvtbuf, toRead, be, format.SampleSize, signed, out section);
+          { read = Ogg.Read(file, cvtbuf, toRead, be, format.SampleSize, signed, out section);
             Ogg.Check(read);
             if(read==0) break;
             link.CVT.buf = cvtbuf;
@@ -519,7 +526,9 @@ public class VorbisSource : AudioSource
           }
         }
         else
-        { read = Ogg.Read(ref file, dest+index, length, be, format.SampleSize, signed, out section);
+        { CheckVorbisFile(file);
+          read = Ogg.Read(file, dest+index, length, be, format.SampleSize, signed, out section);
+          CheckVorbisFile(file);
           Ogg.Check(read);
           if(read==0) break;
         }
@@ -545,38 +554,38 @@ public class VorbisSource : AudioSource
   { if(open)
       lock(this)
       { base.Dispose();
-        Ogg.Close(ref file);
+        unsafe { Ogg.Close(file); file=null; }
         cvtBuf = null;
         open = false;
       }
   }
 
-  void Init(bool autoClose, AudioFormat format)
-  { if(CanSeek)
+  unsafe void Init(bool autoClose, AudioFormat format)
+  { if(CanSeek) // TODO: do more testing with nonseekable streams
     { length = 0;
-      links  = new Link[file.NumLinks];
+      links  = new Link[file->NumLinks];
       GLMixer.AudioCVT cvt;
       AudioFormat sf;
       int  len;
       bool grr=false;
-      for(int i=0; i<file.NumLinks; i++)
+      for(int i=0; i<file->NumLinks; i++)
         unsafe
-        { Ogg.VorbisInfo* info = file.Info+i;
+        { Ogg.VorbisInfo* info = file->Info+i;
           sf  = new AudioFormat((uint)info->Rate, format.Format, (byte)info->Channels);
           if(!sf.Equals(format)) grr=true;
           cvt = Audio.SetupCVT(sf, format);
-          len = Ogg.PcmLength(ref file, i);
+          len = Ogg.PcmLength(file, i);
           Ogg.Check(len);
           links[i] = new Link(sf, cvt, len, (int)((long)len*cvt.lenMul/cvt.lenDiv));
           length += links[i].CvtLen;
         }
-      if(!grr) links=null; // yay, it's all what we want
+      if(!grr) links=null; // yay, it's all in the right format
     }
     this.format = format;
     open = true;
   }
   
-  Ogg.VorbisFile   file = new Ogg.VorbisFile();
+  unsafe Ogg.VorbisFile* file;
   VorbisCallbacks  calls;
   protected byte[] cvtBuf;
   protected int    curLink;

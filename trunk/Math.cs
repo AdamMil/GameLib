@@ -66,6 +66,9 @@ public struct Vector
   }
   
   public override bool Equals(object obj) { return obj is Vector ? (Vector)obj==this : false; }
+  public bool Equals(Vector vect, float epsilon)
+  { return Math.Abs(vect.X-X)<=epsilon && Math.Abs(vect.Y-Y)<=epsilon;
+  }
   public override int GetHashCode() { return X.GetHashCode() ^ Y.GetHashCode(); }
   public override string ToString() { return string.Format("[{0:f},{1:f}]", X, Y); }
 
@@ -106,6 +109,9 @@ public struct Point
   public System.Drawing.Point ToPoint() { return new System.Drawing.Point((int)Math.Round(X), (int)Math.Round(Y)); }
 
   public override bool Equals(object obj) { return obj is Point ? (Point)obj==this : false; }
+  public bool Equals(Point point, float epsilon)
+  { return Math.Abs(point.X-X)<=epsilon && Math.Abs(point.Y-Y)<=epsilon;
+  }
   public override int GetHashCode() { return X.GetHashCode() ^ Y.GetHashCode(); }
   public override string ToString() { return string.Format("({0:f},{1:f})", X, Y); }
 
@@ -178,6 +184,9 @@ public struct Line
   public float WhichSide(Point point) { return Vector.CrossVector.DotProduct(point-Start); }
 
   public override bool Equals(object obj) { return obj is Line ? (Line)obj==this : false; }
+  public bool Equals(Line line, float epsilon)
+  { return Start.Equals(line.Start, epsilon) && Vector.Equals(line.Vector, epsilon);
+  }
   public override int GetHashCode() { return Start.GetHashCode() ^ Vector.GetHashCode(); }
   public override string ToString() { return string.Format("{0}->{1}", Start, Vector); }
 
@@ -233,8 +242,6 @@ public struct Corner
 }
 #endregion
 
-// FIXME: SplitIntoConvexPolygons sometimes fails because of tiny tiny gaps between the end of one edge and the
-// beginning of the next. fix this! (floating point sucks.)
 #region Polygon
 public sealed class Polygon
 { public Polygon() { points=new Point[4]; }
@@ -420,8 +427,15 @@ public sealed class Polygon
             int   splitEdge=-1, extPoint=-1, ept;
             for(int ei=0; ei<2; ei++) // try to extend each of the edges that make up this corner
             { Line toExtend = c.GetEdge(ei);
+              int edge = ci-1+ei;
               for(int sei=0; sei<poly.length; sei++) // test the edge with the intersection of every other edge
-              { if(sei==ci || sei==ci-1) continue; // except, don't compare against the edges that comprise the corner
+              { if(sei==0) // don't try to intersect adjacent edges
+                { if(edge==poly.Length-1) continue;
+                }
+                else if(sei==poly.Length-1)
+                { if(edge==0) break;
+                }
+                else if(edge==sei || edge==sei-1) continue;
                 LineIntersectInfo lint = toExtend.GetIntersection(poly.GetEdge(sei));
                 // we don't want any points that are on the edge being extended (because it wouldn't be an extension)
                 // and we want to make sure the other point is actually on the line segment
@@ -456,7 +470,7 @@ public sealed class Polygon
               }
             }
             if(splitEdge==-1) // if no split points could be found, give up
-              throw new NotSupportedException("Unable to split polygon. This must not be a simple polygon.");
+              throw new NotSupportedException("Unable to split polygon. This might not be a simple polygon.");
           }
         }
         done = AddPoly(poly, done, dlen++); // all the signs are the same, it's convex, so add it to the 'done' list
@@ -542,6 +556,9 @@ public struct Vector
   }
   
   public override bool Equals(object obj) { return obj is Vector ? (Vector)obj==this : false; }
+  public bool Equals(Vector vect, float epsilon)
+  { return Math.Abs(vect.X-X)<=epsilon && Math.Abs(vect.Y-Y)<=epsilon && Math.Abs(vect.Z-Z)<=epsilon;
+  }
   public override int GetHashCode() { return (X+Y+Z).GetHashCode(); }
   public override string ToString() { return string.Format("[{0:f},{1:f},{2:f}]", X, Y, Z); }
 
@@ -577,6 +594,9 @@ public struct Point
   public void Offset(float xd, float yd, float zd) { X+=xd; Y+=yd; Z+=zd; }
 
   public override bool Equals(object obj) { return obj is Point ? (Point)obj==this : false; }
+  public bool Equals(Point point, float epsilon)
+  { return Math.Abs(point.X-X)<=epsilon && Math.Abs(point.Y-Y)<=epsilon && Math.Abs(point.Z-Z)<=epsilon;
+  }
   public override int GetHashCode() { return (X+Y+Z).GetHashCode(); }
   public override string ToString() { return string.Format("({0:f},{1:f},{2:f})", X, Y, Z); }
 
@@ -605,6 +625,9 @@ public struct Line
   }
 
   public override bool Equals(object obj) { return obj is Line ? (Line)obj==this : false; }
+  public bool Equals(Line line, float epsilon)
+  { return Start.Equals(line.Start, epsilon) && Vector.Equals(line.Vector, epsilon);
+  }
   public override int GetHashCode() { return Start.GetHashCode() ^ Vector.GetHashCode(); }
   public override string ToString() { return string.Format("{0}->{1}", Start, Vector); }
 
