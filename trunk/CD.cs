@@ -108,7 +108,7 @@ public unsafe class Drive : IDisposable
     }
   }
 
-  void Dispose(bool destructor)
+  void Dispose(bool destructing)
   { if(cd!=null)
     { SDL.CDClose(cd);
       cd = null;

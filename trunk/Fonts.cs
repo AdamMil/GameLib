@@ -232,7 +232,7 @@ public class BitmapFont : Font, IDisposable
     font = compatible==null ? orig : compatible;
   }
 
-  protected void Dispose(bool destructor) { base.Deinit(); }
+  protected void Dispose(bool destructing) { base.Deinit(); }
 
   IBlittable font, orig;
   string charset;
@@ -380,7 +380,7 @@ public class TrueTypeFont : NonFixedFont, IDisposable
     public char    Char;
     public bool    Compatible;
     
-    void Dispose(bool destructor) { Surface.Dispose(); }
+    void Dispose(bool destructing) { Surface.Dispose(); }
   }
   
   // TODO: implement a priority queue or something to efficiently limit the cache size
@@ -442,7 +442,7 @@ public class TrueTypeFont : NonFixedFont, IDisposable
     list.Remove(n);
   }
 
-  protected void Dispose(bool destructor)
+  protected void Dispose(bool destructing)
   { unsafe
     { if(font.ToPointer()!=null)
       { TTF.CloseFont(font);

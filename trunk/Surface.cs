@@ -673,7 +673,7 @@ public class Surface : IBlittable, IDisposable
     }
   }
   
-  protected unsafe void Dispose(bool destructor)
+  protected unsafe void Dispose(bool destructing)
   { if(autoFree && surface!=null)
     { SDL.FreeSurface(surface);
       surface=null;

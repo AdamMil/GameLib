@@ -1543,7 +1543,7 @@ public class DesktopControl : ContainerControl, IDisposable
     }
   }
 
-  protected void Dispose(bool destructor)
+  protected void Dispose(bool destructing)
   { if(init)
     { Video.Video.ModeChanged -= modeChanged;
       modeChanged = null;
