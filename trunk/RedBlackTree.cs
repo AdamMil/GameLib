@@ -53,7 +53,8 @@ public class RedBlackBase
         tree.TreeChanged += handler;
         this.tree=tree;
       }
-      Reset();
+      nodes = new Stack();
+      reset = true;
     }
     ~EnumeratorBase() { tree.TreeChanged -= handler; }
 
@@ -61,60 +62,33 @@ public class RedBlackBase
     /// <remarks>See <see cref="IEnumerator.MoveNext"/> for more information. <seealso cref="IEnumerator.MoveNext"/></remarks>
     public bool MoveNext()
     { AssertNotChanged();
-      if(states.Count==0)
-      { if(!reset || root==Node.Null) return false;
-        states.Push(new State(root));
+      if(root==Node.Null) return false;
+      Node n;
+      if(reset)
+      { n = root;
+        do { nodes.Push(n); n=n.Left; } while(n!=Node.Null);
         reset = false;
         return true;
       }
 
-      State state = (State)states.Peek();
-      switch(state.did)
-      { case Did.This:
-          if(state.node.Left!=Node.Null)
-          { states.Push(new State(state.node.Left));
-            state.did = Did.Left;
-            break;
-          }
-          else goto left;
-        case Did.Left: left:
-          if(state.node.Right!=Node.Null)
-          { states.Push(new State(state.node.Right));
-            state.did = Did.Right;
-            break;
-          }
-          else goto right;
-        case Did.Right: right:
-          do
-          { states.Pop();
-            if(states.Count==0) break;
-            state = (State)states.Peek();
-          } while(state.did==Did.Right || state.node.Right==Node.Null);
-          return states.Count>0;
-      }
-      return true;
+      n = ((Node)nodes.Pop()).Right;
+      while(n!=Node.Null) { nodes.Push(n); n=n.Left; }
+      return nodes.Count>0;
     }
 
     /// <summary>Sets the enumerator to its initial position, which is before the first element in the collection.</summary>
     /// <remarks>See <see cref="IEnumerator.Reset"/> for more information. <seealso cref="IEnumerator.Reset"/></remarks>
     public void Reset()
     { AssertNotChanged();
-      states = new Stack();
-      reset  = true;
+      nodes.Clear();
+      reset = true;
     }
 
     internal Node Current
     { get
-      { if(states.Count==0) throw new InvalidOperationException("Bad position.");
-        return ((State)states.Peek()).node;
+      { if(nodes.Count==0) throw new InvalidOperationException("Bad position.");
+        return (Node)nodes.Peek();
       }
-    }
-
-    enum Did { This, Left, Right }
-    class State
-    { public State(Node node) { this.node=node; did=Did.This; }
-      public Node node;
-      public Did  did;
     }
 
     protected void AssertNotChanged()
@@ -130,7 +104,7 @@ public class RedBlackBase
     RedBlackBase tree;
     TreeChangeHandler handler;
     Node root;
-    Stack states;
+    Stack nodes;
     bool  reset, changed;
   }
   #endregion
@@ -155,8 +129,7 @@ public class RedBlackBase
     { y=x;
       c=comparer.Compare(node.Value, x.Value);
       if(c<0) x=x.Left;
-      else if(c>0) x=x.Right;
-      else break;
+      else x=x.Right;
     }
     
     (x=node).Parent = y;
@@ -628,7 +601,7 @@ public sealed class Map : RedBlackBase, IDictionary
     Node n=Root;
     while(n.Right!=Node.Null) n=n.Right;
     Entry e = (Entry)n.Value;
-    Remove(n);
+    base.Remove(n);
     return e;
   }
 
@@ -637,7 +610,7 @@ public sealed class Map : RedBlackBase, IDictionary
     Node n=Root;
     while(n.Left!=Node.Null) n=n.Left;
     Entry e = (Entry)n.Value;
-    Remove(n);
+    base.Remove(n);
     return e;
   }
 }
@@ -719,7 +692,7 @@ public sealed class BinaryTree : RedBlackBase, ICollection
 
   /// <summary>Adds a new element to the binary tree.</summary>
   /// <param name="o">The object to add.</param>
-  public void Add(object o) { Add(new Node(o)); }
+  public void Add(object o) { base.Add(new Node(o)); }
   /// <summary>Determines whether the specified object exists in the tree.</summary>
   /// <param name="o">The object to search for.</param>
   /// <remarks>The <see cref="IComparer"/> passed to the constructor is used to compare values.</remarks>
@@ -727,7 +700,7 @@ public sealed class BinaryTree : RedBlackBase, ICollection
   /// <summary>Removes an object from the tree.</summary>
   /// <param name="o">The object to remove.</param>
   /// <remarks>The <see cref="IComparer"/> passed to the constructor is used to compare values.</remarks>
-  public void Remove(object o) { Remove(Find(o)); }
+  public void Remove(object o) { base.Remove(Find(o)); }
 
   /// <summary>Gets the item with the maximum value.</summary>
   /// <returns>The item with the maximum value.</returns>
@@ -748,7 +721,7 @@ public sealed class BinaryTree : RedBlackBase, ICollection
   /// </remarks>
   public object RemoveMaximum()
   { Node n = Maximum();
-    Remove(n);
+    base.Remove(n);
     return n.Value;
   }
   /// <summary>Removes and returns the item with the minimum value.</summary>
@@ -758,7 +731,7 @@ public sealed class BinaryTree : RedBlackBase, ICollection
   /// </remarks>
   public object RemoveMinimum()
   { Node n = Minimum();
-    Remove(n);
+    base.Remove(n);
     return n.Value;
   }
 

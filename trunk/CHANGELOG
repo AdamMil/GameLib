@@ -137,6 +137,8 @@ Legend
 * Fixed a bug in PSDCodec.IsPSD(Stream) that caused it to not reset the
   position of the stream if the file was a PSD file using a version of the
   PSD format that greater than the highest version understood by the codec
+* Made the Map and BinaryTree classes iterate in sorted order (infix) rather
+  than prefix order
 + Added a lot more documentation (for CD.cs, Config.cs, Events.cs,
   Exceptions.cs, Fonts.cs, GraphicsPrimitives.cs, Input.cs, Interop.cs,
   IO.cs, LinkedList.cs, OpenGL.cs, OpenGLInterop.cs, PriorityQueue.cs,
