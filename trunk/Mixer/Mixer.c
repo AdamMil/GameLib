@@ -9,44 +9,14 @@ static Sint32        mixAccSize;
 static int           initCount, mixVolume=256;
 
 static void GLM_callback(void *userdata, Uint8 *stream, int bytes)
-{ int i, samples;
+{ int samples;
   if(!mixCallback) return;
 
-  i=0, samples = bytes/((mixFormat.format&0xFF)>>3);
+  samples = bytes/((mixFormat.format&0xFF)>>3);
   memset(mixAcc, 0, samples*sizeof(Sint32)); /* zero the accumulator */
   if(mixVolume>0)
   { mixCallback(mixAcc, samples, userdata);  /* call the user callback to mix in the audio */
     GLM_VolumeScale(mixAcc, samples, mixVolume);
-    i=0;
-  }
-
-  if((mixFormat.format&0xFF)==8) /* 8bit */  /* convert the accumulator into the proper format for the audio stream */
-  { if(mixFormat.format&0x8000) /* 8bit signed */
-      for(; i<samples; i++) stream[i] = (Uint8)mixAcc[i];
-    else /* 8bit unsigned */
-      for(; i<samples; i++) stream[i] = (Uint8)(mixAcc[i]+128);
-  }
-  else /* 16 bit */
-  {
-    #if SDL_BYTEORDER == SDL_LIL_ENDIAN
-    if(mixFormat.format&0x1000) /* opposite endianness */
-    #else
-    if(!(mixFormat.format&0x1000)) /* opposite endianness */
-    #endif
-    { Uint32 *src = (Uint32*)mixAcc;
-      Uint16 *dst = (Uint16*)stream;
-      if(mixFormat.format&0x8000) /* 16bit signed OE */
-        for(; i<samples; i++) dst[i] = (Uint16)(((src[i]&0xFF)<<8)|(src[i]>>8));
-      else
-        for(; i<samples; i++) dst[i] = (Uint16)((((src[i]&0xFF)<<8)|(src[i]>>8))+32768);
-    }
-    else /* same endianness */
-    { Sint16 *dst = (Sint16*)stream;
-      if(mixFormat.format&0x8000) /* 16bit signed SE */
-        for(; i<samples; i++) dst[i] = (Sint16)mixAcc[i];
-      else
-        for(; i<samples; i++) dst[i] = (Sint16)(mixAcc[i]+32768);
-    }
   }
 }
 
@@ -105,6 +75,12 @@ void GLM_SetMixVolume(Uint16 volume)
 { mixVolume = volume>256 ? 256 : volume;
 }
 
+int GLM_Copy(Sint32 *dest, Sint32 *src, Uint32 samples)
+{ if(!dest || !src) return -1;
+  memcpy(dest, src, sizeof(Sint32)*samples);
+  return 0;
+}
+
 int GLM_VolumeScale(Sint32 *stream, Uint32 samples, Uint16 volume)
 { Uint32 i;
   int vol=volume;
@@ -119,6 +95,42 @@ int GLM_Mix(Sint32 *dest, Sint32 *src, Uint32 samples, Uint16 srcVolume)
   if(!dest || !src) return -1;
   if(volume>=256) for(; i<samples; i++) dest[i]+=src[i];
   else for(; i<samples; i++) dest[i]+=(src[i]*volume)>>8;
+  return 0;
+}
+
+int GLM_ConvertAcc(void *dest, Sint32 *src, Uint32 samples, Uint16 destFormat)
+{ Uint32 i=0;
+  if(!dest || !src) return -1;
+
+  if((destFormat&0xFF)==8) /* 8bit */  /* convert the accumulator into the proper format for the audio stream */
+  { Uint8 *dbuf = (Uint8*)dest;
+    if(destFormat&0x8000) /* 8bit signed */
+      for(; i<samples; i++) dbuf[i] = (Uint8)src[i];
+    else /* 8bit unsigned */
+      for(; i<samples; i++) dbuf[i] = (Uint8)(src[i]+128);
+  }
+  else /* 16 bit */
+  {
+    #if SDL_BYTEORDER == SDL_LIL_ENDIAN
+    if(destFormat&0x1000) /* opposite endianness */
+    #else
+    if(!(destFormat&0x1000)) /* opposite endianness */
+    #endif
+    { Uint32 *sbuf = (Uint32*)src;
+      Uint16 *dbuf = (Uint16*)dest;
+      if(destFormat&0x8000) /* 16bit signed OE */
+        for(; i<samples; i++) dbuf[i] = (Uint16)(((sbuf[i]&0xFF)<<8)|(sbuf[i]>>8));
+      else
+        for(; i<samples; i++) dbuf[i] = (Uint16)((((sbuf[i]&0xFF)<<8)|(sbuf[i]>>8))+32768);
+    }
+    else /* same endianness */
+    { Sint16 *dbuf = (Sint16*)dest;
+      if(destFormat&0x8000) /* 16bit signed SE */
+        for(; i<samples; i++) dbuf[i] = (Sint16)src[i];
+      else
+        for(; i<samples; i++) dbuf[i] = (Sint16)(src[i]+32768);
+    }
+  }
   return 0;
 }
 

@@ -521,7 +521,7 @@ internal class SDL
   #endregion
   
   #region Non-SDL helper functions
-  public static void Check(int result) { if(result!=0) SDL.RaiseError(); }
+  public static void Check(int result) { if(result<0) SDL.RaiseError(); }
 
   public static void RaiseError() // TODO: add parameter specifying type of exception to throw (instead of GameLibException)
   { string error = GetError();

@@ -19,6 +19,8 @@ internal class GLMixer
     #else
     U8Sys=U8, U16Sys=U16, S8Sys=S8, S16Sys=S16,
     #endif
+    
+    MixerFormat=32
   }
   
   [DllImport(Config.GLMixerImportPath, EntryPoint="GLM_Init", CallingConvention=CallingConvention.Cdecl)]
@@ -33,14 +35,20 @@ internal class GLMixer
   [DllImport(Config.GLMixerImportPath, EntryPoint="GLM_SetMixVolume", CallingConvention=CallingConvention.Cdecl)]
   public static extern void SetMixVolume(ushort volume);
 
+  [DllImport(Config.GLMixerImportPath, EntryPoint="GLM_Copy", CallingConvention=CallingConvention.Cdecl)]
+  public unsafe static extern int Copy(int* dest, int* src, uint samples);
   [DllImport(Config.GLMixerImportPath, EntryPoint="GLM_VolumeScale", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern int VolumeScale(int* stream, uint samples, ushort volume);
   [DllImport(Config.GLMixerImportPath, EntryPoint="GLM_Mix", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern int Mix(int* dest, int* src, uint samples, ushort srcVolume);
+  [DllImport(Config.GLMixerImportPath, EntryPoint="GLM_ConvertAcc", CallingConvention=CallingConvention.Cdecl)]
+  public unsafe static extern int ConvertAcc(void* dest, int* src, uint samples, ushort destFormat);
   [DllImport(Config.GLMixerImportPath, EntryPoint="GLM_ConvertMix", CallingConvention=CallingConvention.Cdecl)]
-  public unsafe static extern int ConvertMix(int* stream, void* src, uint samples, ushort srcFormat, ushort srcVolume);
+  public unsafe static extern int ConvertMix(int* dest, void* src, uint samples, ushort srcFormat, ushort srcVolume);
   [DllImport(Config.GLMixerImportPath, EntryPoint="GLM_DivideAccumulator", CallingConvention=CallingConvention.Cdecl)]
   public static extern int DivideAccumulator(int divisor);
+  
+  public static void Check(int result) { if(result<0) SDL.SDL.RaiseError(); }
 }
 
 } // namespace GameLib.Interop.GLMixer
