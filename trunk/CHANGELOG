@@ -9,6 +9,8 @@ LATEST (alpha/beta)
 -------------------
 + Added PriorityQueue.Dequeue, which does the same thing as
   PriorityQueue.DequeueMaximum
+* Fixed a bug in Fixed64*Fixed64 or Fixed64*double multiplication
+  with negative numbers, and also improved its speed
 
 2004.05.02 (alpha/beta)
 -----------------------
