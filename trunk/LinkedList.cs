@@ -110,8 +110,8 @@ public class LinkedList : ICollection, IEnumerable
   public Node Head  { get { return head; } }
   public Node Tail  { get { return tail; } }
 
-  public Node Append(object o)  { return tail==null ? head=tail=new Node(o) : InsertAfter(tail, o); }
-  public Node Prepend(object o) { return head==null ? head=tail=new Node(o) : InsertBefore(head, o); }
+  public Node Append(object o) { return tail==null ? head=tail=new Node(o) : InsertAfter(tail, new Node(o)); }
+  public Node Prepend(object o) { return head==null ? head=tail=new Node(o) : InsertBefore(head, new Node(o)); }
   public Node InsertAfter(object at, object o)
   { Node n = Find(at);
     if(n==null) throw new ArgumentException("Object not found in list", "at");
@@ -125,6 +125,8 @@ public class LinkedList : ICollection, IEnumerable
   public void Remove(object o) { Remove(Find(o)); }
   public bool Contains(object o) { return Find(o)!=null; }
 
+  public Node Append(Node newNode)  { return tail==null ? head=tail=newNode : InsertAfter(tail, newNode); }
+  public Node Prepend(Node newNode) { return head==null ? head=tail=newNode : InsertBefore(head, newNode); }
   public Node Find(object o) { return Find(o, head); }
   public Node Find(object o, Node start)
   { while(start!=null && cmp.Compare(start.Data, o)!=0) start=start.Next;
@@ -135,21 +137,27 @@ public class LinkedList : ICollection, IEnumerable
   { while(end!=null && cmp.Compare(end.Data, o)!=0) end=end.Prev;
     return end;
   }
-  public Node InsertAfter(Node node, object o)
-  { if(node==null) throw new ArgumentNullException("node");
-    node.Next = new Node(o, node, node.Next);
+  public Node InsertAfter(Node node, object o) { return InsertAfter(node, new Node(o)); }
+  public Node InsertAfter(Node node, Node newNode)
+  { if(node==null || newNode==null) throw new ArgumentNullException();
+    newNode.Prev = node;
+    newNode.Next = node.Next;
+    node.Next    = newNode;
     if(node==tail) tail=node.Next;
     count++;
     if(ListChanged!=null) ListChanged();
-    return node.Next;
+    return newNode;
   }
-  public Node InsertBefore(Node node, object o)
-  { if(node==null) throw new ArgumentNullException("node");
-    node.Prev = new Node(o, node.Prev, node);
+  public Node InsertBefore(Node node, object o) { return InsertAfter(node, new Node(o)); }
+  public Node InsertBefore(Node node, Node newNode)
+  { if(node==null || newNode==null) throw new ArgumentNullException();
+    newNode.Prev = node.Prev;
+    newNode.Next = node;
+    node.Prev    = newNode;
     if(node==head) head=node.Prev;
     count++;
     if(ListChanged!=null) ListChanged();
-    return node.Prev;
+    return newNode;
   }
   public void Remove(Node node)
   { if(node==null) return;

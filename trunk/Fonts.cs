@@ -394,6 +394,8 @@ public class TrueTypeFont : NonFixedFont, IDisposable
       { cc.Surface = cc.Surface.CloneDisplay();
         cc.Compatible = true;
       }
+      list.Remove(node);
+      list.Prepend(node);
       return cc;
     }
 

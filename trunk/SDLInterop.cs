@@ -407,7 +407,7 @@ internal class SDL
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_WarpMouse", CallingConvention=CallingConvention.Cdecl)]
   public static extern void WarpMouse(ushort x, ushort y);
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_CreateRGBSurface", CallingConvention=CallingConvention.Cdecl)]
-  public static extern Surface* CreateRGBSurface(uint flags, int width, int height, uint depth, uint Rmask, uint Gmask, uint Bmask, uint Amask);
+  public static extern Surface* CreateRGBSurface(uint flags, int width, int height, int depth, uint Rmask, uint Gmask, uint Bmask, uint Amask);
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_UpperBlit", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern int BlitSurface(Surface* src, Rect* srcrect, Surface* dest, Rect* destrect);
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_GetVideoSurface", CallingConvention=CallingConvention.Cdecl)]
