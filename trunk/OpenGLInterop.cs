@@ -1345,6 +1345,8 @@ public class GL
   public unsafe static extern void glColor4usv(/*const*/ ushort *v);
   [DllImport(Config.OpenGLImportPath, CallingConvention=CallingConvention.Winapi)]
   public static extern void glColor4usv(ushort[] v);
+  public static void glColor(System.Drawing.Color c) { glColor4ub(c.R, c.G, c.B, c.A); }
+  public static void glColor(byte alpha, System.Drawing.Color c) { glColor4ub(c.R, c.G, c.B, alpha); }
   [DllImport(Config.OpenGLImportPath, CallingConvention=CallingConvention.Winapi)]
   public static extern void glColorMask(byte red, byte green, byte blue, byte alpha);
   [DllImport(Config.OpenGLImportPath, CallingConvention=CallingConvention.Winapi)]
@@ -1354,9 +1356,9 @@ public class GL
   [DllImport(Config.OpenGLImportPath, CallingConvention=CallingConvention.Winapi)]
   public static extern void glCopyPixels(int x, int y, int width, int height, uint type);
   [DllImport(Config.OpenGLImportPath, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glCopyTexImage1D(uint target, int level, uint internalFormat, int x, int y, int width, int border);
+  public static extern void glCopyTexImage1D(uint target, int level, uint internalformat, int x, int y, int width, int border);
   [DllImport(Config.OpenGLImportPath, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glCopyTexImage2D(uint target, int level, uint internalFormat, int x, int y, int width, int height, int border);
+  public static extern void glCopyTexImage2D(uint target, int level, uint internalformat, int x, int y, int width, int height, int border);
   [DllImport(Config.OpenGLImportPath, CallingConvention=CallingConvention.Winapi)]
   public static extern void glCopyTexSubImage1D(uint target, int level, int xoffset, int x, int y, int width);
   [DllImport(Config.OpenGLImportPath, CallingConvention=CallingConvention.Winapi)]
@@ -1522,6 +1524,12 @@ public class GL
   public unsafe static extern void glGenTextures(int n, uint *textures);
   public unsafe static void glGenTextures(uint[] textures)
   { fixed(uint* p=textures) glGenTextures(textures.Length, p);
+  }
+  public unsafe static void glGenTextures(uint[] textures, int length)
+  { fixed(uint* p=textures) glGenTextures(length, p);
+  }
+  public unsafe static void glGenTextures(uint[] textures, int index, int length)
+  { fixed(uint* p=textures) glGenTextures(length, p+index);
   }
   [DllImport(Config.OpenGLImportPath, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glGetBooleanv(uint pname, byte *parms);
@@ -2297,70 +2305,95 @@ public class GL
   [DllImport(Config.OpenGLImportPath, CallingConvention=CallingConvention.Winapi)]
   public static extern void glTexGeniv(uint coord, uint pname, int[] parms);
   [DllImport(Config.OpenGLImportPath, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glTexImage1D(uint target, int level, int internalformat, int width, int border, uint format, uint type, /*const*/ void *pixels);
-  public unsafe static void glTexImage1D(uint target, int level, int internalformat, int width, int border, uint format, /*const*/ sbyte *pixels)
+  public unsafe static extern void glTexImage1D(uint target, int level, uint internalformat, int width, int border, uint format, uint type, /*const*/ void* pixels);
+  [DllImport(Config.OpenGLImportPath, CallingConvention=CallingConvention.Winapi)]
+  public unsafe static extern void glTexImage1D(uint target, int level, uint internalformat, int width, int border, uint format, uint type, IntPtr pixels);
+  public unsafe static void glTexImage1D(uint target, int level, uint internalformat, int width, int border, uint format, /*const*/ sbyte* pixels)
   { glTexImage1D(target, level, internalformat, width, border, format, GL_BYTE, pixels);
   }
-  public unsafe static void glTexImage1D(uint target, int level, int internalformat, int width, int border, uint format, /*const*/ byte *pixels)
+  public unsafe static void glTexImage1D(uint target, int level, uint internalformat, int width, int border, uint format, /*const*/ byte* pixels)
   { glTexImage1D(target, level, internalformat, width, border, format, GL_UNSIGNED_BYTE, pixels);
   }
-  public unsafe static void glTexImage1D(uint target, int level, int internalformat, int width, int border, uint format, /*const*/ short *pixels)
+  public unsafe static void glTexImage1D(uint target, int level, uint internalformat, int width, int border, uint format, /*const*/ short* pixels)
   { glTexImage1D(target, level, internalformat, width, border, format, GL_SHORT, pixels);
   }
-  public unsafe static void glTexImage1D(uint target, int level, int internalformat, int width, int border, uint format, /*const*/ ushort *pixels)
+  public unsafe static void glTexImage1D(uint target, int level, uint internalformat, int width, int border, uint format, /*const*/ ushort* pixels)
   { glTexImage1D(target, level, internalformat, width, border, format, GL_UNSIGNED_SHORT, pixels);
   }
-  public unsafe static void glTexImage1D(uint target, int level, int internalformat, int width, int border, uint format, /*const*/ int *pixels)
+  public unsafe static void glTexImage1D(uint target, int level, uint internalformat, int width, int border, uint format, /*const*/ int* pixels)
   { glTexImage1D(target, level, internalformat, width, border, format, GL_INT, pixels);
   }
-  public unsafe static void glTexImage1D(uint target, int level, int internalformat, int width, int border, uint format, /*const*/ uint *pixels)
+  public unsafe static void glTexImage1D(uint target, int level, uint internalformat, int width, int border, uint format, /*const*/ uint* pixels)
   { glTexImage1D(target, level, internalformat, width, border, format, GL_UNSIGNED_INT, pixels);
   }
-  public unsafe static void glTexImage1D(uint target, int level, int internalformat, int width, int border, uint format, /*const*/ float *pixels)
+  public unsafe static void glTexImage1D(uint target, int level, uint internalformat, int width, int border, uint format, /*const*/ float* pixels)
   { glTexImage1D(target, level, internalformat, width, border, format, GL_FLOAT, pixels);
   }
-  public unsafe static void glTexImage1D(uint target, int level, int internalformat, int width, int border, uint format, sbyte[] pixels)
+  public unsafe static void glTexImage1D(uint target, int level, uint internalformat, int width, int border, uint format, sbyte[] pixels)
   { fixed(sbyte* p=pixels) glTexImage1D(target, level, internalformat, width, border, format, GL_BYTE, p);
   }
-  public unsafe static void glTexImage1D(uint target, int level, int internalformat, int width, int border, uint format, byte[] pixels)
+  public unsafe static void glTexImage1D(uint target, int level, uint internalformat, int width, int border, uint format, byte[] pixels)
   { fixed(byte* p=pixels) glTexImage1D(target, level, internalformat, width, border, format, GL_UNSIGNED_BYTE, p);
   }
-  public unsafe static void glTexImage1D(uint target, int level, int internalformat, int width, int border, uint format, short[] pixels)
+  public unsafe static void glTexImage1D(uint target, int level, uint internalformat, int width, int border, uint format, short[] pixels)
   { fixed(short* p=pixels) glTexImage1D(target, level, internalformat, width, border, format, GL_SHORT, p);
   }
-  public unsafe static void glTexImage1D(uint target, int level, int internalformat, int width, int border, uint format, ushort[] pixels)
+  public unsafe static void glTexImage1D(uint target, int level, uint internalformat, int width, int border, uint format, ushort[] pixels)
   { fixed(ushort* p=pixels) glTexImage1D(target, level, internalformat, width, border, format, GL_UNSIGNED_SHORT, p);
   }
-  public unsafe static void glTexImage1D(uint target, int level, int internalformat, int width, int border, uint format, int[] pixels)
+  public unsafe static void glTexImage1D(uint target, int level, uint internalformat, int width, int border, uint format, int[] pixels)
   { fixed(int* p=pixels) glTexImage1D(target, level, internalformat, width, border, format, GL_INT, p);
   }
-  public unsafe static void glTexImage1D(uint target, int level, int internalformat, int width, int border, uint format, uint[] pixels)
+  public unsafe static void glTexImage1D(uint target, int level, uint internalformat, int width, int border, uint format, uint[] pixels)
   { fixed(uint* p=pixels) glTexImage1D(target, level, internalformat, width, border, format, GL_UNSIGNED_INT, p);
   }
-  public unsafe static void glTexImage1D(uint target, int level, int internalformat, int width, int border, uint format, float[] pixels)
+  public unsafe static void glTexImage1D(uint target, int level, uint internalformat, int width, int border, uint format, float[] pixels)
   { fixed(float* p=pixels) glTexImage1D(target, level, internalformat, width, border, format, GL_FLOAT, p);
   }
   [DllImport(Config.OpenGLImportPath, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glTexImage2D(uint target, int level, int internalformat, int width, int height, int border, uint format, uint type, /*const*/ void *pixels);
-  public unsafe static void glTexImage2D(uint target, int level, int internalformat, int width, int height, int border, uint format, sbyte[] pixels)
+  public unsafe static extern void glTexImage2D(uint target, int level, uint internalformat, int width, int height, int border, uint format, uint type, /*const*/ void* pixels);
+  [DllImport(Config.OpenGLImportPath, CallingConvention=CallingConvention.Winapi)]
+  public unsafe static extern void glTexImage2D(uint target, int level, uint internalformat, int width, int height, int border, uint format, uint type, IntPtr pixels);
+  public unsafe static void glTexImage2D(uint target, int level, uint internalformat, int width, int height, int border, uint format, sbyte[] pixels)
   { fixed(sbyte* p=pixels) glTexImage2D(target, level, internalformat, width, height, border, format, GL_BYTE, p);
   }
-  public unsafe static void glTexImage2D(uint target, int level, int internalformat, int width, int height, int border, uint format, byte[] pixels)
+  public unsafe static void glTexImage2D(uint target, int level, uint internalformat, int width, int height, int border, uint format, byte[] pixels)
   { fixed(byte* p=pixels) glTexImage2D(target, level, internalformat, width, height, border, format, GL_UNSIGNED_BYTE, p);
   }
-  public unsafe static void glTexImage2D(uint target, int level, int internalformat, int width, int height, int border, uint format, short[] pixels)
+  public unsafe static void glTexImage2D(uint target, int level, uint internalformat, int width, int height, int border, uint format, short[] pixels)
   { fixed(short* p=pixels) glTexImage2D(target, level, internalformat, width, height, border, format, GL_SHORT, p);
   }
-  public unsafe static void glTexImage2D(uint target, int level, int internalformat, int width, int height, int border, uint format, ushort[] pixels)
+  public unsafe static void glTexImage2D(uint target, int level, uint internalformat, int width, int height, int border, uint format, ushort[] pixels)
   { fixed(ushort* p=pixels) glTexImage2D(target, level, internalformat, width, height, border, format, GL_UNSIGNED_SHORT, p);
   }
-  public unsafe static void glTexImage2D(uint target, int level, int internalformat, int width, int height, int border, uint format, int[] pixels)
+  public unsafe static void glTexImage2D(uint target, int level, uint internalformat, int width, int height, int border, uint format, int[] pixels)
   { fixed(int* p=pixels) glTexImage2D(target, level, internalformat, width, height, border, format, GL_INT, p);
   }
-  public unsafe static void glTexImage2D(uint target, int level, int internalformat, int width, int height, int border, uint format, uint[] pixels)
+  public unsafe static void glTexImage2D(uint target, int level, uint internalformat, int width, int height, int border, uint format, uint[] pixels)
   { fixed(uint* p=pixels) glTexImage2D(target, level, internalformat, width, height, border, format, GL_UNSIGNED_INT, p);
   }
-  public unsafe static void glTexImage2D(uint target, int level, int internalformat, int width, int height, int border, uint format, /*const*/ float *pixels)
+  public unsafe static void glTexImage2D(uint target, int level, uint internalformat, int width, int height, int border, uint format, float[] pixels)
+  { fixed(float* p=pixels) glTexImage2D(target, level, internalformat, width, height, border, format, GL_FLOAT, p);
+  }
+  public unsafe static void glTexImage2D(uint target, int level, uint internalformat, int width, int height, int border, uint format, /*const*/ sbyte* pixels)
+  { glTexImage2D(target, level, internalformat, width, height, border, format, GL_BYTE, pixels);
+  }
+  public unsafe static void glTexImage2D(uint target, int level, uint internalformat, int width, int height, int border, uint format, /*const*/ byte* pixels)
+  { glTexImage2D(target, level, internalformat, width, height, border, format, GL_UNSIGNED_BYTE, pixels);
+  }
+  public unsafe static void glTexImage2D(uint target, int level, uint internalformat, int width, int height, int border, uint format, /*const*/ short* pixels)
+  { glTexImage2D(target, level, internalformat, width, height, border, format, GL_SHORT, pixels);
+  }
+  public unsafe static void glTexImage2D(uint target, int level, uint internalformat, int width, int height, int border, uint format, /*const*/ ushort* pixels)
+  { glTexImage2D(target, level, internalformat, width, height, border, format, GL_UNSIGNED_SHORT, pixels);
+  }
+  public unsafe static void glTexImage2D(uint target, int level, uint internalformat, int width, int height, int border, uint format, /*const*/ int* pixels)
+  { glTexImage2D(target, level, internalformat, width, height, border, format, GL_INT, pixels);
+  }
+  public unsafe static void glTexImage2D(uint target, int level, uint internalformat, int width, int height, int border, uint format, /*const*/ uint* pixels)
+  { glTexImage2D(target, level, internalformat, width, height, border, format, GL_UNSIGNED_INT, pixels);
+  }
+  public unsafe static void glTexImage2D(uint target, int level, uint internalformat, int width, int height, int border, uint format, /*const*/ float* pixels)
   { glTexImage2D(target, level, internalformat, width, height, border, format, GL_FLOAT, pixels);
   }
   [DllImport(Config.OpenGLImportPath, CallingConvention=CallingConvention.Winapi)]
@@ -2370,7 +2403,7 @@ public class GL
   [DllImport(Config.OpenGLImportPath, CallingConvention=CallingConvention.Winapi)]
   public static extern void glTexParameterfv(uint target, uint pname, float[] parms);
   [DllImport(Config.OpenGLImportPath, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glTexParameteri(uint target, uint pname, int param);
+  public static extern void glTexParameteri(uint target, uint pname, uint param);
   [DllImport(Config.OpenGLImportPath, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glTexParameteriv(uint target, uint pname, /*const*/ int *parms);
   [DllImport(Config.OpenGLImportPath, CallingConvention=CallingConvention.Winapi)]
@@ -2610,7 +2643,11 @@ public class GLU
   [DllImport(Config.GLUImportPath, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern int gluScaleImage(uint format, int widthin, int heightin, uint typein, /*const*/ void* datain, int widthout, int heightout, uint typeout, void* dataout);
   [DllImport(Config.GLUImportPath, CallingConvention=CallingConvention.Winapi)]
+  public unsafe static extern int gluScaleImage(uint format, int widthin, int heightin, uint typein, IntPtr datain, int widthout, int heightout, uint typeout, IntPtr dataout);
+  [DllImport(Config.GLUImportPath, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern int gluBuild1DMipmaps(uint target, int components, int width, uint format, uint type, /*const*/ void* data);
+  [DllImport(Config.GLUImportPath, CallingConvention=CallingConvention.Winapi)]
+  public unsafe static extern int gluBuild1DMipmaps(uint target, int components, int width, uint format, uint type, IntPtr data);
   public unsafe static int gluBuild1DMipmaps(uint target, int components, int width, uint format, /*const*/ sbyte* data)
   { return gluBuild1DMipmaps(target, components, width, format, GL.GL_BYTE, data);
   }
@@ -2655,6 +2692,8 @@ public class GLU
   }
   [DllImport(Config.GLUImportPath, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern int gluBuild2DMipmaps(uint target, int components, int width, int height, uint format, uint type, /*const*/ void* data);
+  [DllImport(Config.GLUImportPath, CallingConvention=CallingConvention.Winapi)]
+  public unsafe static extern int gluBuild2DMipmaps(uint target, int components, int width, int height, uint format, uint type, IntPtr data);
   public unsafe static int gluBuild2DMipmaps(uint target, int components, int width, int height, uint format, /*const*/ sbyte* data)
   { return gluBuild2DMipmaps(target, components, width, height, format, GL.GL_BYTE, data);
   }

@@ -19,27 +19,61 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 using System;
 using System.Drawing;
 using GameLib.Events;
+using GameLib.Fonts;
+using GameLib.Input;
 using GameLib.Video;
 
 namespace BasicVideo
 {
 
 class App
-{ static void Main()
-  { 
-    #if DEBUG
-    string dataPath = "../../../"; // set to something correct
-    #else
-    string dataPath = "data/"; // set to something correct
-    #endif
-    
-    Video.Initialize();
+{ 
+  #if DEBUG
+  static string dataPath = "../../../"; // set to something correct
+  #else
+  static string dataPath = "data/"; // set to something correct
+  #endif
+
+  static void Main()
+  { Video.Initialize();
     Video.SetMode(640, 480, 32); // set 640x480x32bpp windowed mode
+    GameLib.Video.WM.WindowTitle = "BasicVideo Example";
 
-    Video.DisplaySurface.Fill(new Rectangle(0, 0, Video.Width/2, Video.Height/2), Color.White);
+    font = new TrueTypeFont(dataPath+"mstrr.ttf", 24); // load a font
+    font.RenderStyle = RenderStyle.Blended;
+    font.Color = Color.Pink;
+    smiley = new Surface(dataPath+"smiley.png"); // load a smiley face image
 
-    Surface smiley = new Surface(dataPath+"smiley.png"); // load a smiley face image
+    Draw();
+
+    Events.Initialize();
+    while(true)
+    { Event e = Events.NextEvent();
+      if(e is KeyboardEvent)
+      { KeyboardEvent ke = (KeyboardEvent)e;
+        if(ke.Down && ke.Key==Key.Escape) break;
+        // alt-enter to toggle fullscreen
+        else if(ke.Down && ke.Key==Key.Enter && ke.HasOnlyKeys(KeyMod.Alt))
+        { Video.SetMode(640, 480, 32,
+                        Video.DisplaySurface.Flags ^ SurfaceFlag.Fullscreen);
+          Draw();
+        }
+      }
+      else if(e is QuitEvent) break; // or when the system tells us to
+      else if(e is RepaintEvent) Video.Flip(); // repaint the screen when necessary
+    }
+    
+    Video.Deinitialize();
+  }
+  
+  static void Draw()
+  { Video.DisplaySurface.Fill(new Rectangle(0, 0, Video.Width/2, Video.Height/2), Color.White);
+
+    string text = @"The quick brown fox jumped over the lazy dog, and then ran around in circles for two and a half minutes.";
+    font.Render(Video.DisplaySurface, text, new Rectangle(320, 240, 320, 240));
+    
     // display it centered (uses alpha blending)
+    smiley.UsingAlpha = true; // turn on alpha blending
     smiley.Blit(Video.DisplaySurface, (Video.Width-smiley.Width)/2, (Video.Height-smiley.Height)/2);
     smiley.UsingAlpha = false; // turn off alpha blending for this image
     smiley.Blit(Video.DisplaySurface, (Video.Width-smiley.Width)/2, 0); // blit it centered horizontally only
@@ -51,20 +85,11 @@ class App
     Primitives.Circle(temp, temp.Width/2, temp.Height/2, 40, Color.Red); // with a red circle
     // now blit the temporary onto the display buffer
     temp.Blit(Video.DisplaySurface, 40, (Video.Height-temp.Height)/2);
-
-    Events.Initialize();
-    while(true)
-    { Event e = Events.NextEvent();
-      if(e is KeyboardEvent)
-      { KeyboardEvent ke = (KeyboardEvent)e;
-        if(ke.Down && ke.Key==GameLib.Input.Key.Escape) break; // quit on escape
-      }
-      else if(e is QuitEvent) break; // or when the system tells us to
-      else if(e is RepaintEvent) Video.Flip(); // repaint the screen when necessary
-    }
-    
-    Video.Deinitialize();
+    temp.Dispose();
   }
+
+  static GameLib.Fonts.TrueTypeFont font;
+  static Surface smiley;
 }
 
 } // namespace BasicVideo

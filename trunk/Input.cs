@@ -411,14 +411,16 @@ public sealed class Mouse
   }
 
   internal static void OnMouseMove(MouseMoveEvent e)
-  { x=e.X; y=e.Y; buttons=e.Buttons; // TODO: mouse moves 100x faster than normal in fullscreen mode. why?
+  { x=e.X; y=e.Y; buttons=e.Buttons;
     if(MouseMove!=null) MouseMove(e);
   }
   internal static void OnMouseClick(MouseClickEvent e)
-  { if(e.Down) buttons |= (byte)(1<<(byte)e.Button);
+  { if(e.Down)
+    { buttons |= (byte)(1<<(byte)e.Button);
+      if(e.Button==MouseButton.WheelUp) z--;
+      else if(e.Button==MouseButton.WheelDown) z++;
+    }
     else buttons &= (byte)~(1<<(byte)e.Button);
-    if(e.Button==MouseButton.WheelUp) z--;
-    else if(e.Button==MouseButton.WheelDown) z++;
     if(MouseClick!=null) MouseClick(e);
   }
 
@@ -549,32 +551,33 @@ public sealed class Input
     }
   }
   
-  public static void ProcessEvent(Event e)
+  public static bool ProcessEvent(Event e)
   { switch(e.Type)
-    { case EventType.MouseMove:  Mouse.OnMouseMove((MouseMoveEvent)e); break;
+    { case EventType.MouseMove:  Mouse.OnMouseMove((MouseMoveEvent)e); return true;
       case EventType.JoyMove:
       { JoyMoveEvent je = (JoyMoveEvent)e;
         joysticks[je.Device].OnJoyMove(je);
-        break;
+        return true;
       }
-      case EventType.Keyboard:   Keyboard.OnKeyEvent((KeyboardEvent)e); break;
-      case EventType.MouseClick: Mouse.OnMouseClick((MouseClickEvent)e); break;
+      case EventType.Keyboard:   Keyboard.OnKeyEvent((KeyboardEvent)e); return true;
+      case EventType.MouseClick: Mouse.OnMouseClick((MouseClickEvent)e); return true;
       case EventType.JoyBall:
       { JoyBallEvent je = (JoyBallEvent)e;
         joysticks[je.Device].OnJoyBall(je);
-        break;
+        return true;
       }
       case EventType.JoyButton:
       { JoyButtonEvent je = (JoyButtonEvent)e;
         joysticks[je.Device].OnJoyButton(je);
-        break;
+        return true;
       }
       case EventType.JoyHat:
       { JoyHatEvent je = (JoyHatEvent)e;
         joysticks[je.Device].OnJoyHat(je);
-        break;
+        return true;
       }
     }
+    return false;
   }
 
   static Joystick[] joysticks;
