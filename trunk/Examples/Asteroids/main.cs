@@ -59,23 +59,113 @@ class Asteroid
     
     Vector cent = new Vector(Poly.GetCentroid());
     for(int i=0; i<Poly.Length; i++) Poly[i] -= cent;
+    Hits = Poly.SplitIntoConvexPolygons();
     Size = diameter;
     Pos  = pos;
     Vel  = vel;
     AngleVel = (App.Rand.Next(360)-180) * vel.Length/128;
   }
 
+  public bool Collide(Line segment)
+  { segment.Start.X -= Pos.X; segment.Start.Y -= Pos.Y;
+    foreach(Polygon p in Hits) if(p.ConvexContains(segment.Start)) return true;
+    for(int i=0; i<Poly.Length; i++)
+    { LineIntersectInfo info = segment.GetIntersection(Poly.GetEdge(i));
+      if(info.OnFirst && info.OnSecond) return true;
+    }
+    return false;
+  }
+
+  public void Draw()
+  { GL.glTranslatef(Pos.X, Pos.Y, 0);
+    GL.glRotatef(Angle, 0, 0, 1);
+    GL.glBegin(GL.GL_LINE_LOOP);
+    for(int i=0; i<Poly.Length; i++) GL.glVertex2f(Poly[i].X, Poly[i].Y);
+    GL.glEnd();
+    GL.glLoadIdentity();
+  }
+  
   public Polygon Poly = new Polygon();
   public Point   Pos;
   public Vector  Vel;
   public float   Size, Angle, AngleVel;
+  Polygon[] Hits;
+}
+#endregion
+
+public class Bullet
+{ public Bullet(Point pos, Vector vel) { Pos=pos; Vel=vel; Life=2; }
+
+  public void Draw()
+  { GL.glBegin(GL.GL_POINTS);
+    GL.glVertex2f(Pos.X, Pos.Y);
+    GL.glEnd();
+  }
+
+  public bool Update()
+  { Life -= App.TimeDelta;
+    if(Life<0) return false;
+    Pos = App.Wrap(Pos+Vel*App.TimeDelta);
+    return true;
+  }
+
+  public Point  Pos;
+  public Vector Vel;
+  public float  Life;
+}
+
+#region Ship
+public class Ship
+{ public void Draw()
+  { GL.glTranslatef(Pos.X, Pos.Y, 0);
+    GL.glRotatef(Angle, 0, 0, 1);
+    GL.glBegin(GL.GL_LINE_LOOP);
+    GL.glVertex2f(0, 10);
+    GL.glVertex2f(8, -10);
+    GL.glVertex2f(-8, -10);
+    GL.glEnd();
+    GL.glLoadIdentity();
+  }
+
+  public void Update()
+  { const int turnSpeed=300, accel=300, bulletSpeed=250;
+    if(Keyboard.Pressed(Key.Left)) Angle += turnSpeed*App.TimeDelta;
+    if(Keyboard.Pressed(Key.Right)) Angle -= turnSpeed*App.TimeDelta;
+    float angle = Angle*(float)Math.PI/180;
+    if(Keyboard.Pressed(Key.Up))
+    { Vel += new Vector(0, accel).Rotated(angle)*App.TimeDelta;
+    }
+    if(Delay>0) Delay -= App.TimeDelta;
+    else if(Keyboard.Pressed(Key.Space) && Delay<=0)
+    { App.AddBullet(new Bullet(Pos + new Vector(0, 10).Rotated(angle),
+                               new Vector(0, bulletSpeed).Rotated(angle) + Vel));
+      Delay = 0.2f;
+    }
+    Pos = App.Wrap(Pos + Vel*App.TimeDelta);
+  }
+
+  public Point  Pos;
+  public Vector Vel;
+  public float  Angle, AngleVel, Fade;
+  float Delay;
 }
 #endregion
 
 class App
 { public static Random Rand = new Random();
+  public static float TimeDelta;
 
-  public int STARTSIZE = 75;
+  const int STARTSIZE = 75;
+
+  public static void AddBullet(Bullet bullet) { if(bullets.Count<10) bullets.Add(bullet); }
+
+  public static Point Wrap(Point p)
+  { if(p.X<0) p.X=640;
+    else if(p.X>640) p.X=0;
+    if(p.Y<0) p.Y=480;
+    else if(p.Y>480) p.Y=0;
+    return p;
+  }
 
   static void Main()
   { Initialize();
@@ -83,6 +173,7 @@ class App
     for(int i=0; i<8; i++)
       asteroids.Add(new Asteroid(75, new Point(Rand.Next(640), Rand.Next(480)),
                     new Vector(Rand.Next(320)-160, Rand.Next(240)-120)));
+    ship.Pos = new Point(320, 240);
     
     float lastTime = (float)Timing.Seconds;
     while(true)
@@ -92,7 +183,8 @@ class App
         if(Keyboard.Pressed(Key.Escape) || e is QuitEvent) goto done;
       }
       float time = (float)Timing.Seconds;
-      UpdateWorld(time-lastTime); lastTime=time;
+      TimeDelta = time-lastTime; lastTime=time;
+      UpdateWorld();
       Draw();
     }
     done:
@@ -108,14 +200,9 @@ class App
   static void Draw()
   { GL.glClear(GL.GL_COLOR_BUFFER_BIT);
     GL.glColor(System.Drawing.Color.White);
-    foreach(Asteroid a in asteroids)
-    { GL.glLoadIdentity();
-      GL.glTranslatef(a.Pos.X, a.Pos.Y, 0);
-      GL.glRotatef(a.Angle, 0, 0, 1);
-      GL.glBegin(GL.GL_LINE_LOOP);
-      for(int i=0; i<a.Poly.Length; i++) GL.glVertex2f(a.Poly[i].X, a.Poly[i].Y);
-      GL.glEnd();
-    }
+    foreach(Asteroid a in asteroids) a.Draw();
+    foreach(Bullet b in bullets) b.Draw();
+    ship.Draw();
     Video.Flip();
   }
 
@@ -123,6 +210,8 @@ class App
   { Events.Initialize();
     Input.Initialize();
     Video.Initialize();
+    Mouse.SystemCursorVisible = false;
+    WM.WindowTitle = "Space Rocks";
     SetMode(640, 480);
   }
 
@@ -132,6 +221,7 @@ class App
     GL.glHint(GL.GL_LINE_SMOOTH_HINT, GL.GL_NICEST);
     GL.glHint(GL.GL_PERSPECTIVE_CORRECTION_HINT, GL.GL_FASTEST);
     GL.glHint(GL.GL_POINT_SMOOTH_HINT, GL.GL_NICEST);
+    GL.glPointSize(2);
     GL.glShadeModel(GL.GL_FLAT);
 
     GL.glMatrixMode(GL.GL_PROJECTION);
@@ -139,33 +229,42 @@ class App
     GL.glMatrixMode(GL.GL_MODELVIEW);
   }
   
-  static void UpdateWorld(float timeDelta)
-  { ArrayList rem=null, add=null;
-    foreach(Asteroid a in asteroids)
-    { /*if(p.ConvexContains(new Point(Mouse.X-a.Pos.X, 480-Mouse.Y-a.Pos.Y)))
-        { if(rem==null) { rem = new ArrayList(); add = new ArrayList(); }
-          rem.Add(a);
-          if(a.Size>35)
-            for(int i=0; i<2; i++)
-              add.Add(new Asteroid(a.Size*2/3, a.Pos, a.Vel + new Vector(Rand.Next(160)-80, Rand.Next(120)-60)));
-          goto nextAst;
-        }*/
+  static void UpdateWorld()
+  { ArrayList segs=bullets.Count>0 ? new ArrayList(bullets.Count) : null;
 
-      a.Pos += a.Vel * timeDelta;
-      a.Angle += a.AngleVel * timeDelta;
-      if(a.Pos.X<0) a.Pos.X=640;
-      else if(a.Pos.X>640) a.Pos.X=0;
-      if(a.Pos.Y<0) a.Pos.Y=480;
-      else if(a.Pos.Y>480) a.Pos.Y=0;
+    for(int bi=0; bi<bullets.Count; bi++)
+    { Bullet b = (Bullet)bullets[bi];
+      Line seg = new Line(b.Pos, b.Vel*TimeDelta);
+      if(b.Update()) segs.Add(seg);
+      else bullets.RemoveAt(bi--);
+    }
+
+    for(int ai=0; ai<asteroids.Count; ai++)
+    { Asteroid a = (Asteroid)asteroids[ai];
+      if(segs!=null)
+        for(int bi=0; bi<segs.Count; bi++)
+          if(a.Collide((Line)segs[bi]))
+          { asteroids.RemoveAt(ai--);
+            if(a.Size>35)
+              for(int i=0; i<2; i++)
+                asteroids.Add(new Asteroid(a.Size*2/3, a.Pos,
+                                           a.Vel + new Vector(Rand.Next(160)-80, Rand.Next(120)-60)));
+            bullets.RemoveAt(bi);
+            segs.RemoveAt(bi);
+            goto nextAst;
+          }
+
+      a.Angle += a.AngleVel*TimeDelta;
+      a.Pos = Wrap(a.Pos + a.Vel*TimeDelta);
 
       nextAst:;
     }
-    
-    if(rem != null) foreach(Asteroid a in rem) asteroids.Remove(a);
-    if(add != null) foreach(Asteroid a in add) asteroids.Add(a);
+
+    ship.Update();
   }
   
-  static ArrayList asteroids = new ArrayList();
+  static ArrayList asteroids = new ArrayList(), bullets = new ArrayList();
+  static Ship ship = new Ship();
 }
 
 } // namespace Asteroids

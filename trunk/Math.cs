@@ -233,6 +233,8 @@ public struct Corner
 }
 #endregion
 
+// FIXME: SplitIntoConvexPolygons sometimes fails because of tiny tiny gaps between the end of one edge and the
+// beginning of the next. fix this! (floating point sucks.)
 #region Polygon
 public sealed class Polygon
 { public Polygon() { points=new Point[4]; }
