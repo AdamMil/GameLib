@@ -332,13 +332,7 @@ public class Control
     /// See <see cref="Add"/> for more information on what occurs when this method is called.
     /// </remarks>
     /// <param name="controls">An array containing the controls to add.</param>
-    public void AddRange(Control[] controls) { foreach(Control c in controls) List.Add(c); }
-    /// <summary>Adds several new child controls at once.</summary>
-    /// <remarks>This method effectively calls <see cref="Add"/> on each member of <paramref name="controls"/>.
-    /// See <see cref="Add"/> for more information on what occurs when this method is called.
-    /// </remarks>
-    /// <param name="controls">An array containing the controls to add.</param>
-    public void AddRange(params object[] controls) { foreach(Control c in controls) List.Add(c); }
+    public void AddRange(params Control[] controls) { foreach(Control c in controls) List.Add(c); }
     /// <summary>Returns the index of the specified child control within the collection.</summary>
     /// <returns>If the control is found, the index of the control is returned. Otherwise, -1 is returned.</returns>
     /// <param name="control">A reference to a control to search for.</param>

@@ -122,7 +122,6 @@ public sealed class Video
   public static VideoInfo   Info { get { AssertInit(); return info; } }
   public static Surface     DisplaySurface { get { return display; } }
   public static PixelFormat DisplayFormat { get { AssertModeSet(); return display.Format; } }
-  public static OpenGL      OpenGL { get { throw new NotImplementedException(); } }
   public static GammaRamp   GammaRamp
   { get
     { if(ramp==null)
@@ -270,7 +269,6 @@ public sealed class Video
 
   static GammaRamp ramp;
   static Surface   display;
-  static OpenGL    openGL;
   static float     redGamma=1.0f, blueGamma=1.0f, greenGamma=1.0f;
   static uint      initCount;
   static VideoInfo info;

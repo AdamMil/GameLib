@@ -21,4 +21,10 @@ using System;
 namespace Asteroids
 {
 
+class App
+{ static void Main()
+  {
+  }
+}
+
 } // namespace Asteroids
