@@ -103,24 +103,24 @@ internal class Ogg
   { if(result>-128) return;
     switch((OggError)result)
     { case OggError.Read:
-        throw new OggVorbisException((GameLib.OggError)result, "Read error while fetching compressed data for decode");
+        throw new OggVorbisException((Audio.OggError)result, "Read error while fetching compressed data for decode");
       case OggError.Fault:
-        throw new OggVorbisException((GameLib.OggError)result, "Internal inconsistency in decode state. Continuing is likely not possible.");
+        throw new OggVorbisException((Audio.OggError)result, "Internal inconsistency in decode state. Continuing is likely not possible.");
       case OggError.NotImpl:
-        throw new OggVorbisException((GameLib.OggError)result, "Feature not implemented");
+        throw new OggVorbisException((Audio.OggError)result, "Feature not implemented");
       case OggError.Invalid:
-        throw new OggVorbisException((GameLib.OggError)result, "Either an invalid argument, or incompletely initialized argument passed to libvorbisfile call");
+        throw new OggVorbisException((Audio.OggError)result, "Either an invalid argument, or incompletely initialized argument passed to libvorbisfile call");
       case OggError.NotVorbis:
-        throw new OggVorbisException((GameLib.OggError)result, "The given file/data was not recognized as Ogg Vorbis data.");
+        throw new OggVorbisException((Audio.OggError)result, "The given file/data was not recognized as Ogg Vorbis data.");
       case OggError.BadHeader:
-        throw new OggVorbisException((GameLib.OggError)result, "The file/data is apparently an Ogg Vorbis stream, but contains a corrupted or undecipherable header.");
+        throw new OggVorbisException((Audio.OggError)result, "The file/data is apparently an Ogg Vorbis stream, but contains a corrupted or undecipherable header.");
       case OggError.BadVersion:
-        throw new OggVorbisException((GameLib.OggError)result, "The bitstream format revision of the given stream is not supported.");
+        throw new OggVorbisException((Audio.OggError)result, "The bitstream format revision of the given stream is not supported.");
       case OggError.BadLink:
-        throw new OggVorbisException((GameLib.OggError)result, "The given link exists in the Vorbis data stream, but is not decipherable due to garbacge or corruption.");
+        throw new OggVorbisException((Audio.OggError)result, "The given link exists in the Vorbis data stream, but is not decipherable due to garbacge or corruption.");
       case OggError.NoSeek:
-        throw new OggVorbisException((GameLib.OggError)result, "The given stream is not seekable");
-      default: throw new OggVorbisException((GameLib.OggError)result, "Unknown error");
+        throw new OggVorbisException((Audio.OggError)result, "The given stream is not seekable");
+      default: throw new OggVorbisException((Audio.OggError)result, "Unknown error");
     }
   }
 }

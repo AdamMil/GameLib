@@ -44,7 +44,7 @@ public enum SampleFormat : ushort
 }
 
 public enum Speakers : byte { Mono=1, Stereo=2 }
-public enum AudioStatus { Stopped, Playing, Paused }
+public enum ChannelStatus { Stopped, Playing, Paused }
 public enum Fade { None, In, Out }
 public enum PlayPolicy { Fail, Oldest, Priority, OldestPriority }
 public enum MixPolicy  { DontDivide, Divide }
@@ -605,8 +605,8 @@ public sealed class Channel
   public AudioSource Source { get { return source; } }
   public int  Priority { get { return priority; } }
   public uint Age { get { return source==null ? 0 : Timing.Msecs-startTime; } }
-  public AudioStatus Status
-  { get { return source==null ? AudioStatus.Stopped : paused ? AudioStatus.Paused : AudioStatus.Playing; }
+  public ChannelStatus Status
+  { get { return source==null ? ChannelStatus.Stopped : paused ? ChannelStatus.Paused : ChannelStatus.Playing; }
   }
   public Fade  Fading { get { return fade; } }
   public int   Position { get { return position; } set { lock(this) position=value; } }
@@ -1077,10 +1077,10 @@ public class Audio
     do
     { if(channel==FreeChannel)
       { for(int i=reserved; i<chans.Length; i++)
-          if(chans[i].Status==AudioStatus.Stopped) // try to lock as little as possible
+          if(chans[i].Status==ChannelStatus.Stopped) // try to lock as little as possible
           { tried=true;
             lock(chans[i])
-              if(chans[i].Status==AudioStatus.Stopped)
+              if(chans[i].Status==ChannelStatus.Stopped)
               { chans[i].StartPlaying(source, loops, position, fade, fadeMs, timeoutMs);
                 return chans[i];
               }
@@ -1092,10 +1092,10 @@ public class Audio
           for(int i=0; i<group.Count; i++)
           { int chan = (int)group[i];
             if(chan<reserved) continue;
-            if(chans[chan].Status==AudioStatus.Stopped) // try to lock as little as possible
+            if(chans[chan].Status==ChannelStatus.Stopped) // try to lock as little as possible
             { tried=true;
               lock(chans[chan])
-                if(chans[chan].Status==AudioStatus.Stopped)
+                if(chans[chan].Status==ChannelStatus.Stopped)
                 { chans[chan].StartPlaying(source, loops, position, fade, fadeMs, timeoutMs);
                   return chans[chan];
                 }

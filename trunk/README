@@ -1,5 +1,5 @@
 GameLib - January 14th, 2004 release
-------------------------------------
+====================================
 
 This is a beta release of the GameLib multimedia/game library. General
 information can be found at the website (http://www.adammil.net/GameLib)
@@ -16,6 +16,7 @@ Included files/directories (partial list):
   src/Utility/       Source to the DLL that provides timing, etc
   src/VorbisWrapper/ Source to the DLL that provides an interface to libvorbis
   src/libsndfile/    Source to a modified version of libsndfile
+  src/examples/      Source to various example programs
 
   bin/debug/         Debug builds of the GameLib core libraries
   bin/release/       Release builds of the GameLib core libraries
@@ -24,13 +25,54 @@ Included files/directories (partial list):
   doc/               GameLib documentation
   doc/html/          GameLib documentation in HTML format
   
-  examples/          Various example programs and data
+  examples/          Example programs and data
+
+Project Status
+==============
+Legend:
+Not Completed - No programming has been done for this subsystem.
+In Progress   - Programming has been done, but the functionality and API are
+                not complete.
+Alpha         - The basic set of functionality has been written, but not
+                enough testing has been done. Some items may not be
+                fully implemented.
+Beta          - The API has pretty much stabilized and the full set of
+                functionality for the current milestone has been implemented.
+Done          - The full functionality for the current milestone has been
+                implemented and tested.
+
+Component             Status
+---------             ------
+Interop               Beta
+
+Video                 Beta
+Low-level OpenGL      Beta
+High-level OpenGL     Not Completed
+Font rendering        Beta
+
+Audio                 Alpha
+CD Audio              Beta
+
+Documentation         In Progress
+Event handling        Beta
+Input                 Beta
+Networking            Beta
+Scripting             Not Completed
+Windowing             Alpha
+
+Misc (IO, Timing)     Beta/Alpha
+Misc (Math)           In Progress
 
 Using the library
------------------
+=================
 To use the library, build your application using the .NET framework and use
 GameLib.dll as a reference, in addition to any references necessary for your
 application. Then, you'll need to copy the DLLs from the 'debug' or 'release'
 folder and the 'common' folder into a place where your executable can find
 them. Not all the DLLs are strictly necessary, depending on what
 functionality your application uses.
+
+Legal Notices
+=============
+The file pope.ogg, distributed with the example programs, is copyrighted by
+Jim Crawford (http://www.goombas.org/).

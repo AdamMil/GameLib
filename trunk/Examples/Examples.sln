@@ -7,6 +7,22 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GameLib", "..\GameLib.cspro
 	ProjectSection(ProjectDependencies) = postProject
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenGL", "OpenGL\OpenGL.csproj", "{0B8359A3-E384-4426-A280-A448BBCF4283}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Audio", "Audio\Audio.csproj", "{8FCEFC22-3E71-4BF4-B30E-DD77C32B579F}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CDAudio", "CDAudio\CDAudio.csproj", "{E5008C10-74A0-4A49-A15E-663D0E1AAC8C}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Input", "Input\Input.csproj", "{DACDCE27-05A9-461E-8BDD-6B7659747029}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfiguration) = preSolution
 		Debug = Debug
@@ -21,6 +37,22 @@ Global
 		{79014105-2BDA-4D27-98AE-2DE3F5254252}.Debug.Build.0 = Debug|.NET
 		{79014105-2BDA-4D27-98AE-2DE3F5254252}.Release.ActiveCfg = Release|.NET
 		{79014105-2BDA-4D27-98AE-2DE3F5254252}.Release.Build.0 = Release|.NET
+		{0B8359A3-E384-4426-A280-A448BBCF4283}.Debug.ActiveCfg = Debug|.NET
+		{0B8359A3-E384-4426-A280-A448BBCF4283}.Debug.Build.0 = Debug|.NET
+		{0B8359A3-E384-4426-A280-A448BBCF4283}.Release.ActiveCfg = Release|.NET
+		{0B8359A3-E384-4426-A280-A448BBCF4283}.Release.Build.0 = Release|.NET
+		{8FCEFC22-3E71-4BF4-B30E-DD77C32B579F}.Debug.ActiveCfg = Debug|.NET
+		{8FCEFC22-3E71-4BF4-B30E-DD77C32B579F}.Debug.Build.0 = Debug|.NET
+		{8FCEFC22-3E71-4BF4-B30E-DD77C32B579F}.Release.ActiveCfg = Release|.NET
+		{8FCEFC22-3E71-4BF4-B30E-DD77C32B579F}.Release.Build.0 = Release|.NET
+		{E5008C10-74A0-4A49-A15E-663D0E1AAC8C}.Debug.ActiveCfg = Debug|.NET
+		{E5008C10-74A0-4A49-A15E-663D0E1AAC8C}.Debug.Build.0 = Debug|.NET
+		{E5008C10-74A0-4A49-A15E-663D0E1AAC8C}.Release.ActiveCfg = Release|.NET
+		{E5008C10-74A0-4A49-A15E-663D0E1AAC8C}.Release.Build.0 = Release|.NET
+		{DACDCE27-05A9-461E-8BDD-6B7659747029}.Debug.ActiveCfg = Debug|.NET
+		{DACDCE27-05A9-461E-8BDD-6B7659747029}.Debug.Build.0 = Debug|.NET
+		{DACDCE27-05A9-461E-8BDD-6B7659747029}.Release.ActiveCfg = Release|.NET
+		{DACDCE27-05A9-461E-8BDD-6B7659747029}.Release.Build.0 = Release|.NET
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 	EndGlobalSection

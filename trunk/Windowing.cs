@@ -1322,188 +1322,189 @@ public class DesktopControl : ContainerControl, IDisposable
   }
 
   #region ProcessEvent
-  public FilterAction ProcessEvent(Event e)
-  { Input.Input.ProcessEvent(e);
+  public bool ProcessEvent(Event e)
+  { if(Input.Input.ProcessEvent(e))
+    {
+      #region Mouse moves
+      if(moves && e is MouseMoveEvent)
+      { MouseMoveEvent ea = (MouseMoveEvent)e;
+        Point at = ea.Point;
+        // if the cursor is not within the desktop area, ignore it (unless dragging or capturing)
+        if(dragging==null && capturing==null && !Bounds.Contains(at)) return false;
 
-    #region Mouse moves
-    if(moves && e is MouseMoveEvent)
-    { MouseMoveEvent ea = (MouseMoveEvent)e;
-      Point at = ea.Point;
-      // if the cursor is not within the desktop area, ignore it (unless dragging or capturing)
-      if(dragging==null && capturing==null && !Bounds.Contains(at)) return FilterAction.Continue;
-
-      Control p=this, c;
-      // passModal is true if there's no modal window, or this movement is within the modal window
-      bool passModal = modal.Count==0;
-      at.X -= bounds.X; at.Y -= bounds.Y; // at is the cursor point local to 'p'
-      EventArgs eventArgs=null;
-      int ei=0;
-      while(p.Enabled && p.Visible)
-      { c = p.GetChildAtPoint(at);
-        // enter/leave algorithm:
-        // keep an array of the path down the control tree, from the root down
-        // on mouse move, go down the tree, comparing against the stored path
-        if(ei<enteredLen && c!=entered[ei])
-        { if(eventArgs==null) eventArgs=new EventArgs();
-          for(int i=enteredLen-1; i>=ei; i--)
-          { entered[i].OnMouseLeave(eventArgs);
-            entered[i] = null;
+        Control p=this, c;
+        // passModal is true if there's no modal window, or this movement is within the modal window
+        bool passModal = modal.Count==0;
+        at.X -= bounds.X; at.Y -= bounds.Y; // at is the cursor point local to 'p'
+        EventArgs eventArgs=null;
+        int ei=0;
+        while(p.Enabled && p.Visible)
+        { c = p.GetChildAtPoint(at);
+          // enter/leave algorithm:
+          // keep an array of the path down the control tree, from the root down
+          // on mouse move, go down the tree, comparing against the stored path
+          if(ei<enteredLen && c!=entered[ei])
+          { if(eventArgs==null) eventArgs=new EventArgs();
+            for(int i=enteredLen-1; i>=ei; i--)
+            { entered[i].OnMouseLeave(eventArgs);
+              entered[i] = null;
+            }
+            enteredLen = ei;
           }
-          enteredLen = ei;
-        }
-        if(c==null) break;
-        if(!passModal && c==modal[modal.Count-1]) passModal=true;
-        if(ei==enteredLen && passModal)
-        { if(eventArgs==null) eventArgs=new EventArgs();
-          if(enteredLen==entered.Length)
-          { Control[] na = new Control[entered.Length*2];
-            Array.Copy(entered, na, enteredLen);
-            entered = na;
+          if(c==null) break;
+          if(!passModal && c==modal[modal.Count-1]) passModal=true;
+          if(ei==enteredLen && passModal)
+          { if(eventArgs==null) eventArgs=new EventArgs();
+            if(enteredLen==entered.Length)
+            { Control[] na = new Control[entered.Length*2];
+              Array.Copy(entered, na, enteredLen);
+              entered = na;
+            }
+            entered[enteredLen++] = c;
+            c.OnMouseEnter(eventArgs);
           }
-          entered[enteredLen++] = c;
-          c.OnMouseEnter(eventArgs);
+          at = p.WindowToChild(at, c);
+          if((focus==AutoFocus.OverSticky || focus==AutoFocus.Over) && c.CanFocus && passModal) c.Focus();
+          ei++;
+          p = c;
         }
-        at = p.WindowToChild(at, c);
-        if((focus==AutoFocus.OverSticky || focus==AutoFocus.Over) && c.CanFocus && passModal) c.Focus();
-        ei++;
-        p = c;
-      }
-      // at this point, 'p' points to the control that doesn't have a child at 'at'
-      // normally we'd set its FocusedControl to null to indicate this, but if there's a modal window,
-      // we don't unset any focus
-      if(focus==AutoFocus.Over && passModal) p.FocusedControl=null;
-      
-      if(dragging!=null)
-      { if(dragStarted)
-        { drag.End = p==dragging ? at : dragging.DisplayToWindow(ea.Point);
-          dragging.OnDragMove(drag);
-          if(drag.Cancel) EndDrag();
-        }
-        else if(capturing==null || capturing==p)
-        { int xd = ea.X-drag.Start.X;
-          int yd = ea.Y-drag.Start.Y;
-          if(xd*xd+yd*yd >= (p.dragThreshold==-1 ? dragThresh : p.dragThreshold))
-          { drag.Start = p.DisplayToWindow(drag.Start);
-            drag.End = ea.Point;
-            drag.Buttons = ea.Buttons;
-            drag.Cancel = false;
-            dragStarted = true;
-            dragging.OnDragStart(drag);
+        // at this point, 'p' points to the control that doesn't have a child at 'at'
+        // normally we'd set its FocusedControl to null to indicate this, but if there's a modal window,
+        // we don't unset any focus
+        if(focus==AutoFocus.Over && passModal) p.FocusedControl=null;
+        
+        if(dragging!=null)
+        { if(dragStarted)
+          { drag.End = p==dragging ? at : dragging.DisplayToWindow(ea.Point);
+            dragging.OnDragMove(drag);
             if(drag.Cancel) EndDrag();
           }
-        }
-      }
-
-      if(capturing!=null)
-      { ea.Point = capturing.DisplayToWindow(ea.Point);
-        capturing.OnMouseMove(ea);
-      }
-      else if(passModal)
-      { if(p != this)
-        { ea.Point = at;
-          p.OnMouseMove(ea);
-        }
-      }
-      return FilterAction.Drop;
-    }
-    #endregion
-    #region Keyboard
-    else if(keys && e is KeyboardEvent)
-    { if(FocusedControl!=null || KeyPreview)
-      { KeyEventArgs ea = new KeyEventArgs((KeyboardEvent)e);
-        ea.KE.Mods = Input.Keyboard.Mods;
-        keyProcessing=true;
-        if(heldKey!=null) heldKey.Mods = ea.KE.Mods;
-        if(ea.KE.Down)
-        { if(krTimer!=null && !ea.KE.IsModKey)
-          { krTimer.Change(krDelay, krRate);
-            heldKey = ea.KE;
+          else if(capturing==null || capturing==p)
+          { int xd = ea.X-drag.Start.X;
+            int yd = ea.Y-drag.Start.Y;
+            if(xd*xd+yd*yd >= (p.dragThreshold==-1 ? dragThresh : p.dragThreshold))
+            { drag.Start = p.DisplayToWindow(drag.Start);
+              drag.End = ea.Point;
+              drag.Buttons = ea.Buttons;
+              drag.Cancel = false;
+              dragStarted = true;
+              dragging.OnDragStart(drag);
+              if(drag.Cancel) EndDrag();
+            }
           }
         }
-        else if(heldKey!=null && heldKey.Key==ea.KE.Key) StopKeyRepeat();
-        DispatchKeyToFocused(ea);
-        keyProcessing=false;
-        return FilterAction.Drop;
+
+        if(capturing!=null)
+        { ea.Point = capturing.DisplayToWindow(ea.Point);
+          capturing.OnMouseMove(ea);
+        }
+        else if(passModal)
+        { if(p != this)
+          { ea.Point = at;
+            p.OnMouseMove(ea);
+          }
+        }
+        return true;
       }
-      else
-      { KeyboardEvent ke = (KeyboardEvent)e;
-        if(ke.Down && ke.Key==tab)
-        { TabToNext(ke.HasAnyMod(Input.KeyMod.Shift));
-          if(krTimer!=null)
-          { heldKey = ke;
-            krTimer.Change(krDelay, krRate);
+      #endregion
+      #region Keyboard
+      else if(keys && e is KeyboardEvent)
+      { if(FocusedControl!=null || KeyPreview)
+        { KeyEventArgs ea = new KeyEventArgs((KeyboardEvent)e);
+          ea.KE.Mods = Input.Keyboard.Mods;
+          keyProcessing=true;
+          if(heldKey!=null) heldKey.Mods = ea.KE.Mods;
+          if(ea.KE.Down)
+          { if(krTimer!=null && !ea.KE.IsModKey)
+            { krTimer.Change(krDelay, krRate);
+              heldKey = ea.KE;
+            }
+          }
+          else if(heldKey!=null && heldKey.Key==ea.KE.Key) StopKeyRepeat();
+          DispatchKeyToFocused(ea);
+          keyProcessing=false;
+          return true;
+        }
+        else
+        { KeyboardEvent ke = (KeyboardEvent)e;
+          if(ke.Down && ke.Key==tab)
+          { TabToNext(ke.HasAnyMod(Input.KeyMod.Shift));
+            if(krTimer!=null)
+            { heldKey = ke;
+              krTimer.Change(krDelay, krRate);
+            }
           }
         }
       }
-    }
-    #endregion
-    #region Mouse clicks
-    else if(clicks && e is MouseClickEvent)
-    { ClickEventArgs ea = new ClickEventArgs((MouseClickEvent)e);
-      Point  at = ea.CE.Point;
-      // if the click is not within the desktop area, ignore it (unless dragging or capturing)
-      if(capturing==null && !dragStarted && !Bounds.Contains(at)) return FilterAction.Continue;
-      Control p = this, c;
-      uint time = Timing.Msecs;
-      bool passModal = modal.Count==0;
-      
-      at.X -= bounds.X; at.Y -= bounds.Y; // at is the cursor point local to 'p'
-      while(p.Enabled && p.Visible)
-      { c = p.GetChildAtPoint(at);
-        if(c==null) break;
-        if(!passModal && c==modal[modal.Count-1]) passModal=true;
-        at = p.WindowToChild(at, c);
-        if(focus==AutoFocus.Click && ea.CE.Down && c.CanFocus && passModal && !ea.CE.MouseWheel) c.Focus();
-        p = c;
-      }
-      if(p==this) // if p=='this', the desktop was clicked
-      { if(focus==AutoFocus.Click && ea.CE.Down && FocusedControl!=null && passModal) FocusedControl = null; // blur
-        if(!dragStarted && capturing==null) goto done; // if we're not dragging or capturing, then we're done
-      }
-
-      if(ea.CE.Down)
-      { // only consider a drag if the click occurred within the modal window, and we're not already tracking one
-        if(passModal && dragging==null && p.HasStyle(ControlStyle.Draggable))
-        { dragging = p;
-          drag.Start = ea.CE.Point;
-          drag.SetPressed(ea.CE.Button, true);
+      #endregion
+      #region Mouse clicks
+      else if(clicks && e is MouseClickEvent)
+      { ClickEventArgs ea = new ClickEventArgs((MouseClickEvent)e);
+        Point  at = ea.CE.Point;
+        // if the click is not within the desktop area, ignore it (unless dragging or capturing)
+        if(capturing==null && !dragStarted && !Bounds.Contains(at)) return false;
+        Control p = this, c;
+        uint time = Timing.Msecs;
+        bool passModal = modal.Count==0;
+        
+        at.X -= bounds.X; at.Y -= bounds.Y; // at is the cursor point local to 'p'
+        while(p.Enabled && p.Visible)
+        { c = p.GetChildAtPoint(at);
+          if(c==null) break;
+          if(!passModal && c==modal[modal.Count-1]) passModal=true;
+          at = p.WindowToChild(at, c);
+          if(focus==AutoFocus.Click && ea.CE.Down && c.CanFocus && passModal && !ea.CE.MouseWheel) c.Focus();
+          p = c;
         }
-      }
-      // button released. if we haven't started dragging (only considering one) or the button was one
-      // involved in the drag, then end the drag/consideration
-      else if(!dragStarted || drag.Pressed(ea.CE.Button))
-      { bool skipClick = dragStarted;
-        if(dragStarted)
-        { drag.End = dragging.DisplayToWindow(ea.CE.Point);
-          dragging.OnDragEnd(drag);
+        if(p==this) // if p=='this', the desktop was clicked
+        { if(focus==AutoFocus.Click && ea.CE.Down && FocusedControl!=null && passModal) FocusedControl = null; // blur
+          if(!dragStarted && capturing==null) goto done; // if we're not dragging or capturing, then we're done
         }
-        EndDrag();
-        // if we were dragging, or the mouse was released over the desktop and we're not capturing,
-        // then don't trigger any other mouse events (MouseUp or MouseClick). we're done.
-        if(skipClick || (p==this && capturing==null)) goto done;
-      }
-      else if(p==this && capturing==null) goto done; // the mouse was released over the desktop and we're not capturing
 
-      clickStatus = ClickStatus.All;
-      if(capturing!=null)
-      { ea.CE.Point = capturing.DisplayToWindow(ea.CE.Point);
-        DispatchClickEvent(capturing, ea, time);
+        if(ea.CE.Down)
+        { // only consider a drag if the click occurred within the modal window, and we're not already tracking one
+          if(passModal && dragging==null && p.HasStyle(ControlStyle.Draggable))
+          { dragging = p;
+            drag.Start = ea.CE.Point;
+            drag.SetPressed(ea.CE.Button, true);
+          }
+        }
+        // button released. if we haven't started dragging (only considering one) or the button was one
+        // involved in the drag, then end the drag/consideration
+        else if(!dragStarted || drag.Pressed(ea.CE.Button))
+        { bool skipClick = dragStarted;
+          if(dragStarted)
+          { drag.End = dragging.DisplayToWindow(ea.CE.Point);
+            dragging.OnDragEnd(drag);
+          }
+          EndDrag();
+          // if we were dragging, or the mouse was released over the desktop and we're not capturing,
+          // then don't trigger any other mouse events (MouseUp or MouseClick). we're done.
+          if(skipClick || (p==this && capturing==null)) goto done;
+        }
+        else if(p==this && capturing==null) goto done; // the mouse was released over the desktop and we're not capturing
+
+        clickStatus = ClickStatus.All;
+        if(capturing!=null)
+        { ea.CE.Point = capturing.DisplayToWindow(ea.CE.Point);
+          DispatchClickEvent(capturing, ea, time);
+        }
+        else if(passModal)
+        { ea.CE.Point = at;
+          do
+          { if(!DispatchClickEvent(p, ea, time)) break;
+            ea.CE.Point = p.WindowToParent(ea.CE.Point);
+            p = p.Parent;
+          } while(p!=null && p!=this && p.Enabled && p.Visible);
+        }
+        done:
+        // lastClicked is used to track if the button release occurred over the same control it was pressed over
+        // this allows you to press the mouse on a control, then drag off and release to avoid the MouseClick event
+        if(!ea.CE.Down && (byte)ea.CE.Button<8) lastClicked[(byte)ea.CE.Button] = null;
+        return true;
       }
-      else if(passModal)
-      { ea.CE.Point = at;
-        do
-        { if(!DispatchClickEvent(p, ea, time)) break;
-          ea.CE.Point = p.WindowToParent(ea.CE.Point);
-          p = p.Parent;
-        } while(p!=null && p!=this && p.Enabled && p.Visible);
-      }
-      done:
-      // lastClicked is used to track if the button release occurred over the same control it was pressed over
-      // this allows you to press the mouse on a control, then drag off and release to avoid the MouseClick event
-      if(!ea.CE.Down && (byte)ea.CE.Button<8) lastClicked[(byte)ea.CE.Button] = null;
-      return FilterAction.Drop;
+      #endregion
     }
-    #endregion
     #region WindowEvent
     else if(e is WindowEvent)
     { WindowEvent we = (WindowEvent)e;
@@ -1517,13 +1518,13 @@ public class DesktopControl : ContainerControl, IDisposable
           break;
         case WindowEvent.MessageType.Paint: DoPaint(we.Control); break;
         case WindowEvent.MessageType.Layout: we.Control.OnLayout(new EventArgs()); break;
-        case WindowEvent.MessageType.DesktopUpdated: if(we.Control!=this) return FilterAction.Continue; break;
+        case WindowEvent.MessageType.DesktopUpdated: if(we.Control!=this) return false; break;
         default: we.Control.OnCustomEvent(we); break;
       }
-      return FilterAction.Drop;
+      return true;
     }
     #endregion
-    return FilterAction.Continue;
+    return false;
   }
   #endregion
   

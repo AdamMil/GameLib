@@ -21,6 +21,13 @@ using System;
 namespace GameLib.Mathematics
 {
 
+public class MathConst
+{ private MathConst() { }
+
+  public const double DegreesToRadians = Math.PI/360;
+  public const double RadiansToDegrees = 360/Math.PI;
+}
+
 // TODO: once generics become available, implement these in a type-generic fashion
 #region 2D math
 namespace TwoD
