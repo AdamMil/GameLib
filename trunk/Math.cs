@@ -853,61 +853,27 @@ public struct Line
 
   public Line ConvexIntersection(Polygon poly)
   { poly.AssertValid();
-    Point end = End;
-    int sgn = poly.IsClockwise() ? 1 : -1;
-    bool si=true, ei=true;
+    Point start = Start, end = End;
+    int sign = poly.IsClockwise() ? 1 : -1;
 
-    unsafe
-    { bool* sout = stackalloc bool[poly.Length];
-      bool* eout = stackalloc bool[poly.Length];
-      for(int i=0; i<poly.Length; i++)
-      { Line edge = poly.GetEdge(i);
-        if((sout[i] = (Math.Sign(edge.WhichSide(Start)) != sgn))) si=false;
-        if((eout[i] = (Math.Sign(edge.WhichSide(end)) != sgn))) ei=false;
-        if(sout[i] && eout[i]) return Line.Invalid;
+    for(int i=0; i<poly.Length; i++)
+    { Line edge = poly.GetEdge(i);
+      bool sout = Math.Sign(edge.WhichSide(start))==sign, eout = Math.Sign(edge.WhichSide(end))==sign;
+      if(sout)
+      { if(eout) return Line.Invalid;
+        start = edge.LineIntersection(new Line(start, end));
       }
-      if(si && ei) return this;
-    
-      Line ret = this;
-      for(int i=0; i<poly.Length; i++)
-      { if(!sout[i] && !eout[i]) continue;
-        LineIntersectInfo info = ret.GetIntersection(poly.GetEdge(i));
-        if(sout[i]) ret = new Line(info.Point, ret.End);
-        else ret.End = info.Point;
-      }
-      return ret;
+      else if(eout) end = edge.LineIntersection(new Line(start, end));
     }
+    if(start==end) return Line.Invalid;
+    for(int i=0; i<poly.Length; i++)
+    { Line edge = poly.GetEdge(i);
+      if(Math.Sign(edge.WhichSide(start))==sign && Math.Sign(edge.WhichSide(end))==sign) return Line.Invalid;
+    }
+    return new Line(start, end);
   }
   
   public bool ConvexIntersects(Polygon poly) { return ConvexIntersection(poly).Valid; }
-
-  public Line ConvexOutside(Polygon poly)
-  { poly.AssertValid();
-    Point end = End;
-    int sgn = poly.IsClockwise() ? 1 : -1;
-    bool si=true, ei=true;
-
-    unsafe
-    { bool* sout = stackalloc bool[poly.Length];
-      bool* eout = stackalloc bool[poly.Length];
-      for(int i=0; i<poly.Length; i++)
-      { Line edge = poly.GetEdge(i);
-        if((sout[i] = (Math.Sign(edge.WhichSide(Start)) != sgn))) si=false;
-        if((eout[i] = (Math.Sign(edge.WhichSide(end)) != sgn))) ei=false;
-        if(sout[i] && eout[i]) return this;
-      }
-      if(si && ei) return Line.Invalid;
-    
-      Line ret = this;
-      for(int i=0; i<poly.Length; i++)
-      { if(!sout[i] && !eout[i]) continue;
-        LineIntersectInfo info = ret.GetIntersection(poly.GetEdge(i));
-        if(sout[i]) ret.End = info.Point;
-        else ret = new Line(info.Point, ret.End);
-      }
-      return ret;
-    }
-  }
 
   public float DistanceTo(Point point) { return Vector.CrossVector.Normal.DotProduct(point-Start); }
 
@@ -1181,6 +1147,7 @@ public struct Rectangle
 #region Polygon
 public class Polygon : ICloneable
 { public Polygon() { points=new Point[4]; }
+  public Polygon(Point p1, Point p2, Point p3) { points = new Point[3] { p1, p2, p3 }; length=3; }
   public Polygon(Point[] points) : this(points.Length) { AddPoints(points); }
   public Polygon(Point[] points, int nPoints) : this(nPoints) { AddPoints(points, nPoints); }
   public Polygon(int capacity)
@@ -1224,12 +1191,12 @@ public class Polygon : ICloneable
   public object Clone() { return new Polygon(points, length); }
 
   public bool ConvexContains(Point point)
-  { int  sgn;
+  { int  sign;
     bool pos=false, neg=false;
     for(int i=0; i<length; i++)
-    { sgn = Math.Sign(GetEdge(i).WhichSide(point));
-      if(sgn==-1) { if(pos) return false; neg=true; }
-      else if(sgn==1) { if(neg) return false; pos=true; }
+    { sign = Math.Sign(GetEdge(i).WhichSide(point));
+      if(sign==-1) { if(pos) return false; neg=true; }
+      else if(sign==1) { if(neg) return false; pos=true; }
       else return false;
     }
     return true;
@@ -1319,9 +1286,9 @@ public class Polygon : ICloneable
 
   public bool IsClockwise()
   { for(int i=0; i<length; i++)
-    { int sgn = Math.Sign(GetCorner(i).CrossZ);
-      if(sgn==1) return true;
-      else if(sgn==-1) return false;
+    { int sign = Math.Sign(GetCorner(i).CrossZ);
+      if(sign==1) return true;
+      else if(sign==-1) return false;
     }
     return true;
   }
@@ -1391,12 +1358,12 @@ public class Polygon : ICloneable
         for(int ci=poly.length-2; ci>=1; ci--) if(poly.GetCorner(ci).CrossZ==0) poly.RemovePoint(ci);
         if(poly.length<3) continue;
 
-        int sgn = Math.Sign(poly.GetCorner(0).CrossZ);
+        int sign = Math.Sign(poly.GetCorner(0).CrossZ);
         for(int ci=1; ci<poly.length; ci++)
         { Corner c = poly.GetCorner(ci);
           // if the sign is different, then the polygon is not convex, and splitting at this corner will result in
           // a simplification
-          if(Math.Sign(c.CrossZ) != sgn)
+          if(Math.Sign(c.CrossZ) != sign)
           { float dist = float.MaxValue, d, d2;
             Point splitPoint=new Point();
             int   splitEdge=-1, extPoint=-1, ept;
