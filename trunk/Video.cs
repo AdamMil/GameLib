@@ -2,11 +2,10 @@ using System;
 using System.Drawing;
 using GameLib.Interop.SDL;
 
-// TODO: add WM support
-
 namespace GameLib.Video
 {
 
+#region Supporting Types
 public class AlphaLevel
 { private AlphaLevel() { }
   public const byte Transparent=0, Quarter=64, Middle=128, ThreeQuarters=192, Opaque=255;
@@ -17,6 +16,15 @@ public enum PaletteType
 { Software=1, Hardware=2, Both=Software|Hardware
 };
 
+public class GLOptions
+{ public sbyte Red=-1, Green=-1, Blue=-1, Alpha=-1, AccumRed=-1, AccumGreen=-1, AccumBlue=-1, AccumAlpha=-1;
+  public sbyte DoubleBuffer=-1, Frame=-1, Depth=-1, Stencil=-1;
+}
+
+public delegate void ModeChangedHandler();
+#endregion
+
+#region PixelFormat
 public class PixelFormat
 { public PixelFormat() { }
   public PixelFormat(byte depth) : this(depth, false) { }
@@ -51,22 +59,18 @@ public class PixelFormat
   
   internal SDL.PixelFormat format;
 }
+#endregion
 
+#region GammaRamp
 public class GammaRamp
 { public ushort[] Red   { get { return red; } }
   public ushort[] Green { get { return green; } }
   public ushort[] Blue  { get { return blue; } }
   ushort[] red = new ushort[256], green = new ushort[256], blue = new ushort[256];
 }
+#endregion
 
-public class GLOptions
-{ public sbyte Red=-1, Green=-1, Blue=-1, Alpha=-1, AccumRed=-1, AccumGreen=-1, AccumBlue=-1, AccumAlpha=-1;
-  public sbyte DoubleBuffer=-1, Frame=-1, Depth=-1, Stencil=-1;
-}
-
-public delegate void ModeChangedHandler();
-
-[System.Security.SuppressUnmanagedCodeSecurity()]
+#region Video class
 public sealed class Video
 { private Video() { }
   
@@ -93,14 +97,14 @@ public sealed class Video
   public static bool Initialized { get { return initCount>0; } }
   public static int        Width  { get { return display.Width; } }
   public static int        Height { get { return display.Height; } }
-  public static VideoInfo   Info { get { CheckInit(); return info; } }
+  public static VideoInfo   Info { get { AssertInit(); return info; } }
   public static Surface     DisplaySurface { get { return display; } }
   public static PixelFormat DisplayFormat { get { return display.Format; } }
   public static OpenGL      OpenGL { get { throw new NotImplementedException(); } }
   public static GammaRamp   GammaRamp
   { get
     { if(ramp==null)
-      { CheckModeSet();
+      { AssertModeSet();
         ramp = new GammaRamp();
         unsafe { Check(SDL.GetGammaRamp(ramp.Red, ramp.Green, ramp.Blue)); }
       }
@@ -112,7 +116,7 @@ public sealed class Video
         SetGamma(1.0f, 1.0f, 1.0f);
       }
       else
-      { CheckModeSet();
+      { AssertModeSet();
         ramp = value;
         SDL.SetGammaRamp(ramp.Red, ramp.Green, ramp.Blue);
       }
@@ -133,7 +137,7 @@ public sealed class Video
   public static void Flip() { if(usingGL) SDL.SwapBuffers(); else DisplaySurface.Flip(); }
 
   public unsafe static Rectangle[] GetModes(PixelFormat format, SurfaceFlag flags)
-  { CheckInit();
+  { AssertInit();
     SDL.Rect** list, p;
 
     fixed(SDL.PixelFormat* pf = &format.format) list = SDL.ListModes(pf, (uint)flags);
@@ -148,7 +152,7 @@ public sealed class Video
   }
 
   public static byte IsModeSupported(int width, int height, byte depth, SurfaceFlag flags)
-  { CheckInit();
+  { AssertInit();
     return (byte)SDL.VideoModeOK(width, height, depth, (uint)flags);
   }
   
@@ -156,7 +160,7 @@ public sealed class Video
   { SetMode(width, height, depth, SurfaceFlag.None);
   }
   public static void SetMode(int width, int height, byte depth, SurfaceFlag flags)
-  { CheckInit();
+  { AssertInit();
     flags &= ~SurfaceFlag.OpenGL;
     SetMode(width, height, depth, (uint)flags);
   }
@@ -192,18 +196,18 @@ public sealed class Video
   { red=redGamma; green=greenGamma; blue=blueGamma;
   }
   public static void SetGamma(float red, float green, float blue)
-  { CheckModeSet();
+  { AssertModeSet();
     Check(SDL.SetGamma(red, green, blue));
     redGamma=red; greenGamma=green; blueGamma=blue;
   }
   
   public static void UpdateRect(Rectangle rect) { UpdateRect(rect.X, rect.Y, rect.Width, rect.Height); }
   public static void UpdateRect(int x, int y, int width, int height)
-  { CheckModeSet();
+  { AssertModeSet();
     unsafe { SDL.UpdateRect(display.surface, x, y, width, height); }
   }
   public unsafe static void UpdateRects(Rectangle[] rects)
-  { CheckModeSet();
+  { AssertModeSet();
     if(rects==null) throw new ArgumentNullException("rects");
     unsafe
     { SDL.Rect* array = stackalloc SDL.Rect[rects.Length];
@@ -238,8 +242,8 @@ public sealed class Video
   }
   static unsafe void UpdateInfo() { info = new VideoInfo(SDL.GetVideoInfo()); }
   static void Check(int result) { if(result!=0) SDL.RaiseError(); }
-  static void CheckInit() { if(initCount==0) throw new InvalidOperationException("Not initialized"); }
-  static void CheckModeSet() { if(display==null) throw new InvalidOperationException("Video mode not set"); }
+  static void AssertInit()      { if(initCount==0) throw new InvalidOperationException("Not initialized"); }
+  static void AssertModeSet()   { if(display==null) throw new InvalidOperationException("Video mode not set"); }
 
   static GammaRamp ramp;
   static Surface   display;
@@ -249,5 +253,37 @@ public sealed class Video
   static VideoInfo info;
   static bool      usingGL;
 }
+#endregion
+
+#region WM class
+public class WM
+{ private WM() { }
+
+  public static string WindowTitle
+  { get
+    { string title, icon;
+      SDL.WM_GetCaption(out title, out icon);
+      return title;
+    }
+    set { SDL.WM_SetCaption(value, null); }
+  }
+  
+  public static bool ProcessInput
+  { get
+    { SDL.GrabMode mode = SDL.WM_GrabInput(SDL.GrabMode.Query);
+      return mode==SDL.GrabMode.On;
+    }
+    set { SDL.WM_GrabInput(value ? SDL.GrabMode.On : SDL.GrabMode.Off); }
+  }
+  
+  public static void SetIcon(Surface icon)
+  { if(icon.Width!=32 || icon.Height!=32) throw new ArgumentException("Icon should be 32x32 for compatibility");
+    unsafe { SDL.WM_SetIcon(icon.surface, null); }
+  }
+
+  public static void Minimize() { if(SDL.WM_IconifyWindow()!=0) SDL.RaiseError(); }
+}
+
+#endregion
 
 } // namespace GameLib.Video

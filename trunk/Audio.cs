@@ -559,7 +559,7 @@ public sealed class Channel
   }
   public AudioSource Source { get { return source; } }
   public int  Priority { get { return priority; } }
-  public uint Age { get { return source==null ? 0 : Timing.Ticks-startTime; } }
+  public uint Age { get { return source==null ? 0 : Timing.Msecs-startTime; } }
   public AudioStatus Status
   { get { return source==null ? AudioStatus.Stopped : paused ? AudioStatus.Paused : AudioStatus.Playing; }
   }
@@ -576,7 +576,7 @@ public sealed class Channel
     { if(source==null) return;
       fade        = Fade.Out;
       fadeTime    = fadeMs;
-      fadeStart   = Timing.Ticks;
+      fadeStart   = Timing.Msecs;
       fadeVolume  = EffectiveVolume;
     }
   }
@@ -595,7 +595,7 @@ public sealed class Channel
       if(!source.CanSeek && source.CanRewind && position==0) source.Rewind();
       priority  = source.Priority;
       paused    = false;
-      startTime = Timing.Ticks;
+      startTime = Timing.Msecs;
       source.playing++;
       convert = !source.Format.Equals(Audio.Format);
       if(convert)
@@ -606,7 +606,7 @@ public sealed class Channel
       if(fade!=Fade.None)
       { fadeTime   = fadeMs;
         fadeVolume = fade==Fade.In ? 0 : EffectiveVolume;
-        fadeStart  = Timing.Ticks;
+        fadeStart  = Timing.Msecs;
       }
     }
   }
@@ -636,7 +636,7 @@ public sealed class Channel
         return;
       }
       if(fade!=Fade.None)
-      { uint fadeSoFar = Timing.Ticks-fadeStart;
+      { uint fadeSoFar = Timing.Msecs-fadeStart;
         int  target = fade==Fade.In ? volume : 0;
         if(fadeSoFar>fadeTime)
         { volume = target;
@@ -762,17 +762,17 @@ public class Audio
   public static event ChannelFinishedHandler ChannelFinished;
 
   public static bool Initialized { get { return init; } }
-  public static AudioFormat Format { get { CheckInit(); return format; } }
-  public static object SyncRoot { get { CheckInit(); return callback; } }
+  public static AudioFormat Format { get { AssertInit(); return format; } }
+  public static object SyncRoot { get { AssertInit(); return callback; } }
 
   public static int MasterVolume
-  { get { CheckInit(); return (int)GLMixer.GetMixVolume(); }
-    set { CheckInit(); CheckVolume(value); GLMixer.SetMixVolume((ushort)value); }
+  { get { AssertInit(); return (int)GLMixer.GetMixVolume(); }
+    set { AssertInit(); CheckVolume(value); GLMixer.SetMixVolume((ushort)value); }
   }
   public static int ReservedChannels
-  { get { CheckInit(); return reserved; }
+  { get { AssertInit(); return reserved; }
     set
-    { CheckInit();
+    { AssertInit();
       if(reserved<0 || reserved>chans.Length) throw new ArgumentOutOfRangeException("value");
       reserved=value;
     }
@@ -822,7 +822,7 @@ public class Audio
   }
   
   public static void AllocateChannels(int numChannels)
-  { CheckInit();
+  { AssertInit();
     if(numChannels<0) throw new ArgumentOutOfRangeException("numChannels");
     lock(callback)
     { for(int i=numChannels; i<chans.Length; i++) chans[i].Stop();
@@ -835,7 +835,7 @@ public class Audio
   }
 
   public static int AddGroup()
-  { CheckInit();
+  { AssertInit();
     lock(groups)
     { for(int i=0; i<groups.Count; i++)
         if(groups[i]==null)
@@ -876,7 +876,7 @@ public class Audio
   { int  i,oi;
     uint age=0;
     if(group==-1)
-    { CheckInit();
+    { AssertInit();
       lock(callback)
         for(oi=unreserved ? 0 : reserved,i=oi; i<chans.Length; i++) if(chans[i].Age>age) { age=chans[i].Age; oi=i; }
     }
@@ -1004,7 +1004,7 @@ public class Audio
   }
   
   internal static int StartPlaying(int channel, AudioSource source, int loops, int position, Fade fade, uint fadeMs, int timeoutMs)
-  { CheckInit();
+  { AssertInit();
     if(reserved==chans.Length) return -1;
 
     IList group=null;
@@ -1106,7 +1106,7 @@ public class Audio
   { if(rate<0f) throw new ArgumentOutOfRangeException("PlaybackRate");
   }
   internal static void CheckChannel(int channel)
-  { CheckInit();
+  { AssertInit();
     if(channel!=FreeChannel && channel<0) throw new ArgumentOutOfRangeException("channel");
   }
   internal static void CheckVolume(int volume)
@@ -1115,7 +1115,7 @@ public class Audio
 
   static int ToGroup(int group) { return -group-2; }
   static ArrayList GetGroup(int group)
-  { CheckInit();
+  { AssertInit();
     int index = ToGroup(group);
     if(index<0 || index>=groups.Count) throw new ArgumentException("Invalid group ID");
     ArrayList list = (ArrayList)groups[ToGroup(group)];
@@ -1123,7 +1123,7 @@ public class Audio
     return list;
   }
 
-  static void CheckInit()
+  static void AssertInit()
   { if(!init) throw new InvalidOperationException("Audio has not been initialized.");
   }
   static unsafe void FillBuffer(int* stream, uint frames, IntPtr context)

@@ -7,7 +7,10 @@ namespace GameLib.Collections
 public class RedBlackTree : IDictionary, ICollection, IEnumerable
 { public RedBlackTree() { comparer=Comparer.Default; }
   public RedBlackTree(IComparer comparer) { this.comparer=comparer; }
-  public RedBlackTree(IDictionary dict) { foreach(DictionaryEntry de in dict) Add(de.Key, de.Value); }
+  public RedBlackTree(IDictionary dict)
+  { comparer=Comparer.Default;
+    foreach(DictionaryEntry de in dict) Add(de.Key, de.Value);
+  }
   public RedBlackTree(IDictionary dict, IComparer comparer)
   { this.comparer=comparer;
     foreach(DictionaryEntry de in dict) Add(de.Key, de.Value);
@@ -18,7 +21,7 @@ public class RedBlackTree : IDictionary, ICollection, IEnumerable
   public bool IsReadOnly  { get { return false; } }
   public object this[object key]
   { get { Node n=Find(key); return n==Node.Null ? null : n.Value; }
-    set { CheckWriteable(); Node n=Find(key); if(n==Node.Null) Add(key, value); else n.Value=value; }
+    set { AssertWriteable(); Node n=Find(key); if(n==Node.Null) Add(key, value); else n.Value=value; }
   }
   public ICollection Keys
   { get
@@ -39,7 +42,7 @@ public class RedBlackTree : IDictionary, ICollection, IEnumerable
   
   public void Add(object key, object value)
   { if(key==null) throw new ArgumentNullException("key");
-    CheckWriteable();
+    AssertWriteable();
 
     Node x=root, y=Node.Null, gp;
     int  c=1;
@@ -94,7 +97,7 @@ public class RedBlackTree : IDictionary, ICollection, IEnumerable
   public void Clear() { root=Node.Null; }
   public bool Contains(object key) { return Find(key)!=Node.Null; }
   IDictionaryEnumerator IDictionary.GetEnumerator() { return new Enumerator(this, root); }
-  public void Remove(object key) { CheckWriteable(); Remove(Find(key)); }
+  public void Remove(object key) { AssertWriteable(); Remove(Find(key)); }
   #endregion
 
   #region ICollection
@@ -123,39 +126,35 @@ public class RedBlackTree : IDictionary, ICollection, IEnumerable
 
     public object Current
     { get
-      { if(states.Count==0) throw new InvalidOperationException("Invalid position");
-        State state = (State)states.Peek();
+      { State state = CurrentState;
         return new DictionaryEntry(state.node.Key, state.node.Value);
       }
     }
     
     public DictionaryEntry Entry
     { get
-      { if(changed) throw new InvalidOperationException("The collection has changed");
-        if(states.Count==0) throw new InvalidOperationException("Invalid position");
-        State state = (State)states.Peek();
+      { AssertNotChanged();
+        State state = CurrentState;
         return new DictionaryEntry(state.node.Key, state.node.Value);
       }
     }
     
     public object Key
     { get
-      { if(changed) throw new InvalidOperationException("The collection has changed");
-        if(states.Count==0) throw new InvalidOperationException("Invalid position");
-        return ((State)states.Peek()).node.Key;
+      { AssertNotChanged();
+        return CurrentState.node.Key;
       }
     }
     
     public object Value
     { get
-      { if(changed) throw new InvalidOperationException("The collection has changed");
-        if(states.Count==0) throw new InvalidOperationException("Invalid position");
-        return ((State)states.Peek()).node.Value;
+      { AssertNotChanged();
+        return CurrentState.node.Value;
       }
     }
 
     public bool MoveNext()
-    { if(changed) throw new InvalidOperationException("The collection has changed");
+    { AssertNotChanged();
       if(states.Count==0)
       { if(!reset || root==Node.Null) return false;
         states.Push(new State(root));
@@ -195,18 +194,27 @@ public class RedBlackTree : IDictionary, ICollection, IEnumerable
       reset  = true;
     }
 
-    void OnTreeChanged()
-    { changed=true;
-      tree.TreeChanged -= handler;
-      GC.SuppressFinalize(this);
-    }
-
     enum Did { This, Left, Right }
     class State
     { public State(Node node) { this.node=node; did=Did.This; }
       public Node node;
       public Did  did;
     }
+
+    State CurrentState
+    { get
+      { if(states.Count==0) throw new InvalidOperationException("Invalid position");
+        return (State)states.Peek();
+      }
+    }
+
+    void OnTreeChanged()
+    { changed=true;
+      tree.TreeChanged -= handler;
+      GC.SuppressFinalize(this);
+    }
+    
+    void AssertNotChanged() { if(changed) throw new InvalidOperationException("The collection has changed"); }
 
     RedBlackTree tree;
     TreeChangeHandler handler;
@@ -256,7 +264,7 @@ public class RedBlackTree : IDictionary, ICollection, IEnumerable
   }
   #endregion
 
-  protected void CheckWriteable()
+  protected void AssertWriteable()
   { if(IsReadOnly || IsFixedSize)
       throw new NotSupportedException("Collection is "+(IsReadOnly?"read-only":"fixed-size"));
   }

@@ -2,8 +2,8 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="7.10"
-	Name="Mixer"
-	ProjectGUID="{7BD0C93F-4FC4-4BF6-98BD-2D929DB137A5}"
+	Name="Utility"
+	ProjectGUID="{77863D03-19B6-41C4-AF5C-08B8D9CFE001}"
 	Keyword="Win32Proj">
 	<Platforms>
 		<Platform
@@ -19,31 +19,30 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="c:\code\sdl\include"
-				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;MIXER_EXPORTS"
+				AdditionalIncludeDirectories="C:\code\sdl\include"
+				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;UTILITY_EXPORTS"
 				MinimalRebuild="TRUE"
 				ExceptionHandling="FALSE"
 				BasicRuntimeChecks="3"
-				RuntimeLibrary="3"
+				RuntimeLibrary="1"
 				ForceConformanceInForLoopScope="TRUE"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
 				Detect64BitPortabilityProblems="TRUE"
 				DebugInformationFormat="3"
-				CompileAs="0"/>
+				CompileAs="1"/>
 			<Tool
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="SDL.lib"
-				OutputFile="$(OutDir)/Mixer.dll"
+				OutputFile="$(OutDir)/Utility.dll"
 				LinkIncremental="2"
-				AdditionalLibraryDirectories="c:\code\sdl\lib"
-				GenerateDebugInformation="TRUE"
-				ProgramDatabaseFile="$(OutDir)/Mixer.pdb"
+				GenerateDebugInformation="FALSE"
+				ProgramDatabaseFile="$(OutDir)/Utility.pdb"
 				SubSystem="2"
+				EnableCOMDATFolding="0"
 				OptimizeForWindows98="1"
-				ImportLibrary="$(OutDir)/Mixer.lib"
+				ImportLibrary="$(OutDir)/Utility.lib"
 				TargetMachine="1"/>
 			<Tool
 				Name="VCMIDLTool"/>
@@ -75,37 +74,31 @@
 			WholeProgramOptimization="TRUE">
 			<Tool
 				Name="VCCLCompilerTool"
-				Optimization="2"
 				GlobalOptimizations="TRUE"
-				InlineFunctionExpansion="1"
 				OmitFramePointers="TRUE"
-				AdditionalIncludeDirectories="c:\code\sdl\include"
-				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;MIXER_EXPORTS"
-				StringPooling="TRUE"
+				AdditionalIncludeDirectories="C:\code\sdl\include"
+				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;UTILITY_EXPORTS"
 				ExceptionHandling="FALSE"
-				RuntimeLibrary="2"
+				RuntimeLibrary="0"
 				BufferSecurityCheck="FALSE"
-				EnableFunctionLevelLinking="TRUE"
 				ForceConformanceInForLoopScope="TRUE"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
 				Detect64BitPortabilityProblems="TRUE"
 				DebugInformationFormat="0"
-				CompileAs="0"/>
+				CompileAs="1"/>
 			<Tool
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="SDL.lib"
-				OutputFile="$(OutDir)/Mixer.dll"
+				OutputFile="$(OutDir)/Utility.dll"
 				LinkIncremental="1"
-				AdditionalLibraryDirectories="c:\code\sdl\lib"
 				GenerateDebugInformation="FALSE"
 				SubSystem="2"
 				OptimizeReferences="2"
 				EnableCOMDATFolding="2"
 				OptimizeForWindows98="1"
-				ImportLibrary="$(OutDir)/Mixer.lib"
+				ImportLibrary="$(OutDir)/Utility.lib"
 				TargetMachine="1"/>
 			<Tool
 				Name="VCMIDLTool"/>
@@ -133,10 +126,10 @@
 	</References>
 	<Files>
 		<File
-			RelativePath="Mixer.c">
+			RelativePath=".\win32\Utility.c">
 		</File>
 		<File
-			RelativePath="Mixer.h">
+			RelativePath=".\Utility.h">
 		</File>
 	</Files>
 	<Globals>
