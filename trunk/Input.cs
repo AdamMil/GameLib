@@ -228,6 +228,12 @@ public sealed class Keyboard
 
   public static KeyMod Modifiers { get { return mods; } }
 
+  public static bool IsModKey(Key key)
+  { return key==Key.LShift || key==Key.LCtrl || key==Key.LAlt   ||
+           key==Key.RShift || key==Key.RCtrl || key==Key.RAlt   ||
+           key==Key.LMeta  || key==Key.RMeta || key==Key.LSuper || key==Key.RSuper;
+  }
+
   public static string KeyName(Key key) { return Enum.GetName(typeof(Key), key); }
 
   public static bool Pressed(Key key)          { return state[(int)key]; }

@@ -218,15 +218,7 @@ public class Control
   public bool Modal
   { get
     { DesktopControl desktop = Desktop;
-      return desktop != null && desktop.modal==this;
-    }
-    set
-    { DesktopControl desktop = Desktop;
-      if(value)
-      { if(desktop==null) throw new InvalidOperationException("This control has no desktop");
-        desktop.SetModal(this);
-      }
-      else if(desktop!=null && desktop.modal==this) desktop.SetModal(null);
+      return desktop != null && desktop.modal.Contains(this);
     }
   }
 
@@ -273,10 +265,12 @@ public class Control
   }
 
   public bool Focused
-  { get { return parent==null ? false : parent.focused==this; }
-    set { if(value) Focus(); else Blur(); }
+  { get
+    { Control p = this;
+      while(p.parent!=null) { if(p.parent.focused!=p) return false; p=p.parent; }
+      return p is DesktopControl ? true : false;
+    }
   }
-  
   public GameLib.Fonts.Font Font
   { get
     { Control c = this;
@@ -396,6 +390,11 @@ public class Control
     }
   }
 
+  public bool Selected
+  { get { return parent==null ? false : parent.focused==this; }
+    set { if(value) Focus(); else Blur(); }
+  }
+  
   public Size Size
   { get { return bounds.Size; }
     set
@@ -791,7 +790,7 @@ public class Control
     if(parent!=null)
     { DesktopControl desktop = parent is DesktopControl ? (DesktopControl)parent : parent.Desktop;
       if(desktop.capturing!=null && ce.Control.IsOrHas(desktop.capturing)) desktop.capturing=null;
-      if(desktop.modal!=null && ce.Control.IsOrHas(desktop.modal)) desktop.SetModal(null);
+      desktop.UnsetModal(this);
       parent.OnControlRemoved(ce);
     }
     parent = control;
@@ -814,12 +813,20 @@ public class Control
   }
   
   protected internal bool HasStyle(ControlStyle test) { return (style & test) != ControlStyle.None; }
+  
   protected internal int dragThreshold = -1;
 
   internal uint lastClickTime = int.MaxValue;
 
   protected void AssertParent()
   { if(parent==null) throw new InvalidOperationException("This control has no parent");
+  }
+
+  protected void SetModal(bool modal)
+  { DesktopControl desktop = Desktop;
+    if(desktop==null) throw new InvalidOperationException("This control has no desktop");
+    if(modal) desktop.SetModal(this);
+    else desktop.UnsetModal(this);
   }
 
   protected Rectangle bounds = new Rectangle(0, 0, 100, 100), invalid;
@@ -945,25 +952,27 @@ public class DesktopControl : ContainerControl, IDisposable
       child.OnPaint(pe);
 
       // TODO: combine rectangles more efficiently
-      if(trackUpdates)
-      { int i;
-        for(i=0; i<updatedLen; i++)
-        { if(updated[i].Contains(pe.DisplayRect)) return;
-          retest:
-          if(pe.DisplayRect.Contains(updated[i]) && --updatedLen != i)
-          { updated[i] = updated[updatedLen];
-            goto retest;
-          }
-        }
-        if(i>=updatedLen)
-        { if(updatedLen==updated.Length)
-          { Rectangle[] narr = new Rectangle[updated.Length*2];
-            Array.Copy(narr, updated, updated.Length);
-            updated = narr;
-          }
-          updated[updatedLen++] = pe.DisplayRect;
-        }
+      if(trackUpdates) AddUpdatedArea(pe.DisplayRect);
+    }
+  }
+
+  public void AddUpdatedArea(Rectangle area)
+  { int i;
+    for(i=0; i<updatedLen; i++)
+    { if(updated[i].Contains(area)) return;
+      retest:
+      if(area.Contains(updated[i]) && --updatedLen != i)
+      { updated[i] = updated[updatedLen];
+        goto retest;
       }
+    }
+    if(i>=updatedLen)
+    { if(updatedLen==updated.Length)
+      { Rectangle[] narr = new Rectangle[updated.Length*2];
+        Array.Copy(narr, updated, updated.Length);
+        updated = narr;
+      }
+      updated[updatedLen++] = area;
     }
   }
 
@@ -979,7 +988,7 @@ public class DesktopControl : ContainerControl, IDisposable
 
       Control p=this, c;
       // passModal is true if there's no modal window, or this movement is within the modal window
-      bool passModal = modal==null;
+      bool passModal = modal.Count==0;
       at.X -= bounds.X; at.Y -= bounds.Y; // at is the cursor point local to 'p'
       EventArgs eventArgs=null;
       int ei=0;
@@ -997,7 +1006,7 @@ public class DesktopControl : ContainerControl, IDisposable
           enteredLen = ei;
         }
         if(c==null) break;
-        if(!passModal && c==modal) passModal=true;
+        if(!passModal && c==modal[modal.Count-1]) passModal=true;
         if(ei==enteredLen && passModal)
         { if(eventArgs==null) eventArgs=new EventArgs();
           if(enteredLen==entered.Length)
@@ -1056,10 +1065,12 @@ public class DesktopControl : ContainerControl, IDisposable
     else if(keys && e is KeyboardEvent)
     { if(FocusedControl!=null || KeyPreview)
       { KeyEventArgs ea = new KeyEventArgs((KeyboardEvent)e);
+        keyProcessing=true;
+        if(heldKey!=null) heldKey.Mods = ea.KE.Mods;
         if(ea.KE.Down)
-        { if(krTimer!=null)
-          { heldKey = ea.KE;
-            krTimer.Change(krDelay, krRate);
+        { if(krTimer!=null && !ea.KE.IsModKey)
+          { krTimer.Change(krDelay, krRate);
+            heldKey = ea.KE;
           }
         }
         else if(heldKey!=null && heldKey.Key==ea.KE.Key)
@@ -1067,6 +1078,7 @@ public class DesktopControl : ContainerControl, IDisposable
           heldKey = null;
         }
         DispatchKeyToFocused(ea);
+        keyProcessing=false;
         return FilterAction.Drop;
       }
       else
@@ -1089,13 +1101,13 @@ public class DesktopControl : ContainerControl, IDisposable
       if(capturing==null && !dragStarted && !Bounds.Contains(at)) return FilterAction.Continue;
       Control p = this, c;
       uint time = Timing.Msecs;
-      bool passModal = modal==null;
+      bool passModal = modal.Count==0;
       
       at.X -= bounds.X; at.Y -= bounds.Y; // at is the cursor point local to 'p'
       while(p.Enabled && p.Visible)
       { c = p.GetChildAtPoint(at);
         if(c==null) break;
-        if(!passModal && c==modal) passModal=true;
+        if(!passModal && c==modal[modal.Count-1]) passModal=true;
         at = p.WindowToChild(at, c);
         if(focus==AutoFocus.Click && ea.CE.Down && c.CanFocus && passModal) c.Focus();
         p = c;
@@ -1153,10 +1165,15 @@ public class DesktopControl : ContainerControl, IDisposable
     { WindowEvent we = (WindowEvent)e;
       switch(we.SubType)
       { case WindowEvent.MessageType.KeyRepeat:
-          if(heldKey!=null) DispatchKeyToFocused(new KeyEventArgs(heldKey));
+          if(heldKey!=null)
+          { keyProcessing=true;
+            DispatchKeyToFocused(new KeyEventArgs(heldKey));
+            keyProcessing=false;
+          }
           break;
         case WindowEvent.MessageType.Paint: DoPaint(we.Control); break;
         case WindowEvent.MessageType.Layout: we.Control.OnLayout(new EventArgs()); break;
+        case WindowEvent.MessageType.DesktopUpdated: if(we.Control!=this) return FilterAction.Continue; break;
         default: we.Control.OnCustomEvent(we); break;
       }
       return FilterAction.Drop;
@@ -1177,17 +1194,28 @@ public class DesktopControl : ContainerControl, IDisposable
     }
   }
 
-  internal void SetModal(Control control)
-  { if(control==null) modal=null;
-    else
-    { modal = control;
+  public void SetModal(Control control)
+  { if(control.Desktop!=this) throw new InvalidOperationException("The control is not associated with this desktop!");
+    if(modal.Contains(control)) UnsetModal(control);
+    modal.Add(control);
+    if(capturing!=control) capturing=null;
+    if(dragging!=null && dragging!=control) EndDrag();
+    while(control!=this) { control.Focus(); control=control.Parent; }
+  }
+
+  public void UnsetModal(Control control)
+  { if(control.Desktop!=this) throw new InvalidOperationException("The control is not associated with this desktop!");
+    modal.Remove(control);
+    if(modal.Count>0)
+    { control = (Control)modal[modal.Count-1];
       if(capturing!=control) capturing=null;
       if(dragging!=null && dragging!=control) EndDrag();
       while(control!=this) { control.Focus(); control=control.Parent; }
     }
   }
 
-  internal Control capturing, modal;
+  internal Control capturing;
+  internal ArrayList modal = new ArrayList(4);
 
   #region Dispatchers
   bool DispatchKeyEvent(Control target, KeyEventArgs e)
@@ -1240,7 +1268,7 @@ public class DesktopControl : ContainerControl, IDisposable
   }
   #endregion
 
-  void RepeatKey(object dummy) { Events.Events.PushEvent(new KeyRepeatEvent()); }
+  void RepeatKey(object dummy) { if(!keyProcessing) Events.Events.PushEvent(new KeyRepeatEvent()); }
   void TabToNext(bool reverse)
   { Control fc = this;
     while(fc.FocusedControl!=null) fc=fc.FocusedControl;
@@ -1264,8 +1292,8 @@ public class DesktopControl : ContainerControl, IDisposable
   Input.Key tab=Input.Key.Tab;
   ClickStatus clickStatus;
   int   dragThresh=16, enteredLen, updatedLen;
-  uint  dcDelay=350, krDelay, krRate=50;
-  bool  keys=true, clicks=true, moves=true, init, dragStarted, trackUpdates=true;
+  uint  dcDelay=350, krDelay, krRate=40;
+  bool  keys=true, clicks=true, moves=true, init, dragStarted, trackUpdates=true, keyProcessing;
   
   void Init()
   { Events.Events.Initialize();

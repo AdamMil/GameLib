@@ -44,6 +44,7 @@ public class KeyboardEvent : Event
     Scan = evt.Key.Scan;
     Down = evt.Down!=0;
   }
+  public bool IsModKey { get { return Input.Keyboard.IsModKey(Key); } }
   public bool HasAnyMod  (Input.KeyMod mod) { return (Mods&mod)!=Input.KeyMod.None; }
   public bool HasAllMods (Input.KeyMod mod) { return (Mods&mod)==mod; }
   public bool HasAllKeys (Input.KeyMod mod) { return (KeyMods&mod)==mod; }
@@ -154,7 +155,7 @@ public abstract class WindowEvent : Event
   public WindowEvent(GameLib.Forms.Control control, MessageType subType) : base(EventType.Window)
   { Control=control; SubType=subType;
   }
-  public enum MessageType { Custom, Paint, Layout, KeyRepeat };
+  public enum MessageType { Custom, Paint, Layout, KeyRepeat, DesktopUpdated };
   public GameLib.Forms.Control Control;
   public MessageType SubType;
 }
@@ -169,6 +170,11 @@ public class WindowLayoutEvent : WindowEvent
 
 public class KeyRepeatEvent : WindowEvent
 { public KeyRepeatEvent() : base(null, WindowEvent.MessageType.KeyRepeat) { }
+}
+
+public class DesktopUpdatedEvent : WindowEvent
+{ public DesktopUpdatedEvent(GameLib.Forms.DesktopControl desktop)
+    : base(desktop, WindowEvent.MessageType.DesktopUpdated) { }
 }
 
 public class UserEvent : Event
@@ -212,6 +218,7 @@ public sealed class Events
   }
   public static object SyncRoot { get { return queue; } }
 
+  public static int  QueueSize { get { return queue.Count; } }
   public static bool QuitFlag { get { return quit; } set { quit=value; } }
 
   public static void Initialize()
