@@ -438,9 +438,7 @@ public class TrueTypeFont : NonFixedFont, IDisposable
   protected void CacheRemove(LinkedList.Node node)
   { CachedChar cc = (CachedChar)node.Data;
     cc.Dispose();
-if(tree[cc.Index]!=node) throw new Exception("ftest1");
     tree.Remove(cc.Index);
-if(tree[cc.Index]!=null) throw new Exception("ftest2");
     list.Remove(node);
   }
 
