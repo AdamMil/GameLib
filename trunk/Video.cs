@@ -268,7 +268,7 @@ public class WM
     set { SDL.WM_SetCaption(value, null); }
   }
   
-  public static bool ProcessInput
+  public static bool GrabInput // TODO: possibly move this to Input?
   { get
     { SDL.GrabMode mode = SDL.WM_GrabInput(SDL.GrabMode.Query);
       return mode==SDL.GrabMode.On;
