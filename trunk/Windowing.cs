@@ -1,5 +1,4 @@
 // TODO: implement mouse cursor
-// TODO: add way to cancel key repeat?
 // TODO: add 'other control' to focus events?
 // TODO: examine Layout further (implemented properly?)
 using System;
@@ -12,87 +11,266 @@ namespace GameLib.Forms
 {
 
 #region Event arguments and delegates
+/// <summary>This class is used in events that refer to a control.</summary>
 public class ControlEventArgs : EventArgs
 { public ControlEventArgs(Control control) { Control = control; }
+  /// <summary>This member holds the control associated with this event.</summary>
   public Control Control;
 }
 public delegate void ControlEventHandler(object sender, ControlEventArgs e);
 
+/// <summary>This class is used in events that refer to the mouse cursor being dragged over a control.</summary>
 public class DragEventArgs : EventArgs
-{ public bool Pressed(byte button) { return (Buttons&(1<<button))!=0; }
+{
+  /// <summary>This method checks whether the specified button was depressed at the time the drag was started.
+  /// </summary>
+  /// <param name="button">The mouse button to check for (0-7; 0=left, 1=middle, 2=right)</param>
+  /// <returns>Returns true if the specified button was depressed at the time the drag was started.</returns>
+  public bool Pressed(byte button) { return (Buttons&(1<<button))!=0; }
+  /// <summary>
+  /// This method sets or clears a bit in the <see cref="Buttons"/> field corresponding to the specified button.
+  /// </summary>
+  /// <param name="button">The mouse button to set (0-7; 0=left, 1=middle, 2=right)</param>
+  /// <param name="down">The button bit will be set if this is true and cleared if false.</param>
   public void SetPressed(byte button, bool down)
   { if(down) Buttons|=(byte)(1<<button); else Buttons&=(byte)~(1<<button);
   }
-  public Point Start, End;
-  public byte  Buttons;
-  public bool  Cancel;
+  /// <summary>
+  /// This field holds the beginning of the drag, in window coordinates. It is valid during all of the drag events.
+  /// </summary>
+  public Point Start;
+  /// <summary>This field holds the beginning of the drag, in window coordinates. It is valid during the
+  /// <see cref="Control.DragMove"/> and <see cref="Control.DragEnd"/> events.
+  /// </summary>
+  public Point End;
+  /// <summary>
+  /// This field holds the mouse buttons that were depressed at the time the drag started. Use the
+  /// <see cref="Pressed"/> and <see cref="SetPressed"/> events, which reference this field.
+  /// </summary>
+  public byte Buttons;
+  /// <summary>If this field is set to true in an event handler, the drag will be aborted, and
+  /// <see cref="Control.DragEnd"/> will not be called.
+  /// </summary>
+  public bool Cancel;
 }
 public delegate void DragEventHandler(object sender, DragEventArgs e);
 
+/// <summary>
+/// This class is used in events that draw the control to the screen.
+/// </summary>
 public class PaintEventArgs : EventArgs
-{ public PaintEventArgs(Control control, Rectangle rect, Surface surface)
+{ 
+  /// <param name="control">The control that is to be painted.</param>
+  /// <param name="rect">The area within the control to be painted, in window coordinates.
+  /// This rectangle is used to generated the <see cref="DisplayRect"/> field.
+  /// </param>
+  /// <param name="surface">The surface onto which the control should be drawn. This is expected to be the
+  /// same surface that's associated with the control's <see cref="Control.Desktop"/> property.</param>
+  public PaintEventArgs(Control control, Rectangle rect, Surface surface)
   { Surface=surface; WindowRect=rect; DisplayRect=control.WindowToDisplay(rect);
   }
-  public Surface   Surface;
-  public Rectangle WindowRect, DisplayRect;
+  /// <summary>This field holds a reference to the surface upon which the control should be painted.</summary>
+  public Surface Surface;
+  /// <summary>This rectangle holds the area to be painted, in window coordinates.</summary>
+  public Rectangle WindowRect;
+  /// <summary>This rectangle holds the area to be painted, in screen coordinates within <see cref="Surface"/>.
+  /// </summary>
+  public Rectangle DisplayRect;
 }
 public delegate void PaintEventHandler(object sender, PaintEventArgs e);
 
-public class KeyEventArgs
-{ public KeyEventArgs(KeyboardEvent ke) { KE=ke; }
+/// <summary>This class is used in keyboard events.</summary>
+public class KeyEventArgs : EventArgs
+{ 
+  /// <param name="ke">The internal GameLib event which will be stored into <see cref="KE"/>.</param>
+  public KeyEventArgs(KeyboardEvent ke) { KE=ke; }
+  /// <summary>The internal GameLib event which contains information about the key.</summary>
   public KeyboardEvent KE;
+  /// <summary>This is set to true within an event handler to indicate that the event has been handled and should
+  /// not be propogated to other event handling code.
+  /// </summary>
   public bool Handled;
 }
 public delegate void KeyEventHandler(object sender, KeyEventArgs e);
 
-public class ClickEventArgs
-{ public ClickEventArgs() { CE=new MouseClickEvent(); }
+/// <summary>This class is used in mouse button events.</summary>
+public class ClickEventArgs : EventArgs
+{ 
+  /// <summary>This constructor creates an instance with all click information initialized to zero. You should
+  /// fill in the <see cref="CE"/> field yourself before using this instance.
+  /// </summary>
+  public ClickEventArgs() { CE=new MouseClickEvent(); }
+  /// <summary>This constructor creates an instance with click information populated from <c>ce</c>.</summary>
+  /// <param name="ce">This reference is stored in the <see cref="CE"/> field.</param>
   public ClickEventArgs(MouseClickEvent ce) { CE=ce; }
+  /// <summary>This field holds the mouse click information. Fields referring to the location where the
+  /// click occurred will be automatically converted to window coordinates when the event handler is called.
+  /// </summary>
   public MouseClickEvent CE;
+  /// <summary>This is set to true within an event handler to indicate that the event has been handled and should
+  /// not be propogated to other event handling code.
+  /// </summary>
   public bool Handled;
 }
+/// <summary>This delegate is used along with <see cref="ClickEventArgs"/> to service mouse click events.</summary>
 public delegate void ClickEventHandler(object sender, ClickEventArgs e);
+/// <summary>This delegate is used along with <see cref="MouseMoveEvent"/> to service mouse move events.
+/// Information in <c>e</c> relating to the location of the mouse movement will be automatically converted
+/// to window coordinates when the event handler is called.
+/// </summary>
 public delegate void MouseMoveEventHandler(object sender, MouseMoveEvent e);
 #endregion
 
 #region Control class
+/// <summary>
+/// This enum is generally used by derived controls to control how they will be treated by the
+/// <see cref="DesktopControl">Desktop</see>. The enumeration members can be ORed together to combine their effects.
+/// </summary>
 [Flags]
 public enum ControlStyle
-{ None=0, Clickable=1, DoubleClickable=2, Draggable=4, CanFocus=8,
-  NormalClick=Clickable|DoubleClickable, Anyclick=NormalClick|Draggable,
+{ 
+  /// <summary>The control may not receive click, double-click, or drag events, and cannot receive focus.</summary>
+  None=0,
+  /// <summary>The control may receive click events.</summary>
+  Clickable=1,
+  /// <summary>The control may receive double-click events. Without this flag, if the user double-clicks, the
+  ///   control will receive two click events.
+  /// </summary>
+  DoubleClickable=2,
+  /// <summary>The control may receive drag events. Without this flag, a drag may be interpreted as a click.</summary>
+  Draggable=4,
+  /// <summary>The control may receive focus.</summary>
+  CanFocus=8,
+  /// <summary>This flag is the same as specifying <c>Clickable</c> and <c>DoubleClickable</c>.</summary>
+  NormalClick=Clickable|DoubleClickable,
+  /// <summary>This flag is the same as specifying <c>Clickable</c>, <c>DoubleClickable</c>, and <c>Draggable</c>.
+  /// </summary>
+  Anyclick=NormalClick|Draggable,
 }
 
+/// <summary>
+/// This enum specifies where the control will be anchored in relation to its parent control. See the
+/// <see cref="Control.Anchor"/> property for more information. The members can be ORed together to combine their
+/// effects.
+/// </summary>
 [Flags]
 public enum AnchorStyle // TODO: support more than just corners
-{ Left=1, Top=2, Right=4, Bottom=8,
-  TopLeft=Top|Left, TopRight=Top|Right, BottomLeft=Bottom|Left, BottomRight=Bottom|Right
+{ 
+  /// <summary>The control will be anchored to its parent's left edge.</summary>
+  Left=1,
+  /// <summary>The control will be anchored to its parent's top edge.</summary>
+  Top=2,
+  /// <summary>The control will be anchored to its parent's right edge.</summary>
+  Right=4,
+  /// <summary>The control will be anchored to its parent's bottom edge.</summary>
+  Bottom=8,
+  /// <summary>The control will be anchored to its parent's top left corner.</summary>
+  TopLeft=Top|Left,
+  /// <summary>The control will be anchored to its parent's top right corner.</summary>
+  TopRight=Top|Right,
+  /// <summary>The control will be anchored to its parent's bottom left corner.</summary>
+  BottomLeft=Bottom|Left,
+  /// <summary>The control will be anchored to its parent's bottom right corner.</summary>
+  BottomRight=Bottom|Right
 }
 
+/// <summary>
+/// This enum specifies where the control will be docked. See the <see cref="Control.Dock"/> property for more
+/// information.
+/// </summary>
 public enum DockStyle
-{ None, Left, Top, Right, Bottom
+{ 
+  /// <summary>The control will not be docked.</summary>
+  None,
+  /// <summary>The control will be docked along its parent's left side.</summary>
+  Left,
+  /// <summary>The control will be docked along its parent's top side.</summary>
+  Top,
+  /// <summary>The control will be docked along its parent's right side.</summary>
+  Right,
+  /// <summary>The control will be docked along its parent's bottom side.</summary>
+  Bottom
 }
 
+/// <summary>
+/// This class is the base class of all controls in the windowing system. Those wanting to create new controls
+/// should consider inheriting from the <see cref="Form"/> class (for dialogs), the <see cref="ContainerControl"/>
+/// class (for controls that contain other controls), or one of the other controls that already exist.
+/// </summary>
 public class Control
 { public Control() { controls = new ControlCollection(this); }
 
   #region ControlCollection
+  /// <summary>This class provides a strongly-typed collection of <see cref="Control"/> objects.</summary>
   public class ControlCollection : CollectionBase
   { internal ControlCollection(Control parent) { this.parent=parent; }
-    
+    /// <summary>
+    /// Gets the control specified by the index given.
+    /// </summary>
+    /// <param name="index">The zero-based index of the control to return.</param>
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// <para><paramref name="index"/> is less than zero.</para>
+    /// <para>-or-</para>
+    /// <para><paramref name="index"/> is equal to or greater than <see cref="ICollection.Count"/>.</para>
+    /// </exception>
     public Control this[int index] { get { return (Control)List[index]; } }
-    public int Add(Control control)
-    { if(control.Parent!=null) throw new ArgumentException("Already belongs to a control!");
-      control.SetParent(parent);
-      return List.Add(control);
-    }
-    public void AddRange(Control[] controls) { foreach(Control c in controls) Add(c); }
-    public void AddRange(params object[] controls) { foreach(Control c in controls) Add(c); }
+    /// <summary>Adds a control as a new child of this control.</summary>
+    /// <param name="control">The control to add.</param>
+    /// <returns>The index at which the control was added to the collection.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="control"/> is null</exception>
+    /// <exception cref="ArgumentException"><paramref name="control"/> already belongs to another control (ie,
+    /// its <see cref="Control.Parent"/> property is not null).
+    /// </exception>
+    /// <event cref="Control.ControlAdded">Raised on this control to notify the application that a new control
+    /// was added.
+    /// </event>
+    /// <event cref="Control.ParentChanged">Raised on the child control to notify it that its parent has changed.
+    /// </event>
+    public int Add(Control control) { return List.Add(control); }
+    /// <summary>Adds several new child controls at once.</summary>
+    /// <remarks>This method effectively calls <see cref="Add"/> on each member of <paramref name="controls"/>.
+    /// See <see cref="Add"/> for more information on what occurs when this method is called.
+    /// </remarks>
+    /// <param name="controls">An array containing the controls to add.</param>
+    public void AddRange(Control[] controls) { foreach(Control c in controls) List.Add(c); }
+    /// <summary>Adds several new child controls at once.</summary>
+    /// <remarks>This method effectively calls <see cref="Add"/> on each member of <paramref name="controls"/>.
+    /// See <see cref="Add"/> for more information on what occurs when this method is called.
+    /// </remarks>
+    /// <param name="controls">An array containing the controls to add.</param>
+    public void AddRange(params object[] controls) { foreach(Control c in controls) List.Add(c); }
+    /// <summary>Returns the index of the specified child control within the collection.</summary>
+    /// <returns>If the control is found, the index of the control is returned. Otherwise, -1 is returned.</returns>
+    /// <param name="control">A reference to a control to search for.</param>
     public int IndexOf(Control control) { return List.IndexOf(control); }
+    /// <summary>Returns the index of the specified child control within the collection.</summary>
+    /// <returns>If the control is found, the index of the control is returned. Otherwise, -1 is returned.</returns>
+    /// <param name="name">The name of a control to search for. This does a case-sensitive comparison against the
+    /// <see cref="Control.Name"/> property.
+    /// </param>
     public int IndexOf(string name)
     { for(int i=0; i<Count; i++) if(this[i].Name==name) return i;
       return -1;
     }
-    public Control Find(string name) { return Find(name, true); }
+    /// <summary>Finds a control by name and returns a reference to it.</summary>
+    /// <returns>If the control is found, a reference to it is returned. Otherwise, null is returned.</returns>
+    /// <remarks>Calling this method is equivalent to calling <see cref="Find(string, bool)"/> with
+    /// <paramref name="deepSearch"/> set to false.
+    /// </remarks>
+    /// <param name="name">The name of the control. A case-insensitive comparison against the
+    /// <see cref="Control.Name"/> property is done.
+    /// </param>
+    /// <returns>If the control is found, a reference to it will be returned. Otherwise, null will be returned.</returns>
+    public Control Find(string name) { return Find(name, false); }
+    /// <summary>Finds a control by name and returns a reference to it.</summary>
+    /// <returns>If the control is found, a reference to it is returned. Otherwise, null is returned.</returns>
+    /// <param name="name">The name of the control. A case-insensitive comparison against the
+    /// <see cref="Control.Name"/> property is done.
+    /// </param>
+    /// <param name="deepSearch">If true, a recursive search is performed, searching descendants if the
+    /// named control cannot be found here. If false, the search stops after searching the immediate children.
+    /// </param>
+    /// <returns>If the control is found, a reference to it will be returned. Otherwise, null will be returned.</returns>
     public Control Find(string name, bool deepSearch)
     { int index = IndexOf(name);
       if(index==-1)
@@ -105,24 +283,38 @@ public class Control
       }
       else return this[index];
     }
-    public new void Clear()
-    { foreach(Control c in this) c.SetParent(null);
-      List.Clear();
-    }
-    public void Insert(int index, Control control)
-    { if(control.Parent!=null) throw new ArgumentException("Already belongs to a control!");
-      List.Insert(index, control);
-    }
-    public void Remove(Control control)
-    { if(!Contains(control)) throw new ArgumentException("Control does not exist in collection");
-      control.SetParent(null);
-      List.Remove(control);
-    }
-    public new void RemoveAt(int index)
-    { this[index].SetParent(null);
-      List.RemoveAt(index);
-    }
+    /// <summary>Adds a control as a new child of this control, inserting it at the specified index.</summary>
+    /// <param name="index">The index at which to add the control.</param>
+    /// <param name="control">The control to add.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="control"/> is null</exception>
+    /// <exception cref="ArgumentException"><paramref name="control"/> already belongs to another control (ie,
+    /// its <see cref="Control.Parent"/> property is not null).
+    /// </exception>
+    /// <event cref="Control.ControlAdded">Raised on this control to notify the application that a new control
+    /// was added.
+    /// </event>
+    /// <event cref="Control.ParentChanged">Raised on the child control to notify it that its parent has changed.
+    /// </event>
+    public void Insert(int index, Control control) { List.Insert(index, control); }
+    /// <summary>Removes a child control.</summary>
+    /// <param name="control">A reference to the control to remove.</param>
+    /// <exception cref="ArgumentException"><paramref name="control"/> cannot be found in this collection.</exception>
+    /// <event cref="Control.ControlRemoved">Raised on this control to notify the application that a control
+    /// was removed.
+    /// </event>
+    /// <event cref="Control.ParentChanged">Raised on the child control to notify it that its parent has changed.
+    /// </event>
+    public void Remove(Control control) { List.Remove(control); }
+    /// <summary>Returns a value indicating whether the given control exists in this collection.</summary>
+    /// <param name="control">The control to search for.</param>
+    /// <returns>Returns true if the control was found and false otherwise.</returns>
     public bool Contains(Control control) { return control.parent==parent; }
+    /// <summary>Returns a value indicating whether the given control a child or descendant of this one.</summary>
+    /// <param name="control">The control to search for.</param>
+    /// <param name="deepSearch">If true, a recursive search is performed, searching descendants if the
+    /// control cannot be found here. If false, the search stops after searching the immediate children.
+    /// </param>
+    /// <returns>Returns true if the control was found and false if not.</returns>
     public bool Contains(Control control, bool deepSearch)
     { if(deepSearch)
       { while(control!=null) { if(control==parent) return true; control=control.parent; }
@@ -130,18 +322,59 @@ public class Control
       }
       else return control.parent==parent;
     }
+    /// <summary>Returns a value indicating whether the named control a child or descendant of this one.</summary>
+    /// <returns>Returns true if the control was found and false if not.</returns>
+    /// <remarks>Calling this method is equivalent to calling <see cref="Contains(string, bool)"/> with
+    /// <paramref name="deepSearch"/> set to false.
+    /// </remarks>
+    /// <param name="name">The name of the control. A case-insensitive comparison against the
+    /// <see cref="Control.Name"/> property is done.
+    /// </param>
     public bool Contains(string name) { return Find(name, false)!=null; }
+    /// <summary>Returns a value indicating whether the named control a child or descendant of this one.</summary>
+    /// <returns>Returns true if the control was found and false if not.</returns>
+    /// <remarks>Calling this method is equivalent to calling <see cref="Contains(string, bool)"/> with
+    /// <paramref name="deepSearch"/> set to false.
+    /// </remarks>
+    /// <param name="name">The name of the control. A case-insensitive comparison against the
+    /// <see cref="Control.Name"/> property is done.
+    /// </param>
+    /// <param name="deepSearch">If true, a recursive search is performed, searching descendants if the
+    /// named control cannot be found here. If false, the search stops after searching the immediate children.
+    /// </param>
     public bool Contains(string name, bool deepSearch) { return Find(name, deepSearch)!=null; }
     
-    internal IList Array { get { return List; } }
+    internal ArrayList Array { get { return InnerList; } }
     
+    protected override void OnClear()
+    { foreach(Control c in this) c.SetParent(null);
+      base.OnClear();
+    }
+    protected override void OnInsert(int index, object value)
+    { Control control = (Control)value;
+      if(control==null) throw new ArgumentNullException("control");
+      if(control.Parent!=null) throw new ArgumentException("Already belongs to a control!");
+      control.SetParent(parent);
+      base.OnInsert(index, value);
+    }
+    protected override void OnRemove(int index, object value)
+    { ((Control)value).SetParent(null);
+      base.OnRemoveComplete(index, value);
+    }
+    protected override void OnSet(int index, object oldValue, object newValue)
+    { Control control = (Control)newValue;
+      if(control==null) throw new ArgumentNullException("control");
+      if(control.Parent!=null) throw new ArgumentException("Already belongs to a control!");
+      ((Control)oldValue).SetParent(null);
+      control.SetParent(parent);
+      base.OnSet(index, oldValue, newValue);
+    }
+
     Control parent;
   }
   #endregion
 
   #region Properties
-  public bool AcceptsTab { get { return acceptsTab; } set { acceptsTab=value; } }
-  
   public AnchorStyle Anchor
   { get { return anchor; }
     set
@@ -152,7 +385,6 @@ public class Control
       }
     }
   }
-    
 
   public Color BackColor
   { get
@@ -214,15 +446,6 @@ public class Control
       else if(desktop!=null && desktop.capturing==this) desktop.capturing=null;
     }
   }
-
-  public bool Modal
-  { get
-    { DesktopControl desktop = Desktop;
-      return desktop != null && desktop.modal.Contains(this);
-    }
-  }
-
-  public Rectangle WindowRect { get { return new Rectangle(0, 0, bounds.Width, bounds.Height); } }
 
   public ControlCollection Controls { get { return controls; } }
   
@@ -346,6 +569,13 @@ public class Control
     }
   }
 
+  public bool Modal
+  { get
+    { DesktopControl desktop = Desktop;
+      return desktop != null && desktop.modal.Contains(this);
+    }
+  }
+
   public string Name
   { get { return name; }
     set
@@ -465,6 +695,8 @@ public class Control
     }
   }
 
+  public Rectangle WindowRect { get { return new Rectangle(0, 0, bounds.Width, bounds.Height); } }
+
   public int BottomAnchorOffset { get { return bottomAnchor; } }
   public int RightAnchorOffset  { get { return rightAnchor;  } }
   #endregion
@@ -479,7 +711,7 @@ public class Control
 
   public void BringToFront()
   { AssertParent();
-    IList list = parent.controls.Array;
+    ArrayList list = parent.controls.Array;
     if(list[list.Count-1]!=this)
     { list.Remove(this);
       list.Insert(list.Count-1, this);
@@ -601,7 +833,7 @@ public class Control
 
   public void SendToBack()
   { AssertParent();
-    IList list = parent.controls.Array;
+    ArrayList list = parent.controls.Array;
     if(list[0]!=this)
     { list.Remove(this);
       list.Insert(0, this);
@@ -860,7 +1092,7 @@ public class Control
   ControlStyle style;
   AnchorStyle  anchor=AnchorStyle.TopLeft;
   DockStyle    dock;
-  bool enabled=true, visible=true, mychange, keyPreview, acceptsTab;
+  bool enabled=true, visible=true, mychange, keyPreview;
 }
 #endregion
 
@@ -1266,7 +1498,9 @@ public class DesktopControl : ContainerControl, IDisposable
         fc = fc.FocusedControl;
       } while(fc.FocusedControl!=null);
     if(!DispatchKeyEvent(fc, e)) goto done;
-    if(e.KE.Down && e.KE.Key==tab && (!e.Handled || !fc.AcceptsTab)) TabToNext(e.KE.HasAnyMod(Input.KeyMod.Shift));
+    if(!e.Handled && e.KE.Down && e.KE.Key==tab &&
+       (e.KE.KeyMods==Input.KeyMod.None || e.KE.HasOnlyKeys(Input.KeyMod.Shift)))
+      TabToNext(e.KE.HasAnyMod(Input.KeyMod.Shift));
     done:
     return !e.Handled;
   }

@@ -129,7 +129,7 @@ public abstract class Font
         }
         else { end=pend; length=plen; }
         list.Add(end-start);
-        if(height>=rheight) break;
+        if(height>rheight) break;
         start  = end;
         length = 0;
         cont:
