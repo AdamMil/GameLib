@@ -1,9 +1,10 @@
 #include "Mixer.h"
 #include <stdlib.h>
 #include <string.h>
+#include <malloc.h>
 
-#define BYTES(fmt) ((fmt)0xFF)
-#define BYTES(fmt) (BYTES(fmt)>>3)
+#define BITS(fmt) ((fmt)&0xFF)
+#define BYTES(fmt) (BITS(fmt)>>3)
 #define DIVISIBLE(n, d) ((n)/(d)*(d)==(n))
 #define SIGNED(fmt) ((fmt)&0x8000)
 #define SWAPEND(v) (((v)<<8)|((v)>>8))
@@ -23,13 +24,14 @@ static Sint32        mixAccSize;
 static int           initCount, mixVolume=256;
 
 static void GLM_callback(void *userdata, Uint8 *stream, int bytes)
-{ int samples;
+{ int samples, frames;
   if(!mixCallback) return;
 
   if(mixVolume>0)
   { samples = bytes/BYTES(mixFormat.format);
+    frames  = samples/mixFormat.channels;
     memset(mixAcc, 0, samples*sizeof(Sint32)); /* zero the accumulator */
-    mixCallback(mixAcc, samples, userdata);  /* call the user callback to mix in the audio */
+    mixCallback(mixAcc, frames, userdata);  /* call the user callback to mix in the audio */
     GLM_VolumeScale(mixAcc, samples, mixVolume);
     GLM_ConvertAcc(stream, mixAcc, samples, mixFormat.format);
   }
@@ -45,58 +47,69 @@ static void GLM_callback(void *userdata, Uint8 *stream, int bytes)
 static void StereoToMono(GLM_AudioCVT *cvt)
 { int i, sfmt=cvt->srcFormat;
   if(BITS(sfmt)==8)
-  { if(SIGNED(sfmt)) /* 8bit signed */
-    { Sint8 *src = cvt->buf+cvt->len-2, *dest=cvt->buf+cvt->len/2-1;
-      for(i=cvt->len; i; src-=2,i--) *dest-- = (src[0]+src[1])/2;
+  { i=cvt->len;
+    if(SIGNED(sfmt)) /* 8bit signed */
+    { Sint8 *src = cvt->buf, *dest=src;
+      for(; i; src+=2,i--) *dest++ = (src[0]+src[1])/2;
     }
     else /* 8bit unsigned */
-    { Uint8 *src = cvt->buf+cvt->len-2, *dest=cvt->buf+cvt->len/2-1;
-      for(i=cvt->len; i; src-=2,i--) *dest-- = (src[0]+src[1])/2;
+    { Uint8 *src = cvt->buf, *dest=src;
+      for(; i; src+=2,i--) *dest++ = (src[0]+src[1])/2;
     }
   }
   else
-  { if(OPPEND(sfmt)) /* opposite endianness */
-    { Uint16 *src = cvt->buf+cvt->len/2-4;
+  { i=cvt->len/2;
+    if(OPPEND(sfmt)) /* opposite endianness */
+    { Uint16 *src = (Uint16*)cvt->buf;
+      Uint32 dv;
       if(SIGNED(sfmt)) /* 16bit signed OE */
-      { Sint16 *dest = cvt->buf+cvt->len/4-2;
-        for(i=cvt->len/2; i; src-=2,i--) *dest-- = ((Sint32)SWAPEND(src[0])+(Sint32)SWAPEND(src[1]))/2;
+      { Sint16 *dest = (Sint16*)cvt->buf;
+        for(; i; src+=2,i--)
+        { dv = (Uint32)(((Sint32)SWAPEND(src[0])+(Sint32)SWAPEND(src[1]))/2);
+          *dest++ = SWAPEND(dv);
+        }
       }
       else /* 16bit unsigned OE */
-      { Uint16 *dest = cvt->buf+cvt->len/4-2;
-        for(i=cvt->len/2; i; src-=2,i--) *dest-- = (SWAPEND(src[0])+SWAPEND(src[1]))/2;
+      { Uint16 *dest = (Uint16*)cvt->buf;
+        for(; i; src+=2,i--)
+        { dv = (SWAPEND(src[0])+SWAPEND(src[1]))/2;
+          *dest++ = SWAPEND(dv);
+        }
       }
     }
     else /* same endianness */
     { if(SIGNED(sfmt)) /* 16bit signed SE */
-      { SInt16 *src = cvt->buf+cvt->len/2-4, *dest = cvt->buf+cvt->len/4-2;
-        for(i=cvt->len/2; i; src-=2,i--) *dest-- = (src[0]+src[1])/2;
+      { Sint16 *src = (Sint16*)cvt->buf, *dest = src;
+        for(; i; src+=2,i--) *dest++ = (src[0]+src[1])/2;
       }
-      else /* 16bit unsigned OE */
-      { UInt16 *src = cvt->buf+cvt->len/2-4, *dest = cvt->buf+cvt->len/4-2;
-        for(i=cvt->len/2; i; src-=2,i--) *dest-- = (src[0]+src[1])/2;
+      else /* 16bit unsigned SE */
+      { Uint16 *src = (Uint16*)cvt->buf, *dest = src;
+        for(; i; src+=2,i--) *dest++ = (src[0]+src[1])/2;
       }
     }
-  }    
+  }
+  cvt->len/=2;
 }
 
 static void MonoToStereo(GLM_AudioCVT *cvt)
 { int i;
-  if(BITS(cvt->srcFormat)==8)
-  { Uint8 *src = cvt->buf, *dest = cvt->buf;
-    for(i=cvt->len; i; src+=2,i--) src[0]=src[1]*dest++;
+  if(BITS(cvt->srcFormat)==8) /* 8bit */
+  { Uint8 *src = cvt->buf+cvt->len-1, *dest = cvt->buf+cvt->len*2-2;
+    for(i=cvt->len; i; dest-=2,i--) dest[0]=dest[1]=*src--;
   }
-  else
-  { Uint16 *src = cvt->buf, *dest = cvt->buf;
-    for(i=cvt->len/2; i; src+=2,i--) src[0]=src[1]*dest++;
+  else /* 16bit */
+  { Uint16 *src = (Uint16*)(cvt->buf+cvt->len)-1, *dest = (Uint16*)(cvt->buf+cvt->len*2)-2;
+    for(i=cvt->len/2; i; dest-=2,i--) dest[0]=dest[1]=*src--;
   }
+  cvt->len*=2;
 }
 
 static void EightToSixteen(GLM_AudioCVT *cvt)
 { int i = cvt->len, sfmt = cvt->srcFormat, dfmt = cvt->destFormat;
   if(SIGNED(sfmt)) /* 8bit signed to 16bit */
   { if(SIGNED(dfmt)) /* 8bit signed to 16bit signed */
-    { Sint8  *src  = cvt->buf+cvt->len-1;
-      Sint16 *dest = cvt->buf+cvt->len*2-2;
+    { Sint8  *src  = (Sint8*)(cvt->buf+cvt->len-1);
+      Sint16 *dest = (Sint16*)(cvt->buf+cvt->len*2-2);
       Sint8   dv;
       if(OPPEND(dfmt)) /* 8bit signed to 16bit OE */
         for(; i; i--)
@@ -107,133 +120,175 @@ static void EightToSixteen(GLM_AudioCVT *cvt)
     }
     else /* 8bit signed to 16bit unsigned */
     { Uint8  *src  = cvt->buf+cvt->len-1;
-      Uint16 *dest = cvt->buf+cvt->len*2-2, dv;
+      Uint16 *dest = (Uint16*)(cvt->buf+cvt->len*2-2), dv;
       if(OPPEND(dfmt)) /* 8bit signed to 16bit unsigned OE */
         for(; i; i--)
-        { dv=-*src--<<8;
+        { dv=(*src-- + 128)<<8;
           *dest-- = SWAPEND(dv);
         }
-      else for(; i; i--) *dest = -*src--<<8; /* 8bit signed to 16bit unsigned SE */
+      else for(; i; i--) *dest-- = (*src-- + 128)<<8; /* 8bit signed to 16bit unsigned SE */
     }
   }
   else /* 8bit unsigned to 16bit */
   { Uint8 *src = cvt->buf+cvt->len-1;
     if(SIGNED(dfmt)) /* 8bit unsigned to 16bit signed */
-    { Sint16 *dest = cvt->buf+cvt->len*2-2, dv;
+    { Sint16 *dest = (Sint16*)(cvt->buf+cvt->len*2-2), dv;
       if(OPPEND(dfmt)) /* 8bit unsigned to 16bit signed OE */
         for(; i; i--)
-        { dv = -*src--<<8;
+        { dv = (*src-- - 128)<<8;
           *dest-- = SWAPEND(dv);
         }
-      else for(; i; i--) *dest-- = -*src--<<8; /* 8bit unsigned to 16bit signed SE */
+      else for(; i; i--) *dest-- = (*src-- - 128)<<8; /* 8bit unsigned to 16bit signed SE */
     }
     else /* 8bit unsigned to 16bit unsigned */
-    { Uint16 *dest = cvt->buf+cvt->len*2-2;
+    { Uint16 *dest = (Uint16*)(cvt->buf+cvt->len*2-2);
       Uint8   dv;
       if(OPPEND(dfmt)) /* 8bit unsigned to 16bit unsigned OE */
         for(; i; i--)
         { dv = *src--<<8;
-          *dest-- = SWAPEND(sv);
+          *dest-- = SWAPEND(dv);
         }
       else for(; i; i--) *dest-- = *src--<<8; /* 8bit unsigned to 16bit unsigned SE */
     }
   }
+  cvt->len*=2;
+  cvt->srcFormat = (cvt->srcFormat&~0x80FF)|(cvt->destFormat&0x80FF);
 }
 
 static void SixteenToEight(GLM_AudioCVT *cvt)
 { int i = cvt->len/2;
   if(SIGNED(cvt->srcFormat)) /* 16bit signed to 8bit */
-  { if(SIGNED(cvt->destFormat) /* 16bit signed to 8bit signed */
-    { Sint16 *src  = cvt->buf+cvt->len-2;
-      Sint8  *dest = cvt->buf+cvt->len/2-1;
+  { if(SIGNED(cvt->destFormat)) /* 16bit signed to 8bit signed */
+    { Sint16 *src  = (Sint16*)cvt->buf;
+      Sint8  *dest = (Sint8*)cvt->buf;
       if(OPPEND(cvt->srcFormat)) /* 16bit signed OE to 8bit signed */
-        for(; i; src--,i--) *dest-- = (Sint16)SWAPEND((Uint16)*src);
-      else for(; i; i--) *dest-- = *src--;
+        for(; i; src++,i--) *dest++ = (Sint16)SWAPEND((Uint16)*src)>>8;
+      else for(; i; i--) *dest++ = *src++>>8;
     }
     else /* 16bit signed to 8bit unsigned */
-    { Uint16 *src  = cvt->buf+cvt->len-2;
-      Uint8  *dest = cvt->buf+cvt->len/2-1;
+    { Uint16 *src  = (Uint16*)cvt->buf;
+      Uint8  *dest = cvt->buf;
       if(OPPEND(cvt->srcFormat))
-        for(; i; src--,i--) *dest-- = (Uint8)-(Sint16)SWAPEND(*src); /* 16bit signed OE to 8bit unsigned */
-      else for(; i; i--) *dest-- = (Uint8)-(Sint16)*src--; /* 16bit signed SE to 8bit unsigned */
+        for(; i; src++,i--) *dest++ = (Uint8)((SWAPEND(*src)+32768)>>8); /* 16bit signed OE to 8bit unsigned */
+      else for(; i; i--) *dest++ = (Uint8)((*src++ + 32768)>>8); /* 16bit signed SE to 8bit unsigned */
     }
   }
   else /* 16bit unsigned to 8bit */
-  { Uint16 *src = cvt->buf+cvt->len-2;
+  { Uint16 *src = (Uint16*)cvt->buf;
     if(SIGNED(cvt->destFormat)) /* 16bit unsigned to 8bit signed */
-    { Sint8 *dest = cvt->buf+cvt->len/2-1;
+    { Sint8 *dest = (Sint8*)cvt->buf;
       if(OPPEND(cvt->srcFormat)) /* 16bit unsigned OE to 8bit signed */
-        for(; i; src--,i--) *dest-- = (Sint8)-(Sint16)SWAPEND(*src);
-      else for(; i; i--) *dest-- = (Sint8)-(Sint16)*src--; /* 16bit unsigned SE to 8bit signed */
+        for(; i; src++,i--) *dest++ = (Sint8)((SWAPEND(*src)-32768)>>8);
+      else for(; i; i--) *dest++ = (Sint8)((*src++ - 32768)>>8); /* 16bit unsigned SE to 8bit signed */
     }
     else /* 16bit unsigned to 8bit unsigned */
-    { Uint8 *dest = cvt->buf+cvt->len/2-1;
-      if(OPPEND(cvt->srcFormat)) for(; i; src--,i--) *dest-- = SWAPEND(*src); /* 16bit unsigned OE to 8bit unsigned */
-      else for(; i; i--) *dest-- = *src--; /* 16bit unsigned SE to 8bit unsigned */
+    { Uint8 *dest = cvt->buf;
+      if(OPPEND(cvt->srcFormat)) for(; i; src++,i--) *dest++ = SWAPEND(*src)>>8; /* 16bit unsigned OE to 8bit unsigned */
+      else for(; i; i--) *dest++ = *src++>>8; /* 16bit unsigned SE to 8bit unsigned */
     }
   }
+  cvt->len/=2;
+  cvt->srcFormat = (cvt->srcFormat&~0x80FF)|(cvt->destFormat&0x80FF);
 }
 
 static void ConvertRate(GLM_AudioCVT *cvt)
 { int i, srate=cvt->srcRate, drate=cvt->destRate;
-  if(srate/drate==2 || cvt->len<=BYTES(cvt->srcFormat)) /* halving rate or just 1 sample*/
+  if(cvt->len<=BYTES(cvt->srcFormat)) return; /* no conversion if <=1 sample */
+
+  if(srate/drate==2) /* halving the rate */
   { if(BITS(cvt->srcFormat)==16) /* 16bit */
-    { Uint16 *src = cvt->buf, *dest = src;
-      i = cvt->len/2;
-      else for(; i; src+=2,i--) *dest++ = *src;
+    { i = cvt->len/4;
+      if(SIGNED(cvt->srcFormat)) /* 16bit signed */
+      { Sint16 *src = (Sint16*)cvt->buf, *dest = src;
+        for(; i; src+=2,i--) *dest++ = (src[0]+src[1])/2;
+      }
+      else /* 16bit unsigned */
+      { Uint16 *src = (Uint16*)cvt->buf, *dest = src;
+        for(; i; src+=2,i--) *dest++ = (src[0]+src[1])/2;
+      }
     }
     else /* 8bit */
-    { Uint8 *src = cvt->buf, *dest = src;
-      i = cvt->len;
-      else for(; i; src,i--) *dest++ = *src++;
+    { i = cvt->len/2;
+      if(SIGNED(cvt->srcFormat)) /* 8bit signed */
+      { Sint8 *src = (Sint8*)cvt->buf, *dest = src;
+        for(; i; src+=2,i--) *dest++ = (src[0]+src[1])/2;
+      }
+      else /* 8bit unsigned */
+      { Uint8 *src = cvt->buf, *dest = src;
+        for(; i; src+=2,i--) *dest++ = (src[0]+src[1])/2;
+      }
     }
+    cvt->len/=2;
   }
-  else /* any rate, length must be >1 sample */
-  { int sic=0, dlen, s0, s1, diff, t;
+  else /* any rate, length must be >1 sample. it's all signed code, but should handle unsigned data */
+  { REWRITE ME?
+    int sic=0, si=1, dlen=cvt->len*drate/srate, s0, s1, diff, t;
+    void *dbuf = srate<drate ? alloca(dlen) : cvt->buf;
+    cvt->len = dlen;
     i=1;
     if(BITS(cvt->srcFormat)==16) /* 16bit */
-    { Sint16 *buf = cvt->buf;
-      dlen=cvt->len/2*drate/srate;
-      if(OPPEND(cvt->srcFormat)) /* 16bit signed OE */
-      { s0=SWAPEND(buf[0]), s1=SWAPEND(buf[1]), diff=s1-s0;
-        for(; i<dlen; i++)
-        { sic += srate;
-          if(sic>drate)
-          { s0=s1;
-            do si++, sic-=drate; while(sic>drate);
-            s1=SWAPEND(buf[si]), diff=s1-s0;
+    { Sint16 *src = (Sint16*)cvt->buf, *dest=(Sint16*)dbuf;
+      dlen/=2;
+      if(SIGNED(cvt->srcFormat))
+      { if(OPPEND(cvt->srcFormat)) /* 16bit signed OE */
+        { s0=SWAPEND((Uint16)src[0]), s1=SWAPEND((Uint16)src[1]), diff=s1-s0;
+          for(; i<dlen; i++)
+          { sic += srate;
+            if(sic>drate)
+            { s0=s1;
+              do si++, sic-=drate; while(sic>drate);
+              s1=SWAPEND((Uint16)src[si]), diff=s1-s0;
+            }
+            t = s0+diff*sic/drate;
+            dest[i] = SWAPEND((Uint16)t);
           }
-          t = s0+diff*drate/sic;
-          buf[i] = SWAPEND(t);
+        }
+        else /* 16 bit signed SE */
+        { s0=src[0], s1=src[1], diff=s1-s0;
+          for(; i<dlen; i++)
+          { sic += srate;
+            if(sic>drate)
+            { s0=s1;
+              do si++, sic-=drate; while(sic>drate);
+              s1=src[si], diff=s1-s0;
+            }
+            dest[i] = s0+diff*sic/drate;
+          }
         }
       }
-      else /* 16 bit signed SE */
-      { s0=buf[0], s1=buf[1], diff=s1-s0;
-        for(; i<dlen; i++)
-        { sic += srate;
-          if(sic>drate)
-          { s0=s1;
-            do si++, sic-=drate; while(sic>drate);
-            s1=buf[si], diff=s1-s0;
-          }
-          buf[i] = s0+diff*drate/sic;
-        }
+      else
+      { WRITE ME
       }
     }
     else /* 8bit */
-    { Sint8 *buf = cvt->buf;
-      dlen=cvt->len*drate/srate;
-      s0=buf[0], s1=buf[1], diff=s1-s0;
-      for(; i<dlen; i++)
-      { sic += srate;
-        if(sic>drate)
-        { s0=s1;
-          do si++, sic-=drate; while(sic>drate);
-          s1=buf[si], diff=s1-s0;
+    { if(SIGNED(cvt->srcFormat))
+      { Sint8 *src = (Sint8*)cvt->buf, *dest = (Sint8*)dbuf;
+        s0=src[0], s1=src[1], diff=s1-s0;
+        for(; i<dlen; i++)
+        { sic += srate;
+          if(sic>drate)
+          { s0=s1;
+            do si++, sic-=drate; while(sic>drate);
+            s1=src[si], diff=s1-s0;
+          }
+          dest[i] = s0+diff*sic/drate;
         }
-        buf[i] = s0+diff*drate/sic;
+      }
+      else
+      { Uint8 *src = (Sint8*)cvt->buf, *dest = (Sint8*)dbuf;
+        s0=src[0], s1=src[1], diff=s1-s0;
+        for(; i<dlen; i++)
+        { sic += srate;
+          if(sic>drate)
+          { s0=s1;
+            do si++, sic-=drate; while(sic>drate);
+            s1=src[si], diff=s1-s0;
+          }
+          dest[i] = s0+diff*sic/drate;
+        }
       }
     }
+    if(dbuf!=cvt->buf) memcpy(cvt->buf, dbuf, cvt->len);
   }
 }
 
@@ -301,59 +356,63 @@ int GLM_ConvertAcc(void *dest, Sint32 *src, Uint32 samples, Uint16 destFormat)
 
   if(BITS(destFormat)==8) /* 8bit */  /* convert the accumulator into the proper format for the audio stream */
   { Uint8 *dbuf = (Uint8*)dest;
+    for(; i<samples; i++) if(src[i]<-128) src[i]=-128; else if(src[i]>127) src[i]=127;
+    i=0;
     if(SIGNED(destFormat)) for(; i<samples; i++) dbuf[i] = (Uint8)src[i];
-    else for(; i<samples; i++) dbuf[i] = (Uint8)-src[i];
+    else for(; i<samples; i++) dbuf[i] = (Uint8)((Uint32)src[i]+128);
   }
   else /* 16 bit */
-  { if(OPPEND(destFormat)) /* opposite endianness */
+  { for(; i<samples; i++) if(src[i]<-32768) src[i]=-32768; else if(src[i]>32767) src[i]=32767;
+    i=0;
+    if(OPPEND(destFormat)) /* opposite endianness */
     { Uint32 *sbuf = (Uint32*)src;
       Uint16 *dbuf = (Uint16*)dest;
       if(SIGNED(destFormat)) /* 16bit signed OE */
         for(; i<samples; i++) dbuf[i] = SWAPEND(sbuf[i]);
-      else /* 16bit signed SE */
-        for(; i<samples; i++) dbuf[i] = -SWAPEND(sbuf[i]);
+      else /* 16bit unsigned OE */
+        for(; i<samples; i++) dbuf[i] = (Uint16)(SWAPEND(sbuf[i])+32768);
     }
     else /* same endianness */
     { Sint16 *dbuf = (Sint16*)dest;
       if(SIGNED(destFormat)) for(; i<samples; i++) dbuf[i] = (Sint16)src[i]; /* 16bit signed SE */
-      else for(; i<samples; i++) dbuf[i] = (Sint16)-src[i];
+      else for(; i<samples; i++) dbuf[i] = (Sint16)((Uint32)src[i]+32768); /* 16bit unsigned SE */
     }
   }
   return 0;
 }
 
-int GLM_SetupCVT(GLM_AudioCVT *cvt, int inputLen)
-{ int i;
-  if(!cvt) 
+int GLM_SetupCVT(GLM_AudioCVT *cvt)
+{ if(!cvt) 
   { SDL_SetError("NULL pointer passed");
     return -1;
   }
-  cvt->len_mul  = cvt->srcChannels,      cvt->len_div  = cvt->destChannels;
-  cvt->len_mul *= BYTES(cvt->srcFormat), cvt->len_div *= BYTES(cvt->destFormat);
-  cvt->len_mul *= cvt->srcRate,          cvt->len_div *= cvt->destRate;
+  cvt->len_mul  = cvt->destChans,         cvt->len_div  = cvt->srcChans;
+  cvt->len_mul *= BYTES(cvt->destFormat), cvt->len_div *= BYTES(cvt->srcFormat);
+  cvt->len_mul *= cvt->destRate,          cvt->len_div *= cvt->srcRate;
 
   /* poor man's LCD (doesn't need to be perfect) */
-  if(DIVISIBLE(cvt->len_mul, 441) && DIVISIBLE(cvt->len_div, 441))
+  if(DIVISIBLE(cvt->len_mul, 441) && DIVISIBLE(cvt->len_div, 441)) /* most bitrates are divisible by 441 */
   { cvt->len_mul/=441, cvt->len_div/=441;
     while(DIVISIBLE(cvt->len_mul, 25) && DIVISIBLE(cvt->len_div, 25)) cvt->len_mul/=25, cvt->len_div/=25;
   }
   while(DIVISIBLE(cvt->len_mul, 2) && DIVISIBLE(cvt->len_div, 2)) cvt->len_mul/=2, cvt->len_div/=2;
 
-  cvt->len_cvt = inputLen*cvt->len_mul/cvt->len_div;
+  cvt->len_cvt = cvt->len*cvt->len_mul/cvt->len_div;
+  return 0;
 }
 
 int GLM_Convert(GLM_AudioCVT *cvt)
-{ int i, sfmt, dfmt;
+{ int i, sfmt, dfmt, olen;
   if(!cvt || !cvt->buf)
   { SDL_SetError("NULL pointer passed");
     return -1;
   }
+  if(cvt->len==0) return 0;
 
-  sfmt=cvt->srcFormat, dfmt=cvt->destFormat;
+  sfmt=cvt->srcFormat, dfmt=cvt->destFormat, olen=cvt->len;
 
-  if(BITS(sfmt)!=16 || BITS(dfmt)!=16 || cvt->srcChannels<1 || cvt->srcChannels>2 ||
-     cvt->destChannels<1 || cvt->destChannels>2)
-  { SDL_SetError("Unsupported audio format");
+  if(cvt->srcChans<1 || cvt->srcChans>2 || cvt->destChans<1 || cvt->destChans>2)
+  { SDL_SetError("Unsupported number of channels");
     return -1;
   }
      
@@ -365,24 +424,29 @@ int GLM_Convert(GLM_AudioCVT *cvt)
     sfmt = cvt->srcFormat = (sfmt&~0x1000)|(dfmt&0x1000);
   }
 
-  if(cvt->srcChannels>cvt->destChannels) StereoToMono(cvt);
+  if(cvt->srcChans>cvt->destChans) StereoToMono(cvt);
 
   if(BITS(sfmt)<BITS(dfmt)) EightToSixteen(cvt);
   else if(BITS(sfmt)>BITS(dfmt)) SixteenToEight(cvt);
   else if(SIGNED(sfmt)!=SIGNED(dfmt)) /* if bit size is different, then sign conversion has already been done */
-  { if(BITS(sfmt)==8) /* 8bit */
+  { int len=cvt->len;
+    if(BITS(sfmt)==8) /* 8bit */
     { Sint8 *buf = cvt->buf;
-      for(i=cvt->len; i; src++,i--) *buf = -*buf; /* handles both */
+      for(; i<len; i++) buf[i] = -buf[i]; /* handles both */
     }
     else /* 16bit */
-    { Sint16 *buf = cvt->buf;
-      for(i=cvt->len/2; i; src+=2,i--) *buf = -*buf; /* handles both */
+    { Uint8 *buf = cvt->buf;
+      if(OPPEND(sfmt)) i++;
+      for(; i<len; i+=2) buf[i]^=0x80; /* handles both, assuming 'i' has been set properly */
     }
+    cvt->srcFormat ^= 0x8000;
   }
 
   if(cvt->srcRate!=cvt->destRate) ConvertRate(cvt);
   
-  if(cvt->srcChannels<cvt->destChannels) MonoToStereo(cvt);
+  if(cvt->srcChans<cvt->destChans) MonoToStereo(cvt);
+  cvt->len = olen;
+  return 0;
 }
 
 int GLM_Copy(Sint32 *dest, Sint32 *src, Uint32 samples)
@@ -428,14 +492,15 @@ int GLM_ConvertMix(Sint32 *dest, void* data, Uint32 samples, Uint16 srcFormat, U
   }
 
   if(BITS(srcFormat)==8) /* 8bit */
-  { Sint8 *src = (Uint8*)data;
-    if(SIGNED(srcFormat))  /* 8bit signed */
-    { if(vol>=256) for(; i<samples; i++) dest[i]+=src[i];
+  { if(SIGNED(srcFormat))  /* 8bit signed */
+    { Sint8 *src = (Sint8*)data;
+      if(vol>=256) for(; i<samples; i++) dest[i]+=src[i];
       else for(; i<samples; i++) dest[i]+=(src[i]*vol)>>8;
     }
     else /* 8bit unsigned */
-    { if(vol>=256) for(; i<samples; i++) dest[i]+=-src[i];
-      else for(; i<samples; i++) dest[i]+=(-src[i]*vol)>>8;
+    { Uint8 *src = (Uint8*)data;
+      if(vol>=256) for(; i<samples; i++) dest[i]+=src[i]-128;
+      else for(; i<samples; i++) dest[i]+=((Sint8)(src[i]-128)*vol)>>8;
     }
   }
   else /* 16bit */
@@ -446,19 +511,20 @@ int GLM_ConvertMix(Sint32 *dest, void* data, Uint32 samples, Uint16 srcFormat, U
         else for(; i<samples; i++) dest[i]+=((Sint16)SWAPEND(src[i])*vol)>>8;
       }
       else /* 16bit unsigned OE */
-      { if(vol>=256) for(; i<samples; i++) dest[i]+=-(Sint16)SWAPEND(src[i]);
-        else for(; i<samples; i++) dest[i]+=(-(Sint16)SWAPEND(src[i])*vol)>>8;
+      { if(vol>=256) for(; i<samples; i++) dest[i]+=(Sint16)SWAPEND(src[i])-32768;
+        else for(; i<samples; i++) dest[i]+=(((Sint16)SWAPEND(src[i])-32768)*vol)>>8;
       }
     }
     else /* same endianness */
-    { Sint16 *src = (Sint16*)data;
-      if(SIGNED(srcFormat)) /* 16bit signed SE */
-      { if(vol>=256) for(; i<samples; i++) dest[i]+=src[i];
+    { if(SIGNED(srcFormat)) /* 16bit signed SE */
+      { Sint16 *src = (Sint16*)data;
+        if(vol>=256) for(; i<samples; i++) dest[i]+=src[i];
         else for(; i<samples; i++) dest[i]+=(src[i]*vol)>>8;
       }
       else /* 16bit unsigned SE */
-      { if(vol>=256) for(; i<samples; i++) dest[i]+=-src[i];
-        else for(; i<samples; i++) dest[i]+=(-src[i]*vol)>>8;
+      { Uint16 *src = (Uint16*)data;
+        if(vol>=256) for(; i<samples; i++) dest[i]+=src[i]-32768;
+        else for(; i<samples; i++) dest[i]+=((Sint16)(src[i]-32768)*vol)>>8;
       }
     }
   }

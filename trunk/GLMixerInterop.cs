@@ -22,7 +22,15 @@ internal class GLMixer
     
     MixerFormat=32
   }
-  
+
+  [StructLayout(LayoutKind.Sequential, Pack=4)]
+  public unsafe struct AudioCVT
+  { public byte*  buf;
+    public int    len, srcRate, destRate, lenCvt, lenMul, lenDiv;
+    public ushort srcFormat, destFormat;
+    public byte   srcChans,  destChans;
+  }
+
   [DllImport(Config.GLMixerImportPath, EntryPoint="GLM_Init", CallingConvention=CallingConvention.Cdecl)]
   public static extern int Init(uint freq, ushort format, byte channels, uint bufferMs, MixCallback callback, IntPtr context);
   [DllImport(Config.GLMixerImportPath, EntryPoint="GLM_GetFormat", CallingConvention=CallingConvention.Cdecl)]
@@ -35,14 +43,19 @@ internal class GLMixer
   [DllImport(Config.GLMixerImportPath, EntryPoint="GLM_SetMixVolume", CallingConvention=CallingConvention.Cdecl)]
   public static extern void SetMixVolume(ushort volume);
 
+  [DllImport(Config.GLMixerImportPath, EntryPoint="GLM_ConvertAcc", CallingConvention=CallingConvention.Cdecl)]
+  public unsafe static extern int ConvertAcc(void* dest, int* src, uint samples, ushort destFormat);
+  [DllImport(Config.GLMixerImportPath, EntryPoint="GLM_SetupCVT", CallingConvention=CallingConvention.Cdecl)]
+  public static extern int SetupCVT(ref AudioCVT cvt);
+  [DllImport(Config.GLMixerImportPath, EntryPoint="GLM_Convert", CallingConvention=CallingConvention.Cdecl)]
+  public static extern int Convert(ref AudioCVT cvt);
+
   [DllImport(Config.GLMixerImportPath, EntryPoint="GLM_Copy", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern int Copy(int* dest, int* src, uint samples);
   [DllImport(Config.GLMixerImportPath, EntryPoint="GLM_VolumeScale", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern int VolumeScale(int* stream, uint samples, ushort volume);
   [DllImport(Config.GLMixerImportPath, EntryPoint="GLM_Mix", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern int Mix(int* dest, int* src, uint samples, ushort srcVolume);
-  [DllImport(Config.GLMixerImportPath, EntryPoint="GLM_ConvertAcc", CallingConvention=CallingConvention.Cdecl)]
-  public unsafe static extern int ConvertAcc(void* dest, int* src, uint samples, ushort destFormat);
   [DllImport(Config.GLMixerImportPath, EntryPoint="GLM_ConvertMix", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern int ConvertMix(int* dest, void* src, uint samples, ushort srcFormat, ushort srcVolume);
   [DllImport(Config.GLMixerImportPath, EntryPoint="GLM_DivideAccumulator", CallingConvention=CallingConvention.Cdecl)]
