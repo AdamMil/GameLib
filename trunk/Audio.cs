@@ -20,6 +20,7 @@ using System;
 using System.IO;
 using System.Collections;
 using GameLib.IO;
+using GameLib.Interop;
 using GameLib.Interop.SDL;
 using GameLib.Interop.GLMixer;
 using GameLib.Interop.SndFile;
@@ -34,11 +35,13 @@ namespace GameLib.Audio
 [Flags]
 public enum SampleFormat : ushort
 { Eight=GLMixer.Format.Eight, Sixteen=GLMixer.Format.Sixteen, BitsPart=GLMixer.Format.BitsPart,
-  Signed=GLMixer.Format.Signed, BigEndian=GLMixer.Format.BigEndian,
+  Signed=GLMixer.Format.Signed, BigEndian=GLMixer.Format.BigEndian, FloatingPoint=GLMixer.Format.FloatingPoint,
 
   U8=Eight, U16=Sixteen, S8=Eight|Signed, S16=Sixteen|Signed,
   U8BE=U8|BigEndian, U16BE=U16|BigEndian, S8BE=S8|BigEndian, S16BE=S16|BigEndian,
   U8Sys=GLMixer.Format.U8Sys, U16Sys=GLMixer.Format.U16Sys, S8Sys=GLMixer.Format.S8Sys, S16Sys=GLMixer.Format.S16Sys,
+  
+  Float=GLMixer.Format.Float, Double=GLMixer.Format.Double,
 
   Default=S16Sys
 }
@@ -48,6 +51,7 @@ public enum ChannelStatus { Stopped, Playing, Paused }
 public enum Fade { None, In, Out }
 public enum PlayPolicy { Fail, Oldest, Priority, OldestPriority }
 public enum MixPolicy  { DontDivide, Divide }
+public enum FilterCombination { Series, ParallelSum, ParallelAverage }
 
 public struct SizedArray
 { public SizedArray(byte[] array) { Array=array; Length=array.Length; }
@@ -81,10 +85,10 @@ public struct AudioFormat
   public byte         Channels;
 }
 
-public unsafe delegate void MixFilter(Channel channel, int* buffer, int frames, AudioFormat format);
 public delegate void ChannelFinishedHandler(Channel channel);
 #endregion
 
+#region Audio sources
 #region AudioSource
 public abstract class AudioSource : IDisposable
 { public int Both
@@ -106,7 +110,7 @@ public abstract class AudioSource : IDisposable
 
   public float PlaybackRate { get { return rate; } set { Audio.CheckRate(rate); lock(this) rate=value; } }
 
-  public abstract int  Position  { get; set; }
+  public abstract int Position { get; set; }
 
   public int Priority { get { return priority; } set { priority=value; } }
 
@@ -205,7 +209,7 @@ public abstract class AudioSource : IDisposable
       read    = ReadBytes(buffer, bytes);
       samples = read/format.SampleSize;
       fixed(byte* src = buffer)
-        GLMixer.Check(GLMixer.ConvertMix(dest, src, (uint)samples, (ushort)format.Format,
+        GLMixer.Check(GLMixer.ConvertMix(dest, src, (uint)samples, (ushort)format.Format, format.Channels,
                                          (ushort)(left <0 ? Audio.MaxVolume : left),
                                          (ushort)(right<0 ? Audio.MaxVolume : right)));
       read = format.Channels==1 ? samples : samples/2;
@@ -220,6 +224,81 @@ public abstract class AudioSource : IDisposable
   protected float rate=1f;
   protected int   left=Audio.MaxVolume, right=Audio.MaxVolume, curPos=0, length=-1, priority;
   internal  int   playing;
+}
+#endregion
+
+#region ToneGenerator
+public enum ToneType { Sine, Square, Saw, Triangle };
+public class ToneGenerator : AudioSource
+{ public ToneGenerator()
+  { format=new AudioFormat(Audio.Initialized ? Audio.Format.Frequency : 22050, SampleFormat.S16Sys, 1);
+    freq=200; steps=5;
+  }
+  public ToneGenerator(ToneType type) : this()
+  { this.type=type;
+    steps = type==ToneType.Square ? 8 : 5;
+  }
+  public ToneGenerator(ToneType type, float frequency) : this(type) { Frequency=frequency; }
+  public ToneGenerator(ToneType type, float frequency, uint sampleRate) : this(type)
+  { format     = new AudioFormat(0, SampleFormat.S16Sys, 1);
+    Frequency  = frequency;
+    SampleRate = sampleRate;
+  }
+
+  public override bool CanRewind { get { return true; } }
+  public override bool CanSeek   { get { return true; } }
+  
+  public float Frequency
+  { get { return freq; }
+    set
+    { if(value<=0) throw new ArgumentOutOfRangeException("Frequency", value, "must be positive");
+      freq=value;
+    }
+  }
+
+  public override int Position { get { return curPos; } set { curPos=value; } }
+
+  public uint SampleRate
+  { get { return format.Frequency; }
+    set
+    { if(value==0) throw new ArgumentOutOfRangeException("SampleRate", value, "cannot be zero");
+      lock(this) format.Frequency=value;
+    }
+  }
+  
+  public int Steps
+  { get { return steps; }
+    set
+    { if(steps<1) throw new ArgumentOutOfRangeException("Steps", value, "must be at least one");
+      steps = value;
+    }
+  }
+
+  public ToneType Type { get { return type; } set { type=value; } }
+  
+  public override byte[] ReadAll()
+  { throw new InvalidOperationException("ToneGenerator is an infinite data source and can't be read in its entirety.");
+  }
+
+  public unsafe override int ReadBytes(byte[] buf, int index, int length)
+  { length /= 2;
+    fixed(byte* bp=buf)
+    { short* data=(short*)bp;
+      float scale=2*(float)Math.PI*freq/SampleRate;
+      switch(type)
+      { case ToneType.Sine:
+          for(int i=0; i<length; i++) data[i] = (short)(Math.Sin((i+curPos)*scale)*32767);
+          break;
+        default: throw new NotImplementedException("Tone type not implemented: "+type);
+      }
+    }
+    curPos += length;
+    return length*2;
+  }
+
+  ToneType type;
+  float freq;
+  int   steps;
 }
 #endregion
 
@@ -426,7 +505,8 @@ public class SampleSource : AudioSource
   { lock(this)
     { int toRead=Math.Min(length-curPos, frames), samples=toRead*format.Channels;
       fixed(byte* src = data)
-        GLMixer.Check(GLMixer.ConvertMix(dest, src+curPos*format.FrameSize, (uint)samples, (ushort)format.Format,
+        GLMixer.Check(GLMixer.ConvertMix(dest, src+curPos*format.FrameSize, (uint)samples,
+                                         (ushort)format.Format, format.Channels,
                                          (ushort)(left <0 ? Audio.MaxVolume : left),
                                          (ushort)(right<0 ? Audio.MaxVolume : right)));
       curPos += toRead;
@@ -593,12 +673,357 @@ public class VorbisSource : AudioSource
   protected bool   open;
 }
 #endregion
+#endregion
+
+#region Audio filters
+#region FilterCollection
+public sealed class FilterCollection : CollectionBase
+{ public FilterCollection() { }
+  public FilterCollection(object lockObj) { LockObj=lockObj; }
+
+  public AudioFilter this[int index]
+  { get { return (AudioFilter)InnerList[index]; }
+    set { List[index] = value; }
+  }
+
+  public int Add(AudioFilter filter) { return List.Add(filter); }
+  public int IndexOf(AudioFilter filter) { return InnerList.IndexOf(filter); }
+  public void Insert(int index, AudioFilter filter) { List.Insert(index, filter); }
+  public void Remove(AudioFilter filter) { InnerList.Remove(filter); }
+  
+  protected override void OnClear()
+  { if(LockObj!=null) lock(LockObj) base.OnClear();
+    else base.Clear();
+  }
+
+  protected override void OnInsert(int index, object value)
+  { if(LockObj!=null) lock(LockObj) base.OnInsert(index, value);
+    else base.OnInsert(index, value);
+  }
+  
+  protected override void OnRemove(int index, object value)
+  { if(LockObj!=null) lock(LockObj) base.OnRemove(index, value);
+    else base.OnRemove(index, value);
+  }
+
+  protected override void OnSet(int index, object oldValue, object newValue)
+  { if(LockObj!=null) lock(LockObj) base.OnSet(index, oldValue, newValue);
+    else base.OnSet(index, oldValue, newValue);
+  }
+
+  protected override void OnValidate(object value)
+  { base.OnValidate(value);
+    if(value==null) throw new ArgumentNullException("filter", "Filter must not be null.");
+    if(!(value is AudioFilter)) throw new ArgumentException("Filter must be a GameLib.Audio.AudioFilter");
+  }
+  
+  internal object LockObj;
+}
+#endregion
+
+#region AudioFilter
+public class AudioFilter
+{ public AudioFilter() { type=FilterCombination.Series; }
+  public AudioFilter(FilterCombination type) { this.type=type; }
+
+  public FilterCombination Combination
+  { get { return type; }
+    set { type=value; if(value==FilterCombination.Series) parallel=null; }
+  }
+
+  public FilterCollection Filters
+  { get { if(filters==null) filters=new FilterCollection(); return filters; }
+  }
+
+  public virtual void Stop(Channel channel)
+  { if(filters!=null) foreach(AudioFilter filter in filters) filter.Stop(channel);
+  }
+
+  protected virtual unsafe void Filter(Channel channel, int nchannel, float* input, float* output, int samples,
+                                       AudioFormat format) { }
+
+  protected virtual unsafe void Filter(Channel channel, float** channels, int samples, AudioFormat format)
+  { if(filters!=null && filters.Count!=0)
+    { if(type==FilterCombination.Series || filters.Count==1)
+        for(int i=0; i<format.Channels; i++)
+          for(int j=0; j<filters.Count; j++) filters[j].Filter(channel, i, channels[i], channels[i], samples, format);
+      else
+      { if(parallel==null || parallel.Length!=samples*filters.Count) parallel = new float[samples*filters.Count];
+        for(int i=0; i<format.Channels; i++)
+          fixed(float* buf=parallel)
+          { for(int j=0; j<filters.Count; j++)
+              filters[j].Filter(channel, i, channels[i], buf+j*samples, samples, format);
+            for(int j=samples,k=0,len=parallel.Length; j<len; j++)
+            { buf[k] += buf[j];
+              if(++k==samples) k=0;
+            }
+            if(type==FilterCombination.ParallelAverage)
+            { float* dest=channels[i];
+              float   mul=1f/filters.Count;
+              for(int j=0; j<samples; j++) dest[j] = buf[j]*mul;
+            }
+            else Unsafe.Copy(buf, channels[i], samples*sizeof(float));
+          }
+      }
+    }
+    for(int i=0; i<format.Channels; i++) Filter(channel, i, channels[i], channels[i], samples, format);
+  }
+
+  internal protected unsafe virtual void MixFilter(Channel channel, int* buffer, int frames, AudioFormat format)
+  { float** channels = stackalloc float*[format.Channels];
+    for(int i=0; i<format.Channels; i++)
+    { float* data = stackalloc float[frames];
+      channels[i] = data;
+    }
+
+    Audio.Deinterlace(buffer, channels, frames, format);
+    Filter(channel, channels, frames, format);
+    Unsafe.Fill(buffer, 0, frames*sizeof(int));
+    Audio.Interlace(buffer, channels, frames, format);
+  }
+
+  FilterCollection filters;
+  float[] parallel;
+  FilterCombination type;
+}
+#endregion
+
+#region BiquadFilter
+public class BiquadFilter : AudioFilter
+{ public BiquadFilter() { }
+  public BiquadFilter(float c0, float c1, float c2, float c3, float c4) { Set(c0, c1, c2, c3, c4); }
+  public BiquadFilter(float a0, float a1, float a2, float b0, float b1, float b2) { Set(a0, a1, a2, b0, b1, b2); }
+
+  protected unsafe override void Filter(Channel channel, int nchannel, float* input, float* output, int samples,
+                                        AudioFormat format)
+  { float c0, c1, c2, c3, c4, in0, in1, in2, out1, out2;
+    Context[] history;
+
+    lock(this)
+    { c0=C0; c1=C1; c2=C2; c3=C3; c4=C4;
+      history = History;
+      if(history==null || history.Length!=format.Channels)
+      { Context[] narr = new Context[format.Channels];
+        if(history!=null) Array.Copy(history, narr, Math.Min(history.Length, format.Channels));
+        History = history = narr;
+      }
+      in1 =history[nchannel].In1;  in2 =history[nchannel].In2;
+      out1=history[nchannel].Out1; out2=history[nchannel].Out2;
+    }
+
+    for(int i=0; i<samples; i++)
+    { in0 = input[i];
+      output[i] = c0*in0 + c1*in1 + c2*in2 - c3*out1 - c4*out2;
+      in2=in1; in1=in0; out2=out1; out1=output[i];
+    }
+
+    history[nchannel].In1=in1;   history[nchannel].In2=in2;
+    history[nchannel].Out1=out1; history[nchannel].Out2=out2;
+  }
+
+  public void Set(float c0, float c1, float c2, float c3, float c4)
+  { lock(this)
+    { C0=c0; C1=c1; C2=c2; C3=c3; C4=c4;
+      History=null;
+    }
+  }
+
+  public void Set(float a0, float a1, float a2, float b0, float b1, float b2)
+  { lock(this)
+    { C0=b0/a0; C1=b1/a0; C2=b2/a0; C3=a1/a0; C4=a2/a0;
+      History=null;
+    }
+  }
+
+  public float C0, C1, C2, C3, C4;
+
+  protected struct Context { public float In1, In2, Out1, Out2; }
+  protected Context[] History;
+}
+#endregion
+
+#region EqFilter
+public enum EqFilterType
+{ BandPass, LowPass, HighPass, BandPassWithGain, Notch, AllPass, Peaking, LowShelf, HighShelf
+}
+public enum EqParamType { Bandwidth, Q, Slope };
+
+public class EqFilter : BiquadFilter
+{ public EqFilter() { type=EqFilterType.BandPass; paramType=EqParamType.Q; }
+  public EqFilter(EqFilterType type, float frequency)
+  { this.type=type; freq=frequency; paramType=EqParamType.Q;
+  }
+  public EqFilter(EqFilterType type, float frequency, EqParamType paramType, float parameter)
+  { this.type=type; freq=frequency; this.paramType=paramType; param=parameter;
+  }
+
+  public EqFilterType Type { get { return type; } set { type=value; changed=true; } }
+
+  public float Gain
+  { get { return gain; }
+    set { gain=value; changed=true; }
+  }
+  public float Frequency
+  { get { return freq; }
+    set { freq=value; changed=true; }
+  }
+  public float Parameter
+  { get { return param; }
+    set { param=value; changed=true; }
+  }
+  public EqParamType ParameterType
+  { get { return paramType; }
+    set { paramType=value; changed=true; }
+  }
+
+  protected override unsafe void Filter(Channel channel, int nchannel, float* input, float* output, int samples,
+                                        AudioFormat format)
+  { if(changed) Recalculate();
+    base.Filter(channel, nchannel, input, output, samples, format);
+  }
+
+  // http://www.harmony-central.com/Computer/Programming/Audio-EQ-Cookbook.txt
+  void Recalculate()
+  { changed=false;
+    double A = (type==EqFilterType.Peaking || type==EqFilterType.LowShelf || type==EqFilterType.HighShelf)
+               ? Math.Pow(10, gain/40) : Math.Sqrt(Math.Pow(10, gain/20));
+    double w0 = Math.PI*2*freq/Audio.Format.Frequency, w0cos=Math.Cos(w0), w0sin=Math.Sin(w0);
+    double alpha, p=param, a0, a1, a2, b0, b1, b2;
+
+    switch(paramType)
+    { case EqParamType.Q: alpha = w0sin/(p*2); break;
+      case EqParamType.Bandwidth: alpha = w0sin*Math.Sinh(Math.Log(2)/2 * p * w0/w0sin); break;
+      case EqParamType.Slope:
+        if(type==EqFilterType.LowShelf || type==EqFilterType.HighShelf)
+          alpha = w0sin/2 * Math.Sqrt((A+1/A) * (1/p-1) + 2);
+        else throw new ArgumentException("Invalid parameter type. (Slope is only valid for shelf EQs)", "ParameterType");
+        break;
+      default: throw new ArgumentException("Invalid parameter type.", "ParameterType");
+    }
+
+    switch(type)
+    { case EqFilterType.LowPass:
+        b0 = (1-w0cos)/2;
+        b1 = 1 - w0cos;
+        b2 = (1-w0cos)/2;
+        a0 = 1 + alpha;
+        a1 = -2*w0cos;
+        a2 = 1 - alpha;
+        break;
+      case EqFilterType.HighPass:
+        b0 = (1+w0cos)/2;
+        b1 = -(1+w0cos);
+        b2 = (1+w0cos)/2;
+        a0 = 1 + alpha;
+        a1 = -2*w0cos;
+        a2 = 1 - alpha;
+        break;
+      case EqFilterType.BandPass:
+        b0 = alpha;
+        b1 = 0;
+        b2 = -alpha;
+        a0 = 1 + alpha;
+        a1 = -2*w0cos;
+        a2 = 1 - alpha;
+        break;
+      case EqFilterType.BandPassWithGain:
+        b0 = p*alpha;
+        b1 = 0;
+        b2 = -p*alpha;
+        a0 = 1 + alpha;
+        a1 = -2*w0cos;
+        a2 = 1 - alpha;
+        break;
+      case EqFilterType.Notch:
+        b0 = 1;
+        b1 = -2*w0cos;
+        b2 = 1;
+        a0 = 1 + alpha;
+        a1 = -2*w0cos;
+        a2 = 1 - alpha;
+        break;
+      case EqFilterType.AllPass:
+        b0 = 1 - alpha;
+        b1 = -2*w0cos;
+        b2 = 1 + alpha;
+        a0 = 1 + alpha;
+        a1 = -2*w0cos;
+        a2 = 1 - alpha;
+        break;
+      case EqFilterType.Peaking:
+        b0 = 1 + alpha*A;
+        b1 = -2*w0cos;
+        b2 = 1 - alpha*A;
+        a0 = 1 + alpha/A;
+        a1 = -2*w0cos;
+        a2 = 1 - alpha/A;
+        break;
+      case EqFilterType.LowShelf: case EqFilterType.HighShelf:
+        double beta = w0sin * Math.Sqrt((A*A+1)*(1/p-1)+2*A);
+        if(type==EqFilterType.LowShelf)
+        { b0 =    A*((A+1) - (A-1)*w0cos + beta);
+          b1 =  2*A*((A-1) - (A+1)*w0cos);
+          b2 =    A*((A+1) - (A-1)*w0cos - beta);
+          a0 =       (A+1) + (A-1)*w0cos + beta;
+          a1 =   -2*((A-1) + (A+1)*w0cos);
+          a2 =       (A+1) + (A-1)*w0cos - beta;
+        }
+        else
+        { b0 =    A*((A+1) + (A-1)*w0cos + beta);
+          b1 = -2*A*((A-1) + (A+1)*w0cos);
+          b2 =    A*((A+1) + (A-1)*w0cos - beta);
+          a0 =       (A+1) - (A-1)*w0cos + beta;
+          a1 =    2*((A-1) - (A+1)*w0cos);
+          a2 =       (A+1) - (A-1)*w0cos - beta;
+        }
+        break;
+      default: throw new ArgumentException("Invalid filter type.", "Type");
+    }
+    Set((float)(b0/a0), (float)(b1/a0), (float)(b2/a0), (float)(a1/a0), (float)(a2/a0));
+  }
+
+  float gain, param, freq;
+  EqParamType paramType;
+  EqFilterType type;
+  bool changed=true;
+}
+#endregion
+
+#region GraphicEqualizer
+public sealed class GraphicEqualizer
+{ GraphicEqualizer() { }
+  
+  public static AudioFilter Make(int nbands)
+  { if(nbands==5) return Make(5, 62.5, 2);
+    else if(nbands==10) return Make(10, 31.25, 1);
+    else if(nbands==15) return Make(15, 25, 2.0/3);
+    else if(nbands==30) return Make(30, 25, 1.0/3);
+    else throw new NotSupportedException("Unsupported number of bands: "+nbands.ToString()+
+                                         ". Try specifying the frequency and bandwidth manually.");
+  }
+
+  public static AudioFilter Make(int nbands, double startFreq, double bandwidth)
+  { if(nbands<=0 || startFreq<=0 || bandwidth<=0)
+      throw new ArgumentException("nbands, startFreq, and bandwidth must all be positive.");
+
+    AudioFilter filter = new AudioFilter();
+    double mul = (float)Math.Pow(2, bandwidth);
+    for(int i=0; i<nbands; i++)
+    { filter.Filters.Add(new EqFilter(EqFilterType.Peaking, (float)startFreq,
+                                      EqParamType.Bandwidth, (float)bandwidth));
+      startFreq *= mul;
+    }
+
+    return filter;
+  }
+}
+#endregion
+#endregion
 
 #region Channel class
 public sealed class Channel
 { internal Channel(int channel) { number=channel; Reset(); }
 
-  public event MixFilter Filters;
   public event ChannelFinishedHandler Finished;
 
   public uint Age { get { return source==null ? 0 : Timing.Msecs-startTime; } }
@@ -609,6 +1034,8 @@ public sealed class Channel
   }
 
   public Fade Fading { get { return fade; } }
+
+  public FilterCollection Filters { get { if(filters==null) filters=new FilterCollection(this); return filters; } }
 
   public int Left
   { get { return left; }
@@ -689,7 +1116,7 @@ public sealed class Channel
   internal void StopPlaying()
   { if(source==null) return;
     lock(source)
-    { if(Filters!=null) unsafe { Filters(this, null, 0, Audio.Format); }
+    { if(filters!=null) for(int i=0; i<filters.Count; i++) filters[i].Stop(this);
       Audio.OnFiltersFinished(this);
       if(Finished!=null) Finished(this);
       Audio.OnChannelFinished(this);
@@ -697,7 +1124,7 @@ public sealed class Channel
     }
   }
 
-  internal unsafe void Mix(int* stream, int frames, MixFilter filters)
+  internal unsafe void Mix(int* stream, int frames, FilterCollection filters)
   { if(source==null || paused) return;
     lock(source)
     { if(source.Length==0) return;
@@ -771,18 +1198,21 @@ public sealed class Channel
         if(sa.Array!=convBuf) convBuf = sa.Array;
         framesRead = sa.Length/Audio.Format.FrameSize;
         samples    = framesRead*Audio.Format.Channels;
-        if(Filters==null && filters==null)
+        if((this.filters==null || this.filters.Count==0) && (filters==null || filters.Count==0))
           fixed(byte* src = convBuf)
             GLMixer.Check(GLMixer.ConvertMix(stream, src, (uint)samples, (ushort)Audio.Format.Format,
-                                             (ushort)left, (ushort)right));
+                                             Audio.Format.Channels, (ushort)left, (ushort)right));
         else
         { int* buffer = stackalloc int[samples];
+          GameLib.Interop.Unsafe.Fill(buffer, 0, samples*sizeof(int));
           fixed(byte* src = convBuf)
             GLMixer.Check(GLMixer.ConvertMix(buffer, src, (uint)samples,
-                                             (ushort)Audio.Format.Format,
+                                             (ushort)Audio.Format.Format, Audio.Format.Channels,
                                              (ushort)Audio.MaxVolume, (ushort)Audio.MaxVolume));
-          if(Filters!=null) Filters(this, buffer, framesRead, Audio.Format);
-          if(filters!=null) filters(this, buffer, framesRead, Audio.Format);
+          if(this.filters!=null)
+            for(int i=0; i<this.filters.Count; i++) this.filters[i].MixFilter(this, buffer, framesRead, Audio.Format);
+          if(filters!=null)
+            for(int i=0; i<filters.Count; i++) filters[i].MixFilter(this, buffer, framesRead, Audio.Format);
           GLMixer.Check(GLMixer.Mix(stream, buffer, (uint)samples, (ushort)left, (ushort)right));
         }
 
@@ -791,17 +1221,19 @@ public sealed class Channel
       else
       { toRead=frames;
         while(true)
-        { if(Filters==null && filters==null)
-          { read=source.ReadFrames(stream, toRead, left, right);
-            samples=read*Audio.Format.Channels;
+        { if((this.filters==null || this.filters.Count==0) && (filters==null || filters.Count==0))
+          { read    = source.ReadFrames(stream, toRead, left, right);
+            samples = read*Audio.Format.Channels;
           }
           else
           { int* buffer = stackalloc int[toRead];
-            read    = source.ReadFrames(buffer, toRead, -1);
+            GameLib.Interop.Unsafe.Fill(buffer, 0, toRead*sizeof(int));
+            read    = source.ReadFrames(buffer, toRead, -1, -1);
             samples = read*Audio.Format.Channels;
             if(read>0)
-            { if(Filters!=null) Filters(this, buffer, read, format);
-              if(filters!=null) filters(this, buffer, read, format);
+            { if(this.filters!=null)
+                for(int i=0; i<this.filters.Count; i++) this.filters[i].MixFilter(this, buffer, read, format);
+              if(filters!=null) for(int i=0; i<filters.Count; i++) filters[i].MixFilter(this, buffer, read, format);
               GLMixer.Check(GLMixer.Mix(stream, buffer, (uint)samples, (ushort)left, (ushort)right));
             }
           }
@@ -827,6 +1259,7 @@ public sealed class Channel
   float EffectiveRate  { get { return source.PlaybackRate*rate; } }
 
   AudioSource source;
+  FilterCollection filters;
   byte[] convBuf;
   float rate=1f;
   uint startTime, fadeStart, fadeTime;
@@ -843,14 +1276,14 @@ public class Audio
 
   public const int Infinite=-1, FreeChannel=-1, MaxVolume=256;
 
-  public static event MixFilter Filters
-  { add    { lock(callback) eFilters += value; }
-    remove { lock(callback) eFilters -= value; }
+  public static FilterCollection Filters
+  { get { if(filters==null) filters=new FilterCollection(callback); return filters; }
   }
-  public static event MixFilter PostFilters
-  { add    { lock(callback) ePostFilters += value; }
-    remove { lock(callback) ePostFilters -= value; }
+
+  public static FilterCollection PostFilters
+  { get { if(postFilters==null) postFilters=new FilterCollection(callback); return postFilters; }
   }
+
   public static event ChannelFinishedHandler ChannelFinished;
 
   public static bool Initialized { get { return init; } }
@@ -880,30 +1313,39 @@ public class Audio
   public static bool Initialize(uint frequency, SampleFormat format, Speakers chans) { return Initialize(frequency, format, chans, 50); }
   public unsafe static bool Initialize(uint frequency, SampleFormat format, Speakers chans, uint bufferMs)
   { if(init) throw new InvalidOperationException("Already initialized. Deinitialize first to change format");
+    if((format&SampleFormat.FloatingPoint)!=0)
+      throw new ArgumentException("Floating point format not supported by the underlying API.", "format");
+
     callback    = new GLMixer.MixCallback(FillBuffer);
     Audio.chans = new Channel[0];
     groups      = new ArrayList();
     SDL.Initialize(SDL.InitFlag.Audio);
     init        = true;
 
-    try { GLMixer.Check(GLMixer.Init(frequency, (ushort)format, (byte)chans, bufferMs, callback, new IntPtr(null))); }
+    try
+    { GLMixer.Check(GLMixer.Init(frequency, (ushort)format, (byte)chans, bufferMs, callback, new IntPtr(null)));
+
+      uint freq, bytes;
+      ushort form;
+      byte   chan;
+      GLMixer.Check(GLMixer.GetFormat(out freq, out form, out chan, out bytes));
+      Audio.format = new AudioFormat(freq, (SampleFormat)form, chan);
+
+      if(filters!=null) filters.LockObj = callback;
+      if(postFilters!=null) postFilters.LockObj = callback;
+
+      SDL.PauseAudio(0);
+      return freq==frequency && form==(short)format && chan==(byte)chans;
+    }
     catch(Exception e) { Deinitialize(); throw e; }
-
-    uint freq, bytes;
-    ushort form;
-    byte   chan;
-    GLMixer.Check(GLMixer.GetFormat(out freq, out form, out chan, out bytes));
-    Audio.format = new AudioFormat(freq, (SampleFormat)form, chan);
-
-    SDL.PauseAudio(0);
-    return freq==frequency && form==(short)format && chan==(byte)chans;
   }
 
   public static void Deinitialize()
   { if(init)
-    { lock(callback)
+    { SDL.PauseAudio(1);
+      lock(callback)
       { Stop();
-        if(ePostFilters!=null) unsafe { ePostFilters(null, null, 0, Format); }
+        if(postFilters!=null) for(int i=0; i<postFilters.Count; i++) postFilters[i].Stop(null);
         GLMixer.Quit();
         SDL.Deinitialize(SDL.InitFlag.Audio);
         callback = null;
@@ -1092,8 +1534,53 @@ public class Audio
     }
   }
 
+  internal static unsafe void Deinterlace(int* buffer, float** channels, int frames, AudioFormat format)
+  { if(format.Channels==1) GLMixer.ConvertAcc(channels[0], buffer, (uint)frames, (ushort)SampleFormat.Float);
+    else if(format.Channels==2)
+    { int* left=stackalloc int[frames], right=stackalloc int[frames];
+      for(int i=0; i<frames; i++)
+      { left[i]  = *buffer++;
+        right[i] = *buffer++;
+      }
+      GLMixer.ConvertAcc(channels[0], left,  (uint)frames, (ushort)SampleFormat.Float);
+      GLMixer.ConvertAcc(channels[1], right, (uint)frames, (ushort)SampleFormat.Float);
+    }
+    else
+    { int* src=stackalloc int[frames];
+      for(int c=0,inc=format.Channels; c<inc; c++)
+      { for(int i=c,j=0; j<frames; i+=inc,j++) src[j]=buffer[i];
+        GLMixer.ConvertAcc(channels[c], src, (uint)frames, (ushort)SampleFormat.Float);
+      }
+    }
+  }
+
+  internal static unsafe void Interlace(int* buffer, float** channels, int frames, AudioFormat format)
+  { if(format.Channels==1)
+      GLMixer.ConvertMix(buffer, channels[0], (uint)frames, (ushort)SampleFormat.Float,
+                         format.Channels, MaxVolume, MaxVolume);
+    else if(format.Channels==2)
+    { int* left=stackalloc int[frames], right=stackalloc int[frames];
+      GLMixer.ConvertMix(left,  channels[0], (uint)frames, (ushort)SampleFormat.Float,
+                         format.Channels, MaxVolume, MaxVolume);
+      GLMixer.ConvertMix(right, channels[1], (uint)frames, (ushort)SampleFormat.Float,
+                         format.Channels, MaxVolume, MaxVolume);
+      for(int i=0; i<frames; i++)
+      { *buffer++ = left[i];
+        *buffer++ = right[i];
+      }
+    }
+    else
+    { int* src=stackalloc int[frames];
+      for(int c=0,inc=format.Channels; c<inc; c++)
+      { GLMixer.ConvertMix(src, channels[c], (uint)frames, (ushort)SampleFormat.Float,
+                           format.Channels, MaxVolume, MaxVolume);
+        for(int i=c,j=0; j<frames; i+=inc,j++) buffer[i]=src[j];
+      }
+    }
+  }
+
   internal static void OnFiltersFinished(Channel channel)
-  { if(eFilters!=null) lock(callback) unsafe { eFilters(channel, null, 0, Format); }
+  { if(filters!=null) lock(callback) for(int i=0; i<filters.Count; i++) filters[i].Stop(channel);
   }
 
   internal static void OnChannelFinished(Channel channel)
@@ -1226,8 +1713,9 @@ public class Audio
   static unsafe void FillBuffer(int* stream, uint frames, IntPtr context)
   { try
     { lock(callback)
-      { for(int i=0; i<chans.Length; i++) lock(chans[i]) chans[i].Mix(stream, (int)frames, eFilters);
-        if(ePostFilters!=null) ePostFilters(null, stream, (int)frames, format);
+      { for(int i=0; i<chans.Length; i++) lock(chans[i]) chans[i].Mix(stream, (int)frames, filters);
+        if(postFilters!=null)
+          for(int i=0; i<postFilters.Count; i++) postFilters[i].MixFilter(null, stream, (int)frames, format);
         if(MixPolicy==MixPolicy.Divide) GLMixer.Check(GLMixer.DivideAccumulator(chans.Length));
       }
     }
@@ -1239,10 +1727,10 @@ public class Audio
   }
 
   static AudioFormat format;
+  static FilterCollection filters, postFilters;
   static GLMixer.MixCallback callback;
   static Channel[] chans;
   static ArrayList groups;
-  static MixFilter eFilters, ePostFilters;
   static int reserved;
   static PlayPolicy playPolicy = PlayPolicy.Fail;
   static MixPolicy  mixPolicy  = MixPolicy.DontDivide;

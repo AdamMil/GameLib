@@ -519,6 +519,7 @@ public class CheckBox : CheckBoxBase
 #endregion
 
 #region ScrollBarBase
+// TODO: make sure Minimum can be greater than Maximum
 public abstract class ScrollBarBase : Control, IDisposable
 { public ScrollBarBase()
   { Style = ControlStyle.Clickable|ControlStyle.Draggable|ControlStyle.CanFocus;

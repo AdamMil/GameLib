@@ -33,9 +33,21 @@ DEVELOPMENT (alpha/beta)
   will be less cluttered with repetitive text
 * Changed Surface.PutPixelRaw to Surface.PutPixel
 + Added some new overloads for Font.WordWrap that accept a Size instead of
-  a Sectangle
+  a Rectangle
 * Cleaned up the MessageBox code
 * Made windowing controls look greyed out when they're disabled
+* Fixed a thread synchronization bug in the audio code that could cause the
+  application to become deadlocked on shutdown
+* Fixed a bug in the audio filter code that was due to an array not being
+  cleared before use
++ Redesigned the audio filtering code, adding support for simple filter
+  graphs
++ Added support for floating point sample data in the audio mixer
++ Added a tone generator audio source (sine, saw, triangle, and square)
++ Added some built-in audio filters (Biquad, Eq [supporting lowpass,
+  highpass, bandpass, bandpass with gain, allpass, notch, peaking, low shelf,
+  and high shelf], and a configurable graphic equalizer)
+
 
 2004.06.28 (alpha/beta)
 -------------------
