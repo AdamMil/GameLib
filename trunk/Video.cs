@@ -61,9 +61,26 @@ public class GammaRamp
 public sealed class Video
 { private Video() { }
   
-  TODO: implement video info
-  
+  public class VideoInfo
+  { internal unsafe VideoInfo(SDL.VideoInfo* info) { flags=info->flags; videoMem=info->videoMem; }
+    
+    public bool Hardware      { get { return (flags&SDL.InfoFlag.Hardware)!=0; } }
+    public bool WindowManager { get { return (flags&SDL.InfoFlag.WindowManager)!=0; } }
+    public bool AccelHH       { get { return (flags&SDL.InfoFlag.HH)!=0; } }
+    public bool AccelHHKeyed  { get { return (flags&SDL.InfoFlag.HHKeyed)!=0; } }
+    public bool AccelHHAlpha  { get { return (flags&SDL.InfoFlag.HHAlpha)!=0; } }
+    public bool AccelSH       { get { return (flags&SDL.InfoFlag.SH)!=0; } }
+    public bool AccelSHKeyed  { get { return (flags&SDL.InfoFlag.SHKeyed)!=0; } }
+    public bool AccelSHAlpha  { get { return (flags&SDL.InfoFlag.SHAlpha)!=0; } }
+    public bool AccelFills    { get { return (flags&SDL.InfoFlag.Fills)!=0; } }
+    public uint VideoMemory   { get { return videoMem; } }
+
+    SDL.InfoFlag flags;
+    uint         videoMem;
+  }
+
   public bool Initialized { get { return initCount>0; } }
+  public static VideoInfo   Info { get { CheckInit(); return info; } }
   public static Surface     DisplaySurface { get { return display; } }
   public static PixelFormat DisplayFormat { get { return display.Format; } }
   public static OpenGL      OpenGL { get { throw new NotImplementedException(); } }
@@ -90,7 +107,10 @@ public sealed class Video
   }
 
   public static void Initialize()
-  { if(initCount++==0) SDL.Initialize(SDL.InitFlag.Video);
+  { if(initCount++==0)
+    { SDL.Initialize(SDL.InitFlag.Video);
+      UpdateInfo();
+    }
   }
   public static void Deinitialize()
   { if(initCount==0) throw new InvalidOperationException("Deinitialize called too many times!");
@@ -128,6 +148,7 @@ public sealed class Video
     if(surface==null) SDL.RaiseError();
     if(display!=null) display.Dispose();
     display = new Surface(surface, false);
+    UpdateInfo();
   }
   
   public static void GetGamma(out float red, out float green, out float blue)
@@ -170,6 +191,7 @@ public sealed class Video
   { return DisplaySurface.SetPalette(colors, startIndex, startColor, numColors, type);
   }
 
+  static unsafe void UpdateInfo() { info = new VideoInfo(SDL.GetVideoInfo()); }
   static void Check(int result) { if(result!=0) SDL.RaiseError(); }
   static void CheckInit() { if(initCount==0) throw new InvalidOperationException("Not initialized"); }
   static void CheckModeSet() { if(display==null) throw new InvalidOperationException("Video mode not set"); }
@@ -179,6 +201,7 @@ public sealed class Video
   static OpenGL    openGL;
   static float     redGamma=1.0f, blueGamma=1.0f, greenGamma=1.0f;
   static uint      initCount;
+  static VideoInfo info;
 }
 
 } // namespace GameLib.Video

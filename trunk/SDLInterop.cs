@@ -102,6 +102,12 @@ internal class SDL
   public enum SeekType : int
   { Absolute, Relative, FromEnd
   }
+
+  [Flags]
+  public enum InfoFlag : uint
+  { Hardware=0x0001, WindowManager=0x0002, HH=0x0200, HHKeyed=0x0400, HHAlpha=0x0800,
+    SH=0x1000, SHKeyed=0x2000, SHAlpha=0x4000, Fills=0x8000
+  }
   #endregion
 
   #region Structs
@@ -285,6 +291,12 @@ internal class SDL
     uint type;
     void* p1, p2, p3;
   }
+  [StructLayout(LayoutKind.Sequential, Pack=4)]
+  public unsafe struct VideoInfo
+  { public InfoFlag flags;
+    public uint videoMem;
+    void* format;
+  }
   #endregion
   
   #region General
@@ -314,6 +326,8 @@ internal class SDL
   #region Video
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_VideoModeOK", CallingConvention=CallingConvention.Cdecl)]
   public static extern int VideoModeOK(uint width, uint height, uint depth, uint flags);
+  [DllImport(Config.SDLImportPath, EntryPoint="SDL_GetVideoInfo", CallingConvention=CallingConvention.Cdecl)]
+  public static extern VideoInfo* GetVideoInfo();
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_SetVideoMode", CallingConvention=CallingConvention.Cdecl)]
   public static extern Surface* SetVideoMode(uint width, uint height, uint depth, uint flags);
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_FreeSurface", CallingConvention=CallingConvention.Cdecl)]

@@ -126,6 +126,7 @@ public class Surface : IDisposable
     SDL.Check(SDL.FillRect(surface, ref drect, color));
   }
 
+  public void Blit(Surface dest) { Blit(dest, 0, 0); }
   public void Blit(Surface dest, Point dpt) { Blit(dest, dpt.X, dpt.Y); }
   public unsafe void Blit(Surface dest, int dx, int dy)
   { SDL.Rect rect = new SDL.Rect(dx, dy);
