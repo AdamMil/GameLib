@@ -110,14 +110,37 @@ class Complex : INetSerializeable
 class App
 { static void Main()
   { IPEndPoint ep = new IPEndPoint(IPAddress.Loopback, 3000); // change port if necessary
+
     Type[] types = new Type[] // types that we'll be serializing/deserializing
     { typeof(Simple), typeof(OtherSimple), typeof(Complex)
     };
 
+    #region Medium-level networking
     { Console.WriteLine("Testing medium level networking...");
-      Console.WriteLine("TODO: do something here"); // TODO: do something here
+      NetLink client, server;
+
+      // set up a listener so we can get our client/server sockets,
+      // and use the sockets to create NetLink classes
+      { TcpListener sv = new TcpListener(ep);
+        sv.Start();
+
+        Socket cs = new Socket(AddressFamily.InterNetwork, SocketType.Stream,
+                              ProtocolType.Tcp);
+        cs.Connect(ep);
+        server = new NetLink(sv.AcceptSocket());
+        client = new NetLink(cs);
+        sv.Stop();
+      }
+
+      client.Send(Encoding.ASCII.GetBytes("Hello, world!"));
+      Console.WriteLine("Server received: "+
+                        Encoding.ASCII.GetString(server.Receive()));
       Console.WriteLine();
+      
+      client.Close();
+      server.Close();
     }
+    #endregion
 
     #region High-level networking
     { Console.WriteLine("Testing high-level networking...");
@@ -134,8 +157,8 @@ class App
       client.MessageReceived += new ClientReceivedHandler(client_MessageReceived);
       
       server.DefaultFlags = client.DefaultFlags =
-        SendFlag.ReliableSequential | SendFlag.NotifySent;
-      
+        SendFlag.Sequential | SendFlag.NotifySent;
+
       server.Send(null, new byte[] { 1, 2, 3 });
       client.Send(new Simple(SimpleEnum.One, 1, 1, new Point(-1, -1)));
       server.Send(null, new OtherSimple(SimpleEnum.Two, 2, 3.14f,
