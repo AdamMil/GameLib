@@ -17,7 +17,7 @@
                 DelaySign = "false"
                 OutputType = "Library"
                 PreBuildEvent = ""
-                PostBuildEvent = "rem $(ProjectDir)callconvhack.bat $(ProjectDir) $(ConfigurationName) $(TargetName)"
+                PostBuildEvent = "$(ProjectDir)callconvhack.bat $(ProjectDir) $(ConfigurationName) $(TargetName)"
                 RootNamespace = "GameLib"
                 RunPostBuildEvent = "OnOutputUpdated"
                 StartupObject = ""
@@ -68,11 +68,6 @@
                     Name = "System"
                     AssemblyName = "System"
                     HintPath = "..\..\WINDOWS\Microsoft.NET\Framework\v1.0.3705\System.dll"
-                />
-                <Reference
-                    Name = "ICSharpCode.SharpZipLib"
-                    AssemblyName = "ICSharpCode.SharpZipLib"
-                    HintPath = "..\SharpZipLib\ICSharpCode.SharpZipLib.dll"
                 />
                 <Reference
                     Name = "System.Drawing"
