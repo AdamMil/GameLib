@@ -17,10 +17,16 @@ DEVELOPMENT (alpha/beta)
 * Various minor drawing optimations for the windowing controls
 - Removed the LayoutBounds concept from the Windowing system
 + Added the concept of a content box and a padding area to the Windowing
-  system
+  system (Control.Content* and Control.Padding* properties)
 - Removed HorizontalPadding and VerticalPadding from MenuItem (it's been
   superceded by Control.Padding)
-
+* Simplified the layout system somewhat (lots of changes here)
+- Removed BoundsType because it's no longer needed with the simpler layout
+  system
++ Added ScrollableControl (a control that supports built-in scrollbars)
++ Added basic list controls (eg, ListBox)
+* Various other windowing changes
+* Altered the Windowing sample to reflect the changes
 
 2004.06.28 (alpha/beta)
 -------------------

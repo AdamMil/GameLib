@@ -737,7 +737,9 @@ public class TrueTypeFont : StyledFont
     TTF.SizeUNICODE(font, text, out width, out height); -- DOESN'T WORK CONSISTENTLY */
     Size size = new Size(0, Height);
     for(int i=0; i<text.Length; i++) size.Width += GetChar(text[i]).Advance; // less correct, but more consistent
-      //size.Width += i==0 && c.OffsetX<0 ? c.Width+c.OffsetX : i==text.Length-1 ? c.Width : c.Advance; // more correct, less consistent
+    /*{ CachedChar c = GetChar(text[i]);
+      size.Width += i==0 && c.OffsetX<0 ? c.Width+c.OffsetX : i==text.Length-1 ? c.Width : c.Advance; // more correct, less consistent
+    }*/
     return size;
   }
 

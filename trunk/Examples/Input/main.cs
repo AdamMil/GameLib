@@ -46,7 +46,7 @@ class App
     Video.SetMode(640, 480, 32);
     WM.WindowTitle = "Input Test";
 
-    font = new GameLib.Fonts.TrueTypeFont(dataPath+"mstrr.ttf", 24);
+    font = new GameLib.Fonts.TrueTypeFont(dataPath+"vera.ttf", 16);
     font.RenderStyle = RenderStyle.Blended;
 
     Events.PumpEvents(new EventProcedure(EventProc), new IdleProcedure(IdleProc));
