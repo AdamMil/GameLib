@@ -371,13 +371,13 @@ static void ConvertMixMono(Sint32 *dest, void* data, Uint32 samples, Uint16 srcF
   if(BITS(srcFormat)==8) /* 8bit */
   { if(SIGNED(srcFormat))  /* 8bit signed */
     { Sint8 *src = (Sint8*)data;
-      if(vol>=256) for(; i<samples; i++) dest[i]+=src[i]<<8;
-      else for(; i<samples; i++) dest[i]+=src[i]*vol;
+      if(vol>=256) for(; i<samples; i++) dest[i]+=src[i];
+      else for(; i<samples; i++) dest[i]+=(src[i]*vol)>>8;
     }
     else /* 8bit unsigned */
     { Uint8 *src = (Uint8*)data;
-      if(vol>=256) for(; i<samples; i++) dest[i]+=(Sint8)(src[i]-128)<<8;
-      else for(; i<samples; i++) dest[i]+=(Sint8)(src[i]-128)*vol;
+      if(vol>=256) for(; i<samples; i++) dest[i]+=src[i]-128;
+      else for(; i<samples; i++) dest[i]+=((Sint8)(src[i]-128)*vol)>>8;
     }
   }
   else /* 16bit */
@@ -412,20 +412,20 @@ static void ConvertMixStereo(Sint32 *dest, void* data, Uint32 samples, Uint16 sr
   if(BITS(srcFormat)==8) /* 8bit */
   { if(SIGNED(srcFormat))  /* 8bit signed */
     { Sint8 *src = (Sint8*)data;
-      if(left>=256 && right>=256) for(; i<samples; i++) dest[i]+=src[i]<<8;
+      if(left>=256 && right>=256) for(; i<samples; i++) dest[i]+=src[i];
       else
         for(; i<samples; )
-        { dest[i]+=src[i]*left;  i++;
-          dest[i]+=src[i]*right; i++;
+        { dest[i]+=(src[i]*left)>>8;  i++;
+          dest[i]+=(src[i]*right)>>8; i++;
         }
     }
     else /* 8bit unsigned */
     { Uint8 *src = (Uint8*)data;
-      if(left>=256 && right>=256) for(; i<samples; i++) dest[i]+=((Sint8)src[i]-128)<<8;
+      if(left>=256 && right>=256) for(; i<samples; i++) dest[i]+=src[i]-128;
       else
         for(; i<samples;)
-        { dest[i]+=(Sint8)(src[i]-128)*left;  i++;
-          dest[i]+=(Sint8)(src[i]-128)*right; i++;
+        { dest[i]+=((Sint8)(src[i]-128)*left )>>8; i++;
+          dest[i]+=((Sint8)(src[i]-128)*right)>>8; i++;
         }
     }
   }
@@ -530,15 +530,16 @@ int GLM_ConvertAcc(void *dest, Sint32 *src, Uint32 samples, Uint16 destFormat)
     return -1;
   }
 
-  for(; i<samples; i++) if(src[i]<-32768) src[i]=-32768; else if(src[i]>32767) src[i]=32767;
   if(BITS(destFormat)==8) /* 8bit */  /* convert the accumulator into the proper format for the audio stream */
   { Uint8 *dbuf = (Uint8*)dest;
+    for(; i<samples; i++) if(src[i]<-128) src[i]=-128; else if(src[i]>127) src[i]=127;
     i=0;
-    if(SIGNED(destFormat)) for(; i<samples; i++) dbuf[i] = (Uint8)(src[i]>>8);
-    else for(; i<samples; i++) dbuf[i] = (Uint8)(((Uint32)src[i]+32768)>>8);
+    if(SIGNED(destFormat)) for(; i<samples; i++) dbuf[i] = (Uint8)src[i];
+    else for(; i<samples; i++) dbuf[i] = (Uint8)((Uint32)src[i]+128);
   }
   else /* 16 bit */
   { Uint32 *sbuf = (Uint32*)src;
+    for(; i<samples; i++) if(src[i]<-32768) src[i]=-32768; else if(src[i]>32767) src[i]=32767;
     i=0;
     if(OPPEND(destFormat)) /* opposite endianness */
     { Uint16 *dbuf = (Uint16*)dest;
