@@ -450,7 +450,10 @@ public class Control
     while(c.parent!=null) { point.X-=c.bounds.X; point.Y-=c.bounds.Y; c=c.parent; }
     return point;
   }
-
+  public Point PointToChild(Point point, Control child)
+  { point.X -= child.bounds.X; point.Y -= child.bounds.Y;
+    return point;
+  }
   public Point PointToParent(Point point) { point.X+=bounds.X; point.Y+=bounds.Y; return point; }
   public Point PointToDesktop(Point point) { return PointToAncestor(point, null); }
   public Point PointToAncestor(Point point, Control ancestor)
@@ -463,7 +466,10 @@ public class Control
   public Rectangle RectToClient(Rectangle rect)
   { return new Rectangle(PointToClient(rect.Location), rect.Size);
   }
-
+  public Rectangle RectToChild(Rectangle rect, Control child)
+  { rect.X -= child.bounds.X; rect.Y -= child.bounds.Y;
+    return rect;
+  }
   public Rectangle RectToParent(Rectangle rect) { return new Rectangle(PointToParent(rect.Location), rect.Size); }
   public Rectangle RectToDesktop(Rectangle rect) { return RectToAncestor(rect, null); }
   public Rectangle RectToAncestor(Rectangle rect, Control ancestor)
@@ -597,7 +603,10 @@ public class Control
   protected virtual void OnResize(EventArgs e) { if(Resize!=null) Resize(this, e); }
 
   protected virtual void OnControlAdded(ControlEventArgs e)   { if(ControlAdded!=null) ControlAdded(this, e); }
-  protected virtual void OnControlRemoved(ControlEventArgs e) { if(ControlRemoved!=null) ControlRemoved(this, e); }
+  protected virtual void OnControlRemoved(ControlEventArgs e)
+  { if(focused==e.Control) focused=null;
+    if(ControlRemoved!=null) ControlRemoved(this, e);
+  }
 
   protected internal virtual void OnKeyDown(KeyEventArgs e)  { if(KeyDown!=null) KeyDown(this, e); }
   protected internal virtual void OnKeyUp(KeyEventArgs e)    { if(KeyUp!=null) KeyUp(this, e); }
@@ -745,7 +754,23 @@ public class DesktopControl : ContainerControl
       }
     }
     else if(clicks && e is MouseClickEvent)
-    { // TODO: handle these
+    { ClickEventArgs ea = new ClickEventArgs((MouseClickEvent)e);
+      Point  at = ea.CE.Point;
+      Control p = this, c;
+      while(true)
+      { c = p.GetChildAtPoint(at);
+        if(c==null) break;
+        at = p.PointToChild(at, c);
+        if(focus==AutoFocus.Click && c.CanFocus) c.Focus();
+        s.Push(c);
+        p = c;
+      }
+      ea.CE.Point = at;
+      do
+      { // TODO: handle click + double click, stop processing if Handled
+        ea.CE.Point = p.PointToParent(ea.CE.Point);
+        p = p.Parent;
+      } while(p != null);
     }
     else if(e is WindowEvent)
     { // TODO: handle these
