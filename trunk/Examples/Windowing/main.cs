@@ -29,25 +29,103 @@ namespace WindowingTest
 
 #region CustomDesktop
 class CustomDesktop : DesktopControl
-{ public CustomDesktop() { KeyPreview = true; }
+{ public CustomDesktop()
+  { AutoFocusing=AutoFocus.Click; BackColor=SystemColors.AppWorkspace;
+    KeyPreview=true;
+    menu.Dock=DockStyle.Top;
 
-  public MenuBarBase Menu
-  { get { return menu; }
-    set
-    { if(value!=menu)
-      { if(menu!=null) Controls.Remove(menu);
-        menu = value;
-        Controls.Add(menu);
-      }
-    }
+    Line line = new Line(SystemColors.ControlDarkDark);
+    line.Dock = DockStyle.Top;
+
+    Controls.AddRange(menu, line);
   }
+
+  public MenuBarBase Menu { get { return menu; } }
   
   protected override void OnKeyDown(KeyEventArgs e)
   { if(menu!=null) menu.HandleKey(e.KE);
     base.OnKeyDown(e);
   }
 
-  MenuBarBase menu;
+  protected override void OnFontChanged(GameLib.ValueChangedEventArgs e)
+  { if(Font!=null) menu.Height = Font.LineSkip*2;
+    base.OnFontChanged(e);
+  }
+
+  MenuBar menu = new MenuBar();
+}
+#endregion
+
+#region SampleForm
+class SampleForm : Form
+{ public SampleForm()
+  { Style |= ControlStyle.BackingSurface;
+    Text = "Sample Form";
+    Size = new Size(256, 192);
+
+    #region Add Controls
+    bar.Minimum = 64;
+    bar.Value   = bar.Maximum = 255;
+    bar.Dock    = DockStyle.Right;
+    bar.ValueChanged += new GameLib.ValueChangedEventHandler(bar_ValueChanged);
+    
+    label1.Dock = DockStyle.Top;
+    label1.TextAlign = ContentAlignment.MiddleCenter;
+    
+    btn.Click += new ClickEventHandler(btn_Click);
+
+    edit.Anchor = chk.Anchor = btn.Anchor = AnchorStyle.LeftRight;
+
+    edit.TabIndex = 0;
+    chk.TabIndex  = 1;
+    btn.TabIndex  = 2;
+
+    Controls.AddRange(bar, label1, edit, chk, btn);
+    #endregion
+  }
+
+  void UpdateAlpha()
+  { if(BackingSurface!=null)
+    { BackingSurface.SetSurfaceAlpha((byte)bar.Value);
+      Parent.Invalidate(WindowToParent(WindowRect));
+    }
+    edit.Text = "Alpha = "+bar.Value;
+  }
+
+  #region Event handlers
+  protected override void OnBackingSurfaceChanged(EventArgs e)
+  { UpdateAlpha();
+    base.OnBackingSurfaceChanged(e);
+  }
+
+  protected override void OnFontChanged(GameLib.ValueChangedEventArgs e)
+  { if(Font!=null)
+    { int height = Font.LineSkip*3/2;
+      label1.Height = height;
+      edit.Bounds = new Rectangle(5, 0, LayoutWidth-10, height);
+      chk.Bounds = new Rectangle(5, edit.Bottom, edit.Width, height);
+      btn.Bounds = new Rectangle(LayoutWidth/2-40, chk.Bottom, 80, height);
+    }
+    base.OnFontChanged(e);
+  }
+
+  void bar_ValueChanged(object sender, GameLib.ValueChangedEventArgs e)
+  { UpdateAlpha();
+  }
+  #endregion
+
+  #region Controls
+  ScrollBar bar = new ScrollBar();
+  TextBox  edit = new TextBox();
+  Label  label1 = new Label("Use the scrollbar to change transparency.");
+  CheckBox chk  = new CheckBox("Check, please.");
+  Button   btn  = new Button("Hit me!");
+  #endregion
+
+  void btn_Click(object sender, ClickEventArgs e)
+  { Random rand = new Random();
+    BackColor = Color.FromArgb(rand.Next(255), rand.Next(255), rand.Next(255));
+  }
 }
 #endregion
 
@@ -65,21 +143,19 @@ class App
 
     #region Setup controls
     { TrueTypeFont font = new TrueTypeFont(dataPath+"mstrr.ttf", 12);
-      font.RenderStyle = RenderStyle.Blended;
+      font.RenderStyle = RenderStyle.Shaded;
       desktop.Font = font; // set the default font
       desktop.KeyRepeatDelay = 350; // 350 ms delay before key repeat
       
-      desktop.Menu = new MenuBar();
-      desktop.Menu.Bounds = new Rectangle(0, 0, desktop.Width, font.LineSkip*2);
-      desktop.Menu.Dock   = DockStyle.Top;
-
-      Menu menu   = new Menu("Menu", new KeyCombo(KeyMod.Alt, 'M'));
+      Menu menu = new Menu("Menu", new KeyCombo(KeyMod.Alt, 'M'));
 
       menu.Add(new MenuItem("MessageBox", 'M', new KeyCombo(KeyMod.Ctrl, 'M')))
         .Click += new EventHandler(MessageBox_Click);
+      menu.Add(new MenuItem("Form", 'F', new KeyCombo(KeyMod.Ctrl, 'F')))
+        .Click += new EventHandler(Form_Click);
       menu.Add(new MenuItem("Exit", 'X', new KeyCombo(KeyMod.Ctrl, 'X')))
         .Click += new EventHandler(Exit_Click);
-        
+
       desktop.Menu.Add(menu);
     }
     #endregion
@@ -107,10 +183,7 @@ class App
       else if(e is ExceptionEvent) throw ((ExceptionEvent)e).Exception;
       else if(e is QuitEvent) return false;
     }
-    else if(desktop.Updated)
-    { Video.UpdateRects(desktop.UpdatedAreas, desktop.NumUpdatedAreas);
-      desktop.Updated = false;
-    }
+    else desktop.UpdateDisplay();
     return true;
   }
   
@@ -118,10 +191,23 @@ class App
 
   #region Event handlers
   static void MessageBox_Click(object sender, EventArgs e)
-  { if(MessageBox.Show(desktop, "Hello", "This is a message box. It works much like the message boxes you may be used to. Would you like to blow up the monitor?",
-                       new string[] { "I think not", "Blow it up!" }) == 0)
-      MessageBox.Show(desktop, "Boom?", "Okay, fine.");
-    else MessageBox.Show(desktop, "Boom?", "Boom!!!");
+  { string text = "This is a message box. It works much like the message boxes "+
+                  "you may be used to. Would you like to blow up the monitor?";
+    if(MessageBox.Show(desktop, "Hello", text,
+                       new string[] { "Blow it up!", "I think not." }, 1) == 0)
+      MessageBox.Show(desktop, "Boom?", "Boom!!! Wait... no, that didn't "+
+                                        "work. Lemme try again.");
+    else MessageBox.Show(desktop, "Boom?",
+                         "Okay, fine. I'll format the hard drive instead!");
+  }
+
+  private static void Form_Click(object sender, EventArgs e)
+  { Random rand = new Random();
+    SampleForm form = new SampleForm();
+    form.Parent = desktop;
+    form.SetBounds(new Point(rand.Next(desktop.Width-form.Width),
+                             rand.Next(desktop.Height-form.Height)),
+                   form.Size, BoundsType.Absolute);
   }
 
   static void Exit_Click(object sender, EventArgs e)

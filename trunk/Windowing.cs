@@ -18,7 +18,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 // TODO: implement mouse cursor
 // TODO: add 'other control' to focus events?
-// TODO: examine Layout further (implemented properly?)
 // TODO: do something so that slow painting/updating doesn't lag the entire windowing system
 using System;
 using System.Collections;
@@ -104,7 +103,8 @@ public class PaintEventArgs : EventArgs
   /// </param>
   public PaintEventArgs(Control control, Rectangle windowRect, Surface surface)
   { WindowRect = windowRect;
-    if(control.backingSurface==null)
+    Surface backing = control.BackingSurface;
+    if(backing==null)
     { Surface = surface;
       DisplayRect = control.WindowToDisplay(windowRect);
       if(!Surface.Bounds.Contains(DisplayRect))
@@ -113,9 +113,12 @@ public class PaintEventArgs : EventArgs
       }
     }
     else
-    { Surface = control.backingSurface;
-      WindowRect.Intersect(Surface.Bounds);
-      DisplayRect = WindowRect;
+    { Surface = backing;
+      DisplayRect = control.WindowToBacking(windowRect);
+      if(!Surface.Bounds.Contains(DisplayRect))
+      { DisplayRect.Intersect(Surface.Bounds);
+        WindowRect  = control.BackingToWindow(DisplayRect);
+      }
     }
   }
   /// <summary>This field holds a reference to the surface upon which the control should be painted.</summary>
@@ -205,7 +208,7 @@ public enum AnchorStyle
 
 /// <summary>This enum is used by <see cref="Control.SetBounds"/> to control how the new bounds will be treated.
 /// </summary>
-public enum BoundsMode
+public enum BoundsType
 { 
   /// <summary>The specified bounds may be altered according to layout logic.</summary>
   Normal,
@@ -244,9 +247,8 @@ public enum ControlStyle
   Anyclick=NormalClick|Draggable,
   /// <summary>Instead of drawing to the desktop directly, the control will have a backing surface to which all
   /// drawing will be done. This is especially useful if it's difficult for the control to keep its drawing within
-  /// its window. Another possible use is to do special effects such as using the
-  /// <see cref="Surface.SetSurfaceAlpha"/> method of the backing surface to make a control partially transparent.
-  /// Transparent background colors for controls with backing surfaces are not supported.
+  /// its window. Another use for backing surfaces is to create a semi-transparent window by using
+  /// <see cref="Surface.SetAlpha"/>.
   /// </summary>
   BackingSurface=16
 }
@@ -514,6 +516,11 @@ public class Control
     }
   }
 
+  /// <summary>Gets the that rectangle this control occupies on the backing surface.</summary>
+  /// <remarks>This property returns the rectangle that this control occupies on the backing surface.</remarks>
+  /// <exception cref="InvalidOperationException">Thrown if the control has no backing surface.</exception>
+  public Rectangle BackingRect { get { return WindowToBacking(WindowRect); } }
+
   /// <summary>Gets or sets the position of the bottom edge of the control relative to its parent.</summary>
   /// <remarks>Changing this property will move the control.</remarks>
   public int Bottom
@@ -531,7 +538,7 @@ public class Control
   /// <remarks>Changing this property will both move and resize the control.</remarks>
   public Rectangle Bounds
   { get { return bounds; }
-    set { SetBounds(value, BoundsMode.Normal); }
+    set { SetBounds(value, BoundsType.Normal); }
   }
 
   /// <summary>This property is true if the control can receive focus.</summary>
@@ -597,13 +604,22 @@ public class Control
   /// <remarks>The display surface is the <see cref="GameLib.Video.Surface"/> that's associated with this control's
   /// desktop (see <see cref="Desktop"/>). This property returns the rectangle that this control occupies on the
   /// display surface. This is not necessarily the rectangle that is safe to draw into during a paint event!
-  /// More specifically, if the control has a backing surface (that is to say, if the <see cref="ControlStyle"/>
-  /// property has the <see cref="ControlStyle.BackingSurface"/> flag), this property is not the same as the
-  /// rectangle in which you can draw. For controls that have backing surface, the rectangle in which you can draw
-  /// is the entire backing surface. For controls that don't have a backing surface, this is the rectangle in which
-  /// it's safe to draw during a paint operation.
+  /// More specifically, if the control has a backing surface (that is to say, if the <see cref="BackingSurface"/>
+  /// property is not null), this property is not the same as the rectangle in which you can draw. Use the
+  /// <see cref="DrawRect"/> property to retrieve the rectangle that is safe for drawing.
   /// </remarks>
   public Rectangle DisplayRect { get { return WindowToDisplay(WindowRect); } }
+
+  /// <summary>Gets the that rectangle that can be used for drawing.</summary>
+  /// <remarks>This property returns either the <see cref="DisplayRect"/> or the <see cref="BackingRect"/>,
+  /// depending on whether the control has a backing surface or not. The returned rectangle can be used inside
+  /// <see cref="OnPaintBackground"/> and <see cref="OnPaint"/> as the area into which it's safe to draw.
+  /// </remarks>
+  public Rectangle DrawRect
+  { get
+    { return BackingSurface==null ? WindowToDisplay(WindowRect) : WindowToBacking(WindowRect);
+    }
+  }
 
   /// <summary>Gets or sets how this control will be docked to its parent.</summary>
   /// <remarks>When a control is docked, it will be automatically moved and/or resized when its parent is resized
@@ -736,6 +752,47 @@ public class Control
   /// </remarks>
   public bool KeyPreview { get { return keyPreview; } set { keyPreview=value; } }
   
+  /// <summary>Gets the control's layout height.</summary>
+  /// <remarks>The control's layout height is the <see cref="Height"/> minus the area taken up by the
+  /// <see cref="LayoutMargin"/>.
+  /// </remarks>
+  public int LayoutHeight { get { return Height-margin*2; } set { Height=value+margin*2; } }
+
+  /// <summary>Gets or sets the control's layout bounds.</summary>
+  /// <remarks>The control's layout bounds is the <see cref="Bounds"/> of the control, minus the area taken up by
+  /// the <see cref="LayoutMargin"/>.
+  /// </remarks>
+  public Rectangle LayoutBounds
+  { get { Rectangle rect = bounds; rect.Inflate(-margin, -margin); return rect; }
+    set
+    { value.Inflate(margin, margin);
+      Bounds = value;
+    }
+  }
+
+  /// <summary>Gets or sets the width of the control's layout margin.</summary>
+  /// <remarks>The control's layout margin is the area surrounding the control in which no child controls should be.
+  /// The default layout code uses the margin to provide padding around a control. A common usage of this padding
+  /// is to make room for a border.
+  /// </remarks>
+  public int LayoutMargin
+  { get { return margin; }
+    set
+    { if(value<0) throw new ArgumentOutOfRangeException("LayoutMargin", value, "must not be negative");
+      if(value!=margin)
+      { margin=value;
+        TriggerLayout();
+        Invalidate();
+      }
+    }
+  }
+
+  /// <summary>Gets or sets the control's layout width.</summary>
+  /// <remarks>The control's layout width is the <see cref="Width"/> minus the area taken up by the
+  /// <see cref="LayoutMargin"/>.
+  /// </remarks>
+  public int LayoutWidth { get { return Width-margin*2; } set { Width=value+margin*2; } }
+
   /// <summary>Gets or sets the position of the left edge of the control relative to its parent.</summary>
   /// <remarks>Changing this property will move the control.</remarks>
   public int Left
@@ -753,7 +810,7 @@ public class Control
   /// <remarks>Changing this property will move the control.</remarks>
   public Point Location
   { get { return bounds.Location; }
-    set { SetBounds(value, bounds.Size, BoundsMode.Normal); }
+    set { SetBounds(value, bounds.Size, BoundsType.Normal); }
   }
 
   /// <summary>Returns true if this is a modal control.</summary>
@@ -868,7 +925,7 @@ public class Control
   /// <remarks>Changing this control will resize the control.</remarks>
   public Size Size
   { get { return bounds.Size; }
-    set { SetBounds(bounds.Location, value, BoundsMode.Normal); }
+    set { SetBounds(bounds.Location, value, BoundsType.Normal); }
   }
 
   /// <summary>Gets or sets this control's <see cref="ControlStyle"/>.</summary>
@@ -1038,7 +1095,7 @@ public class Control
     ArrayList list = parent.controls.Array;
     if(list[list.Count-1]!=this)
     { list.Remove(this);
-      list.Insert(list.Count-1, this);
+      list.Add(this);
       Invalidate();
     }
   }
@@ -1153,7 +1210,7 @@ public class Control
   /// because if a paint event for this control is already queued, no new one will be added.
   /// </remarks>
   public void Invalidate(Rectangle area)
-  { if(back==Color.Transparent && parent!=null) parent.Invalidate(WindowToParent(area));
+  { if(Transparent && parent!=null) parent.Invalidate(WindowToParent(area));
     else
     { AddInvalidRect(area);
       if(!pendingPaint && visible && invalid.Width>0 &&
@@ -1176,45 +1233,45 @@ public class Control
   /// <param name="y">The new Y coordinate of the top edge of the control.</param>
   /// <param name="width">The new width of the control.</param>
   /// <param name="height">The new height of the control.</param>
-  /// <param name="mode">A <see cref="BoundsMode"/> that determines how the new bounds will be treated.</param>
-  /// <remarks>Calling this method is equivalent to calling <see cref="SetBounds(Rectangle,BoundsMode)"/> and
+  /// <param name="mode">A <see cref="BoundsType"/> that determines how the new bounds will be treated.</param>
+  /// <remarks>Calling this method is equivalent to calling <see cref="SetBounds(Rectangle,BoundsType)"/> and
   /// using the <paramref name="x"/>, <paramref name="y"/>, <paramref name="width"/>, and <paramref name="height"/>
-  /// parameters to create a new rectangle. See <see cref="SetBounds(Rectangle,BoundsMode)"/> for more
+  /// parameters to create a new rectangle. See <see cref="SetBounds(Rectangle,BoundsType)"/> for more
   /// information on this method.
   /// </remarks>
-  public void SetBounds(int x, int y, int width, int height, BoundsMode mode)
+  public void SetBounds(int x, int y, int width, int height, BoundsType mode)
   { SetBounds(new Rectangle(x, y, width, height), mode);
   }
 
   /// <summary>Sets the <see cref="Bounds"/> property and performs layout logic.</summary>
   /// <param name="location">The new location of the control.</param>
   /// <param name="size">The new size of the control.</param>
-  /// <param name="mode">A <see cref="BoundsMode"/> that determines how the new bounds will be treated.</param>
-  /// <remarks>Calling this method is equivalent to calling <see cref="SetBounds(Rectangle,BoundsMode)"/> and
+  /// <param name="mode">A <see cref="BoundsType"/> that determines how the new bounds will be treated.</param>
+  /// <remarks>Calling this method is equivalent to calling <see cref="SetBounds(Rectangle,BoundsType)"/> and
   /// using the <paramref name="location"/> and <paramref name="size"/> parameters to create a new rectangle.
-  /// See <see cref="SetBounds(Rectangle,BoundsMode)"/> for more information on this method.
-  /// <seealso cref="SetBounds(Rectangle,BoundsMode)"/>
+  /// See <see cref="SetBounds(Rectangle,BoundsType)"/> for more information on this method.
+  /// <seealso cref="SetBounds(Rectangle,BoundsType)"/>
   /// </remarks>
-  public void SetBounds(Point location, Size size, BoundsMode mode)
+  public void SetBounds(Point location, Size size, BoundsType mode)
   { SetBounds(new Rectangle(location, size), mode);
   }
   
   /// <summary>Sets the <see cref="Bounds"/> property and performs layout logic.</summary>
   /// <param name="newBounds">The new control boundaries.</param>
-  /// <param name="mode">A <see cref="BoundsMode"/> that determines how <paramref name="newBounds"/> will be treated.
+  /// <param name="mode">A <see cref="BoundsType"/> that determines how <paramref name="newBounds"/> will be treated.
   /// </param>
   /// <remarks>This method is used to set the bounds of a control and perform operations that need to execute
-  /// whenever the bounds change. If <paramref name="mode"/> is <see cref="BoundsMode.Normal"/>,
-  /// <paramref name="newBounds"/> may be modified due to layout logic. If it's <see cref="BoundsMode.Absolute"/>,
+  /// whenever the bounds change. If <paramref name="mode"/> is <see cref="BoundsType.Normal"/>,
+  /// <paramref name="newBounds"/> may be modified due to layout logic. If it's <see cref="BoundsType.Absolute"/>,
   /// <paramref name="newBounds"/> is used as-is and the anchor is updated so that it won't be moved by future
-  /// layouts. If it's <see cref="BoundsMode.Layout"/>, <paramref name="newBounds"/> is used as-is and no layout
+  /// layouts. If it's <see cref="BoundsType.Layout"/>, <paramref name="newBounds"/> is used as-is and no layout
   /// logic is executed. This method is also responsible for calling <see cref="OnLocationChanged"/> and
   /// <see cref="OnSizeChanged"/> as necessary. Overriders should implement their version by calling this base
   /// method.
-  /// <seealso cref="BoundsMode"/>
+  /// <seealso cref="BoundsType"/>
   /// </remarks>
-  public virtual void SetBounds(Rectangle newBounds, BoundsMode mode)
-  { if(mode!=BoundsMode.Layout)
+  public virtual void SetBounds(Rectangle newBounds, BoundsType mode)
+  { if(mode!=BoundsType.Layout)
     { preLayoutBounds = newBounds;
       anchorSpace.Width  += newBounds.Width  - bounds.Width;
       anchorSpace.Height += newBounds.Height - bounds.Height;
@@ -1223,7 +1280,7 @@ public class Control
         { // TODO: do docking more efficiently
           if(parent!=null) parent.TriggerLayout();
         }
-        else if(mode==BoundsMode.Normal)
+        else if(mode==BoundsType.Normal)
         { int left=preLayoutBounds.Left-parent.anchorSpace.Left, top=preLayoutBounds.Top-parent.anchorSpace.Top;
           anchorOffsets = new Rectangle(left, top, parent.anchorSpace.Right-preLayoutBounds.Right-left,
                                         parent.anchorSpace.Bottom-preLayoutBounds.Bottom-top);
@@ -1239,15 +1296,14 @@ public class Control
     }
     if(bounds!=newBounds)
     { ValueChangedEventArgs e = new ValueChangedEventArgs(null);
-      Point oldLoc = bounds.Location;
-      Size  oldSize = bounds.Size;
-      bounds = newBounds;
-      if(newBounds.Location!=oldLoc)
-      { e.OldValue = oldLoc;
+      if(newBounds.Location!=bounds.Location)
+      { e.OldValue = bounds.Location;
+        bounds.Location = newBounds.Location;
         OnLocationChanged(e);
       }
-      if(newBounds.Size!=oldSize)
-      { e.OldValue = oldSize;
+      if(newBounds.Size!=bounds.Size)
+      { e.OldValue = bounds.Size;
+        bounds.Size = newBounds.Size;
         OnSizeChanged(e);
       }
     }
@@ -1348,7 +1404,7 @@ public class Control
   /// then forces an immediate repaint.
   /// </remarks>
   public void Refresh(Rectangle area)
-  { if(back==Color.Transparent && parent!=null) parent.Refresh(WindowToParent(area));
+  { if(Transparent && parent!=null) parent.Refresh(WindowToParent(area));
     else
     { AddInvalidRect(area);
       Update();
@@ -1389,9 +1445,6 @@ public class Control
   /// <summary>Occurs when the value of the <see cref="BackImageAlign"/> property changes.</summary>
   public event ValueChangedEventHandler BackImageAlignChanged;
   /// <summary>Occurs when the value of the <see cref="BackingSurface"/> property for this control changes.</summary>
-  /// <remarks>This can be overridden to do special effects such as using the <see cref="Surface.SetSurfaceAlpha"/>
-  /// method to make a control partially transparent.
-  /// </remarks>
   public event EventHandler BackingSurfaceChanged;
   /// <summary>Occurs when the value of the <see cref="Enabled"/> property changes.</summary>
   public event ValueChangedEventHandler EnabledChanged;
@@ -1564,13 +1617,13 @@ public class Control
 
   /// <summary>Raises the <see cref="BackingSurfaceChanged"/> event.</summary>
   /// <param name="e">An <see cref="EventArgs"/> that contains the event data.</param>
-  /// <remarks>This can be overridden to do special effects such as using the <see cref="Surface.SetSurfaceAlpha"/>
-  /// method to make a control partially transparent.
+  /// <remarks>This method calls <see cref="OnParentBackingSurfaceChanged"/> on each child.
   /// When overriding this method in a derived class, be sure to call the base class'
   /// version to ensure that the default processing gets performed.
   /// </remarks>
   protected virtual void OnBackingSurfaceChanged(EventArgs e)
   { if(BackingSurfaceChanged!=null) BackingSurfaceChanged(this, e);
+    foreach(Control c in controls) c.OnParentBackingSurfaceChanged(e);
   }
   
   /// <summary>Raises the <see cref="EnabledChanged"/> event and performs default handing.</summary>
@@ -1645,6 +1698,7 @@ public class Control
 
     if(e.OldValue==null)
     { if(back!=BackColor) OnBackColorChanged(new ValueChangedEventArgs(back));
+      if(backingSurface!=BackingSurface) OnBackingSurfaceChanged(new ValueChangedEventArgs(backingSurface));
       if(enabled!=Enabled) OnEnabledChanged(new ValueChangedEventArgs(enabled));
       if(font!=Font) OnFontChanged(new ValueChangedEventArgs(font));
       if(fore!=ForeColor) OnForeColorChanged(new ValueChangedEventArgs(fore));
@@ -1656,6 +1710,10 @@ public class Control
       if(back==Color.Transparent)
       { Color old = oldPar.BackColor; 
         if(old!=back) OnBackColorChanged(new ValueChangedEventArgs(old));
+      }
+      if(backingSurface==null)
+      { Surface old = oldPar.BackingSurface;
+        if(old!=backingSurface) OnBackingSurfaceChanged(new ValueChangedEventArgs(old));
       }
       if(enabled && !oldPar.Enabled) OnEnabledChanged(new ValueChangedEventArgs(false));
       if(font==null)
@@ -1790,8 +1848,14 @@ public class Control
   /// end of the derived version.
   /// </remarks>
   protected virtual void OnControlAdded(ControlEventArgs e)
-  { if(e.Control.Dock==DockStyle.None) e.Control.SetBounds(e.Control.bounds, BoundsMode.Normal);
-    else TriggerLayout();
+  { if(e.Control.Dock==DockStyle.None) e.Control.SetBounds(e.Control.bounds, BoundsType.Normal);
+    else
+    { Control c = e.Control;
+      switch(c.Dock)
+      { case DockStyle.Top:  case DockStyle.Bottom: c.SetBounds(c.Left, c.Top, 0, c.Height, BoundsType.Normal); break;
+        case DockStyle.Left: case DockStyle.Right:  c.SetBounds(c.Left, c.Top, c.Width, 0, BoundsType.Normal); break; 
+      }
+    }
     if(ControlAdded!=null) ControlAdded(this, e);
   }
 
@@ -1922,6 +1986,16 @@ public class Control
   { if(back==Color.Transparent) OnBackColorChanged(e);
   }
 
+  /// <summary>Called when the parent's <see cref="BackingSurface"/> property changes.</summary>
+  /// <param name="e">An <see cref="EventArgs"/> that contains the event data.</param>
+  /// <remarks>This method will call <see cref="OnBackingSurfaceChanged"/> if necessary.
+  /// When overriding this method in a derived class, be sure to call the base class' version to ensure that the
+  /// default processing gets performed.
+  /// </remarks>
+  protected virtual void OnParentBackingSurfaceChanged(EventArgs e)
+  { if(backingSurface==null) OnBackingSurfaceChanged(e);
+  }
+
   /// <summary>Called when the parent's <see cref="Enabled"/> property changes.</summary>
   /// <param name="e">A <see cref="ValueChangedEventArgs"/> that contains the event data.</param>
   /// <remarks>This method will call <see cref="OnEnabledChanged"/> if necessary.
@@ -1971,6 +2045,34 @@ public class Control
   protected internal virtual void OnCustomEvent(WindowEvent e) { }
   #endregion
   
+  /// <summary>Gets the <see cref="Surface"/> used as the backing surface for this control.</summary>
+  /// <remarks>This property will return null if there is no backing surface being used.</remarks>
+  protected internal Surface BackingSurface
+  { get
+    { Control c = this;
+      while(c!=null) { if(c.backingSurface!=null) return c.backingSurface; c=c.parent; }
+      return null;
+    }
+  }
+
+  /// <summary>Gets or sets the drag threshold for this control.</summary>
+  /// <remarks>The drag threshold controls how far the mouse has to be dragged for it to register as a drag event.
+  /// The value is stored as the distance in pixels, squared, so if a movement of 4 pixels is required to signify
+  /// a drag, this property should be set to 16, which is 4 squared. As a special case, setting it to -1 causes it
+  /// to inherit the desktop's <see cref="DesktopControl.DragThreshold"/> property value. Reading this property does
+  /// not take inheritance into account and may return -1. The default value is -1.
+  /// </remarks>
+  /// <value>The drag threshold, as the distance squared, in pixels, or -1 to inherit the desktop's
+  /// <see cref="DesktopControl.DragThreshold"/> property.
+  /// </value>
+  protected internal int DragThreshold
+  { get { return dragThreshold; }
+    set
+    { if(value<-1) throw new ArgumentOutOfRangeException("DragThreshold", value, "must be >=0 or -1");
+      dragThreshold=value;
+    }
+  }
+
   /// <summary>Gets or sets this control's focused control.</summary>
   /// <remarks>Changing this property will call <see cref="OnLostFocus"/> and <see cref="OnGotFocus"/> to raise
   /// the appropriate events.
@@ -1989,26 +2091,38 @@ public class Control
     }
   }
 
+  /// <summary>Converts a rectangle from the coordinate space of the backing surface to control coordinates.</summary>
+  /// <param name="backingRect">The rectangle to convert, relative to the backing surface.</param>
+  /// <returns>The converted rectangle, in control coordinates.</returns>
+  /// <exception cref="InvalidOperationException">Thrown if the control has no backing surface.</exception>
+  protected internal Rectangle BackingToWindow(Rectangle backingRect)
+  { Control c = this;
+    while(c!=null && c.backingSurface==null) { backingRect.X-=c.bounds.X; backingRect.Y-=c.bounds.Y; c=c.parent; }
+    if(c==null) throw new InvalidOperationException("This control has no backing surface!");
+    return backingRect;
+  }
+
   /// <summary>Tests whether the control has a certain <see cref="ControlStyle"/> flag.</summary>
   /// <param name="test">The <see cref="ControlStyle"/> flag to test for.</param>
   /// <returns>Returns true if the <see cref="Style"/> property contains the specified flag.</returns>
   protected internal bool HasStyle(ControlStyle test) { return (style & test) != ControlStyle.None; }
 
-  /// <summary>Gets or sets the drag threshold for this control.</summary>
-  /// <remarks>The drag threshold controls how far the mouse has to be dragged for it to register as a drag event.
-  /// The value is stored as the distance in pixels, squared, so if a movement of 4 pixels is required to signify
-  /// a drag, this property should be set to 16, which is 4 squared. As a special case, setting it to -1 causes it
-  /// to inherit the desktop's <see cref="DesktopControl.DragThreshold"/> property value. Reading this property does
-  /// not take inheritance into account and may return -1. The default value is -1.
-  /// </remarks>
-  /// <value>The drag threshold, as the distance squared, in pixels, or -1 to inherit the desktop's
-  /// <see cref="DesktopControl.DragThreshold"/> property.
-  /// </value>
-  protected internal int DragThreshold
-  { get { return dragThreshold; }
-    set
-    { if(value<-1) throw new ArgumentOutOfRangeException("DragThreshold", value, "must be >=0 or -1");
-      dragThreshold=value;
+  /// <summary>Converts a rectangle from control coordinates to the coordinate space of the backing surface.</summary>
+  /// <param name="backingRect">The rectangle to convert, in control coordinates.</param>
+  /// <returns>The converted rectangle, in backing surface coordinates.</returns>
+  /// <exception cref="InvalidOperationException">Thrown if the control has no backing surface.</exception>
+  protected internal Rectangle WindowToBacking(Rectangle windowRect)
+  { Control c = this;
+    while(c!=null && c.backingSurface==null) { windowRect.X += c.bounds.X; windowRect.Y += c.bounds.Y; c = c.parent; }
+    if(c==null) throw new InvalidOperationException("This control has no backing surface!");
+    return windowRect;
+  }
+
+  internal bool Transparent
+  { get
+    { if(back==Color.Transparent) return true;
+      Surface surf = BackingSurface;
+      return surf!=null && surf.UsingAlpha;
     }
   }
 
@@ -2029,7 +2143,7 @@ public class Control
     else if((anchor&AnchorStyle.Bottom)!=0) newBounds.Y = avail.Bottom-anchorOffsets.Bottom-newBounds.Height;
     else newBounds.Y = avail.Y+anchorOffsets.Top;
 
-    SetBounds(newBounds, BoundsMode.Layout);
+    SetBounds(newBounds, BoundsType.Layout);
   }
 
   internal void SetParent(Control control)
@@ -2063,10 +2177,6 @@ public class Control
   internal Surface backingSurface;
   internal uint lastClickTime = int.MaxValue;
 
-  /// <summary>Gets the <see cref="Surface"/> used as the backing surface for this control.</summary>
-  /// <remarks>This property will return null if there is no backing surface being used.</remarks>
-  protected Surface BackingSurface { get { return backingSurface; } }
-  
   /// <summary>Throws an exception if the control has no parent.</summary>
   /// <remarks>This method will raise an <see cref="InvalidOperationException"/> if the control has no parent.
   /// </remarks>
@@ -2108,7 +2218,7 @@ public class Control
   object tag;
   Rectangle bounds = new Rectangle(0, 0, 100, 100), invalid;
   Rectangle anchorSpace = new Rectangle(0, 0, 100, 100), anchorOffsets, preLayoutBounds;
-  int tabIndex=-1, dragThreshold=-1;
+  int tabIndex=-1, dragThreshold=-1, margin;
   ControlStyle style;
   AnchorStyle  anchor=AnchorStyle.TopLeft;
   DockStyle    dock;
@@ -2755,8 +2865,9 @@ public class DesktopControl : ContainerControl, IDisposable
     { PaintEventArgs pe = new PaintEventArgs(control, control.InvalidRect, surface);
       control.OnPaintBackground(pe);
       control.OnPaint(pe);
-      if(pe.Surface==control.backingSurface)
-      { Point pt = new Point(pe.DisplayRect.X+control.Left, pe.DisplayRect.Y+control.Top);
+
+      if(control.backingSurface!=null || pe.Surface!=surface && !control.Transparent)
+      { Point pt = control.WindowToDisplay(pe.WindowRect.Location);
         pe.Surface.Blit(surface, pe.DisplayRect, pt);
         pe.DisplayRect.Location = pt;
       }
@@ -2834,6 +2945,9 @@ public enum BorderStyle
 public class Helpers
 { private Helpers() { }
 
+  /// <summary>The direction an arrow points.<seealso cref="DrawArrow"/></summary>
+  public enum Arrow { Up, Down, Left, Right }
+  
   /// <summary>Returns true if <paramref name="align"/> specifies left alignment.</summary>
   /// <param name="align">The alignment value to check.</param>
   /// <returns>True if <paramref name="align"/> specifies left alignment, false otherwise.</returns>
@@ -2907,6 +3021,24 @@ public class Helpers
     return ret;
   }
   
+  public static void DrawArrow(Surface surface, Rectangle rect, Arrow arrow, int size, Color color)
+  { int x, y, s, si;
+    switch(arrow)
+    { case Arrow.Up: case Arrow.Down:
+        x=rect.X+(rect.Width-1)/2; y=rect.Y+(rect.Height-size)/2;
+        if(arrow==Arrow.Up) { s=0; si=1; }
+        else { s=size-1; si=-1; }
+        for(int i=0; i<size; s+=si,i++) Primitives.Line(surface, x-s, y+i, x+s, y+i, color);
+        break;
+      case Arrow.Left: case Arrow.Right:
+        x=rect.X+(rect.Width-size)/2; y=rect.Y+(rect.Height-1)/2;
+        if(arrow==Arrow.Left) { s=0; si=1; }
+        else { s=size-1; si=-1; }
+        for(int i=0; i<size; s+=si,i++) Primitives.Line(surface, x+i, y-s, x+i, y+s, color);
+        break;
+    }
+  }
+
   /// <summary>Draws a border using default colors.</summary>
   /// <param name="surface">The <see cref="Surface"/> into which the border will be drawn.</param>
   /// <param name="rect">The bounds of the border.</param>

@@ -84,8 +84,10 @@ public abstract class Font
       }
       start += lines[i];
     }
-    return align==ContentAlignment.TopLeft ? new Point(length + (lines.Length==1 ? startx : 0), y)
-                                           : new Point(-1, -1);
+    // FIXME: fix this
+    x = Forms.Helpers.AlignedLeft(align) ? length + (lines.Length==1 ? startx : 0) : -1;
+    if(!Forms.Helpers.AlignedTop(align)) y = -1;
+    return new Point(x, y);
   }
   
   // TODO: remove these?

@@ -16,9 +16,8 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
-// TODO: implement more controls (checkbox, listbox, dropdown)
+// TODO: implement more controls (listbox, dropdown)
 // TODO: have controls display differently when disabled
-// TODO: make sure everything uses Helpers.BorderSize()
 using System;
 using System.Collections;
 using System.Drawing;
@@ -31,7 +30,35 @@ namespace GameLib.Forms
 
 #region ContainerControl
 public class ContainerControl : Control
-{ protected internal override void OnPaint(PaintEventArgs e)
+{ protected void DoLayout()
+  { Rectangle avail = WindowRect;
+    avail.Inflate(-LayoutMargin, -LayoutMargin);
+
+    foreach(Control c in Controls)
+      switch(c.Dock)
+      { case DockStyle.Left:
+          c.SetBounds(new Rectangle(avail.X, avail.Y, c.Width, avail.Height), BoundsType.Layout);
+          avail.X += c.Width; avail.Width -= c.Width;
+          break;
+        case DockStyle.Top:
+          c.SetBounds(new Rectangle(avail.X, avail.Y, avail.Width, c.Height), BoundsType.Layout);
+          avail.Y += c.Height; avail.Height -= c.Height;
+          break;
+        case DockStyle.Right:
+          c.SetBounds(new Rectangle(avail.Right-c.Width, avail.Y, c.Width, avail.Height), BoundsType.Layout);
+          avail.Width -= c.Width;
+          break;
+        case DockStyle.Bottom:
+          c.SetBounds(new Rectangle(avail.X, avail.Bottom-c.Height, avail.Width, c.Height), BoundsType.Layout);
+          avail.Height -= c.Height;
+          break;
+      }
+
+    AnchorSpace = avail;
+    foreach(Control c in Controls) if(c.Dock==DockStyle.None) c.DoAnchor();
+  }
+
+  protected internal override void OnPaint(PaintEventArgs e)
   { foreach(Control c in Controls)
       if(c.Visible)
       { Rectangle paint = Rectangle.Intersect(c.Bounds, e.WindowRect);
@@ -46,37 +73,17 @@ public class ContainerControl : Control
   
   protected internal override void OnLayout(EventArgs e)
   { base.OnLayout(e);
-    Rectangle avail = WindowRect;
-
-    foreach(Control c in Controls)
-      switch(c.Dock)
-      { case DockStyle.Left:
-          c.SetBounds(new Rectangle(avail.X, avail.Y, c.Width, avail.Height), BoundsMode.Layout);
-          avail.X += c.Width; avail.Width -= c.Width;
-          break;
-        case DockStyle.Top:
-          c.SetBounds(new Rectangle(avail.X, avail.Y, avail.Width, c.Height), BoundsMode.Layout);
-          avail.Y += c.Height; avail.Height -= c.Height;
-          break;
-        case DockStyle.Right:
-          c.SetBounds(new Rectangle(avail.Right-c.Width, avail.Y, c.Width, avail.Height), BoundsMode.Layout);
-          avail.Width -= c.Width;
-          break;
-        case DockStyle.Bottom:
-          c.SetBounds(new Rectangle(avail.X, avail.Bottom-c.Height, avail.Width, c.Height), BoundsMode.Layout);
-          avail.Height -= c.Height;
-          break;
-      }
-
-    AnchorSpace = avail;
-    foreach(Control c in Controls) if(c.Dock==DockStyle.None) c.DoAnchor();
+    DoLayout();
   }
 }
 #endregion
 
 #region Line
 public class Line : Control
-{ public bool TopToBottom
+{ public Line() { Size=new Size(1,1); }
+  public Line(Color color) { Size=new Size(1,1); ForeColor=color; }
+
+  public bool TopToBottom
   { get { return ttb; }
     set { if(ttb!=value) { ttb=value; Invalidate(); } }
   }
@@ -97,7 +104,7 @@ public class Line : Control
       else Primitives.Line(e.Surface, p1, p2, c);
     }
   }
-  
+
   protected bool ttb=true, aa;
 }
 #endregion
@@ -138,8 +145,9 @@ public abstract class LabelBase : Control
   { get { return textAlign; }
     set
     { if(textAlign != value)
-      { textAlign = value;
-        Invalidate();
+      { ValueChangedEventArgs e = new ValueChangedEventArgs(textAlign);
+        textAlign = value;
+        OnTextAlignChanged(e);
       }
     }
   }
@@ -148,6 +156,8 @@ public abstract class LabelBase : Control
   { Invalidate();
     base.OnTextChanged(e);
   }
+
+  protected virtual void OnTextAlignChanged(ValueChangedEventArgs e) { Invalidate(); }
 
   IBlittable image;
   BorderStyle border; 
@@ -178,7 +188,7 @@ public class Label : LabelBase
 
   protected internal override void OnPaint(PaintEventArgs e)
   { base.OnPaint(e);
-    Rectangle rect = DisplayRect;
+    Rectangle rect = DrawRect;
     int bsize = Helpers.BorderSize(BorderStyle);
     rect.Inflate(-bsize, -bsize);
 
@@ -262,15 +272,17 @@ public class Button : ButtonBase
 { public Button() { ImageAlign=TextAlign=ContentAlignment.MiddleCenter; }
   public Button(string text) { ImageAlign=TextAlign=ContentAlignment.MiddleCenter; Text=text; }
 
+  protected bool Over { get { return over; } }
+
   protected internal override void OnPaintBackground(PaintEventArgs e)
   { base.OnPaintBackground(e);
-    Helpers.DrawBorder(e.Surface, e.DisplayRect, BorderStyle, Focused ? ForeColor : BackColor, Pressed && over);
+    Helpers.DrawBorder(e.Surface, DrawRect, BorderStyle, Focused ? ForeColor : BackColor, Pressed && over);
   }
 
   protected internal override void OnPaint(PaintEventArgs e)
   { base.OnPaint(e);
 
-    Rectangle rect = DisplayRect;
+    Rectangle rect = DrawRect;
     int bsize = Helpers.BorderSize(BorderStyle);
     bool pressed = Pressed && over;
     rect.Inflate(-bsize, -bsize);
@@ -313,7 +325,7 @@ public class Button : ButtonBase
 
 #region CheckBoxBase
 public abstract class CheckBoxBase : ButtonBase
-{ public CheckBoxBase() { BorderStyle=BorderStyle.FixedThick; }
+{ public CheckBoxBase() { BorderStyle=BorderStyle.FixedThick; TextAlign=ContentAlignment.MiddleRight; }
 
   public bool Checked
   { get { return value; }
@@ -346,51 +358,46 @@ public abstract class CheckBoxBase : ButtonBase
 #region CheckBox
 public class CheckBox : CheckBoxBase
 { public CheckBox() { }
-  public CheckBox(bool check) { Checked=check; } 
-
-  public ContentAlignment TextAlignment
-  { get { return align; }
-    set
-    { if(value!=align)
-      { if(Helpers.AlignedMiddle(value)) throw new ArgumentException("Middle alignment not allowed for checkbox");
-        align=value;
-        Invalidate();
-      }
-    }
-  }
+  public CheckBox(bool check) { Checked=check; }
+  public CheckBox(string text) { Text=text; }
+  public CheckBox(string text, bool check) { Text=text; Checked=check; }
 
   protected internal override void OnPaintBackground(PaintEventArgs e)
   { base.OnPaintBackground(e);
-    if(Focused) Helpers.DrawBorder(e.Surface, DisplayRect, BorderStyle.FixedFlat, Color.Black, false);
+    if(Focused) Helpers.DrawBorder(e.Surface, DrawRect, BorderStyle.FixedFlat, Color.Black, false);
   }
 
   protected internal override void OnPaint(PaintEventArgs e)
   { base.OnPaint(e);
     
-    Rectangle rect = DisplayRect;
+    Rectangle rect = DrawRect;
     rect.Inflate(-1, -1);
 
-    bool right = Helpers.AlignedRight(align);
     int borderSize=Helpers.BorderSize(BorderStyle), boxSize=11+borderSize;
-    int x=right ? rect.X : rect.Right-boxSize, y=rect.Y+(Height-boxSize)/2;
-    Rectangle box = new Rectangle(x, y, boxSize, boxSize);
+    bool right = Helpers.AlignedRight(TextAlign);
+    ContentAlignment align = Helpers.AlignedTop(TextAlign)    ? ContentAlignment.TopLeft    :
+                             Helpers.AlignedMiddle(TextAlign) ? ContentAlignment.MiddleLeft :
+                             ContentAlignment.BottomLeft;
+    
+    GameLib.Fonts.Font font = Font;
+    if(font!=null)
+    { font.BackColor = BackColor;
+      font.Color = ForeColor;
+      if(!right) rect.X = font.Render(e.Surface, Text, rect, align).X;
+    }
 
-    Helpers.DrawBorder(e.Surface, box, BorderStyle, border, true);
+    Rectangle box = new Rectangle(rect.X, rect.Y+(rect.Height-boxSize)/2, boxSize, boxSize);
+    Helpers.DrawBorder(e.Surface, box, BorderStyle, BackColor, true);
     box.Inflate(-borderSize, -borderSize);
-    e.Surface.Fill(box, down ? border : Color.White);
-
+    e.Surface.Fill(box, down ? SystemColors.Control : Color.White);
     if(Checked)
       for(int yo=0; yo<3; yo++)
       { Primitives.Line(e.Surface, box.X+1, box.Y+yo+3, box.X+3, box.Y+yo+5, Color.Black);
         Primitives.Line(e.Surface, box.X+4, box.Y+yo+4, box.X+7, box.Y+yo+1, Color.Black);
       }
 
-    GameLib.Fonts.Font font = Font;
-    if(font!=null)
-    { if(right) rect.X += boxSize+3;
-      else rect.Width -= boxSize+3;
-      font.BackColor = BackColor;
-      font.Color = ForeColor;
+    if(font!=null && right)
+    { rect.X += boxSize+3; rect.Width -= boxSize+3;
       font.Render(e.Surface, Text, rect, align);
     }
   }
@@ -400,10 +407,13 @@ public class CheckBox : CheckBoxBase
   protected override void OnGotFocus(EventArgs e) { Invalidate(); base.OnGotFocus(e); }
   protected override void OnLostFocus(EventArgs e) { Invalidate(); base.OnLostFocus(e); }
   protected override void OnCheckedChanged(EventArgs e) { Invalidate(); base.OnCheckedChanged(e); }
+  protected override void OnTextAlignChanged(ValueChangedEventArgs e)
+  { if(Helpers.AlignedCenter(TextAlign))
+    { TextAlign = ContentAlignment.MiddleRight;
+      throw new NotSupportedException("Middle alignment isn't supported for checkboxes.");
+    }
+  }
 
-  
-  Color border = Color.FromArgb(212, 208, 200);
-  ContentAlignment align=ContentAlignment.MiddleRight;
   bool down;
 }
 #endregion
@@ -423,6 +433,8 @@ public abstract class ScrollBarBase : Control, IDisposable
     public int End;
   }
   public delegate void ThumbHandler(object sender, ThumbEventArgs e);
+
+  protected enum Place { None, Down, PageDown, Thumb, PageUp, Up };
 
   #region Properties
   public bool AutoUpdate { get { return autoUpdate; } set { autoUpdate=value; } }
@@ -504,16 +516,14 @@ public abstract class ScrollBarBase : Control, IDisposable
   public event ThumbHandler ThumbDragStart, ThumbDragMove, ThumbDragEnd;
   public event ValueChangedEventHandler ValueChanged;
 
-  protected enum Place { Down, PageDown, Thumb, PageUp, Up };
-  protected class ClickRepeat : GameLib.Events.WindowEvent
-  { public ClickRepeat(Control control, Place place) : base(control) { Place=place; }
-    public Place Place;
-  }
+  protected virtual void OnMouseDown(Place place) { }
+  protected virtual void OnMouseUp() { }
 
   protected internal override void OnMouseDown(ClickEventArgs e)
   { if(!e.Handled && e.CE.Button==MouseButton.Left)
     { if(crTimer!=null)
       { Place p = FindPlace(e.CE.Point);
+        OnMouseDown(p);
         if(p != Place.Thumb)
         { repeatEvent = new ClickRepeat(this, p);
           crTimer.Change(crDelay, crRate);
@@ -531,11 +541,7 @@ public abstract class ScrollBarBase : Control, IDisposable
     }
   }
   protected internal override void OnMouseUp(ClickEventArgs e)
-  { if(e.CE.Button==MouseButton.Left && repeatEvent!=null)
-    { crTimer.Change(System.Threading.Timeout.Infinite, System.Threading.Timeout.Infinite);
-      repeatEvent = null;
-      repeated    = false;
-    }
+  { if(e.CE.Button==MouseButton.Left) OnMouseLeave(e);
   }
   protected internal override void OnMouseLeave(EventArgs e)
   { if(repeatEvent!=null)
@@ -543,6 +549,7 @@ public abstract class ScrollBarBase : Control, IDisposable
       repeatEvent = null;
       repeated    = false;
     }
+    OnMouseUp();
   }
   protected internal override void OnDragStart(DragEventArgs e)
   { if(!repeated && e.Pressed(0) && FindPlace(e.Start)==Place.Thumb)
@@ -627,6 +634,21 @@ public abstract class ScrollBarBase : Control, IDisposable
     }
   }
 
+  protected Place FindPlace(Point click)
+  { int size = horizontal ? Width : Height;
+    int pos  = horizontal ? click.X : click.Y, thumb = ValueToThumb(value);
+    if(pos<endSize) return Place.Down;
+    else if(pos<thumb) return Place.PageDown;
+    else if(pos<thumb+thumbSize) return Place.Thumb;
+    else if(pos<size-endSize) return Place.PageUp;
+    else return Place.Up;
+  }
+
+  protected void RepeatClick(object dummy)
+  { ClickRepeat rc = repeatEvent;
+    if(rc!=null) { Events.Events.PushEvent(rc); repeated=true; }
+  }
+
   protected int ThumbToValue(int position)
   { if(position<0) position=0;
     if(horizontal)
@@ -638,39 +660,30 @@ public abstract class ScrollBarBase : Control, IDisposable
     
   protected int ValueToThumb(int value) { return (value-min)*Space/(max-min)+endSize; }
 
-  protected Place FindPlace(Point click)
-  { int size = horizontal ? Width : Height;
-    int pos  = horizontal ? click.X : click.Y, thumb = ValueToThumb(value);
-    if(pos<endSize) return Place.Down;
-    else if(pos<thumb) return Place.PageDown;
-    else if(pos<thumb+thumbSize) return Place.Thumb;
-    else if(pos<size-endSize) return Place.PageUp;
-    else return Place.Up;
+  class ClickRepeat : GameLib.Events.WindowEvent
+  { public ClickRepeat(Control control, Place place) : base(control) { Place=place; }
+    public Place Place;
   }
-  
-  protected void RepeatClick(object dummy)
-  { ClickRepeat rc = repeatEvent;
-    if(rc!=null) { Events.Events.PushEvent(rc); repeated=true; }
-  }
-
-  protected ThumbEventArgs thumbArgs = new ThumbEventArgs();
-  protected EventArgs eventArgs = new EventArgs();
-  protected ValueChangedEventArgs valChange = new ValueChangedEventArgs(0);
 
   int Space { get { return (horizontal ? Width : Height)-EndSize*2-ThumbSize; } }
 
   System.Threading.Timer crTimer;
   ClickRepeat repeatEvent;
-  int  value, min, max=100, smallInc=1, pageInc=10, endSize=8, thumbSize=10, dragOff=-1;
+  ThumbEventArgs thumbArgs = new ThumbEventArgs();
+  EventArgs eventArgs = new EventArgs();
+  ValueChangedEventArgs valChange = new ValueChangedEventArgs(null);
+  int  value, min, max=100, smallInc=1, pageInc=10, endSize=16, thumbSize=16, dragOff=-1;
   uint crDelay, crRate=50;
-  bool autoUpdate, horizontal, repeated;
+  bool autoUpdate=true, horizontal, repeated;
 }
 #endregion
 
 #region ScrollBar
-public class ScrollBar : ScrollBarBase // TODO: replace with nicer scrollbar
-{ public ScrollBar() { BackColor=Color.LightGray; ForeColor=Color.Gray; }
-  
+public class ScrollBar : ScrollBarBase
+{ public ScrollBar()
+  { BackColor=SystemColors.ControlDark; ForeColor=SystemColors.Control; Size=new Size(EndSize, EndSize);
+  }
+
   protected override void OnValueChanged(ValueChangedEventArgs e)
   { Refresh();
     base.OnValueChanged(e);
@@ -678,24 +691,40 @@ public class ScrollBar : ScrollBarBase // TODO: replace with nicer scrollbar
   
   protected internal override void OnPaint(PaintEventArgs e)
   { base.OnPaint(e);
-    Rectangle rect = DisplayRect;
+    Rectangle rect = DrawRect;
     int thumb = ValueToThumb(Value);
     if(Horizontal)
-    { int x=rect.X, w=rect.Width;
-      rect.Width = EndSize; e.Surface.Fill(rect, ForeColor);
-      rect.X = x+w-EndSize; e.Surface.Fill(rect, ForeColor);
+    { int x=rect.X, w=rect.Width; rect.Width=EndSize;
+      DrawEnd(e.Surface, rect, Place.Down);
+      rect.X = x+w-EndSize;
+      DrawEnd(e.Surface, rect, Place.Up);
       rect.X = x+thumb; rect.Width = ThumbSize;
     }
     else
     { int y=rect.Y, h=rect.Height;
-      rect.Height = EndSize; e.Surface.Fill(rect, ForeColor);
-      rect.Y = y+h-EndSize; e.Surface.Fill(rect, ForeColor);
+      rect.Height = EndSize;
+      DrawEnd(e.Surface, rect, Place.Down);
+      rect.Y = y+h-EndSize;
+      DrawEnd(e.Surface, rect, Place.Up);
       rect.Y = y+thumb; rect.Height = ThumbSize;
     }
-    Primitives.Box(e.Surface, rect, Color.Black);
-    rect.Inflate(-1, -1);
     e.Surface.Fill(rect, ForeColor);
+    Helpers.DrawBorder(e.Surface, rect, BorderStyle.FixedThick, ForeColor, false);
   }
+
+  protected override void OnMouseDown(Place place) { down=place; Invalidate(); }
+  protected override void OnMouseUp() { down=Place.None; Invalidate(); }
+
+  void DrawEnd(Surface surface, Rectangle rect, Place place)
+  { surface.Fill(rect, ForeColor);
+    Helpers.DrawBorder(surface, rect, BorderStyle.FixedThick, ForeColor, down==place);
+    if(down==place) rect.Offset(1, 1);
+    Helpers.DrawArrow(surface, rect, place==Place.Up ? Horizontal ? Helpers.Arrow.Right : Helpers.Arrow.Down
+                                                     : Horizontal ? Helpers.Arrow.Left  : Helpers.Arrow.Up,
+                      EndSize/4, Color.Black);
+  }
+
+  Place down;
 }
 #endregion
 
@@ -1061,7 +1090,7 @@ public class TextBox : TextBoxBase
   { base.OnPaintBackground(e);
 
     GameLib.Fonts.Font font = Font;
-    Rectangle rect = DisplayRect;
+    Rectangle rect = DrawRect;
     if(font!=null && Text.Length>0)
     { int caret = CaretPosition;
       if(caret<start) start = Math.Max(caret-10, 0);
@@ -1091,7 +1120,7 @@ public class TextBox : TextBoxBase
   { base.OnPaint(e);
     GameLib.Fonts.Font font = Font;
     if(font!=null)
-    { Rectangle rect = DisplayRect;
+    { Rectangle rect = DrawRect;
       rect.Inflate(-padding, -padding);
       Point location = rect.Location;
       if(rect.Height>font.Height) location.Y += (rect.Height-font.Height)/2;
@@ -1154,15 +1183,18 @@ public class TextBox : TextBoxBase
   }
 
   protected override void OnCaretFlash()
-  { DesktopControl desktop = Desktop;
-    GameLib.Fonts.Font font = Font;
-    if(desktop!=null && desktop.Surface!=null && font!=null)
-    { Rectangle rect = DisplayRect;
-      rect.Y += padding+2; rect.Height -= padding*2+4; rect.Width = 1;
-      rect.X += font.CalculateSize(Text.Substring(start, CaretPosition-start)).Width + padding;
-      Primitives.VLine(desktop.Surface, rect.X, rect.Top, rect.Bottom-1, CaretOn && HasCaret ? ForeColor : BackColor);
-      desktop.AddUpdatedArea(rect);
-      if(Events.Events.QueueSize==0) Events.Events.PushEvent(new Events.DesktopUpdatedEvent(desktop));
+  { if(BackingSurface!=null) Invalidate();
+    else
+    { DesktopControl desktop = Desktop;
+      GameLib.Fonts.Font font = Font;
+      if(desktop!=null && desktop.Surface!=null && font!=null)
+      { Rectangle rect = DrawRect;
+        rect.Y += padding+2; rect.Height -= padding*2+4; rect.Width = 1;
+        rect.X += font.CalculateSize(Text.Substring(start, CaretPosition-start)).Width + padding;
+        Primitives.VLine(desktop.Surface, rect.X, rect.Top, rect.Bottom-1, CaretOn && HasCaret ? ForeColor : BackColor);
+        desktop.AddUpdatedArea(rect);
+        if(Events.Events.QueueSize==0) Events.Events.PushEvent(new Events.DesktopUpdatedEvent(desktop));
+      }
     }
   }
 
@@ -1254,7 +1286,7 @@ public abstract class MenuBase : ContainerControl
     this.pullDown = pullDown;
     Visible = false;
     Parent  = desktop;
-    SetBounds(new Rectangle(source.WindowToAncestor(position, desktop), Size), BoundsMode.Absolute);
+    SetBounds(new Rectangle(source.WindowToAncestor(position, desktop), Size), BoundsType.Absolute);
     OnPopup(new EventArgs());
     BringToFront();
     Visible = true;
@@ -1623,7 +1655,7 @@ public class MenuItem : MenuItemBase
     if(Text.Length>0)
     { GameLib.Fonts.Font f = Font;
       if(f != null)
-      { Rectangle rect = DisplayRect;
+      { Rectangle rect = DrawRect;
         rect.Inflate(-horzPadding, -vertPadding);
         f.Color     = mouseOver ? SelectedForeColor : ForeColor;
         f.BackColor = mouseOver ? SelectedBackColor : BackColor;
@@ -1681,7 +1713,7 @@ public class Menu : MenuBase
   
   protected internal override void OnPaintBackground(PaintEventArgs e)
   { base.OnPaintBackground(e);
-    Helpers.DrawBorder(e.Surface, DisplayRect, BorderStyle.Fixed3D, BackColor, false);
+    Helpers.DrawBorder(e.Surface, DrawRect, BorderStyle.Fixed3D, BackColor, false);
   }
 
   Color selFore=Color.Transparent, selBack=Color.Transparent;
@@ -1740,12 +1772,150 @@ public class MenuBar : MenuBarBase
 }
 #endregion
 
+#region TitleBarBase
+public abstract class TitleBarBase : ContainerControl
+{ public TitleBarBase(FormBase parent)
+  { Style    |= ControlStyle.Draggable;
+    BackColor = SystemColors.ActiveCaption;
+    ForeColor = SystemColors.ActiveCaptionText;
+
+    Dock = DockStyle.Top;
+    parent.Controls.Add(this);
+  }
+
+  public abstract bool CloseBox { get; set; }
+
+  protected internal override void OnDragStart(DragEventArgs e)
+  { if(!e.OnlyPressed(MouseButton.Left)) e.Cancel=true;
+    base.OnDragStart(e);
+  }
+
+  protected internal override void OnDragMove(DragEventArgs e)
+  { DragParent(e);
+    base.OnDragMove(e);
+  }
+  
+  protected internal override void OnDragEnd(DragEventArgs e)
+  { DragParent(e);
+    base.OnDragEnd(e);
+  }
+  
+  void DragParent(DragEventArgs e)
+  { Point location = Parent.Location;
+    location.Offset(e.End.X-e.Start.X, e.End.Y-e.Start.Y);
+    Parent.Location = location;
+  }
+}
+#endregion
+
+#region TitleBar
+public class TitleBar : TitleBarBase
+{ public TitleBar(FormBase parent) : base(parent)
+  { GameLib.Fonts.Font font = parent.Font;
+    Height = parent.Font==null ? 24 : font.LineSkip*4/3;
+    CloseBox = true;
+  }
+
+  public override bool CloseBox
+  { get { return close!=null; }
+    set
+    { if(value!=CloseBox)
+      { if(value)
+        { close = new CloseButton();
+          close.Bounds = new Rectangle(Right-Height+2, 2, Height-4, Height-4);
+          close.Anchor = AnchorStyle.TopBottom | AnchorStyle.Right;
+          Controls.Add(close);
+        }
+        else
+        { Controls.Remove(close);
+          close = null;
+        }
+      }
+    }
+  }
+
+  protected internal override void OnPaint(PaintEventArgs e)
+  { base.OnPaint(e);
+    GameLib.Fonts.Font font = Font;
+    if(font!=null)
+    { Rectangle rect = DrawRect;
+      rect.X += (font.LineSkip+3)/6;
+      font.Color = ForeColor;
+      font.BackColor = BackColor;
+      font.Render(e.Surface, Parent.Text, rect, ContentAlignment.MiddleLeft);
+    }
+  }
+
+  protected override void OnFontChanged(ValueChangedEventArgs e)
+  { UpdateSize();
+    Invalidate();
+    base.OnFontChanged(e);
+  }
+
+  protected override void OnVisibleChanged(ValueChangedEventArgs e)
+  { UpdateSize();
+    base.OnVisibleChanged(e);
+  }
+  
+  void UpdateSize()
+  { if(!Visible) Height=0;
+    else
+    { GameLib.Fonts.Font font = Font;
+      if(font!=null) Height = font.LineSkip*4/3;
+    }
+  }
+  
+  #region CloseButton
+  class CloseButton : Button
+  { public CloseButton() { BackColor = SystemColors.Control; ForeColor = SystemColors.ControlText; }
+
+    protected override void OnResize(EventArgs e)
+    { Rectangle rect = Bounds;
+      int xd = Width-Height;
+      if(xd!=0)
+      { rect.X += xd; rect.Width -= xd;
+        SetBounds(rect, BoundsType.Absolute);
+      }
+      base.OnResize(e);
+    }
+    
+    protected override void OnClick(ClickEventArgs e)
+    { ((FormBase)Parent.Parent).Close();
+      base.OnClick(e);
+    }
+    
+    protected internal override void OnPaint(PaintEventArgs e)
+    { Rectangle rect = DrawRect;
+      int bwidth = Helpers.BorderSize(BorderStyle);
+      rect.Inflate(-bwidth, -bwidth);
+
+      rect.X += 2; rect.Width  -= 6-(rect.Width&1);
+      rect.Y += 2; rect.Height -= 7-(rect.Height&1);
+      if(Pressed && Over) { rect.X++; rect.Y++; }
+      int right=rect.Right-1, bottom=rect.Bottom-1;
+      Color c = ForeColor;
+
+      Primitives.Line(e.Surface, rect.X, rect.Y, right-1, bottom, c);
+      Primitives.Line(e.Surface, rect.X+1, rect.Y, right, bottom, c);
+      Primitives.Line(e.Surface, rect.X, bottom, right-1, rect.Y, c);
+      Primitives.Line(e.Surface, rect.X+1, bottom, right, rect.Y, c);
+      base.OnPaint(e);
+    }
+  }
+  #endregion
+
+  CloseButton close;
+}
+#endregion
+
 #region FormBase
 // TODO: implement resizing using the mouse
 public abstract class FormBase : ContainerControl
 { public FormBase()
   { Style |= ControlStyle.CanFocus; ForeColor=SystemColors.ControlText; BackColor=SystemColors.Control;
   }
+
+  public abstract TitleBarBase TitleBar { get; }
 
   public object DialogResult { get { return returnValue; } set { returnValue=value; } }
 
@@ -1772,6 +1942,11 @@ public abstract class FormBase : ContainerControl
   public event System.ComponentModel.CancelEventHandler Closing;
   public event EventHandler Closed;
   
+  protected override void OnGotFocus(EventArgs e)
+  { BringToFront();
+    base.OnGotFocus(e);
+  }
+
   protected virtual void OnClosing(System.ComponentModel.CancelEventArgs e)
   { if(Closing!=null) Closing(this, e);
   }
@@ -1784,36 +1959,48 @@ public abstract class FormBase : ContainerControl
 #region Form
 // TODO: add caption bar and menu bar
 public class Form : FormBase
-{ public BorderStyle BorderStyle
+{ public Form() { titleBar = new TitleBar(this); BorderStyle = BorderStyle.FixedThick; }
+
+  public BorderStyle BorderStyle
   { get { return border; }
     set
     { if(border!=value)
       { border=value;
+        LayoutMargin=Helpers.BorderSize(value);
         Invalidate();
       }
     }
   }
+  
+  public override TitleBarBase TitleBar { get { return titleBar; } }
 
   protected internal override void OnPaintBackground(PaintEventArgs e)
   { base.OnPaintBackground(e);
-    Helpers.DrawBorder(e.Surface, DisplayRect, border, BackColor, false);
+    Helpers.DrawBorder(e.Surface, DrawRect, border, BackColor, false);
   }
 
-  BorderStyle border=BorderStyle.FixedThick;
+  BorderStyle border;
+  TitleBar    titleBar;
 }
 #endregion
 
 #region MessageBox
 public enum MessageBoxButtons { Ok, OkCancel, YesNo, YesNoCancel }
 public sealed class MessageBox : Form
-{ internal MessageBox(string text, string[] buttons) { DialogResult=-1; message=text; buttonTexts=buttons; }
+{ internal MessageBox(string text, string[] buttons, int defaultButton)
+  { if(defaultButton<0 || defaultButton>=buttons.Length)
+      throw new ArgumentOutOfRangeException("defaultButton", defaultButton, "out of the range of 'buttons'");
+    DialogResult=-1; message=text; buttonTexts=buttons; this.defaultButton=defaultButton;
+    TitleBar.CloseBox = false;
+  }
 
   string[] buttonTexts;
   string   message;
+  int      defaultButton;
 
   public int Show(DesktopControl desktop)
   { Parent = desktop;
-    if(Controls.Count==0)
+    if(!init)
     { GameLib.Fonts.Font font = Font;
       if(font!=null)
       { int btnWidth=0, btnHeight=font.LineSkip*3/2, height=font.LineSkip*3+btnHeight, btnSpace=12;
@@ -1834,14 +2021,14 @@ public sealed class MessageBox : Form
         textWidth += label.TextPadding*2;
         textHeight = lines*font.LineSkip + label.TextPadding*2;
 
-        height += textHeight;
+        height += textHeight + TitleBar.Height;
         Size size = new Size(Math.Max(Math.Min(desktop.Width, btnWidth*3/2), textWidth+font.LineSkip*2), height);
-        SetBounds(new Point((desktop.Width-size.Width)/2, (desktop.Height-size.Height)/2), size, BoundsMode.Absolute);
+        SetBounds(new Point((desktop.Width-size.Width)/2, (desktop.Height-size.Height)/2), size, BoundsType.Absolute);
 
-        label.Bounds = new Rectangle((Width-textWidth)/2, font.LineSkip, textWidth, textHeight);
+        label.Bounds = new Rectangle((LayoutWidth-textWidth)/2, font.LineSkip, textWidth, textHeight);
         label.TextAlign = ContentAlignment.TopCenter;
         
-        int x = (Width-btnWidth)/2, y = Height-font.LineSkip-btnHeight;
+        int x = (LayoutWidth-btnWidth)/2, y = LayoutHeight-font.LineSkip-btnHeight-TitleBar.Height;
         for(int i=0; i<buttonTexts.Length; i++)
         { Button btn = new Button(buttonTexts[i]);
           btn.Bounds = new Rectangle(x, y, sizes[i], btnHeight);
@@ -1850,9 +2037,14 @@ public sealed class MessageBox : Form
           btn.TabIndex = i;
           x += sizes[i]+btnSpace;
           Controls.Add(btn);
+          if(i==defaultButton) btn.Focus();
         }
         Controls.Add(label);
-        Controls[0].Focus();
+        init = true;
+      }
+      else
+      { int i=0;
+        foreach(Control control in Controls) if(control is Button && i++==defaultButton) { control.Focus(); break; }
       }
     }
     return (int)ShowDialog(desktop);
@@ -1877,19 +2069,27 @@ public sealed class MessageBox : Form
     Close();
   }
 
+  bool init;
+
   public static MessageBox Create(string caption, string text) { return Create(caption, text, MessageBoxButtons.Ok); }
   public static MessageBox Create(string caption, string text, MessageBoxButtons buttons)
+  { return Create(caption, text, buttons, 0);
+  }
+  public static MessageBox Create(string caption, string text, MessageBoxButtons buttons, int defaultButton)
   { switch(buttons)
-    { case MessageBoxButtons.Ok: return Create(caption, text, ok);
-      case MessageBoxButtons.OkCancel: return Create(caption, text, okCancel);
-      case MessageBoxButtons.YesNo: return Create(caption, text, yesNo);
-      case MessageBoxButtons.YesNoCancel: return Create(caption, text, yesNoCancel);
+    { case MessageBoxButtons.Ok: return Create(caption, text, ok, defaultButton);
+      case MessageBoxButtons.OkCancel: return Create(caption, text, okCancel, defaultButton);
+      case MessageBoxButtons.YesNo: return Create(caption, text, yesNo, defaultButton);
+      case MessageBoxButtons.YesNoCancel: return Create(caption, text, yesNoCancel, defaultButton);
       default: throw new ArgumentException("Unknown MessageBoxButtons value");
     }
   }
   public static MessageBox Create(string caption, string text, string[] buttonText)
+  { return Create(caption, text, buttonText, 0);
+  }
+  public static MessageBox Create(string caption, string text, string[] buttonText, int defaultButton)
   { if(buttonText.Length==0) throw new ArgumentException("Can't create a MessageBox with no buttons!", "buttonText");
-    MessageBox box = new MessageBox(text, buttonText);
+    MessageBox box = new MessageBox(text, buttonText, defaultButton);
     box.Text = caption;
     return box;
   }
@@ -1898,10 +2098,17 @@ public sealed class MessageBox : Form
   { Create(caption, text).Show(desktop);
   }
   public static int Show(DesktopControl desktop, string caption, string text, MessageBoxButtons buttons)
-  { return Create(caption, text, buttons).Show(desktop);
+  { return Create(caption, text, buttons, 0).Show(desktop);
+  }
+  public static int Show(DesktopControl desktop, string caption, string text,
+                         MessageBoxButtons buttons, int defaultButton)
+  { return Create(caption, text, buttons, defaultButton).Show(desktop);
   }
   public static int Show(DesktopControl desktop, string caption, string text, string[] buttonText)
   { return Create(caption, text, buttonText).Show(desktop);
+  }
+  public static int Show(DesktopControl desktop, string caption, string text, string[] buttonText, int defaultButton)
+  { return Create(caption, text, buttonText, defaultButton).Show(desktop);
   }
 
   static string[] ok = new string[] { "Ok" };
