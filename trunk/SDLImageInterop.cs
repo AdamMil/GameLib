@@ -41,11 +41,11 @@ internal sealed class Image
     };
   }
 
-	[DllImport(Config.SDLImageImportPath, EntryPoint="IMG_Load", CallingConvention=CallingConvention.Cdecl)]
+	[DllImport(Config.SDLImageImportPath, ExactSpelling=true, EntryPoint="IMG_Load", CallingConvention=CallingConvention.Cdecl)]
 	public unsafe static extern SDL.SDL.Surface* Load(string file);
-	[DllImport(Config.SDLImageImportPath, EntryPoint="IMG_Load_RW", CallingConvention=CallingConvention.Cdecl)]
+	[DllImport(Config.SDLImageImportPath, ExactSpelling=true, EntryPoint="IMG_Load_RW", CallingConvention=CallingConvention.Cdecl)]
 	public unsafe static extern SDL.SDL.Surface* Load_RW(SDL.SDL.RWOps* ops, int freesrc);
-  [DllImport(Config.SDLImageImportPath, EntryPoint="IMG_LoadTyped_RW", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SDLImageImportPath, ExactSpelling=true, EntryPoint="IMG_LoadTyped_RW", CallingConvention=CallingConvention.Cdecl)]
 	public unsafe static extern SDL.SDL.Surface* LoadTyped_RW(SDL.SDL.RWOps* ops, int freesrc, string type);
 }
 

@@ -25,36 +25,36 @@ namespace GameLib.Interop.GLUtility
 [System.Security.SuppressUnmanagedCodeSecurity()]
 internal sealed class Utility
 { 
-  [DllImport(Config.GLUtilityImportPath, EntryPoint="GLU_Init", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.GLUtilityImportPath, ExactSpelling=true, EntryPoint="GLU_Init", CallingConvention=CallingConvention.Cdecl)]
   public static extern int  Init();
-  [DllImport(Config.GLUtilityImportPath, EntryPoint="GLU_Quit", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.GLUtilityImportPath, ExactSpelling=true, EntryPoint="GLU_Quit", CallingConvention=CallingConvention.Cdecl)]
   public static extern void Quit();
-  [DllImport(Config.GLUtilityImportPath, EntryPoint="GLU_GetError", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.GLUtilityImportPath, ExactSpelling=true, EntryPoint="GLU_GetError", CallingConvention=CallingConvention.Cdecl)]
   public static extern string GetError();
 
-  [DllImport(Config.GLUtilityImportPath, EntryPoint="GLU_GetMilliseconds", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.GLUtilityImportPath, ExactSpelling=true, EntryPoint="GLU_GetMilliseconds", CallingConvention=CallingConvention.Cdecl)]
   public static extern uint GetMilliseconds();
-  [DllImport(Config.GLUtilityImportPath, EntryPoint="GLU_GetTimerFrequency", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.GLUtilityImportPath, ExactSpelling=true, EntryPoint="GLU_GetTimerFrequency", CallingConvention=CallingConvention.Cdecl)]
   public static extern long GetTimerFrequency();
-  [DllImport(Config.GLUtilityImportPath, EntryPoint="GLU_GetTimerCounter", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.GLUtilityImportPath, ExactSpelling=true, EntryPoint="GLU_GetTimerCounter", CallingConvention=CallingConvention.Cdecl)]
   public static extern long GetTimerCounter();
-  [DllImport(Config.GLUtilityImportPath, EntryPoint="GLU_GetSeconds", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.GLUtilityImportPath, ExactSpelling=true, EntryPoint="GLU_GetSeconds", CallingConvention=CallingConvention.Cdecl)]
   public static extern double GetSeconds();
-  [DllImport(Config.GLUtilityImportPath, EntryPoint="GLU_ResetTimer", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.GLUtilityImportPath, ExactSpelling=true, EntryPoint="GLU_ResetTimer", CallingConvention=CallingConvention.Cdecl)]
   public static extern void ResetTimer();
 
-  [DllImport(Config.GLUtilityImportPath, EntryPoint="GLU_Getch", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.GLUtilityImportPath, ExactSpelling=true, EntryPoint="GLU_Getch", CallingConvention=CallingConvention.Cdecl)]
   public static extern char Getch();
-  [DllImport(Config.GLUtilityImportPath, EntryPoint="GLU_Getche", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.GLUtilityImportPath, ExactSpelling=true, EntryPoint="GLU_Getche", CallingConvention=CallingConvention.Cdecl)]
   public static extern char Getche();
-  [DllImport(Config.GLUtilityImportPath, EntryPoint="GLU_KbHit", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.GLUtilityImportPath, ExactSpelling=true, EntryPoint="GLU_KbHit", CallingConvention=CallingConvention.Cdecl)]
   public static extern bool KbHit();
 
-  [DllImport(Config.GLUtilityImportPath, EntryPoint="GLU_MemCopy", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.GLUtilityImportPath, ExactSpelling=true, EntryPoint="GLU_MemCopy", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern void MemCopy(void *src, void *dest, int length);
-  [DllImport(Config.GLUtilityImportPath, EntryPoint="GLU_MemFill", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.GLUtilityImportPath, ExactSpelling=true, EntryPoint="GLU_MemFill", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern void MemFill(void *dest, byte value, int length);
-  [DllImport(Config.GLUtilityImportPath, EntryPoint="GLU_MemMove", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.GLUtilityImportPath, ExactSpelling=true, EntryPoint="GLU_MemMove", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern void MemMove(void *src, void *dest, int length);
 
   public static void Check(int result) { if(result<0) RaiseError(); }
