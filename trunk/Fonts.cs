@@ -49,9 +49,9 @@ public abstract class Font
     int  start=0, x=rect.X+startx, y=rect.Y+starty, length=0, horz;
     if(lines.Length==0) return new Point(x, y);
 
-    horz = Forms.Utility.AlignedLeft(align) ? 0 : Forms.Utility.AlignedCenter(align) ? 1 : 2;
-    if(Forms.Utility.AlignedMiddle(align)) y = rect.Y + (rect.Height-lines.Length*LineSkip)/2;
-    else if(Forms.Utility.AlignedBottom(align)) y = rect.Bottom-lines.Length*LineSkip;
+    horz = Forms.Helpers.AlignedLeft(align) ? 0 : Forms.Helpers.AlignedCenter(align) ? 1 : 2;
+    if(Forms.Helpers.AlignedMiddle(align)) y = rect.Y + (rect.Height-lines.Length*LineSkip)/2;
+    else if(Forms.Helpers.AlignedBottom(align)) y = rect.Bottom-lines.Length*LineSkip;
     y-=LineSkip;
 
     for(int i=0; i<lines.Length; i++)
@@ -307,7 +307,8 @@ public class TrueTypeFont : NonFixedFont, IDisposable
     { CachedChar c = GetChar(text[i]);
       /*width += i>0 ? c.Advance : 0;
       if(width+c.Width+(i==0 && c.OffsetX<0 ? c.OffsetX : 0) > pixels) return i;*/
-      if(width+c.Advance > pixels) return i; // less correct, but more consistent
+      width+=c.Advance;
+      if(width>pixels) return i; // less correct, but more consistent
     }
     return text.Length;
   }
