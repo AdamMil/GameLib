@@ -21,120 +21,227 @@ using System;
 namespace GameLib.Mathematics
 {
 
+/// <summary>This class provides some useful constants for math operations.</summary>
 public sealed class MathConst
 { private MathConst() { }
 
+  /// <summary>A value that can be used to convert degrees to radians.</summary>
+  /// <remarks>If you multiply a degree value by this constant, it will be converted to radians.</remarks>
   public const double DegreesToRadians = Math.PI/180;
+  /// <summary>A value that can be used to convert radians to degrees.</summary>
+  /// <remarks>If you multiply a radian value by this constant, it will be converted to degrees.</remarks>
   public const double RadiansToDegrees = 180/Math.PI;
-  public const double TwoPI            = Math.PI*2;
+  /// <summary>This value is two times pi, the number of radians in a circle.</summary>
+  public const double TwoPI = Math.PI*2;
+
+  /// <summary>Returns the absolute value of a <see cref="Fixed32"/>.</summary>
+  /// <param name="val">A <see cref="Fixed32"/> value.</param>
+  /// <returns>A new <see cref="Fixed32"/> containing the absolute value.</returns>
+  public static Fixed32 Abs(Fixed32 val) { return val.val<0 ? new Fixed32((uint)-val.val) : val; }
+  /// <summary>Returns the arc-cosine of a <see cref="Fixed32"/>.</summary>
+  /// <param name="val">A <see cref="Fixed32"/> value.</param>
+  /// <returns>A new <see cref="Fixed32"/> containing the arc-cosine.</returns>
+  public static Fixed32 Acos(Fixed32 val) { return new Fixed32(Math.Acos(val.ToDouble())); }
+  /// <summary>Returns the arc-sine of a <see cref="Fixed32"/>.</summary>
+  /// <param name="val">A <see cref="Fixed32"/> value.</param>
+  /// <returns>A new <see cref="Fixed32"/> containing the arc-sine.</returns>
+  public static Fixed32 Asin(Fixed32 val) { return new Fixed32(Math.Asin(val.ToDouble())); }
+  /// <summary>Returns the arc-tangent of a <see cref="Fixed32"/>.</summary>
+  /// <param name="val">A <see cref="Fixed32"/> value.</param>
+  /// <returns>A new <see cref="Fixed32"/> containing the arc-tangent.</returns>
+  public static Fixed32 Atan(Fixed32 val) { return new Fixed32(Math.Atan(val.ToDouble())); }
+  /// <summary>Returns the ceiling of a <see cref="Fixed32"/>.</summary>
+  /// <param name="val">A <see cref="Fixed32"/> value.</param>
+  /// <returns>A new <see cref="Fixed32"/> containing the smallest whole number greater than or equal to the given
+  /// number.
+  /// </returns>
+  public static Fixed32 Ceiling(Fixed32 val) { return val.Ceiling; }
+  /// <summary>Returns the cosine of a <see cref="Fixed32"/>.</summary>
+  /// <param name="val">A <see cref="Fixed32"/> value.</param>
+  /// <returns>A new <see cref="Fixed32"/> containing the cosine.</returns>
+  public static Fixed32 Cos(Fixed32 val) { return new Fixed32(Math.Cos(val.ToDouble())); }
+  /// <summary>Returns the floor of a <see cref="Fixed32"/>.</summary>
+  /// <param name="val">A <see cref="Fixed32"/> value.</param>
+  /// <returns>A new <see cref="Fixed32"/> containing the largest whole number less than or equal to the given
+  /// number.
+  /// </returns>
+  public static Fixed32 Floor(Fixed32 val) { return val.Floor; }
+  /// <summary>Returns the rounded value of a <see cref="Fixed32"/>.</summary>
+  /// <param name="val">A <see cref="Fixed32"/> value.</param>
+  /// <returns>A new <see cref="Fixed32"/> containing the rounded value.</returns>
+  /// <remarks>This method performs banker's rounding, so values with a fractional part of exactly 0.5 will be
+  /// rounded towards the nearest even number, or towards zero.
+  /// </remarks>
+  public static Fixed32 Round(Fixed32 val) { return val.Rounded; }
+  /// <summary>Returns the sine of a <see cref="Fixed32"/>.</summary>
+  /// <param name="val">A <see cref="Fixed32"/> value.</param>
+  /// <returns>A new <see cref="Fixed32"/> containing the sine.</returns>
+  public static Fixed32 Sin(Fixed32 val) { return new Fixed32(Math.Sin(val.ToDouble())); }
+  /// <summary>Returns the square root of a <see cref="Fixed32"/>.</summary>
+  /// <param name="val">A <see cref="Fixed32"/> value.</param>
+  /// <returns>A new <see cref="Fixed32"/> containing the square root.</returns>
+  public static Fixed32 Sqrt(Fixed32 val) { return new Fixed32(Math.Sqrt(val.ToDouble())); }
+  /// <summary>Returns the tangent of a <see cref="Fixed32"/>.</summary>
+  /// <param name="val">A <see cref="Fixed32"/> value.</param>
+  /// <returns>A new <see cref="Fixed32"/> containing the tangent.</returns>
+  public static Fixed32 Tan(Fixed32 val) { return new Fixed32(Math.Tan(val.ToDouble())); }
+  /// <summary>Returns the truncated value of a <see cref="Fixed32"/>.</summary>
+  /// <param name="val">A <see cref="Fixed32"/> value.</param>
+  /// <returns>A new <see cref="Fixed32"/> containing the value truncated towards zero.</returns>
+  public static Fixed32 Truncate(Fixed32 val) { return val.Truncated; }
+
+  public static Fixed64 Abs(Fixed64 val) { return val.val<0 ? new Fixed64(-val.val) : val; }
+  public static Fixed64 Acos(Fixed64 val) { return new Fixed64(Math.Acos(val.ToDouble())); }
+  public static Fixed64 Asin(Fixed64 val) { return new Fixed64(Math.Asin(val.ToDouble())); }
+  public static Fixed64 Atan(Fixed64 val) { return new Fixed64(Math.Atan(val.ToDouble())); }
+  public static Fixed64 Ceiling(Fixed64 val) { return val.Ceiling; }
+  public static Fixed64 Cos(Fixed64 val) { return new Fixed64(Math.Cos(val.ToDouble())); }
+  public static Fixed64 Floor(Fixed64 val) { return val.Floor; }
+  public static Fixed64 Round(Fixed64 val) { return val.Rounded; }
+  public static Fixed64 Sin(Fixed64 val) { return new Fixed64(Math.Sin(val.ToDouble())); }
+  public static Fixed64 Sqrt(Fixed64 val) { return new Fixed64(Math.Sqrt(val.ToDouble())); }
+  public static Fixed64 Tan(Fixed64 val) { return new Fixed64(Math.Tan(val.ToDouble())); }
+  public static Fixed64 Truncate(Fixed64 val) { return val.Truncated; }
 }
 
+/// <summary>This class provides some helpful mathematical functions.</summary>
 public sealed class GLMath
 { private GLMath() { }
-  public static float AngleBetween(TwoD.Point start, TwoD.Point end) { return (end-start).Angle; }
+  /// <include file="documentation.xml" path="//Mathematics/GLMath/AngleBetween/*"/>
+  public static double AngleBetween(TwoD.Point start, TwoD.Point end) { return (end-start).Angle; }
+  /// <include file="documentation.xml" path="//Mathematics/GLMath/AngleBetween/*"/>
+  public static double AngleBetween(System.Drawing.Point start, System.Drawing.Point end)
+  { return (new TwoD.Point(end)-new TwoD.Point(start)).Angle;
+  }
+
+  /// <summary>Performs integer division that rounds towards lower numbers rather than towards zero.</summary>
+  /// <param name="numerator">The numerator.</param>
+  /// <param name="denominator">The denominator.</param>
+  /// <returns><paramref name="numerator"/> divided by <paramref name="denominator"/>, rounded towards lower numbers
+  /// rather than towards zero.
+  /// </returns>
   public static int FloorDiv(int numerator, int denominator)
   { return (numerator<0 ? (numerator-denominator+1) : numerator) / denominator;
   }
 }
 
 #region Fixed32
+/// <summary>This class provides a fixed-point numeric type with 32 bits of storage in a 16.16 configuration.</summary>
+/// <remarks>
+/// <para>Floating point math on modern systems is very fast, and I wouldn't recommend using this fixed-point math
+/// class for speed. The primary benefit of fixed-point math is that it provides consistency and reliability. Floating
+/// point math loses precision when dealing with larger numbers, and the results of arithmetic operations are not
+/// always consistent due to precision mismatch between operands. Fixed-point math eliminates these inconsistencies.
+/// </para>
+/// <para>This class provides 16 bits for the whole part and 16 bits for the fractional part, so the total range is
+/// approximately -32768 to 32767.99998.
+/// </para>
+/// </remarks>
 [Serializable, System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
 public struct Fixed32 : IFormattable, IComparable, IConvertible
-{ public Fixed32(double value) { val=FromDouble(value); }
+{ 
+  /// <summary>Initializes this fixed-point class from a floating point number.</summary>
+  /// <param name="value">A floating point number from which the fixed-point number will be initialized.</param>
+  /// <remarks>Due to the greater range and potential precision of a 64-bit double, the value passed may not be
+  /// accurately represented.
+  /// </remarks>
+  public Fixed32(double value) { val=FromDouble(value); }
+  /// <summary>Initializes this fixed-point class from an integer.</summary>
+  /// <param name="value">An integer from which the fixed-point number will be initialized.</param>
+  /// <remarks>Due to the greater range of a 32-bit integer, the value passed may not be accurately represented.</remarks>
   public Fixed32(int value) { val=value<<16; }
-  private Fixed32(uint value) { val=(int)value; }
+  internal Fixed32(uint value) { val=(int)value; } // ugly, but 'int' was already taken
 
-  public Fixed32 Abs() { return val<0 ? new Fixed32((uint)-val) : this; }
+  /// <summary>Gets this number's absolute value.</summary>
+  /// <value>A new fixed-point number containing the absolute value of this number.</value>
+  public Fixed32 Abs { get { return val<0 ? new Fixed32((uint)-val) : this; } }
 
-  public Fixed32 Ceiling()
-  { if(val<0)
+  /// <summary>Gets this number's ceiling.</summary>
+  /// <value>A new fixed-point number containing the smallest whole number greater than or equal to the current value.</value>
+  public Fixed32 Ceiling { get { return new Fixed32((uint)((val+(OneVal-1)) & Trunc)); } }
+
+  /// <summary>Gets this number's ceiling.</summary>
+  /// <value>A new fixed-point number containing the largest whole number less than or equal to the current value.</value>
+  public Fixed32 Floor { get { return new Fixed32((uint)(val&Trunc)); } }
+
+  /// <summary>Gets this number's value, rounded.</summary>
+  /// <remarks>This method performs banker's rounding, so values with a fractional part of exactly 0.5 will be
+  /// rounded towards the nearest even number, or towards zero.
+  /// </remarks>
+  public Fixed32 Rounded
+  { get
     { ushort fp = (ushort)val;
-      return new Fixed32((uint)(fp==0 ? val : ((val+OneVal)&Trunc)));
+      if(fp<0x8000) return new Fixed32((uint)(val&Trunc));
+      else if(fp>0x8000 || (val&OneVal)!=0) return new Fixed32((uint)((val+OneVal)&Trunc));
+      else return new Fixed32((uint)(val&Trunc));
     }
-    else return new Fixed32((uint)((val+(OneVal-1)) & Trunc));
   }
 
-  public Fixed32 Floor()
-  { if(val<0)
-    { ushort fp = (ushort)val;
-      return new Fixed32((uint)(fp==0 ? val : (val&Trunc)));
-    }
-    else return new Fixed32((uint)(val&Trunc));
-  }
+  /// <summary>Gets this number's square root.</summary>
+  /// <value>A new fixed-point number containing the square root of the current value.</value>
+  public Fixed32 Sqrt { get { return new Fixed32(Math.Sqrt(ToDouble())); } }
 
-  public Fixed32 Round() // does banker's rounding
-  { ushort fp = (ushort)val;
-    if(fp<0x8000) return new Fixed32((uint)(val&Trunc));
-    else if(fp>0x8000 || (val&OneVal)!=0) return new Fixed32((uint)((val+OneVal)&Trunc));
-    else return new Fixed32((uint)(val&Trunc));
-  }
+  /// <summary>Gets this number's value, truncated towards zero.</summary>
+  public Fixed32 Truncated { get { return new Fixed32((uint)((val<0 ? val+(OneVal-1) : val)&Trunc)); } }
 
-  public Fixed32 Sqrt() { return new Fixed32(Math.Sqrt(ToDouble())); }
-
-  public Fixed32 Truncated()
-  { if(val<0)
-    { ushort fp = (ushort)val;
-      return new Fixed32((uint)((fp==0 ? val : val+OneVal)&Trunc));
-    }
-    else return new Fixed32((uint)(val&Trunc));
-  }
-
+  /// <summary>Returns true if this object is equal to the given object.</summary>
+  /// <param name="obj">The object to compare against.</param>
+  /// <returns>True if <paramref name="obj"/> is a <see cref="Fixed32"/> and has the same value as this one.</returns>
   public override bool Equals(object obj)
   { if(!(obj is Fixed32)) return false;
     return val == ((Fixed32)obj).val;
   }
   
+  /// <summary>Returns a hash code for this value.</summary>
+  /// <returns>A hash code for this value.</returns>
   public override int GetHashCode() { return val; }
   
-  public double ToDouble()
-  { int ret = val>>16;
-    if(ret<0)
-    { ushort fp = (ushort)val;
-      return fp==0 ? ret : (ret+1) + fp*-0.0000152587890625; // 1 / (1<<16)
-    }
-    else return ret + (ushort)val*0.0000152587890625;
-  }
+  /// <summary>Converts this <see cref="Fixed32"/> to a <see cref="Fixed64"/>.</summary>
+  /// <returns>A <see cref="Fixed64"/> containing the same value.</returns>
+  public Fixed64 ToFixed64() { return new Fixed64(((long)(val&Trunc)<<16) | (uint)((ushort)val<<16)); }
 
+  /// <summary>Converts this fixed-point number to a floating-point number.</summary>
+  /// <returns>The double value closest to this fixed-point number.</returns>
+  public double ToDouble() { return (val>>16) + (ushort)val*0.0000152587890625; } // 1 / (1<<16)
+
+  /// <summary>Returns the integer portion of the fixed-point number.</summary>
+  /// <returns>The integer portion of the fixed-point number.</returns>
   public int ToInt()
   { int ret = val>>16;
     if(ret<0 && (ushort)val!=0) ret++;
     return ret;
   }
 
+  /// <summary>Converts this fixed-point number into a string.</summary>
+  /// <returns>A string representing this fixed-point number.</returns>
   public override string ToString() { return ToString(null, null); }
+  /// <summary>Converts this fixed-point number into a string.</summary>
+  /// <param name="format">A format code which controls the conversion to string.</param>
+  /// <returns>A string representing this fixed-point number.</returns>
+  /// <remarks>See <see cref="Double.ToString(string)"/> for information on the available formatting codes.</remarks>
   public string ToString(string format) { return ToString(format, null); }
 
-  public static Fixed32 Abs(Fixed32 val) { return val.val<0 ? new Fixed32((uint)-val.val) : val; }
-  public static Fixed32 Acos(Fixed32 val) { return new Fixed32(Math.Acos(val.ToDouble())); }
-  public static Fixed32 Asin(Fixed32 val) { return new Fixed32(Math.Asin(val.ToDouble())); }
-  public static Fixed32 Atan(Fixed32 val) { return new Fixed32(Math.Atan(val.ToDouble())); }
-  public static Fixed32 Ceiling(Fixed32 val) { return val.Ceiling(); }
-  public static Fixed32 Cos(Fixed32 val) { return new Fixed32(Math.Cos(val.ToDouble())); }
-  public static Fixed32 Floor(Fixed32 val) { return val.Floor(); }
-  public static Fixed32 Round(Fixed32 val) { return val.Round(); }
-  public static Fixed32 Sin(Fixed32 val) { return new Fixed32(Math.Sin(val.ToDouble())); }
-  public static Fixed32 Sqrt(Fixed32 val) { return new Fixed32(Math.Sqrt(val.ToDouble())); }
-  public static Fixed32 Tan(Fixed32 val) { return new Fixed32(Math.Tan(val.ToDouble())); }
-  public static Fixed32 Truncate(Fixed32 val) { return val.Truncated(); }
-
+  /// <summary>Converts a string into a fixed-point value.</summary>
+  /// <param name="s">The string to convert.</param>
+  /// <returns>A <see cref="Fixed32"/> containing the closest value.</returns>
   public static Fixed32 Parse(string s)
-  { int pos = s.IndexOf('e');
+  { int pos = s.ToLower().IndexOf('e');
     if(pos==-1)
     { pos = s.IndexOf('.');
       if(pos==-1)
       { pos = s.IndexOf('/');
-        if(pos==-1) return new Fixed32((uint)(int.Parse(s)<<16));
-        else return new Fixed32((uint)((int.Parse(s.Substring(0, pos))<<16) + int.Parse(s.Substring(pos+1))));
+        if(pos==-1) return new Fixed32((uint)(short.Parse(s)<<16)); // integer
+        else return new Fixed32((uint)((int.Parse(s.Substring(0, pos))<<16) + int.Parse(s.Substring(pos+1)))); // raw
       }
-      else
-      { int val = pos==0 ? 0 : (int.Parse(s.Substring(0, pos))<<16);
-        return new Fixed32((uint)(val + (int)(double.Parse(s.Substring(pos))*65536.0)));
+      else // number with fractional part
+      { int val = pos==0 ? 0 : (short.Parse(s.Substring(0, pos))<<16);
+        return new Fixed32((uint)(val + (int)(double.Parse(s.Substring(pos))*65536.0+0.5)));
       }
     }
-    else return new Fixed32(double.Parse(s));
+    else return new Fixed32(double.Parse(s)); // scientific notation
   }
 
-  #region Math operators
+  #region Arithmetic operators
   public static Fixed32 operator-(Fixed32 val) { return new Fixed32((uint)-val.val); }
 
   public static Fixed32 operator+(Fixed32 lhs, int rhs) { return new Fixed32((uint)(lhs.val+(rhs<<16))); }
@@ -204,100 +311,145 @@ public struct Fixed32 : IFormattable, IComparable, IConvertible
   public static implicit operator Fixed32(double d) { return new Fixed32((uint)FromDouble(d)); }
 
   #region Useful constants
-  public static readonly Fixed32 E        = new Fixed32((uint)(178145 + 20835));
+  /// <summary>Napier's constant, approximately 2.718282.</summary>
+  public static readonly Fixed32 E = new Fixed32((uint)(131072 + 47073));
+  /// <summary>The smallest positive value that can be represented by a <see cref="Fixed32"/>.</summary>
   public static readonly Fixed32 Epsilon  = new Fixed32((uint)1);
+  /// <summary>The maximum value that can be represented by a <see cref="Fixed32"/>.</summary>
   public static readonly Fixed32 MaxValue = new Fixed32((uint)0x7FFFFFFF);
-  public static readonly Fixed32 MinValue = new Fixed32((uint)0x80000001);
+  /// <summary>The minimum value that can be represented by a <see cref="Fixed32"/>.</summary>
+  public static readonly Fixed32 MinValue = new Fixed32((uint)0x80000000);
+  /// <summary>Negative one.</summary>
   public static readonly Fixed32 MinusOne = new Fixed32((uint)0xFFFF0000);
-  public static readonly Fixed32 One      = new Fixed32((uint)OneVal);
-  public static readonly Fixed32 PI       = new Fixed32((uint)((411774 + 54545)/2));
-  public static readonly Fixed32 PIover2  = new Fixed32((uint)((411774 + 54545)/4));
-  public static readonly Fixed32 TwoPI    = new Fixed32((uint)(411774 + 54545));
-  public static readonly Fixed32 Zero     = new Fixed32((uint)0);
+  /// <summary>One.</summary>
+  public static readonly Fixed32 One = new Fixed32((uint)OneVal);
+  /// <summary>PI, approximately 3.141593.</summary>
+  public static readonly Fixed32 PI = new Fixed32((uint)(196608 + 9279));
+  /// <summary>PI/2, approximately 3.570796.</summary>
+  public static readonly Fixed32 PIover2 = new Fixed32((uint)(65536 + 37408));
+  /// <summary>PI/2, approximately 6.283185.</summary>
+  public static readonly Fixed32 TwoPI = new Fixed32((uint)(393216 + 18559));
+  /// <summary>Zero.</summary>
+  public static readonly Fixed32 Zero = new Fixed32((uint)0);
   #endregion
-
-  const int Trunc  = unchecked((int)0xFFFF0000);
-  const int OneVal = 0x10000;
-
-  static int FromDouble(double value)
-  { int whole = (int)value;
-    int fp = (int)(Math.IEEERemainder(value, 1)*65536.0) & ~Trunc;
-    if(whole<0) fp ^= Trunc;
-    return (whole<<16) + fp;
-  }
-
-  int val;
 
   #region IComparable Members
   public int CompareTo(object obj)
   { if(obj==null) return 1;
-    if(obj is Fixed32)
-    { Fixed32 o = (Fixed32)obj;
-      return val<o.val ? -1 : val>o.val ? 1 : 0;
-    }
+    if(obj is Fixed32) { return val-((Fixed32)obj).val; }
     throw new ArgumentException("'obj' is not a Fixed32");
   }
   #endregion
 
   #region IConvertible Members
   // FIXME: these should probably do rounding
+  /// <summary>Converts this value to a <see cref="UInt64"/>.</summary>
+  /// <param name="provider">An <see cref="IFormatProvider"/> used to control formatting, or null to use the default.</param>
+  /// <returns>A <see cref="UInt64"/> representing the fixed-point value.</returns>
+  /// <exception cref="OverflowException">Thrown if the value cannot be represented by the return type.</exception>
   public ulong ToUInt64(IFormatProvider provider)
   { int n = ToInt();
     if(n<0) throw new OverflowException();
     return (ulong)n;
   }
-
+  /// <summary>Converts this value to an <see cref="SByte"/>.</summary>
+  /// <param name="provider">An <see cref="IFormatProvider"/> used to control formatting, or null to use the default.</param>
+  /// <returns>An <see cref="SByte"/> representing the fixed-point value.</returns>
+  /// <exception cref="OverflowException">Thrown if the value cannot be represented by the return type.</exception>
   public sbyte ToSByte(IFormatProvider provider)
   { int n = ToInt();
     if(n<sbyte.MinValue || n>sbyte.MaxValue) throw new OverflowException();
     return (sbyte)n;
   }
-
+  /// <summary>Converts this value to a <see cref="Double"/>.</summary>
+  /// <param name="provider">An <see cref="IFormatProvider"/> used to control formatting, or null to use the default.</param>
+  /// <returns>The <see cref="Double"/> closest to this fixed-point value.</returns>
+  /// <exception cref="OverflowException">Thrown if the value cannot be represented by the return type.</exception>
   public double ToDouble(IFormatProvider provider) { return ToDouble(); }
+  /// <summary>Throws <see cref="InvalidCastException"/> because there's no sensible conversion to
+  /// <see cref="DateTime"/>
+  /// </summary>
+  /// <param name="provider">An <see cref="IFormatProvider"/> used to control formatting, or null to use the default.</param>
+  /// <returns>Doesn't return.</returns>
+  /// <exception cref="InvalidCastException">Always thrown.</exception>
   public DateTime ToDateTime(IFormatProvider provider) { throw new InvalidCastException(); }
-
+  /// <summary>Converts this value to a <see cref="Single"/>.</summary>
+  /// <param name="provider">An <see cref="IFormatProvider"/> used to control formatting, or null to use the default.</param>
+  /// <returns>The <see cref="Single"/> closest to this fixed-point value.</returns>
+  /// <exception cref="OverflowException">Thrown if the value cannot be represented by the return type.</exception>
   public float ToSingle(IFormatProvider provider)
   { double d = ToDouble();
     if(d<float.MinValue || d>float.MaxValue) throw new OverflowException();
     return (float)d;
   }
-
+  /// <summary>Converts this value to a <see cref="Boolean"/>.</summary>
+  /// <param name="provider">An <see cref="IFormatProvider"/> used to control formatting, or null to use the default.</param>
+  /// <returns>A <see cref="Boolean"/> that will be false if the value is zero and true otherwise.</returns>
   public bool ToBoolean(IFormatProvider provider) { return val==0; }
-
+  /// <summary>Converts this value to an <see cref="Int32"/>.</summary>
+  /// <param name="provider">An <see cref="IFormatProvider"/> used to control formatting, or null to use the default.</param>
+  /// <returns>An <see cref="Int32"/> representing the fixed-point value.</returns>
+  /// <exception cref="OverflowException">Thrown if the value cannot be represented by the return type.</exception>
   public int ToInt32(IFormatProvider provider) { return ToInt(); }
-
+  /// <summary>Converts this value to a <see cref="UInt16"/>.</summary>
+  /// <param name="provider">An <see cref="IFormatProvider"/> used to control formatting, or null to use the default.</param>
+  /// <returns>A <see cref="UInt16"/> representing the fixed-point value.</returns>
+  /// <exception cref="OverflowException">Thrown if the value cannot be represented by the return type.</exception>
   public ushort ToUInt16(IFormatProvider provider)
   { int n = ToInt();
     if(n<ushort.MinValue || n>ushort.MaxValue) throw new OverflowException();
     return (ushort)n;
   }
-
+  /// <summary>Converts this value to an <see cref="Int16"/>.</summary>
+  /// <param name="provider">An <see cref="IFormatProvider"/> used to control formatting, or null to use the default.</param>
+  /// <returns>An <see cref="Int16"/> representing the fixed-point value.</returns>
+  /// <exception cref="OverflowException">Thrown if the value cannot be represented by the return type.</exception>
   public short ToInt16(IFormatProvider provider)
   { int n = ToInt();
     if(n<short.MinValue || n>short.MaxValue) throw new OverflowException();
     return (short)n;
   }
-
+  /// <summary>Converts this value to a string.</summary>
+  /// <param name="provider">An <see cref="IFormatProvider"/> used to control formatting, or null to use the default.</param>
+  /// <returns>An string representing this fixed-point value.</returns>
+  /// <exception cref="OverflowException">Thrown if the value cannot be represented by the return type.</exception>
   public string ToString(IFormatProvider provider) { return ToString(null, provider); }
-
+  /// <summary>Converts this value to a <see cref="Byte"/>.</summary>
+  /// <param name="provider">An <see cref="IFormatProvider"/> used to control formatting, or null to use the default.</param>
+  /// <returns>An <see cref="Byte"/> representing the fixed-point value.</returns>
+  /// <exception cref="OverflowException">Thrown if the value cannot be represented by the return type.</exception>
   public byte ToByte(IFormatProvider provider)
   { int n = ToInt();
     if(n<byte.MinValue || n>byte.MaxValue) throw new OverflowException();
     return (byte)n;
   }
-
+  /// <summary>Converts this value to a <see cref="Char"/>.</summary>
+  /// <param name="provider">An <see cref="IFormatProvider"/> used to control formatting, or null to use the default.</param>
+  /// <returns>An <see cref="Char"/> representing the fixed-point value.</returns>
+  /// <exception cref="OverflowException">Thrown if the value cannot be represented by the return type.</exception>
   public char ToChar(IFormatProvider provider)
   { int n = ToInt();
     if(n<ushort.MinValue || n>ushort.MaxValue) throw new OverflowException();
     return (char)n;
   }
-
+  /// <summary>Converts this value to an <see cref="Int64"/>.</summary>
+  /// <param name="provider">An <see cref="IFormatProvider"/> used to control formatting, or null to use the default.</param>
+  /// <returns>An <see cref="Int64"/> representing the fixed-point value.</returns>
+  /// <exception cref="OverflowException">Thrown if the value cannot be represented by the return type.</exception>
   public long ToInt64(IFormatProvider provider) { return ToInt(); }
-
-  public System.TypeCode GetTypeCode() { return System.TypeCode.Object; }
-
+  /// <summary>Returns the <see cref="TypeCode"/> for the <see cref="Fixed32"/> type.</summary>
+  /// <returns>Returns <see cref="TypeCode.Object"/>.</returns>
+  public TypeCode GetTypeCode() { return TypeCode.Object; }
+  /// <summary>Converts this value to a <see cref="Decimal"/>.</summary>
+  /// <param name="provider">An <see cref="IFormatProvider"/> used to control formatting, or null to use the default.</param>
+  /// <returns>A <see cref="Decimal"/> representing the fixed-point value.</returns>
   public decimal ToDecimal(IFormatProvider provider) { return new decimal(ToDouble()); }
-
+  /// <summary>Converts the value to the given type.</summary>
+  /// <param name="conversionType">The type to which the fixed-point value should be converted.</param>
+  /// <param name="provider">An <see cref="IFormatProvider"/> used to control formatting, or null to use the default.</param>
+  /// <returns>An object containing the fixed-point value converted to the given type.</returns>
+  /// <exception cref="OverflowException">Thrown if the value cannot be represented by the return type.</exception>
+  /// <exception cref="InvalidCastException">Thrown if no conversion to the destination type exists.</exception>
   public object ToType(Type conversionType, IFormatProvider provider)
   { if(conversionType==typeof(int)) return ToInt32(provider);
     if(conversionType==typeof(double)) return ToDouble();
@@ -314,9 +466,14 @@ public struct Fixed32 : IFormattable, IComparable, IConvertible
     if(conversionType==typeof(sbyte)) return ToSByte(provider);
     if(conversionType==typeof(decimal)) return ToDecimal(provider);
     if(conversionType==typeof(char)) return ToChar(provider);
+    if(conversionType==typeof(Fixed32)) return this;
+    if(conversionType==typeof(Fixed64)) return ToFixed64();
     throw new InvalidCastException();
   }
-
+  /// <summary>Converts this value to a <see cref="UInt32"/>.</summary>
+  /// <param name="provider">An <see cref="IFormatProvider"/> used to control formatting, or null to use the default.</param>
+  /// <returns>A <see cref="UInt32"/> representing the fixed-point value.</returns>
+  /// <exception cref="OverflowException">Thrown if the value cannot be represented by the return type.</exception>
   public uint ToUInt32(IFormatProvider provider)
   { int n = ToInt();
     if(n<0) throw new OverflowException();
@@ -326,86 +483,77 @@ public struct Fixed32 : IFormattable, IComparable, IConvertible
 
   #region IFormattable Members
   public string ToString(string format, IFormatProvider formatProvider)
-  { if(format==null) format="F";
-    switch(char.ToUpper(format[0]))
-    { case 'F':
-        string uf = format.Length==1 ? "F15" : format.ToUpper();
-        int whole = val>>16;
-        ushort fp = (ushort)val;
-        if(fp!=0 && uf[1]!='0')
-        { string s = whole<0 ? whole<-1 ? (whole+1).ToString() : "-0" : whole.ToString();
-          s += '.';
-          return s += ((whole<0 ? (ushort)-fp : fp) * 0.0000152587890625).ToString(uf).TrimEnd('0').Substring(2);
-        }
-        else return whole.ToString();
-      case 'R': return (val>>16).ToString() + '/' + ((ushort)val).ToString();
-      default: return ToDouble().ToString(format);
-    }
+  { if(format==null) return ToDouble().ToString();
+    if(format.Length==0 || char.ToUpper(format[0])!='R') return ToDouble().ToString(format);
+    return (val>>16).ToString() + '/' + ((ushort)val).ToString();
   }
   #endregion
+
+  const int Trunc  = unchecked((int)0xFFFF0000);
+  const int OneVal = 0x10000;
+
+  static int FromDouble(double value)
+  { int whole = (int)value;
+    int fp = (int)(Math.IEEERemainder(value, 1)*65536.0) & ~Trunc;
+    if(whole<0) fp ^= Trunc;
+    return (whole<<16) + fp;
+  }
+
+  internal int val;
 }
 #endregion
 
 #region Fixed64
-[Serializable, System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+/// <summary>This class provides a fixed-point numeric type with 64 bits of storage in a 32.32 configuration.</summary>
+/// <remarks>
+/// <para>Floating point math on modern systems is very fast, and I wouldn't recommend using this fixed-point math
+/// class for speed. The primary benefit of fixed-point math is that it provides consistency precision. Floating
+/// point math loses precision when dealing with larger numbers, and the results of arithmetic operations are not
+/// always consistent due to precision mismatch between operands. Fixed-point math eliminates these inconsistencies.
+/// </para>
+/// <para>This class provides 32 bits for the whole part and 32 bits for the fractional part, so the total range is
+/// approximately -2147483648 to 2147483647.9999999998.
+/// </para>
+/// </remarks>
+[Serializable, System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Explicit, Size=8)]
 public struct Fixed64 : IFormattable, IComparable, IConvertible
-{ public Fixed64(double value) { val=FromDouble(value); }
-  public Fixed64(int value) { val=(long)value<<32; }
-  private Fixed64(long value) { val=value; }
+{ public Fixed64(double value) { wholePart=0; val=FromDouble(value); } // damn C# requires all fields to be set
+  public Fixed64(int value) { val=0; wholePart=value; }
+  internal Fixed64(long value) { wholePart=0; val=value; }
+  internal Fixed64(int whole, uint frac) { val=frac; wholePart=whole; }
 
-  public Fixed64 Abs() { return val<0 ? new Fixed64(-val) : this; }
+  public Fixed64 Abs { get { return val<0 ? new Fixed64(-val) : this; } }
 
-  public Fixed64 Ceiling()
-  { if(val<0)
+  public Fixed64 Ceiling { get { return new Fixed64((val+(OneVal-1)) & Trunc); } }
+
+  public Fixed64 Floor { get { return new Fixed64(val&Trunc); } }
+
+  public Fixed64 Rounded
+  { get
     { uint fp = (uint)val;
-      return new Fixed64(fp==0 ? val : ((val+OneVal)&Trunc));
+      if(fp<0x80000000) return new Fixed64(val&Trunc);
+      else if(fp>0x80000000 || (val&OneVal)!=0) return new Fixed64((val+OneVal)&Trunc);
+      else return new Fixed64(val&Trunc);
     }
-    else return new Fixed64((val+(OneVal-1)) & Trunc);
   }
+  
+  public Fixed64 Sqrt { get { return new Fixed64(Math.Sqrt(ToDouble())); } }
 
-  public Fixed64 Floor()
-  { if(val<0)
-    { uint fp = (uint)val;
-      return new Fixed64(fp==0 ? val : (val&Trunc));
-    }
-    else return new Fixed64(val&Trunc);
-  }
-
-  public Fixed64 Round() // does banker's rounding
-  { uint fp = (uint)val;
-    if(fp<0x80000000) return new Fixed64(val&Trunc);
-    else if(fp>0x80000000 || (val&OneVal)!=0) return new Fixed64((val+OneVal)&Trunc);
-    else return new Fixed64(val&Trunc);
-  }
-
-  public Fixed64 Sqrt() { return new Fixed64(Math.Sqrt(ToDouble())); }
-
-  public Fixed64 Truncated()
-  { if(val<0)
-    { uint fp = (uint)val;
-      return new Fixed64((fp==0 ? val : val+OneVal)&Trunc);
-    }
-    else return new Fixed64(val&Trunc);
-  }
-
+  public Fixed64 Truncated { get { return new Fixed64((val<0 ? val+(OneVal-1) : val)&Trunc); } }
+  
   public override bool Equals(object obj)
   { if(!(obj is Fixed64)) return false;
     return val == ((Fixed64)obj).val;
   }
   
-  public override int GetHashCode() { return (int)val ^ (int)(val>>32); }
+  public override int GetHashCode() { return wholePart ^ (int)(uint)val; }
   
-  public double ToDouble()
-  { int ret = (int)(val>>32);
-    if(ret<0)
-    { uint fp = (uint)val;
-      return fp==0 ? ret : (ret+1) + fp*-0.00000000023283064365386962890625; // 1 / (1<<32)
-    }
-    else return ret + (uint)val*0.00000000023283064365386962890625;
-  }
+  public Fixed32 ToFixed32() { return new Fixed32((uint)((short)wholePart<<16) | ((uint)val>>16)); }
+
+  public double ToDouble() { return wholePart + (uint)val*0.00000000023283064365386962890625; } // 1 / (1<<32)
 
   public int ToInt()
-  { int ret = (int)(val>>32);
+  { int ret = wholePart;
     if(ret<0 && (uint)val!=0) ret++;
     return ret;
   }
@@ -413,34 +561,20 @@ public struct Fixed64 : IFormattable, IComparable, IConvertible
   public override string ToString() { return ToString(null, null); }
   public string ToString(string format) { return ToString(format, null); }
 
-  public static Fixed64 Abs(Fixed64 val) { return val.val<0 ? new Fixed64(-val.val) : val; }
-  public static Fixed64 Acos(Fixed64 val) { return new Fixed64(Math.Acos(val.ToDouble())); }
-  public static Fixed64 Asin(Fixed64 val) { return new Fixed64(Math.Asin(val.ToDouble())); }
-  public static Fixed64 Atan(Fixed64 val) { return new Fixed64(Math.Atan(val.ToDouble())); }
-  public static Fixed64 Ceiling(Fixed64 val) { return val.Ceiling(); }
-  public static Fixed64 Cos(Fixed64 val) { return new Fixed64(Math.Cos(val.ToDouble())); }
-  public static Fixed64 Floor(Fixed64 val) { return val.Floor(); }
-  public static Fixed64 Round(Fixed64 val) { return val.Round(); }
-  public static Fixed64 Sin(Fixed64 val) { return new Fixed64(Math.Sin(val.ToDouble())); }
-  public static Fixed64 Sqrt(Fixed64 val) { return new Fixed64(Math.Sqrt(val.ToDouble())); }
-  public static Fixed64 Tan(Fixed64 val) { return new Fixed64(Math.Tan(val.ToDouble())); }
-  public static Fixed64 Truncate(Fixed64 val) { return val.Truncated(); }
-
   public static Fixed64 Parse(string s)
   { int pos = s.IndexOf('e');
     if(pos==-1)
     { pos = s.IndexOf('.');
       if(pos==-1)
       { pos = s.IndexOf('/');
-        if(pos==-1) return new Fixed64(long.Parse(s)<<32);
-        else return new Fixed64(((long)int.Parse(s.Substring(0, pos))<<32) + uint.Parse(s.Substring(pos+1)));
+        if(pos==-1) return new Fixed64((long)int.Parse(s)<<32); // integer
+        else return new Fixed64(int.Parse(s.Substring(0, pos)), uint.Parse(s.Substring(pos+1))); // raw
       }
-      else
-      { long val = pos==0 ? 0 : (long.Parse(s.Substring(0, pos))<<32);
-        return new Fixed64(val + (uint)(double.Parse(s.Substring(pos))*4294967296.0));
-      }
+      else // number with fractional part
+        return new Fixed64(pos==0 ? 0 : int.Parse(s.Substring(0, pos)),
+                           (uint)(double.Parse(s.Substring(pos))*4294967296.0+0.5));
     }
-    else return new Fixed64(double.Parse(s));
+    else return new Fixed64(double.Parse(s)); // scientific notation
   }
 
   #region Math operators
@@ -502,7 +636,7 @@ public struct Fixed64 : IFormattable, IComparable, IConvertible
       quot += Math.DivRem(rem<<16, rhs.val, out rem)<<16;
       quot += Math.DivRem(rem<<16, rhs.val, out rem);
     }
-    else // TODO: long division is slow! is there something better we can use?
+    else // fall back on long division
     { // TODO: optimize for divisor>=dividend
       Union ls = new Union(lhs.val<<count), t = new Union();
       int  bits = 96-count;
@@ -579,12 +713,12 @@ public struct Fixed64 : IFormattable, IComparable, IConvertible
   public static readonly Fixed64 E        = new Fixed64(8589934592L + 3084996963);
   public static readonly Fixed64 Epsilon  = new Fixed64((long)1);
   public static readonly Fixed64 MaxValue = new Fixed64(0x7FFFFFFFFFFFFFFFL);
-  public static readonly Fixed64 MinValue = new Fixed64(unchecked((long)0x8000000000000001));
+  public static readonly Fixed64 MinValue = new Fixed64(unchecked((long)0x8000000000000000));
   public static readonly Fixed64 MinusOne = new Fixed64(Trunc);
   public static readonly Fixed64 One      = new Fixed64(OneVal);
   public static readonly Fixed64 PI       = new Fixed64(12884901888L + 608135817);
-  public static readonly Fixed64 PIover2  = new Fixed64((12884901888L + 608135817)/2);
-  public static readonly Fixed64 TwoPI    = new Fixed64(26986075409L + 189141414);
+  public static readonly Fixed64 PIover2  = new Fixed64(4294967296L  + 2451551556);
+  public static readonly Fixed64 TwoPI    = new Fixed64(25769803776L + 1216271633);
   public static readonly Fixed64 Zero     = new Fixed64((long)0);
   #endregion
 
@@ -598,14 +732,12 @@ public struct Fixed64 : IFormattable, IComparable, IConvertible
     return ((long)whole<<32) + fp;
   }
 
-  long val;
-
   #region IComparable Members
   public int CompareTo(object obj)
   { if(obj==null) return 1;
     if(obj is Fixed64)
-    { Fixed64 o = (Fixed64)obj;
-      return val<o.val ? -1 : val>o.val ? 1 : 0;
+    { long ov = ((Fixed64)obj).val;
+      return val<ov ? -1 : val>ov ? 1 : 0;
     }
     throw new ArgumentException("'obj' is not a Fixed64");
   }
@@ -685,6 +817,11 @@ public struct Fixed64 : IFormattable, IComparable, IConvertible
     if(conversionType==typeof(sbyte)) return ToSByte(provider);
     if(conversionType==typeof(decimal)) return ToDecimal(provider);
     if(conversionType==typeof(char)) return ToChar(provider);
+    if(conversionType==typeof(Fixed32))
+    { if(wholePart<short.MinValue || wholePart>short.MaxValue) throw new OverflowException();
+      return ToFixed32();
+    }
+    if(conversionType==typeof(Fixed64)) return this;
     throw new InvalidCastException();
   }
 
@@ -697,24 +834,13 @@ public struct Fixed64 : IFormattable, IComparable, IConvertible
 
   #region IFormattable Members
   public string ToString(string format, IFormatProvider formatProvider)
-  { if(format==null) format="F";
-    switch(char.ToUpper(format[0]))
-    { case 'F':
-        string uf = format.Length==1 ? "F15" : format.ToUpper();
-        int whole = (int)(val>>32);
-        uint   fp = (uint)val;
-        if(fp!=0 && uf[1]!='0')
-        { string s = whole<0 ? whole<-1 ? (whole+1).ToString() : "-0" : whole.ToString();
-          s += '.';
-          return s += ((whole<0 ? (uint)-fp : fp) * 0.00000000023283064365386962890625).ToString(uf).TrimEnd('0').Substring(2);
-        }
-        else return whole.ToString();
-      case 'R': return ((int)(val>>32)).ToString() + '/' + ((uint)val).ToString();
-      default: return ToDouble().ToString(format);
-    }
+  { if(format==null) return ToDouble().ToString();
+    if(format.Length==0 || char.ToUpper(format[0])!='R') return ToDouble().ToString(format);
+    return wholePart.ToString() + '/' + ((uint)val).ToString();
   }
   #endregion
   
+  #region Union
   [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Explicit)]
   struct Union
   { public Union(long val) { Uint=0; Long=val; }
@@ -726,6 +852,15 @@ public struct Fixed64 : IFormattable, IComparable, IConvertible
     [System.Runtime.InteropServices.FieldOffset(4)] public uint Uint;
     #endif
   }
+  #endregion
+  
+  #if BIGENDIAN
+  [System.Runtime.InteropServices.FieldOffset(0)] internal long val;
+  [System.Runtime.InteropServices.FieldOffset(0)] int wholePart;
+  #else
+  [System.Runtime.InteropServices.FieldOffset(0)] internal long val;
+  [System.Runtime.InteropServices.FieldOffset(4)] int wholePart;
+  #endif
 }
 #endregion
 
@@ -736,37 +871,37 @@ namespace TwoD
 
 #region Vector
 public struct Vector
-{ public Vector(float x, float y) { X=x; Y=y; }
+{ public Vector(double x, double y) { X=x; Y=y; }
   public Vector(Point pt) { X=pt.X; Y=pt.Y; }
 
-  public float Angle
+  public double Angle
   { get
-    { float angle = (float)Math.Acos(X/Length);
-      if(Y>0) angle = (float)MathConst.TwoPI-angle;
+    { double angle = Math.Acos(X/Length);
+      if(Y>0) angle = MathConst.TwoPI-angle;
       return angle;
     }
   }
 
   public Vector CrossVector { get { return new Vector(Y, -X); } }
-  public float  Length
-  { get { return (float)System.Math.Sqrt(X*X+Y*Y); }
+  public double Length
+  { get { return System.Math.Sqrt(X*X+Y*Y); }
     set { Normalize(value); }
   }
-  public float  LengthSqr { get { return X*X+Y*Y; } }
+  public double LengthSqr { get { return X*X+Y*Y; } }
   public Vector Normal { get { return this/Length; } }
   
-  public float DotProduct(Vector v) { return X*v.X + Y*v.Y; }
+  public double DotProduct(Vector v) { return X*v.X + Y*v.Y; }
   public void  Normalize() { Assign(Normal); }
-  public void  Normalize(float length) { Assign(this / (Length/length)); }
+  public void  Normalize(double length) { Assign(this / (Length/length)); }
 
-  public void Rotate(float angle) { Assign(Rotated(angle)); }
-  public Vector Rotated(float angle)
-  { float sin = (float)Math.Sin(angle), cos = (float)Math.Cos(angle);
+  public void Rotate(double angle) { Assign(Rotated(angle)); }
+  public Vector Rotated(double angle)
+  { double sin = Math.Sin(angle), cos = Math.Cos(angle);
     return new Vector(X*cos-Y*sin, X*sin+Y*cos);
   }
   
   public override bool Equals(object obj) { return obj is Vector ? (Vector)obj==this : false; }
-  public bool Equals(Vector vect, float epsilon)
+  public bool Equals(Vector vect, double epsilon)
   { return Math.Abs(vect.X-X)<=epsilon && Math.Abs(vect.Y-Y)<=epsilon;
   }
   public override int GetHashCode() { unsafe { fixed(Vector* v=&this) return *(int*)&v->X ^ *(int*)&v->Y; } }
@@ -778,15 +913,15 @@ public struct Vector
   public static Vector operator-(Vector a, Vector b) { return new Vector(a.X-b.X, a.Y-b.Y); }
   public static Vector operator*(Vector a, Vector b) { return new Vector(a.X*b.X, a.Y*b.Y); }
   public static Vector operator/(Vector a, Vector b) { return new Vector(a.X/b.X, a.Y/b.Y); }
-  public static Vector operator*(Vector v, float f)  { return new Vector(v.X*f, v.Y*f); }
-  public static Vector operator/(Vector v, float f)  { return new Vector(v.X/f, v.Y/f); }
+  public static Vector operator*(Vector v, double f)  { return new Vector(v.X*f, v.Y*f); }
+  public static Vector operator/(Vector v, double f)  { return new Vector(v.X/f, v.Y/f); }
 
   public static bool operator==(Vector a, Vector b) { return a.X==b.X && a.Y==b.Y; }
   public static bool operator!=(Vector a, Vector b) { return a.X!=b.X || a.Y!=b.Y; }
 
-  public static Vector Invalid { get { return new Vector(float.NaN, float.NaN); } }
+  public static Vector Invalid { get { return new Vector(double.NaN, double.NaN); } }
 
-  public float X, Y;
+  public double X, Y;
 
   void Assign(Vector v) { X=v.X; Y=v.Y; }
 }
@@ -795,31 +930,31 @@ public struct Vector
 #region Point
 public struct Point
 { public Point(System.Drawing.Point pt) { X=pt.X; Y=pt.Y; }
-  public Point(float x, float y) { X=x; Y=y; }
+  public Point(double x, double y) { X=x; Y=y; }
 
-  public bool Valid { get { return !float.IsNaN(X); } }
+  public bool Valid { get { return !double.IsNaN(X); } }
 
-  public float DistanceTo(Point point)
-  { float xd=point.X-X, yd=point.Y-Y;
-    return (float)Math.Sqrt(xd*xd+yd*yd);
+  public double DistanceTo(Point point)
+  { double xd=point.X-X, yd=point.Y-Y;
+    return Math.Sqrt(xd*xd+yd*yd);
   }
-  public float DistanceSquaredTo(Point point)
-  { float xd=point.X-X, yd=point.Y-Y;
+  public double DistanceSquaredTo(Point point)
+  { double xd=point.X-X, yd=point.Y-Y;
     return xd*xd+yd*yd;
   }
 
-  public void Offset(float xd, float yd) { X+=xd; Y+=yd; }
+  public void Offset(double xd, double yd) { X+=xd; Y+=yd; }
 
   public System.Drawing.Point ToPoint() { return new System.Drawing.Point((int)Math.Round(X), (int)Math.Round(Y)); }
 
   public override bool Equals(object obj) { return obj is Point ? (Point)obj==this : false; }
-  public bool Equals(Point point, float epsilon)
+  public bool Equals(Point point, double epsilon)
   { return Math.Abs(point.X-X)<=epsilon && Math.Abs(point.Y-Y)<=epsilon;
   }
   public override int GetHashCode() { unsafe { fixed(Point* v=&this) return *(int*)&v->X ^ *(int*)&v->Y; } }
   public override string ToString() { return string.Format("({0:f2},{1:f2})", X, Y); }
 
-  public static Point Invalid { get { return new Point(float.NaN, float.NaN); } }
+  public static Point Invalid { get { return new Point(double.NaN, double.NaN); } }
   public static Vector operator- (Point lhs, Point rhs)  { return new Vector(lhs.X-rhs.X, lhs.Y-rhs.Y); }
   public static Point  operator- (Point lhs, Vector rhs) { return new Point(lhs.X-rhs.X, lhs.Y-rhs.Y); }
   public static Point  operator+ (Point lhs, Vector rhs) { return new Point(lhs.X+rhs.X, lhs.Y+rhs.Y); }
@@ -827,7 +962,7 @@ public struct Point
   public static bool   operator!=(Point lhs, Point rhs)  { return lhs.X!=rhs.X || lhs.Y!=rhs.Y; }
   public static implicit operator Point(System.Drawing.Point point) { return new Point(point.X, point.Y); }
 
-  public float X, Y;
+  public double X, Y;
 }
 #endregion
 
@@ -842,13 +977,13 @@ public struct LineIntersectInfo
 }
 
 public struct Line
-{ public Line(float x, float y, float xd, float yd) { Start=new Point(x, y); Vector=new Vector(xd, yd); }
+{ public Line(double x, double y, double xd, double yd) { Start=new Point(x, y); Vector=new Vector(xd, yd); }
   public Line(Point start, Vector vector) { Start=start; Vector=vector; }
   public Line(Point start, Point end) { Start=start; Vector=end-start; }
 
   public Point End { get { return Start+Vector; } set { Vector=value-Start; } }
-  public float Length { get { return Vector.Length; } set { Vector.Length=value; } }
-  public float LengthSqr { get { return Vector.LengthSqr; } }
+  public double Length { get { return Vector.Length; } set { Vector.Length=value; } }
+  public double LengthSqr { get { return Vector.LengthSqr; } }
   public bool Valid { get { return Start.Valid; } }
 
   public Line ConvexIntersection(Polygon poly)
@@ -875,7 +1010,7 @@ public struct Line
   
   public bool ConvexIntersects(Polygon poly) { return ConvexIntersection(poly).Valid; }
 
-  public float DistanceTo(Point point) { return Vector.CrossVector.Normal.DotProduct(point-Start); }
+  public double DistanceTo(Point point) { return Vector.CrossVector.Normal.DotProduct(point-Start); }
 
   public Point GetPoint(int point)
   { if(point<0 || point>1) throw new ArgumentOutOfRangeException("point", point, "must be 0 or 1");
@@ -884,7 +1019,7 @@ public struct Line
 
   public LineIntersectInfo GetIntersection(Line line)
   { Point p2 = End, p4 = line.End;
-    float d = (p4.Y-line.Start.Y)*(p2.X-Start.X) - (p4.X-line.Start.X)*(p2.Y-Start.Y), ua, ub;
+    double d = (p4.Y-line.Start.Y)*(p2.X-Start.X) - (p4.X-line.Start.X)*(p2.Y-Start.Y), ua, ub;
     if(d==0) return new LineIntersectInfo(Point.Invalid, false, false);
     ua = ((p4.X-line.Start.X)*(Start.Y-line.Start.Y) - (p4.Y-line.Start.Y)*(Start.X-line.Start.X)) / d;
     ub = ((p2.X-Start.X)*(Start.Y-line.Start.Y) - (p2.Y-Start.Y)*(Start.X-line.Start.X)) / d;
@@ -893,7 +1028,7 @@ public struct Line
 
   public Point Intersection(Line segment)
   { Point p2 = End, p4 = segment.End;
-    float d = (p4.Y-segment.Start.Y)*(p2.X-Start.X) - (p4.X-segment.Start.X)*(p2.Y-Start.Y), ua, ub;
+    double d = (p4.Y-segment.Start.Y)*(p2.X-Start.X) - (p4.X-segment.Start.X)*(p2.Y-Start.Y), ua, ub;
     if(d==0) return Point.Invalid;
     ua = ((p4.X-segment.Start.X)*(Start.Y-segment.Start.Y) - (p4.Y-segment.Start.Y)*(Start.X-segment.Start.X)) / d;
     if(ua<0 || ua>1) return Point.Invalid;
@@ -903,7 +1038,7 @@ public struct Line
   }
   
   public Line Intersection(Rectangle rect)
-  { float x2=rect.Right-float.Epsilon, y2=rect.Bottom-float.Epsilon;
+  { double x2=rect.Right, y2=rect.Bottom;
     Point start=Start, end=End;
     int c, c2;
 
@@ -973,24 +1108,24 @@ public struct Line
 
   public Point LineIntersection(Line line)
   { Point p2 = End, p4 = line.End;
-    float d = (p4.Y-line.Start.Y)*(p2.X-Start.X) - (p4.X-line.Start.X)*(p2.Y-Start.Y);
+    double d = (p4.Y-line.Start.Y)*(p2.X-Start.X) - (p4.X-line.Start.X)*(p2.Y-Start.Y);
     if(d==0) return Point.Invalid;
     d = ((p4.X-line.Start.X)*(Start.Y-line.Start.Y) - (p4.Y-line.Start.Y)*(Start.X-line.Start.X)) / d;
     return new Point(Start.X + Vector.X*d, Start.Y + Vector.Y*d);
   }
   public bool LineIntersects(Line line) { return Intersection(line).Valid; }
 
-  public float WhichSide(Point point) { return Vector.CrossVector.DotProduct(point-Start); }
+  public double WhichSide(Point point) { return Vector.CrossVector.DotProduct(point-Start); }
 
   public override bool Equals(object obj) { return obj is Line ? (Line)obj==this : false; }
-  public bool Equals(Line line, float epsilon)
+  public bool Equals(Line line, double epsilon)
   { return Start.Equals(line.Start, epsilon) && Vector.Equals(line.Vector, epsilon);
   }
   public override int GetHashCode() { return Start.GetHashCode() ^ Vector.GetHashCode(); }
   public override string ToString() { return string.Format("{0}->{1}", Start, Vector); }
 
   public static Line FromPoints(Point start, Point end) { return new Line(start, end-start); }
-  public static Line FromPoints(float x1, float y1, float x2, float y2) { return new Line(x1, y1, x2-x1, y2-y1); }
+  public static Line FromPoints(double x1, double y1, double x2, double y2) { return new Line(x1, y1, x2-x1, y2-y1); }
   
   public static bool operator==(Line lhs, Line rhs) { return lhs.Start==rhs.Start && lhs.Vector==rhs.Vector; }
   public static bool operator!=(Line lhs, Line rhs) { return lhs.Start!=rhs.Start || lhs.Vector!=rhs.Vector; }
@@ -1004,15 +1139,15 @@ public struct Line
 
 #region Circle
 public struct Circle
-{ public Circle(float centerX, float centerY, float radius) { Center=new Point(centerX, centerY); Radius=radius; }
-  public Circle(Point center, float radius) { Center=center; Radius=radius; }
+{ public Circle(double centerX, double centerY, double radius) { Center=new Point(centerX, centerY); Radius=radius; }
+  public Circle(Point center, double radius) { Center=center; Radius=radius; }
 
-  public float Area { get { return (float)(Radius*Radius*Math.PI); } }
+  public double Area { get { return (Radius*Radius*Math.PI); } }
 
   public bool Contains(Point point) { return (point-Center).Length <= Radius; }
 
   public Point Center;
-  public float Radius;
+  public double Radius;
 }
 #endregion
 
@@ -1021,7 +1156,7 @@ public struct Corner
 { public Line Edge0 { get { return new Line(Point+Vector0, -Vector0); } }
   public Line Edge1 { get { return new Line(Point, Vector1); } }
 
-  public float CrossZ
+  public double CrossZ
   { get
     { Point p0 = GetPoint(-1), p2 = GetPoint(1);
       return (Point.X-p0.X)*(p2.Y-Point.Y) - (Point.Y-p0.Y)*(p2.X-Point.X);
@@ -1046,16 +1181,16 @@ public struct Corner
 #region Rectangle
 public struct Rectangle
 { public Rectangle(System.Drawing.Rectangle rect)
-  { X=(float)rect.X; Y=(float)rect.Y; Width=(float)rect.Width; Height=(float)rect.Height;
+  { X=rect.X; Y=rect.Y; Width=rect.Width; Height=rect.Height;
   }
   public Rectangle(System.Drawing.RectangleF rect) { X=rect.X; Y=rect.Y; Width=rect.Width; Height=rect.Height; }
-  public Rectangle(float x, float y, float width, float height) { X=x; Y=y; Width=width; Height=height; }
+  public Rectangle(double x, double y, double width, double height) { X=x; Y=y; Width=width; Height=height; }
   public Rectangle(Point location, Vector size) { X=location.X; Y=location.Y; Width=size.X; Height=size.Y; }
 
-  public float Bottom { get { return Y+Height; } }
+  public double Bottom { get { return Y+Height; } }
   public Point BottomRight { get { return new Point(X+Width, Y+Height); } }
   public Point Location { get { return new Point(X, Y); } }
-  public float Right { get { return X+Width; } }
+  public double Right { get { return X+Width; } }
   public Vector Size { get { return new Vector(Width, Height); } }
   public Point TopLeft { get { return new Point(X, Y); } }
   
@@ -1068,17 +1203,17 @@ public struct Rectangle
     switch(i)
     { case 0: return new Line(X, Y, 0, Height);
       case 1: return new Line(X, Y, Width, 0);
-      case 2: return new Line(X+Width-float.Epsilon, Y, 0, Height);
-      case 3: return new Line(X, Y+Height-float.Epsilon, Width, 0);
+      case 2: return new Line(X+Width, Y, 0, Height);
+      case 3: return new Line(X, Y+Height, Width, 0);
       default: return Line.Invalid;
     }
   }
 
-  public void Inflate(float x, float y) { X-=x; Width+=x*2; Y-=y; Height+=y*2; }
-  public Rectangle Inflated(float x, float y) { return new Rectangle(X-x, Y-y, Width+x*2, Height+y*2); }
+  public void Inflate(double x, double y) { X-=x; Width+=x*2; Y-=y; Height+=y*2; }
+  public Rectangle Inflated(double x, double y) { return new Rectangle(X-x, Y-y, Width+x*2, Height+y*2); }
 
   public void Intersect(Rectangle rect)
-  { float x2=Right, ox2=rect.Right;
+  { double x2=Right, ox2=rect.Right;
     if(X<rect.X)
     { if(x2<rect.X) goto abort;
       X=rect.X;
@@ -1091,7 +1226,7 @@ public struct Rectangle
     }
     else if(X<rect.X) goto abort;
 
-    float y2=Bottom, oy2=rect.Bottom;
+    double y2=Bottom, oy2=rect.Bottom;
     if(Y<rect.Y)
     { if(y2<rect.Y) goto abort;
       Y=rect.Y;
@@ -1120,7 +1255,7 @@ public struct Rectangle
            rect.Contains(BottomRight);
   }
 
-  public void Offset(float x, float y) { X+=x; Y+=y; }
+  public void Offset(double x, double y) { X+=x; Y+=y; }
   public void Offset(Vector vect) { X+=vect.X; Y+=vect.Y; }
 
   public override string ToString()
@@ -1140,7 +1275,7 @@ public struct Rectangle
     if(Bottom<rect.Bottom) Height += rect.Bottom-Bottom;
   }
 
-  public float X, Y, Width, Height;
+  public double X, Y, Width, Height;
 }
 #endregion
 
@@ -1169,7 +1304,7 @@ public class Polygon : ICloneable
   }
   public int Length { get { return length; } }
 
-  public int AddPoint(float x, float y) { return AddPoint(new Point(x, y)); }
+  public int AddPoint(double x, double y) { return AddPoint(new Point(x, y)); }
   public int AddPoint(Point point)
   { if(length==points.Length) ResizeTo(length+1);
     points[length] = point;
@@ -1214,8 +1349,8 @@ public class Polygon : ICloneable
   public bool ConvexIntersects(Rectangle rect)
   { return ConvexIntersects(new Line(rect.X, rect.Y, rect.Width, 0)) ||
            ConvexIntersects(new Line(rect.X, rect.Y, 0, rect.Height)) ||
-           ConvexIntersects(new Line(rect.X, rect.Bottom-float.Epsilon, rect.Width, 0)) ||
-           ConvexIntersects(new Line(rect.Right-float.Epsilon, rect.Y, 0, rect.Height));
+           ConvexIntersects(new Line(rect.X, rect.Bottom, rect.Width, 0)) ||
+           ConvexIntersects(new Line(rect.Right, rect.Y, 0, rect.Height));
   }
 
   public bool ConvexIntersects(Polygon poly)
@@ -1223,8 +1358,8 @@ public class Polygon : ICloneable
     return false;
   }
 
-  public float GetArea()
-  { float area=0;
+  public double GetArea()
+  { double area=0;
     int i;
     for(i=0; i<length-1; i++) area += points[i].X*points[i+1].Y - points[i+1].X*points[i].Y;
     area += points[i].X*points[0].Y - points[0].X*points[i].Y;
@@ -1232,8 +1367,8 @@ public class Polygon : ICloneable
   }
 
   public Rectangle GetBounds()
-  { Rectangle ret = new Rectangle(float.MaxValue, float.MaxValue, 0, 0);
-    float x2=float.MinValue, y2=float.MinValue;
+  { Rectangle ret = new Rectangle(double.MaxValue, double.MaxValue, 0, 0);
+    double x2=double.MinValue, y2=double.MinValue;
     for(int i=0; i<length; i++)
     { if(points[i].X<ret.X) ret.X = points[i].X;
       if(points[i].X>x2) x2 = points[i].X;
@@ -1246,7 +1381,7 @@ public class Polygon : ICloneable
   }
 
   public Point GetCentroid()
-  { float area=0,x=0,y=0,d;
+  { double area=0,x=0,y=0,d;
     for(int i=0,j; i<length; i++)
     { j = i+1==length ? 0 : i+1;
       d = points[i].X*points[j].Y - points[j].X*points[i].Y;
@@ -1296,7 +1431,7 @@ public class Polygon : ICloneable
   public bool IsConvex()
   { bool neg=false, pos=false;
     for(int i=0; i<length; i++) 
-    { float z = GetCorner(i).CrossZ;
+    { double z = GetCorner(i).CrossZ;
       if(z<0)
       { if(pos) return false;
         neg=true;
@@ -1310,7 +1445,7 @@ public class Polygon : ICloneable
   }
 
   public void Offset(Vector dist) { Offset(dist.X, dist.Y); }
-  public void Offset(float xd, float yd)
+  public void Offset(double xd, double yd)
   { for(int i=0; i<length; i++) points[i].Offset(xd, yd);
   }
 
@@ -1364,7 +1499,7 @@ public class Polygon : ICloneable
           // if the sign is different, then the polygon is not convex, and splitting at this corner will result in
           // a simplification
           if(Math.Sign(c.CrossZ) != sign)
-          { float dist = float.MaxValue, d, d2;
+          { double dist = double.MaxValue, d, d2;
             Point splitPoint=new Point();
             int   splitEdge=-1, extPoint=-1, ept;
             for(int ei=0; ei<2; ei++) // try to extend each of the edges that make up this corner
@@ -1466,44 +1601,44 @@ namespace ThreeD
 
 #region Vector
 public struct Vector
-{ public Vector(float x, float y, float z) { X=x; Y=y; Z=z; }
+{ public Vector(double x, double y, double z) { X=x; Y=y; Z=z; }
   public Vector(Point pt) { X=pt.X; Y=pt.Y; Z=pt.Z; }
   
-  public float  Length
-  { get { return (float)System.Math.Sqrt(X*X+Y*Y+Z*Z); }
+  public double  Length
+  { get { return System.Math.Sqrt(X*X+Y*Y+Z*Z); }
     set { Normalize(value); }
   }
-  public float  LengthSqr { get { return X*X+Y*Y+Z*Z; } }
+  public double  LengthSqr { get { return X*X+Y*Y+Z*Z; } }
   public Vector Normal { get { return this/Length; } }
   
   public Vector CrossProduct(Vector v) { return new Vector(X*v.Z-Z*v.Y, Z*v.X-X*v.Z, X*v.Y-Y*v.X); }
-  public float  DotProduct(Vector v) { return X*v.X + Y*v.Y + Z*v.Z; }
+  public double  DotProduct(Vector v) { return X*v.X + Y*v.Y + Z*v.Z; }
   public void Normalize() { Assign(Normal); }
-  public void Normalize(float length) { Assign(this / (Length/length)); }
+  public void Normalize(double length) { Assign(this / (Length/length)); }
 
-  public void Rotate(float xangle, float yangle, float zangle) { Assign(Rotated(xangle, yangle, zangle)); }
-  public void RotateX(float angle) { Assign(RotatedX(angle)); } 
-  public void RotateY(float angle) { Assign(RotatedY(angle)); } 
-  public void RotateZ(float angle) { Assign(RotatedZ(angle)); } 
+  public void Rotate(double xangle, double yangle, double zangle) { Assign(Rotated(xangle, yangle, zangle)); }
+  public void RotateX(double angle) { Assign(RotatedX(angle)); } 
+  public void RotateY(double angle) { Assign(RotatedY(angle)); } 
+  public void RotateZ(double angle) { Assign(RotatedZ(angle)); } 
   
-  public Vector Rotated(float xangle, float yangle, float zangles)
+  public Vector Rotated(double xangle, double yangle, double zangles)
   { return RotatedX(xangle).RotatedY(xangle).RotatedZ(xangle);
   }
-  public Vector RotatedX(float angle)
-  { float sin = (float)Math.Sin(angle), cos = (float)Math.Cos(angle);
+  public Vector RotatedX(double angle)
+  { double sin = Math.Sin(angle), cos = Math.Cos(angle);
     return new Vector(X, Y*cos-Z*sin, Y*sin+Z*cos);
   }
-  public Vector RotatedY(float angle)
-  { float sin = (float)Math.Sin(angle), cos = (float)Math.Cos(angle);
+  public Vector RotatedY(double angle)
+  { double sin = Math.Sin(angle), cos = Math.Cos(angle);
     return new Vector(Z*sin+X*cos, Y, Z*cos-X*sin);
   }
-  public Vector RotatedZ(float angle)
-  { float sin = (float)Math.Sin(angle), cos = (float)Math.Cos(angle);
+  public Vector RotatedZ(double angle)
+  { double sin = Math.Sin(angle), cos = Math.Cos(angle);
     return new Vector(X*cos-Y*sin, X*sin+Y*cos, Z);
   }
   
   public override bool Equals(object obj) { return obj is Vector ? (Vector)obj==this : false; }
-  public bool Equals(Vector vect, float epsilon)
+  public bool Equals(Vector vect, double epsilon)
   { return Math.Abs(vect.X-X)<=epsilon && Math.Abs(vect.Y-Y)<=epsilon && Math.Abs(vect.Z-Z)<=epsilon;
   }
   public override int GetHashCode()
@@ -1517,12 +1652,12 @@ public struct Vector
   public static Vector operator-(Vector a, Vector b) { return new Vector(a.X-b.X, a.Y-b.Y, a.Z-b.Z); }
   public static Vector operator*(Vector a, Vector b) { return new Vector(a.X*b.X, a.Y*b.Y, a.Z*b.Z); }
   public static Vector operator/(Vector a, Vector b) { return new Vector(a.X/b.X, a.Y/b.Y, a.Z/b.Z); }
-  public static Vector operator*(Vector v, float f)   { return new Vector(v.X*f, v.Y*f, v.Z*f); }
-  public static Vector operator/(Vector v, float f)   { return new Vector(v.X/f, v.Y/f, v.Z/f); }
+  public static Vector operator*(Vector v, double f)   { return new Vector(v.X*f, v.Y*f, v.Z*f); }
+  public static Vector operator/(Vector v, double f)   { return new Vector(v.X/f, v.Y/f, v.Z/f); }
   public static bool   operator==(Vector a, Vector b) { return a.X==b.X && a.Y==b.Y && a.Z==b.Z; }
   public static bool   operator!=(Vector a, Vector b) { return a.X!=b.X || a.Y!=b.Y || a.Z!=b.Z; }
   
-  public float X, Y, Z;
+  public double X, Y, Z;
   
   void Assign(Vector v) { X=v.X; Y=v.Y; Z=v.Z; }
 }
@@ -1530,21 +1665,21 @@ public struct Vector
 
 #region Point
 public struct Point
-{ public Point(float x, float y, float z) { X=x; Y=y; Z=z; }
+{ public Point(double x, double y, double z) { X=x; Y=y; Z=z; }
 
-  public float DistanceTo(Point point)
-  { float xd=point.X-X, yd=point.Y-Y, zd=point.Z-Z;
-    return (float)Math.Sqrt(xd*xd+yd*yd+zd*zd);
+  public double DistanceTo(Point point)
+  { double xd=point.X-X, yd=point.Y-Y, zd=point.Z-Z;
+    return Math.Sqrt(xd*xd+yd*yd+zd*zd);
   }
-  public float DistanceCubedTo(Point point)
-  { float xd=point.X-X, yd=point.Y-Y, zd=point.Z-Z;
+  public double DistanceCubedTo(Point point)
+  { double xd=point.X-X, yd=point.Y-Y, zd=point.Z-Z;
     return xd*xd+yd*yd+zd*zd;
   }
 
-  public void Offset(float xd, float yd, float zd) { X+=xd; Y+=yd; Z+=zd; }
+  public void Offset(double xd, double yd, double zd) { X+=xd; Y+=yd; Z+=zd; }
 
   public override bool Equals(object obj) { return obj is Point ? (Point)obj==this : false; }
-  public bool Equals(Point point, float epsilon)
+  public bool Equals(Point point, double epsilon)
   { return Math.Abs(point.X-X)<=epsilon && Math.Abs(point.Y-Y)<=epsilon && Math.Abs(point.Z-Z)<=epsilon;
   }
   public override int GetHashCode()
@@ -1558,18 +1693,18 @@ public struct Point
   public static bool   operator==(Point lhs, Point rhs) { return lhs.X==rhs.X && lhs.Y==rhs.Y && lhs.Z==rhs.Z; }
   public static bool   operator!=(Point lhs, Point rhs) { return lhs.X!=rhs.X || lhs.Y!=rhs.Y || lhs.Z!=rhs.Z; }
   
-  public float X, Y, Z;
+  public double X, Y, Z;
 }
 #endregion
 
 #region Line
 public struct Line
-{ public Line(float x, float y, float z, float xd, float yd, float zd) { Start=new Point(x, y, z); Vector=new Vector(xd, yd, zd); }
+{ public Line(double x, double y, double z, double xd, double yd, double zd) { Start=new Point(x, y, z); Vector=new Vector(xd, yd, zd); }
   public Line(Point start, Vector vector) { Start=start; Vector=vector; }
 
   public Point End { get { return Start+Vector; } }
-  public float Length { get { return Vector.Length; } }
-  public float LengthSqr { get { return Vector.LengthSqr; } }
+  public double Length { get { return Vector.Length; } }
+  public double LengthSqr { get { return Vector.LengthSqr; } }
 
   public Point GetPoint(int point)
   { if(point<0 || point>1) throw new ArgumentOutOfRangeException("point", point, "must be 0 or 1");
@@ -1577,14 +1712,14 @@ public struct Line
   }
 
   public override bool Equals(object obj) { return obj is Line ? (Line)obj==this : false; }
-  public bool Equals(Line line, float epsilon)
+  public bool Equals(Line line, double epsilon)
   { return Start.Equals(line.Start, epsilon) && Vector.Equals(line.Vector, epsilon);
   }
   public override int GetHashCode() { return Start.GetHashCode() ^ Vector.GetHashCode(); }
   public override string ToString() { return string.Format("{0}->{1}", Start, Vector); }
 
   public static Line FromPoints(Point start, Point end) { return new Line(start, end-start); }
-  public static Line FromPoints(float x1, float y1, float z1, float x2, float y2, float z2)
+  public static Line FromPoints(double x1, double y1, double z1, double x2, double y2, double z2)
   { return new Line(x1, y1, z1, x2-x1, y2-y1, z2-z1);
   }
 
@@ -1603,7 +1738,7 @@ public struct Plane
 
 public struct Sphere
 { public Point Center;
-  public float Radius;
+  public double Radius;
 }
 
 } // namespace ThreeD

@@ -13,7 +13,7 @@ will be prominently noted in the CHANGELOG file.
 Included files/directories (partial list):
   src/               GameLib source
   src/Mixer/         Source to the audio mixer
-  src/Utility/       Source to the DLL that provides timing, etc
+  src/Utility/       Source to the DLL that provides timing, blitting, etc
   src/VorbisWrapper/ Source to the DLL that provides an interface to libvorbis
   src/libsndfile/    Source to a modified version of libsndfile
   src/examples/      Source to various example programs

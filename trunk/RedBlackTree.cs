@@ -124,16 +124,12 @@ public class RedBlackBase
   { if(TreeChanged!=null) TreeChanged();
     Node x=root, y=Node.Null, gp;
 
-    while(x!=Node.Null)
-    { y=x; x=comparer.Compare(node.Value, x.Value)<0 ? x.Left : x.Right;
-    }
-    
+    while(x!=Node.Null) { y=x; x=comparer.Compare(node.Value, x.Value)<0 ? x.Left : x.Right; }
     (x=node).Parent = y;
-    if(y!=Node.Null)
-    { if(comparer.Compare(x.Value, y.Value)<0) y.Left=x;
-      else y.Right=x; // equal values go to the right
-    }
-    else root=x;
+
+    if(y==Node.Null) root=x;
+    else if(comparer.Compare(x.Value, y.Value)<0) y.Left=x;
+    else y.Right=x; // equal values go to the right
 
     while(x!=root && x.Parent.Red)
       if(x.Parent==(gp=x.Parent.Parent).Left)
