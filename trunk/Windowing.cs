@@ -51,8 +51,8 @@ public delegate void MouseMoveEventHandler(object sender, MouseMoveEvent e);
 
 [Flags]
 public enum ControlStyle
-{ None=0, Clickable=1, DoubleClickable=2, Draggable=4, Anyclick=Clickable|DoubleClickable|Draggable,
-  CanFocus=8
+{ None=0, Clickable=1, DoubleClickable=2, Draggable=4, CanFocus=8,
+  NormalClick=Clickable|DoubleClickable, Anyclick=NormalClick|Draggable,
 }
 
 #region Control class
@@ -496,11 +496,12 @@ public class Control
   }
 
   public void ResumeLayout() { ResumeLayout(true); }
-  public void ResumeLayout(bool updateLayout)
-  { layoutSuspended=false;
-    if(updateLayout)
-    { // TODO: update layout if necessary
+  public void ResumeLayout(bool updateNow)
+  { if(layoutSuspended && pendingLayout)
+    { if(updateLayout) OnLayout(new EventArgs());
+      else if(Events.Events.Initialized) Events.Events.PushEvent(new WindowLayoutEvent(this));
     }
+    layoutSuspended=false;
   }
 
   public void SendToBack()
@@ -561,7 +562,12 @@ public class Control
 
   protected virtual void OnLocationChanged(ValueChangedEventArgs e)
   { if(LocationChanged!=null) LocationChanged(this, e);
-    // TODO: handle this
+    DesktopControl desktop = Desktop;
+    if(desktop!=null)
+    { Rectangle old = new Rectangle((Point)e.OldValue, bounds.Size);
+      desktop.Invalidate(parent==desktop ? old : RectToAncestor(old, desktop));
+      Invalidate();
+    }
     if(Move!=null) Move(this, new EventArgs());
   }
 
@@ -573,7 +579,10 @@ public class Control
   { if(SizeChanged!=null) SizeChanged(this, e);
     if(invalid.Right>bounds.Width) invalid.Width-=invalid.Right-bounds.Width;
     if(invalid.Bottom>bounds.Height) invalid.Height-=invalid.Bottom-bounds.Height;
-    // TODO: mark as needing layout
+    if(!pendingLayout)
+    { if(!layoutSuspended && Events.Events.Initialized) Events.Events.PushEvent(new WindowLayoutEvent(this));
+      pendingLayout=true;
+    }
     Size old = (Size)e.OldValue;
     if(parent!=null && (bounds.Width<old.Width || bounds.Height<old.Height))
     { if(bounds.Width<old.Width && bounds.Height<old.Height) // invalidate the smallest rectangle necessary
@@ -599,14 +608,14 @@ public class Control
     if(Visible!=(bool)e.OldValue)
     { if(!Visible) Blur();
       foreach(Control c in controls) c.OnParentVisibleChanged(e);
-      // TODO: repaint desktop
+      Invalidate();
     }
   }
 
   protected virtual void OnGotFocus(EventArgs e)  { if(GotFocus!=null) GotFocus(this, e); }
   protected virtual void OnLostFocus(EventArgs e) { if(LostFocus!=null) LostFocus(this, e); }
 
-  protected virtual void OnLayout(EventArgs e) { if(Layout!=null) Layout(this, e); }
+  protected internal virtual void OnLayout(EventArgs e) { if(Layout!=null) Layout(this, e); }
 
   protected internal virtual void OnMouseEnter(EventArgs e) { if(MouseEnter!=null) MouseEnter(this, e); }
   protected internal virtual void OnMouseLeave(EventArgs e) { if(MouseLeave!=null) MouseLeave(this, e); }
@@ -696,8 +705,7 @@ public class Control
   protected IBlittable backimg, cursor;
   protected string name="", text="";
   protected int tabIndex=-1;
-  protected bool enabled=true, visible=true, mychange=false, pendingPaint=false;
-  protected bool keyPreview=false, layoutSuspended=false;
+  protected bool enabled=true, visible=true, mychange, pendingPaint, pendingLayout, keyPreview, layoutSuspended;
 }
 #endregion
 
@@ -724,6 +732,7 @@ public class DesktopControl : ContainerControl
   ~DesktopControl() { Dispose(true); }
   public void Dispose() { Dispose(false); GC.SuppressFinalize(this); }
 
+  #region Properties
   public AutoFocus AutoFocusing { get { return focus; } set { focus=value; } }
   public uint DoubleClickDelay  { get { return dcDelay; } set { dcDelay=value; } }
   public bool ProcessKeys       { get { return keys; } set { keys=value; } }
@@ -772,6 +781,7 @@ public class DesktopControl : ContainerControl
       Invalidate();
     }
   }
+  #endregion
 
   public void DoPaint() { DoPaint(this); }
   public void DoPaint(Control child)
@@ -783,19 +793,43 @@ public class DesktopControl : ContainerControl
     }
   }
 
+  #region ProcessEvent
   public FilterAction ProcessEvent(Event e)
-  { if(moves && e is MouseMoveEvent)
+  {
+    #region Mouse moves
+    if(moves && e is MouseMoveEvent)
     { MouseMoveEvent ea = (MouseMoveEvent)e;
       Point at = ea.Point;
       if(dragging==null && capturing==null && !Bounds.Contains(at)) return FilterAction.Continue;
 
       Control p=this, c;
       at.X -= bounds.X; at.Y -= bounds.Y;
+      EventArgs eventArgs=null;
+      int ei=0;
       while(p.Enabled && p.Visible)
       { c = p.GetChildAtPoint(at);
+        if(ei<enteredLen && c!=entered[ei])
+        { if(eventArgs==null) eventArgs=new EventArgs();
+          for(int i=enteredLen-1; i>=ei; i--)
+          { entered[i].OnMouseLeave(eventArgs);
+            entered[i] = null;
+          }
+          enteredLen = ei;
+        }
         if(c==null) break;
+        if(ei==enteredLen)
+        { if(eventArgs==null) eventArgs=new EventArgs();
+          if(enteredLen==enteredMax)
+          { Control[] na = new Control[enteredMax*=2];
+            Array.Copy(entered, na, enteredLen);
+            entered = na;
+          }
+          entered[enteredLen++] = c;
+          c.OnMouseEnter(eventArgs);
+        }
         at = p.PointToChild(at, c);
         if(focus==AutoFocus.Hover && c.CanFocus) c.Focus();
+        ei++;
         p = c;
       }
       if(focus==AutoFocus.Hover) p.FocusedControl = null;
@@ -826,10 +860,12 @@ public class DesktopControl : ContainerControl
       { if(p != this)
         { ea.Point = at;
           p.OnMouseMove(ea);
-          // TODO: implement enter + leave
         }
       }
+      return FilterAction.Drop;
     }
+    #endregion
+    #region Keyboard
     else if(keys && e is KeyboardEvent)
     { if(focused!=null)
       { KeyEventArgs ea = new KeyEventArgs((KeyboardEvent)e);
@@ -847,6 +883,8 @@ public class DesktopControl : ContainerControl
         return FilterAction.Drop;
       }
     }
+    #endregion
+    #region Mouse clicks
     else if(clicks && e is MouseClickEvent)
     { ClickEventArgs ea = new ClickEventArgs((MouseClickEvent)e);
       Point  at = ea.CE.Point;
@@ -900,6 +938,7 @@ public class DesktopControl : ContainerControl
       if(!ea.CE.Down && ea.CE.Button<8) lastClicked[ea.CE.Button] = null;
       return FilterAction.Drop;
     }
+    #endregion
     else if(e is WindowEvent)
     { WindowEvent we = (WindowEvent)e;
       switch(we.SubType)
@@ -907,6 +946,7 @@ public class DesktopControl : ContainerControl
           if(heldChar!=null) DispatchKeyToFocused(new KeyEventArgs(heldChar), true);
           break;
         case WindowEvent.MessageType.Paint: DoPaint(we.Control); break;
+        case WindowEvent.MessageType.Layout: we.Control.OnLayout(new EventArgs()); break;
         default: throw new ArgumentException("Unhandled message type");
       }
       return FilterAction.Drop;
@@ -914,6 +954,7 @@ public class DesktopControl : ContainerControl
     else if(e is RepaintEvent) Refresh();
     return FilterAction.Continue;
   }
+  #endregion
 
   protected void Dispose(bool destructor)
   { if(init)
@@ -922,6 +963,7 @@ public class DesktopControl : ContainerControl
     }
   }
 
+  #region Dispatchers
   protected bool DispatchKeyEvent(Control target, KeyEventArgs e, bool repeat)
   { if(e.KE.Down)
     { if(!repeat)
@@ -938,21 +980,17 @@ public class DesktopControl : ContainerControl
   { if(e.CE.Down) target.OnMouseDown(e);
     else target.OnMouseUp(e);
     if(e.Handled) return false;
-    if(target.HasStyle(ControlStyle.Anyclick) && e.CE.Button<8)
+    if(target.HasStyle(ControlStyle.NormalClick) && e.CE.Button<8)
     { if(e.CE.Down) lastClicked[e.CE.Button] = target;
       else
       { if(lastClicked[e.CE.Button]==target)
         { if(target.HasStyle(ControlStyle.DoubleClickable) && time-target.lastClickTime<=dcDelay)
             target.OnDoubleClick(e);
-          else if(target.HasStyle(ControlStyle.Clickable))
-            target.OnClick(e);
+          else target.OnClick(e);
           target.lastClickTime = time;
           if(e.Handled) return false;
           lastClicked[e.CE.Button]=target.Parent;
         }
-      }
-      if(target.HasStyle(ControlStyle.Draggable))
-      { // TODO: implement dragging
       }
     }
     return true;
@@ -967,6 +1005,7 @@ public class DesktopControl : ContainerControl
     if(!e.Handled) DispatchKeyEvent(fc, e, repeat);
     return !e.Handled;
   }
+  #endregion
   
   protected void RepeatKey(object dummy) { Events.Events.PushEvent(new KeyRepeatEvent()); }
   
@@ -974,12 +1013,12 @@ public class DesktopControl : ContainerControl
 
   protected Surface surface;
   protected AutoFocus   focus;
-  protected Control[]   lastClicked = new Control[8];
+  protected Control[]   lastClicked=new Control[8], entered=new Control[8];
   protected Control     dragging;
   protected System.Threading.Timer krTimer;
   protected KeyboardEvent heldChar;
   protected DragEventArgs drag;
-  protected int   dragThresh=16;
+  protected int   dragThresh=16, enteredLen, enteredMax=8;
   protected uint  dcDelay=350, krDelay, krRate=50;
   protected bool  keys=true, clicks=true, moves=true, updated, active, init, dragStarted;
   
