@@ -39,7 +39,7 @@ class App
     VorbisSource ogg = new VorbisSource(dataPath+"music.ogg");
     // but a SampleSource converts any other audio source into a sample,
     // which means it's loaded completely into memory
-    SampleSource smp = new SampleSource(new SoundFileSource(dataPath+"himan.wav"));
+    SampleSource smp = new SampleSource(new SoundFileSource(dataPath+"woot.wav"));
 
     while(true)
     { Console.WriteLine("1) Toggle playing of streaming ogg");
