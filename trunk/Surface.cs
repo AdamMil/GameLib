@@ -265,9 +265,14 @@ public class Surface : IBlittable, IDisposable
     }
   }
 
-  public void  PutPixel(int x, int y, Color color) { PutPixelRaw(x, y, MapColor(color)); }
+  public Color GetPixel(Point point) { return MapColor(GetPixelRaw(point.X, point.Y)); }
   public Color GetPixel(int x, int y) { return MapColor(GetPixelRaw(x, y)); }
-  public void  PutPixelRaw(int x, int y, uint color)
+
+  public void PutPixel(Point point, Color color) { PutPixelRaw(point.X, point.Y, MapColor(color)); }
+  public void PutPixel(int x, int y, Color color) { PutPixelRaw(x, y, MapColor(color)); }
+
+  public void PutPixelRaw(Point point, uint color) { PutPixelRaw(point.X, point.Y, color); }
+  public void PutPixelRaw(int x, int y, uint color)
   { if(!ClipRect.Contains(x, y)) return;
     Lock();
     try
@@ -288,6 +293,8 @@ public class Surface : IBlittable, IDisposable
     }
     finally { Unlock(); }
   }
+
+  public uint GetPixelRaw(Point point) { return GetPixelRaw(point.X, point.Y); }
   public uint GetPixelRaw(int x, int y)
   { if(!Bounds.Contains(x, y)) throw new ArgumentOutOfRangeException();
     Lock();

@@ -633,6 +633,20 @@ public class Control
     { return BackingSurface==null ? WindowToDisplay(WindowRect) : WindowToBacking(WindowRect);
     }
   }
+  
+  /// <summary>Gets the that surface that can be used for drawing.</summary>
+  /// <remarks>This property returns either the <see cref="Desktop"/>'s associated surface or
+  /// the <see cref="BackingSurface"/> depending on whether the control has a backing surface or not.
+  /// You can use <see cref="DrawRect"/> to retrieve the window's bounds within the drawing surface.
+  /// </remarks>
+  public Surface DrawSurface
+  { get
+    { Surface surface = BackingSurface;
+      if(surface!=null) return surface;
+      DesktopControl desktop = Desktop;
+      return desktop==null ? null : desktop.Surface;
+    }
+  }
 
   /// <summary>Gets or sets how this control will be docked to its parent.</summary>
   /// <remarks>When a control is docked, it will be automatically moved and/or resized when its parent is resized
