@@ -21,11 +21,16 @@ using System;
 namespace GameLib.Mathematics
 {
 
-public class MathConst
+public sealed class MathConst
 { private MathConst() { }
 
   public const double DegreesToRadians = Math.PI/180;
   public const double RadiansToDegrees = 180/Math.PI;
+  public const double TwoPI            = Math.PI*2;
+}
+
+public sealed class GLMath
+{ public static float AngleBetween(TwoD.Point start, TwoD.Point end) { return (end-start).Angle; }
 }
 
 // TODO: once generics become available, implement these in a type-generic fashion
@@ -37,6 +42,14 @@ namespace TwoD
 public struct Vector
 { public Vector(float x, float y) { X=x; Y=y; }
   
+  public float Angle
+  { get
+    { float angle = (float)Math.Acos(X/Length);
+      if(Y>0) angle = (float)MathConst.TwoPI-angle;
+      return angle;
+    }
+  }
+
   public Vector CrossVector { get { return new Vector(-Y, X); } }
   public float  Length    { get { return (float)System.Math.Sqrt(X*X+Y*Y); } }
   public float  LengthSqr { get { return X*X+Y*Y; } }
