@@ -123,7 +123,8 @@ internal class SDL
   }
   [StructLayout(LayoutKind.Explicit)]
   public struct Color
-  { [FieldOffset(0)] public byte Red;
+  { public Color(System.Drawing.Color c) { Value=0; Red=c.R; Green=c.G; Blue=c.B; Alpha=c.A; }
+    [FieldOffset(0)] public byte Red;
     [FieldOffset(1)] public byte Green;
     [FieldOffset(2)] public byte Blue;
     [FieldOffset(3)] public byte Alpha; // TODO: make bigendian friendly? (is it necessary? check SDL docs)
@@ -149,7 +150,7 @@ internal class SDL
   public unsafe struct Surface
   { public  uint Flags;
     public  PixelFormat* Format;
-    public  uint   Width, Height;
+    public  int    Width, Height;
     public  ushort Pitch;
     public  void*  Pixels;
     private int    Offset;
@@ -325,11 +326,11 @@ internal class SDL
 
   #region Video
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_VideoModeOK", CallingConvention=CallingConvention.Cdecl)]
-  public static extern int VideoModeOK(uint width, uint height, uint depth, uint flags);
+  public static extern int VideoModeOK(int width, int height, uint depth, uint flags);
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_GetVideoInfo", CallingConvention=CallingConvention.Cdecl)]
   public static extern VideoInfo* GetVideoInfo();
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_SetVideoMode", CallingConvention=CallingConvention.Cdecl)]
-  public static extern Surface* SetVideoMode(uint width, uint height, uint depth, uint flags);
+  public static extern Surface* SetVideoMode(int width, int height, uint depth, uint flags);
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_FreeSurface", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern void FreeSurface(Surface* surface);
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_Flip", CallingConvention=CallingConvention.Cdecl)]
@@ -349,7 +350,7 @@ internal class SDL
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_WarpMouse", CallingConvention=CallingConvention.Cdecl)]
   public static extern void WarpMouse(ushort x, ushort y);
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_CreateRGBSurface", CallingConvention=CallingConvention.Cdecl)]
-  public static extern Surface* CreateRGBSurface(uint flags, uint width, uint height, uint depth, uint Rmask, uint Gmask, uint Bmask, uint Amask);
+  public static extern Surface* CreateRGBSurface(uint flags, int width, int height, uint depth, uint Rmask, uint Gmask, uint Bmask, uint Amask);
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_UpperBlit", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern int BlitSurface(Surface* src, Rect* srcrect, Surface* dest, Rect* destrect);
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_GetVideoSurface", CallingConvention=CallingConvention.Cdecl)]
@@ -495,11 +496,11 @@ internal class SDL
     bool done=false;
 
     for(i=0; i<counts.Length; i++) if(counts[i]!=0) break;
-    if(i==counts.Length) { Init(sys); done=true; }
+    if(i==counts.Length) { Check(Init(sys)); done=true; }
 
     for(i=0; i<counts.Length; i++)
       if((sys&inits[i])!=0)
-      { if(counts[i]++==0 && !done) InitSubSystem(inits[i]);
+      { if(counts[i]++==0 && !done) InitSubSystem(inits[i]); // TODO: check for errors
         sys &= ~inits[i];
       }
     if(sys!=InitFlag.Nothing && !done)
@@ -530,6 +531,7 @@ internal class SDL
   static uint[] counts = new uint[6];
 }
 
+#region StreamSource class
 internal class StreamSource
 { public unsafe StreamSource(Stream stream)
   { if(stream==null) throw new ArgumentNullException("stream");
@@ -598,5 +600,6 @@ internal class StreamSource
   SDL.WriteHandler write;
   SDL.CloseHandler close;
 }
+#endregion
 
 } // namespace GameLib.InterOp.SDL

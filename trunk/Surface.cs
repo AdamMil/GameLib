@@ -22,7 +22,7 @@ public class Surface : IDisposable
     // non-display surfaces only
     RLE = SDL.VideoFlag.RLEAccel, SrcAlpha=SDL.VideoFlag.SrcAlpha,
     // display surfaces only
-    DoubleBuffer = SDL.VideoFlag.DoubleBuffer, FullScreen = SDL.VideoFlag.FullScreen,
+    DoubleBuffer = SDL.VideoFlag.DoubleBuffer, Fullscreen = SDL.VideoFlag.FullScreen,
     OpenGL       = SDL.VideoFlag.OpenGL,       OpenGLBlit = SDL.VideoFlag.OpenGLBlit,
     NoFrame      = SDL.VideoFlag.NoFrame,      Resizeable = SDL.VideoFlag.Resizable,
     // display surface creation only
@@ -30,20 +30,20 @@ public class Surface : IDisposable
   }
 
   public Surface(Bitmap bitmap) { throw new NotImplementedException(); }
-  public Surface(uint width, uint height, byte depth) : this(width, height, depth, Flag.None) { }
-  public Surface(uint width, uint height, byte depth, Flag flags)
+  public Surface(int width, int height, byte depth) : this(width, height, depth, Flag.None) { }
+  public Surface(int width, int height, byte depth, Flag flags)
   { InitFromFormat(width, height, new PixelFormat(depth, (flags&Flag.SrcAlpha)!=0), flags);
   }
 
-  public Surface(uint width, uint height, byte depth, uint Rmask, uint Gmask, uint Bmask, uint Amask)
+  public Surface(int width, int height, byte depth, uint Rmask, uint Gmask, uint Bmask, uint Amask)
     : this(width, height, depth, Rmask, Gmask, Bmask, Amask, Flag.None) { }
-  public unsafe Surface(uint width, uint height, byte depth,
+  public unsafe Surface(int width, int height, byte depth,
                         uint Rmask, uint Gmask, uint Bmask, uint Amask, Flag flags)
   { InitFromSurface(SDL.CreateRGBSurface((uint)flags, width, height, depth, Rmask, Gmask, Bmask, Amask));
   }
 
-  public Surface(uint width, uint height, PixelFormat format) : this(width, height, format, Flag.None) { }
-  public Surface(uint width, uint height, PixelFormat format, Flag flags)
+  public Surface(int width, int height, PixelFormat format) : this(width, height, format, Flag.None) { }
+  public Surface(int width, int height, PixelFormat format, Flag flags)
   { InitFromFormat(width, height, format, flags);
   }
   
@@ -59,18 +59,19 @@ public class Surface : IDisposable
   }
 
   internal unsafe Surface(SDL.Surface* surface, bool autoFree)
-  { this.surface=surface; this.autoFree=autoFree;
+  { if(surface==null) throw new ArgumentNullException("surface");
+    this.surface=surface; this.autoFree=autoFree;
     Init();
   }
 
   ~Surface() { Dispose(true); }
   public void Dispose() { Dispose(false); GC.SuppressFinalize(this); }
 
-  public unsafe uint Width  { get { return surface->Width; } }
-  public unsafe uint Height { get { return surface->Height; } }
-  public Size Size   { get { return new Size((int)Width, (int)Height); } }
+  public unsafe int Width  { get { return surface->Width; } }
+  public unsafe int Height { get { return surface->Height; } }
+  public Size Size   { get { return new Size(Width, Height); } }
   public byte Depth  { get { return format.Depth; } }
-  public Rectangle Bounds { get { return new Rectangle(0, 0, (int)Width, (int)Height); } }
+  public Rectangle Bounds { get { return new Rectangle(0, 0, Width, Height); } }
 
   public unsafe uint Pitch  { get { return surface->Pitch; } }
   public unsafe void* Data     { get { return surface->Pixels; } }
@@ -237,8 +238,8 @@ public class Surface : IDisposable
     return SDL.SetPalette(surface, (uint)type, array, startColor, numColors)==1;
   }
 
-  public Surface CreateCompatible(uint width, uint height) { return CreateCompatible(width, height, Flags); }
-  public unsafe Surface CreateCompatible(uint width, uint height, Flag flags)
+  public Surface CreateCompatible(int width, int height) { return CreateCompatible(width, height, Flags); }
+  public unsafe Surface CreateCompatible(int width, int height, Flag flags)
   { SDL.Surface* ret = SDL.CreateRGBSurface((uint)flags, width, height, format.Depth, format.RedMask,
                                             format.GreenMask, format.BlueMask, format.AlphaMask);
     if(ret==null) SDL.RaiseError();
@@ -255,7 +256,7 @@ public class Surface : IDisposable
     return new Surface(ret, true);
   }
 
-  public unsafe Surface CloneDisplay() { return CloneDisplay(false); }
+  public unsafe Surface CloneDisplay() { return CloneDisplay(Format.AlphaMask!=0); }
   public unsafe Surface CloneDisplay(bool alphaChannel)
   { SDL.Surface* ret = alphaChannel ? SDL.DisplayFormatAlpha(surface) : SDL.DisplayFormat(surface);
     if(ret==null) SDL.RaiseError();
@@ -275,7 +276,7 @@ public class Surface : IDisposable
     usingKey = usingAlpha = false;
     usingRLE = (surface->Flags&(uint)SDL.VideoFlag.RLEAccel)!=0;
   }
-  protected unsafe void InitFromFormat(uint width, uint height, PixelFormat format, Flag flags)
+  protected unsafe void InitFromFormat(int width, int height, PixelFormat format, Flag flags)
   { InitFromSurface(SDL.CreateRGBSurface((uint)flags, width, height, format.Depth, format.RedMask,
                                          format.GreenMask, format.BlueMask, format.AlphaMask));
   }

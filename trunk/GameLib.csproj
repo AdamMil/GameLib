@@ -107,6 +107,11 @@
                     BuildAction = "Compile"
                 />
                 <File
+                    RelPath = "Fonts.cs"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
                     RelPath = "Input.cs"
                     SubType = "Code"
                     BuildAction = "Compile"
@@ -127,6 +132,11 @@
                     BuildAction = "Compile"
                 />
                 <File
+                    RelPath = "PriorityQueue.cs"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
                     RelPath = "SDLImageInterop.cs"
                     SubType = "Code"
                     BuildAction = "Compile"
@@ -138,6 +148,11 @@
                 />
                 <File
                     RelPath = "SDLMixerInterop.cs"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "SDLTTFInterop.cs"
                     SubType = "Code"
                     BuildAction = "Compile"
                 />

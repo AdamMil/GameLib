@@ -1,0 +1,258 @@
+using System;
+using System.Collections;
+using System.Drawing;
+using GameLib.Video;
+using GameLib.Interop.SDL;
+using GameLib.Interop.SDLTTF;
+
+namespace GameLib.Fonts
+{
+
+#region Abstract classes
+public abstract class Font
+{ public Font()
+  { Video.Video.ModeChanged += handler;
+  }
+
+  public abstract int Height { get; }
+  public abstract int LineSkip { get; }
+
+  public abstract Size CalculateSize(string text);
+
+  public void Render(Surface dest, string text, Point pt) { Render(dest, text, pt.X, pt.Y); }
+  public abstract void Render(Surface dest, string text, int x, int y);
+
+  public void Render(Surface dest, string text, Rectangle rect) { Render(dest, text, rect, breakers); }
+  public virtual void Render(Surface dest, string text, Rectangle rect, char[] breakers)
+  { int[] lines = WordWrap(text, rect, breakers);
+    int start=0, y=rect.Y;
+    for(int i=0; i<lines.Length; i++)
+    { Render(dest, text.Substring(start, lines[i]), rect.X, y);
+      start += lines[i];
+      y += LineSkip;
+    }
+  }
+
+  public int[] WordWrap(string text, Rectangle rect) { return WordWrap(text, rect, breakers); }
+  public virtual int[] WordWrap(string text, Rectangle rect, char[] breakers)
+  { throw new NotImplementedException();
+  }
+
+  protected abstract void DisplayFormatChanged();
+  protected void Deinit()
+  { if(handler!=null)
+    { Video.Video.ModeChanged -= handler;
+      handler=null;
+    }
+  }
+
+  static readonly char[] breakers = new char[] { ' ', '-', ',', ':', ';' };
+  Video.ModeChangedHandler handler;
+}
+
+[Flags]
+public enum FontStyle
+{ Normal=0, Bold=1, Italic=2, Underlined=4
+}
+public abstract class NonFixedFont : Font
+{ public abstract FontStyle Style { get; set; }
+  public abstract Color     Color { get; set; }
+  protected void Init() { Color=Color.White; Style=FontStyle.Normal; }
+}
+#endregion
+
+#region BmpFont class
+public class BmpFont : Font, IDisposable
+{ public BmpFont(Surface font, string charset, int charWidth) : this(font, charset, charWidth, 1, font.Height+2) { }
+  public BmpFont(Surface font, string charset, int charWidth, int xAdd, int lineSkip)
+  { orig   = font;
+    width  = charWidth;
+    height = lineSkip;
+    this.xAdd    = xAdd;
+    this.font    = orig.CloneDisplay();
+    this.charset = charset;
+  }
+  ~BmpFont() { Dispose(true); }
+  public void Dispose() { Dispose(false); GC.SuppressFinalize(this); }
+  
+  public override int Height   { get { return font.Height; } }
+  public override int LineSkip { get { return height; } }
+
+  public override Size CalculateSize(string text)
+  { if(text.Length==0) return new Size(Height, 0);
+    if(text.Length==1) return new Size(Height, width);
+    return new Size(Height, (text.Length-1)*(width+xAdd)+width);
+  }
+
+  public override void Render(Surface dest, string text, int x, int y)
+  { for(int i=0,add=width+xAdd; i<text.Length; i++)
+    { int off = charset.IndexOf(text[i]);
+      if(off!=-1) font.Blit(dest, new Rectangle(off*width, 0, width, Height), x, y);
+      x += add;
+    }
+  }
+
+  protected override void DisplayFormatChanged() { font=orig.CloneDisplay(); }
+  protected void Dispose(bool destructor)
+  { font.Dispose();
+    orig.Dispose();
+    base.Deinit();
+  }
+
+  Surface font, orig;
+  string  charset;
+  int     width, height, xAdd;
+}
+#endregion
+
+#region TTFont enums & class
+public enum RenderStyle
+{ Solid, Shaded, Blended
+}
+public class TTFont : NonFixedFont, IDisposable
+{ public TTFont(string filename, int pointSize)
+  { TTF.Initialize();
+    font = TTF.OpenFont(filename, pointSize);
+    Init();
+  }
+  public TTFont(string filename, int pointSize, int fontIndex)
+  { font = TTF.OpenFontIndex(filename, pointSize, fontIndex);
+    Init();
+  }
+  public TTFont(System.IO.Stream stream, int pointSize)
+  { StreamSource source = new StreamSource(stream);
+    unsafe { fixed(SDL.RWOps* ops = &source.ops) font = TTF.OpenFontRW(ops, 0, pointSize); }
+    Init();
+  }
+  public TTFont(System.IO.Stream stream, int pointSize, int fontIndex)
+  { StreamSource source = new StreamSource(stream);
+    unsafe { fixed(SDL.RWOps* ops = &source.ops) font = TTF.OpenFontIndexRW(ops, 0, pointSize, fontIndex); }
+    Init();
+  }
+  ~TTFont() { Dispose(true); }
+  public void Dispose() { Dispose(false); GC.SuppressFinalize(this); }
+
+  public override FontStyle Style
+  { get { return fstyle; }
+    set
+    { if(fstyle==value) return;
+      TTF.SetFontStyle(font, (int)value);
+      fstyle = (FontStyle)TTF.GetFontStyle(font);
+    }
+  }
+  public RenderStyle RenderStyle { get { return rstyle;  } set { rstyle=value;  } }
+  public override Color Color    { get { return color;   } set { color=value; sdlColor=new SDL.Color(value); } }
+  public Color    BackColor      { get { return bgColor; } set { bgColor=value; sdlBgColor=new SDL.Color(value); } }
+
+  public override int Height { get { return TTF.FontHeight(font); } }
+  public override int LineSkip { get { return TTF.FontLineSkip(font); } }
+  public int Ascent  { get { return TTF.FontAscent(font); } }
+  public int Descent { get { return TTF.FontDescent(font); } }
+  public int CacheSize { get { throw new NotImplementedException(); } set { throw new NotImplementedException(); } }
+  
+  public override Size CalculateSize(string text)
+  { int width, height;
+    TTF.SizeUNICODE(font, text, out width, out height);
+    return new Size(width, height);
+  }
+  public override void Render(Surface dest, string text, int x, int y)
+  { for(int i=0; i<text.Length; i++)
+    { CachedChar c = GetChar(text[i]);
+      c.Surface.Blit(dest, x+c.OffsetX, y+c.OffsetY);
+      x += c.Advance;
+    }
+  }
+
+  protected class CacheIndex : IComparable
+  { public CacheIndex(char c, Color color, Color bgColor, FontStyle fstyle, RenderStyle rstyle)
+    { Char=c; Color=color; BackColor=bgColor; FontStyle=fstyle; RenderStyle=rstyle;
+    }
+    public int CompareTo(object other)
+    { CacheIndex o = (CacheIndex)other;
+      int cmp = Char.CompareTo(o.Char);
+      if(cmp!=0) return cmp;
+      cmp = this.FontStyle.CompareTo(o.FontStyle);
+      if(cmp!=0) return cmp;
+      cmp = this.RenderStyle.CompareTo(o.RenderStyle);
+      if(cmp!=0) return cmp;
+      cmp = this.Color.ToArgb().CompareTo(o.Color.ToArgb());
+      if(cmp!=0 || this.RenderStyle!=RenderStyle.Shaded) return cmp;
+      return this.BackColor.ToArgb().CompareTo(o.BackColor.ToArgb());
+    }
+    public Color       Color;
+    public Color       BackColor;
+    public FontStyle   FontStyle;
+    public RenderStyle RenderStyle;
+    public char        Char;
+  }
+  protected class CachedChar : IDisposable
+  { public CachedChar() { }
+    public CachedChar(char c) { Char=c; }
+    ~CachedChar() { Dispose(true); }
+    public void Dispose() { Dispose(false); GC.SuppressFinalize(this); }
+    
+    public Surface Surface;
+    public int     OffsetX, OffsetY, Advance;
+    public char    Char;
+    
+    void Dispose(bool destructor) { Surface.Dispose(); }
+  }
+  
+  // TODO: implement a priority queue to efficiently limit the cache size
+  protected CachedChar GetChar(char c)
+  { CacheIndex ind = new CacheIndex(c, color, bgColor, fstyle, rstyle);
+    if(cache.Contains(ind)) return (CachedChar)cache[ind];
+    CachedChar cc = new CachedChar(c);
+    int minx, maxx, miny, maxy, advance;
+    TTF.Check(TTF.GlyphMetrics(font, c, out minx, out maxx, out miny, out maxy, out advance));
+    cc.OffsetX = Math.Max(minx, 0);
+    cc.OffsetY = Ascent-maxy;
+    cc.Advance = advance;
+    unsafe
+    { SDL.Surface* surface=null;
+      switch(rstyle)
+      { case RenderStyle.Solid:   surface = TTF.RenderGlyph_Solid(font, c, sdlColor); break;
+        case RenderStyle.Shaded:  surface = TTF.RenderGlyph_Shaded(font, c, sdlColor, sdlBgColor); break;
+        case RenderStyle.Blended: surface = TTF.RenderGlyph_Blended(font, c, sdlColor); break;
+      }
+      if(surface==null) TTF.RaiseError();
+      cc.Surface = new Surface(surface, true).CloneDisplay();
+    }
+    cache[ind] = cc;
+    return cc;
+  }
+  
+  protected override void DisplayFormatChanged() { cache.Clear(); }
+
+  protected void Dispose(bool destructor)
+  { unsafe
+    { if(font.ToPointer()!=null)
+      { TTF.CloseFont(font);
+        TTF.Deinitialize();
+        font = new IntPtr(null);
+      }
+    }
+    if(cache.Count>0)
+    { foreach(CachedChar c in cache.Values) c.Dispose();
+      cache.Clear();
+    }
+    base.Deinit();
+  }
+  
+  protected new void Init()
+  { unsafe { if(font.ToPointer()==null) { TTF.Deinitialize(); TTF.RaiseError(); } }
+    base.Init();
+    BackColor   = Color.Black;
+    RenderStyle = RenderStyle.Solid;
+  }
+
+  protected Hashtable    cache = new Hashtable();
+  protected FontStyle    fstyle;
+  protected RenderStyle  rstyle;
+  protected Color        color, bgColor;
+  private SDL.Color sdlColor, sdlBgColor;
+  private IntPtr    font;
+}
+#endregion
+
+} // namespace GameLib.Fonts
