@@ -20,6 +20,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // TODO: add 'other control' to focus events?
 // TODO: implement overlapping window support
 // TODO: unify terminology referring to coordinates (eg, control coordinates vs client coordinates, etc)
+// TODO: evaluate usage of Color.Transparent and consider replacing with Color.Empty
+// TODO: add a default font
 
 using System;
 using System.Collections;

@@ -67,6 +67,7 @@ DEVELOPMENT (alpha/beta)
 + Added a Connected event and OnConnected override for the network Client.
 * Cleaned up and optimized the binary reading/writing code somewhat.
 + Added quaternion and matrix classes to the Mathematics namespace
+! Renamed LinkedList.Node.PrevNode and .NextNode to .Previous and .Next
 
 2004.06.28 (alpha/beta)
 -------------------

@@ -24,6 +24,8 @@ using GameLib.Collections;
 using GameLib.Interop.SDL;
 using GameLib.Interop.SDLTTF;
 
+// TODO: evaluate usage of Color.Transparent and consider replacing with Color.Empty
+
 namespace GameLib.Fonts
 {
 
@@ -593,7 +595,7 @@ public class TrueTypeFont : StyledFont
       if(value==0) ClearCache();
       else if(value<list.Count)
       { LinkedList.Node n=list.Tail, p;
-        for(int i=0,num=list.Count-value; i<num; n=p,i++) { p=n.Prev; CacheRemove(n); }
+        for(int i=0,num=list.Count-value; i<num; n=p,i++) { p=n.Previous; CacheRemove(n); }
       }
       cacheMax = value;
     }
