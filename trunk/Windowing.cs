@@ -28,6 +28,60 @@ using GameLib.Video;
 namespace GameLib.Forms
 {
 
+#region Supporting types
+// TODO: document
+public struct RectOffset
+{ public RectOffset(int size) { Left=Top=Right=Bottom=size; }
+  public RectOffset(int width, int height) { Left=Right=width; Top=Bottom=height; }
+  public RectOffset(int left, int top, int right, int bottom) { Left=left; Top=top; Right=right; Bottom=bottom; }
+  public RectOffset(Rectangle outer, Rectangle inner)
+  { Left   = inner.X-outer.X;
+    Top    = inner.Y-outer.Y;
+    Right  = outer.Right-inner.Right;
+    Bottom = outer.Bottom-inner.Bottom;
+  }
+
+  public int Horizontal { get { return Right+Left; } }
+  public int Vertical { get { return Top+Bottom; } }
+  public Size TopLeft { get { return new Size(Left, Top); } }
+  public Size BottomRight { get { return new Size(Right, Bottom); } }
+
+  public override bool Equals(object obj) { return obj is RectOffset ? this==(RectOffset)obj : false; }
+  public override int GetHashCode()
+  { return Left.GetHashCode()^Top.GetHashCode()^Right.GetHashCode()^Bottom.GetHashCode();
+  }
+
+  public Rectangle Grow(Rectangle rect)
+  { rect.X -= Left;
+    rect.Width += Right+Left;
+    rect.Y -= Top;
+    rect.Height -= Top+Bottom;
+    return rect;
+  }
+
+  public Rectangle Shrink(Rectangle rect)
+  { rect.X += Left;
+    rect.Width -= Right+Left;
+    rect.Y += Top;
+    rect.Height -= Top+Bottom;
+    return rect;
+  }
+
+  public int Left, Top, Right, Bottom;
+  
+  public static Rectangle operator+(Rectangle lhs, RectOffset rhs) { return rhs.Grow(lhs); }
+  public static Rectangle operator-(Rectangle lhs, RectOffset rhs) { return rhs.Shrink(lhs); }
+
+  public static bool operator==(RectOffset a, RectOffset b)
+  { return a.Left==b.Left && a.Top==b.Top && a.Right==b.Right && a.Bottom==b.Bottom;
+  }
+
+  public static bool operator!=(RectOffset a, RectOffset b)
+  { return a.Left!=b.Left || a.Top!=b.Top || a.Right!=b.Right || a.Bottom!=b.Bottom;
+  }
+}
+#endregion
+
 #region Event arguments and delegates
 /// <summary>This class is used in events that refer to a control.</summary>
 public class ControlEventArgs : EventArgs
@@ -287,6 +341,12 @@ public enum DockStyle
   Bottom
 }
 
+// TODO: document
+[Flags]
+public enum DontDraw
+{ None=0, BackColor=1, BackImage=2, Border=4
+}
+
 /// <summary>The base class of all controls in the windowing system.</summary>
 /// <remarks>
 /// <para>This class is the base class of all controls in the windowing system. Those wanting to create new controls
@@ -534,6 +594,32 @@ public class Control
   /// <exception cref="InvalidOperationException">Thrown if the control has no backing surface.</exception>
   public Rectangle BackingRect { get { return WindowToBacking(WindowRect); } }
 
+  // TODO: document
+  public Color BorderColor
+  { get
+    { return borderColor==Color.Transparent ? (Focused ? SystemColors.ActiveBorder : SystemColors.InactiveBorder)
+                                            : borderColor;
+    }
+    set
+    { Color old = BorderColor;
+      borderColor = value;
+      if(value != old) Invalidate();
+    }
+  }
+
+  public int BorderWidth { get { return Helpers.BorderSize(border); } }
+
+  // TODO: document
+  public BorderStyle BorderStyle
+  { get { return border; }
+    set
+    { if(border!=value)
+      { border=value;
+        Invalidate();
+      }
+    }
+  }
+
   /// <summary>Gets or sets the position of the bottom edge of the control relative to its parent.</summary>
   /// <remarks>Changing this property will move the control.</remarks>
   public int Bottom
@@ -583,6 +669,38 @@ public class Control
     }
   }
 
+  // TODO: document
+  public Rectangle ContentDrawRect
+  { get
+    { Rectangle ret = DrawRect - padding;
+      int bsize = -BorderWidth;
+      ret.Inflate(bsize, bsize);
+      return ret;
+    }
+  }
+
+  // TODO: document
+  public int ContentHeight
+  { get { return bounds.Height-padding.Vertical-BorderWidth; }
+    set { Height=value+padding.Vertical+BorderWidth; }
+  }
+
+  // TODO: document
+  public Rectangle ContentRect
+  { get
+    { Rectangle ret = WindowRect - padding;
+      int bsize = -BorderWidth;
+      ret.Inflate(bsize, bsize);
+      return ret;
+    }
+  }
+  
+  // TODO: document
+  public int ContentWidth
+  { get { return bounds.Width-padding.Horizontal-BorderWidth; }
+    set { Width=value+padding.Horizontal+BorderWidth; }
+  }
+  
   /// <summary>Gets the <see cref="ControlCollection"/> containing this control's children.</summary>
   public ControlCollection Controls { get { return controls; } }
 
@@ -779,47 +897,6 @@ public class Control
   /// </remarks>
   public bool KeyPreview { get { return keyPreview; } set { keyPreview=value; } }
 
-  /// <summary>Gets the control's layout height.</summary>
-  /// <remarks>The control's layout height is the <see cref="Height"/> minus the area taken up by the
-  /// <see cref="LayoutMargin"/>.
-  /// </remarks>
-  public int LayoutHeight { get { return Height-margin*2; } set { Height=value+margin*2; } }
-
-  /// <summary>Gets or sets the control's layout bounds.</summary>
-  /// <remarks>The control's layout bounds is the <see cref="Bounds"/> of the control, minus the area taken up by
-  /// the <see cref="LayoutMargin"/>.
-  /// </remarks>
-  public Rectangle LayoutBounds
-  { get { Rectangle rect = bounds; rect.Inflate(-margin, -margin); return rect; }
-    set
-    { value.Inflate(margin, margin);
-      Bounds = value;
-    }
-  }
-
-  /// <summary>Gets or sets the width of the control's layout margin.</summary>
-  /// <remarks>The control's layout margin is the area surrounding the control in which no child controls should be.
-  /// The default layout code uses the margin to provide padding around a control. A common usage of this padding
-  /// is to make room for a border.
-  /// </remarks>
-  public int LayoutMargin
-  { get { return margin; }
-    set
-    { if(value<0) throw new ArgumentOutOfRangeException("LayoutMargin", value, "must not be negative");
-      if(value!=margin)
-      { margin=value;
-        TriggerLayout();
-        Invalidate();
-      }
-    }
-  }
-
-  /// <summary>Gets or sets the control's layout width.</summary>
-  /// <remarks>The control's layout width is the <see cref="Width"/> minus the area taken up by the
-  /// <see cref="LayoutMargin"/>.
-  /// </remarks>
-  public int LayoutWidth { get { return Width-margin*2; } set { Width=value+margin*2; } }
-
   /// <summary>Gets or sets the position of the left edge of the control relative to its parent.</summary>
   /// <remarks>Changing this property will move the control.</remarks>
   public int Left
@@ -864,6 +941,29 @@ public class Control
     set
     { if(value==null) throw new ArgumentNullException("Name");
       name=value;
+    }
+  }
+
+  // TODO: document
+  public RectOffset Padding
+  { get { return padding; }
+    set
+    { if(value!=padding)
+      { if(value.Left<0 || value.Top<0 || value.Right<0 || value.Bottom<0)
+          throw new ArgumentOutOfRangeException("Padding", value, "offset cannot be negative");
+        padding=value;
+        Invalidate();
+      }
+    }
+  }
+
+  // TODO: document
+  public Rectangle PaddingRect
+  { get
+    { Rectangle ret = WindowRect;
+      int bsize = -BorderWidth;
+      ret.Inflate(bsize, bsize);
+      return ret;
     }
   }
 
@@ -1201,7 +1301,7 @@ public class Control
     return next==null ? ext : next;
   }
 
-  /// <summary>Invalidates the entire control area and triggers a repaint.</summary>
+  /// <summary>Invalidates the client area and triggers a repaint.</summary>
   /// <remarks>Calling this is equivalent to calling <see cref="Invalidate(Rectangle)"/> and passing
   /// <see cref="WindowRect"/>.
   /// </remarks>
@@ -1954,22 +2054,6 @@ public class Control
   /// </remarks>
   protected internal virtual void OnDragEnd(DragEventArgs e) { if(DragEnd!=null) DragEnd(this, e); }
 
-  /// <summary>Raises the <see cref="PaintBackground"/> event and performs default painting.</summary>
-  /// <param name="e">A <see cref="PaintEventArgs"/> that contains the event data.</param>
-  /// <remarks>When overriding this method in a derived class, be sure to call the base class'
-  /// version to ensure that the default processing gets performed. The proper place to do this is at the start
-  /// of the derived version. The surface's <see cref="Surface.ClipRect">ClipRect</see> property will be set equal
-  /// to the <see cref="PaintEventArgs.DisplayRect"/> property.
-  /// </remarks>
-  protected internal virtual void OnPaintBackground(PaintEventArgs e)
-  { if(PaintBackground!=null) PaintBackground(this, e);
-    if(back!=Color.Transparent) e.Surface.Fill(e.DisplayRect, back);
-    if(backImage!=null)
-    { Point at = Helpers.CalculateAlignment(DisplayRect, new Size(backImage.Width, backImage.Height), backImageAlign);
-      backImage.Blit(e.Surface, at.X, at.Y);
-    }
-  }
-
   /// <summary>Raises the <see cref="Paint"/> event and performs default painting.</summary>
   /// <param name="e">A <see cref="PaintEventArgs"/> that contains the event data.</param>
   /// <remarks>When overriding this method in a derived class, be sure to call the base class'
@@ -1981,6 +2065,24 @@ public class Control
   { if(Paint!=null) Paint(this, e);
     invalid.Width = 0;
     pendingPaint  = false;
+  }
+
+  /// <summary>Raises the <see cref="PaintBackground"/> event and performs default painting.</summary>
+  /// <param name="e">A <see cref="PaintEventArgs"/> that contains the event data.</param>
+  /// <remarks>When overriding this method in a derived class, be sure to call the base class'
+  /// version to ensure that the default processing gets performed. The proper place to do this is at the start
+  /// of the derived version. The surface's <see cref="Surface.ClipRect">ClipRect</see> property will be set equal
+  /// to the <see cref="PaintEventArgs.DisplayRect"/> property.
+  /// </remarks>
+  protected internal virtual void OnPaintBackground(PaintEventArgs e)
+  { if(PaintBackground!=null) PaintBackground(this, e);
+    if((dontDraw&DontDraw.BackColor)==0 && back!=Color.Transparent) e.Surface.Fill(e.DisplayRect, back);
+    if(backImage!=null && (dontDraw&DontDraw.BackImage)==0)
+    { Point at = Helpers.CalculateAlignment(PaddingRect, new Size(backImage.Width, backImage.Height), backImageAlign);
+      backImage.Blit(e.Surface, at.X, at.Y);
+    }
+    if(border!=BorderStyle.None && (dontDraw&DontDraw.Border)==0)
+      Helpers.DrawBorder(e.Surface, DrawRect, border, borderColor);
   }
 
   /// <summary>Called when the parent's <see cref="BackColor"/> property changes.</summary>
@@ -2060,6 +2162,12 @@ public class Control
       while(c!=null) { if(c.backingSurface!=null) return c.backingSurface; c=c.parent; }
       return null;
     }
+  }
+
+  // TODO: document
+  protected DontDraw DontDraw
+  { get { return dontDraw; }
+    set { dontDraw=value; }
   }
 
   /// <summary>Gets or sets the drag threshold for this control.</summary>
@@ -2237,16 +2345,19 @@ public class Control
   ControlCollection controls;
   Control parent, focused;
   GameLib.Fonts.Font font;
-  Color back=Color.Transparent, fore=Color.Transparent;
+  Color back=Color.Transparent, fore=Color.Transparent, borderColor=Color.Transparent;
   Surface backImage, cursor;
   string name=string.Empty, text=string.Empty;
   object tag;
   Rectangle bounds = new Rectangle(0, 0, 100, 100), invalid;
   Rectangle anchorSpace = new Rectangle(0, 0, 100, 100), anchorOffsets, preLayoutBounds;
-  int tabIndex=-1, dragThreshold=-1, margin;
+  RectOffset padding;
+  int tabIndex=-1, dragThreshold=-1;
   ControlStyle style;
   AnchorStyle  anchor=AnchorStyle.TopLeft;
   DockStyle    dock;
+  BorderStyle  border;
+  DontDraw     dontDraw;
   ContentAlignment backImageAlign=ContentAlignment.TopLeft;
   bool enabled=true, visible=true, mychange, keyPreview, pendingPaint, pendingLayout;
 }
@@ -2453,6 +2564,7 @@ public class DesktopControl : ContainerControl, IDisposable
     else
     { Rectangle[] ret = new Rectangle[updatedLen];
       Array.Copy(updated, ret, updatedLen);
+      for(int i=0; i<ret.Length; i++) ret[i].Intersect(surface.Bounds);
       return ret;
     }
   }
@@ -2762,7 +2874,10 @@ public class DesktopControl : ContainerControl, IDisposable
   public bool UpdateDisplay(int x, int y)
   { if(updatedLen>0)
     { if(surface==null) throw new InvalidOperationException("Cannot update the display when Surface is null!");
-      if(surface==Video.Video.DisplaySurface) Video.Video.UpdateRects(updated, 0, updatedLen);
+      if(surface==Video.Video.DisplaySurface)
+      { for(int i=0; i<updated.Length; i++) updated[i].Intersect(surface.Bounds);
+        Video.Video.UpdateRects(updated, 0, updatedLen);
+      }
       else if(Video.Video.DisplaySurface==null) throw new InvalidOperationException("No video mode has been set!");
       else
       { for(int i=0; i<updatedLen; i++)
@@ -2956,19 +3071,25 @@ public class DesktopControl : ContainerControl, IDisposable
 
 #region Helpers
 /// <summary>Common border styles.</summary>
+[Flags]
 public enum BorderStyle
 {
   /// <summary>No border.</summary>
-  None,
+  None=0,
   /// <summary>A solid-color border.</summary>
-  FixedFlat,
+  FixedFlat=1,
   /// <summary>A border composed of two colors, used to give the appearance of light hitting a 3D object at an angle.
   /// </summary>
-  Fixed3D,
+  Fixed3D=2,
   /// <summary>A thick border with a 3D appearance.</summary>
-  FixedThick,
+  FixedThick=3,
   /// <summary>A border that signifies that the control can be resized by dragging its edges.</summary>
-  Resizeable
+  Resizeable=4,
+  /// <summary>A mask that selects the type of the border (eg, flat, 3d, thick, etc).</summary>
+  TypeMask=15,
+
+  /// <summary>A flag that indicates that the border is depressed rather than raised.</summary>
+  Depressed=16,
 };
 
 public sealed class Helpers
@@ -2976,6 +3097,8 @@ public sealed class Helpers
 
   /// <summary>The direction an arrow points.<seealso cref="DrawArrow"/></summary>
   public enum Arrow { Up, Down, Left, Right }
+
+  public static readonly Size CheckSize = new Size(7, 6);
 
   /// <summary>Returns true if <paramref name="align"/> specifies left alignment.</summary>
   /// <param name="align">The alignment value to check.</param>
@@ -3024,7 +3147,7 @@ public sealed class Helpers
   /// <param name="border">The border style thats thickness will be returned.</param>
   /// <returns>The thickness of the specified border, in pixels.</returns>
   public static int BorderSize(BorderStyle border)
-  { switch(border)
+  { switch(border&BorderStyle.TypeMask)
     { case BorderStyle.FixedFlat: case BorderStyle.Fixed3D: return 1;
       case BorderStyle.FixedThick: case BorderStyle.Resizeable: return 2;
       default: return 0;
@@ -3080,12 +3203,17 @@ public sealed class Helpers
   /// <seealso cref="DrawBorder(Surface,Rectangle,BorderStyle,Color,Color,bool)"/>
   /// </remarks>
   public static void DrawBorder(Surface surface, Rectangle rect, BorderStyle border, bool depressed)
-  { switch(border)
+  { switch(border&BorderStyle.TypeMask)
     { case BorderStyle.FixedFlat: DrawBorder(surface, rect, border, SystemColors.ControlDarkDark, depressed); break;
       case BorderStyle.Fixed3D: case BorderStyle.FixedThick: case BorderStyle.Resizeable:
         DrawBorder(surface, rect, border, SystemColors.ControlLight, SystemColors.ControlDark, depressed);
         break;
     }
+  }
+
+  // TODO: document
+  public static void DrawBorder(Surface surface, Rectangle rect, BorderStyle border, Color color)
+  { DrawBorder(surface, rect, border, color, (border&BorderStyle.Depressed)!=0);
   }
 
   /// <summary>Draws a border using the specified base color.</summary>
@@ -3101,7 +3229,7 @@ public sealed class Helpers
   /// <seealso cref="DrawBorder(Surface,Rectangle,BorderStyle,Color,Color,bool)"/>
   /// </remarks>
   public static void DrawBorder(Surface surface, Rectangle rect, BorderStyle border, Color color, bool depressed)
-  { switch(border)
+  { switch(border&BorderStyle.TypeMask)
     { case BorderStyle.FixedFlat: DrawBorder(surface, rect, border, color, color, depressed); break;
       case BorderStyle.Fixed3D: case BorderStyle.FixedThick: case BorderStyle.Resizeable:
         DrawBorder(surface, rect, border, GetLightColor(color), GetDarkColor(color), depressed);
@@ -3120,7 +3248,7 @@ public sealed class Helpers
   /// </param>
   /// <remarks>Borders with a thickness greater than one pixel are drawn inside the bounding rectangle.</remarks>
   public static void DrawBorder(Surface surface, Rectangle rect, BorderStyle border, Color c1, Color c2, bool depressed)
-  { switch(border)
+  { switch(border&BorderStyle.TypeMask)
     { case BorderStyle.FixedFlat: Primitives.Box(surface, rect, c1); break;
       case BorderStyle.Fixed3D:
         if(depressed) { Color t=c1; c1=c2; c2=t; }
@@ -3143,6 +3271,19 @@ public sealed class Helpers
         Primitives.Line(surface, rect.X, rect.Bottom-1, rect.Right-1, rect.Bottom-1, c4);
         Primitives.Line(surface, rect.Right-1, rect.Y, rect.Right-1, rect.Bottom-1, c4);
         break;
+    }
+  }
+
+  // TODO: document
+  public static void DrawCheck(Surface surface, int x, int y, Color color)
+  { DrawCheck(surface, new Point(x, y), color);
+  }
+
+  // TODO: document
+  public static void DrawCheck(Surface surface, Point point, Color color)
+  { for(int yo=0; yo<3; yo++)
+    { Primitives.Line(surface, point.X, point.Y+yo+2, point.X+2, point.Y+yo+4, color);
+      Primitives.Line(surface, point.X+3, point.Y+yo+3, point.X+6, point.Y+yo, color);
     }
   }
 

@@ -11,6 +11,10 @@ DEVELOPMENT (alpha/beta)
 * Tweaked many of the files in order to work around bugs in the Mono
   compiler (mcs) -- now it all compiles under mcs except for one line
 * Merged my changes to libsndfile into the latest version (1.0.11)
+* Changed the GameLib.Forms.Checkbox's check color so it looks okay with
+  very dark color schemes
++ Added the GameLib.Forms.RectOffset class
+* Various minor drawing optimations for the windowing controls
 
 2004.06.28 (alpha/beta)
 -------------------

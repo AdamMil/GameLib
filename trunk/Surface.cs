@@ -34,14 +34,14 @@ namespace GameLib.Video
 /// for when the next frame is to be drawn. However, the current design does not support that.
 /// </summary>
 public interface IBlittable
-{ /*int  Width  { get; }
+{ int  Width  { get; }
   int  Height { get; }
-  bool StaticImage  { get; }
-  bool ImageChanged { get; }
+  //bool StaticImage  { get; }
+  //bool ImageChanged { get; }
 
   void Blit(Surface dest, int dx, int dy);
   void Blit(Surface dest, Rectangle src, int dx, int dy);
-  IBlittable CreateCompatible();*/
+  //IBlittable CreateCompatible();
 }
 
 /// <summary>An enum of image formats used when saving and loading images.</summary>
@@ -148,7 +148,7 @@ public enum SurfaceFlag : uint
 
 // TODO: allow Surface to be inherited from
 [System.Security.SuppressUnmanagedCodeSecurity()]
-public sealed class Surface : IDisposable
+public sealed class Surface : IDisposable, IBlittable
 { 
   /// <summary>This constructor attempts to initialize the surface from a <see cref="System.Drawing.Bitmap"/>.
   /// </summary>
