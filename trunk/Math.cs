@@ -55,7 +55,7 @@ public sealed class GLMath
   /// <param name="numerator">The numerator.</param>
   /// <param name="denominator">The denominator.</param>
   /// <returns><paramref name="numerator"/> divided by <paramref name="denominator"/>, rounded towards lower numbers
-  /// rather than towards zero.
+  /// rather than truncated towards zero.
   /// </returns>
   public static int FloorDiv(int numerator, int denominator)
   { return (numerator<0 ? (numerator-denominator+1) : numerator) / denominator;
@@ -184,22 +184,26 @@ public sealed class GLMath
 /// always consistent due to precision mismatch between operands. Fixed-point math eliminates these inconsistencies.
 /// </para>
 /// <para>This class provides 16 bits for the whole part and 16 bits for the fractional part, so the total range is
-/// approximately -32768 to 32767.99998.
+/// -32768 to approximately 32767.99998.
 /// </para>
 /// </remarks>
 [Serializable, System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
 public struct Fixed32 : IFormattable, IComparable, IConvertible
 { 
-  /// <summary>Initializes this fixed-point class from a floating point number.</summary>
+  /// <summary>Initializes this fixed-point number from a floating point number.</summary>
   /// <param name="value">A floating point number from which the fixed-point number will be initialized.</param>
   /// <remarks>Due to the greater range and potential precision of a 64-bit double, the value passed may not be
   /// able to be accurately represented.
   /// </remarks>
+  /// <exception cref="OverflowException">Thrown if <paramref name="value"/> cannot be represented by this type.</exception>
   public Fixed32(double value) { val=FromDouble(value); }
   /// <summary>Initializes this fixed-point class from an integer.</summary>
   /// <param name="value">An integer from which the fixed-point number will be initialized.</param>
-  /// <remarks>Due to the greater range of a 32-bit integer, the value passed may not be accurately represented.</remarks>
-  public Fixed32(int value) { val=value<<16; }
+  /// <exception cref="OverflowException">Thrown if <paramref name="value"/> cannot be represented by this type.</exception>
+  public Fixed32(int value)
+  { if(value<-32768 || value>32767) throw new OverflowException();
+    val=value<<16;
+  }
   internal Fixed32(uint value) { val=(int)value; } // ugly, but 'int' was already taken
 
   /// <summary>Gets this number's absolute value.</summary>
@@ -208,7 +212,7 @@ public struct Fixed32 : IFormattable, IComparable, IConvertible
   /// <summary>Gets this number's ceiling.</summary>
   /// <value>A new fixed-point number containing the smallest whole number greater than or equal to the current value.</value>
   public Fixed32 Ceiling { get { return new Fixed32((uint)((val+(OneVal-1)) & Trunc)); } }
-  /// <summary>Gets this number's ceiling.</summary>
+  /// <summary>Gets this number's floor.</summary>
   /// <value>A new fixed-point number containing the largest whole number less than or equal to the current value.</value>
   public Fixed32 Floor { get { return new Fixed32((uint)(val&Trunc)); } }
   /// <summary>Gets this number's value, rounded.</summary>
@@ -227,6 +231,7 @@ public struct Fixed32 : IFormattable, IComparable, IConvertible
   /// <value>A new fixed-point number containing the square root of the current value.</value>
   public Fixed32 Sqrt { get { return new Fixed32(Math.Sqrt(ToDouble())); } }
   /// <summary>Gets this number's value, truncated towards zero.</summary>
+  /// <value>A new fixed-point number containing the current value truncated towards zero.</value>
   public Fixed32 Truncated { get { return new Fixed32((uint)((val<0 ? val+(OneVal-1) : val)&Trunc)); } }
   /// <summary>Returns true if this object is equal to the given object.</summary>
   /// <param name="obj">The object to compare against.</param>
@@ -235,8 +240,8 @@ public struct Fixed32 : IFormattable, IComparable, IConvertible
   { if(!(obj is Fixed32)) return false;
     return val == ((Fixed32)obj).val;
   }
-  /// <summary>Returns a hash code for this value.</summary>
-  /// <returns>A hash code for this value.</returns>
+  /// <summary>Returns a hash code for this <see cref="Fixed32"/>.</summary>
+  /// <returns>An integer hash code for this <see cref="Fixed32"/>.</returns>
   public override int GetHashCode() { return val; }
   /// <summary>Converts this <see cref="Fixed32"/> to a <see cref="Fixed64"/>.</summary>
   /// <returns>A <see cref="Fixed64"/> containing the same value.</returns>
@@ -351,7 +356,11 @@ public struct Fixed32 : IFormattable, IComparable, IConvertible
   /// <summary>Implicitly converts an integer to a <see cref="Fixed32"/>.</summary>
   /// <param name="i">An integer.</param>
   /// <returns>A <see cref="Fixed32"/> representing the given integer.</returns>
-  public static implicit operator Fixed32(int i) { return new Fixed32((uint)(i<<16)); }
+  /// <exception cref="OverflowException">Thrown if <paramref name="value"/> cannot be represented by this type.</exception>
+  public static implicit operator Fixed32(int i)
+  { if(i<-32768 || i>32767) throw new OverflowException();
+    return new Fixed32((uint)(i<<16));
+  }
   /// <summary>Implicitly converts a double to a <see cref="Fixed32"/>.</summary>
   /// <param name="d">A double value.</param>
   /// <returns>A <see cref="Fixed32"/> representing the given double.</returns>
@@ -374,7 +383,7 @@ public struct Fixed32 : IFormattable, IComparable, IConvertible
   public static readonly Fixed32 PI = new Fixed32((uint)(196608 + 9279));
   /// <summary>PI/2, approximately 1.570796.</summary>
   public static readonly Fixed32 PIover2 = new Fixed32((uint)(65536 + 37408));
-  /// <summary>PI/2, approximately 6.283185.</summary>
+  /// <summary>PI*2, approximately 6.283185.</summary>
   public static readonly Fixed32 TwoPI = new Fixed32((uint)(393216 + 18559));
   /// <summary>Zero.</summary>
   public static readonly Fixed32 Zero = new Fixed32((uint)0);
@@ -492,7 +501,8 @@ public struct Fixed32 : IFormattable, IComparable, IConvertible
   const int OneVal = 0x10000;
 
   static int FromDouble(double value)
-  { int whole = (int)value;
+  { if(value<-32768 || value>=32768) throw new OverflowException();
+    int whole = (int)value;
     int fp = (int)(Math.IEEERemainder(value, 1)*65536.0) & ~Trunc;
     if(whole<0 && fp!=0) fp ^= Trunc;
     return (whole<<16) + fp;
@@ -511,7 +521,7 @@ public struct Fixed32 : IFormattable, IComparable, IConvertible
 /// always consistent due to precision mismatch between operands. Fixed-point math eliminates these inconsistencies.
 /// </para>
 /// <para>This class provides 32 bits for the whole part and 32 bits for the fractional part, so the total range is
-/// approximately -2147483648 to 2147483647.9999999998.
+/// -2147483648 to approximately 2147483647.9999999998.
 /// </para>
 /// </remarks>
 [Serializable, System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Explicit, Size=8)]
@@ -522,6 +532,7 @@ public struct Fixed64 : IFormattable, IComparable, IConvertible
   /// <remarks>Due to the greater range of a 64-bit double, the value passed may not be able to be accurately
   /// represented.
   /// </remarks>
+  /// <exception cref="OverflowException">Thrown if <paramref name="value"/> cannot be represented by this type.</exception>
   public Fixed64(double value) { wholePart=0; val=FromDouble(value); } // damn C# requires all fields to be set
   /// <summary>Initializes this fixed-point class from an integer.</summary>
   /// <param name="value">An integer from which the fixed-point number will be initialized.</param>
@@ -534,7 +545,7 @@ public struct Fixed64 : IFormattable, IComparable, IConvertible
   /// <summary>Gets this number's ceiling.</summary>
   /// <value>A new fixed-point number containing the smallest whole number greater than or equal to the current value.</value>
   public Fixed64 Ceiling { get { return new Fixed64((val+(OneVal-1)) & Trunc); } }
-  /// <summary>Gets this number's ceiling.</summary>
+  /// <summary>Gets this number's floor.</summary>
   /// <value>A new fixed-point number containing the largest whole number less than or equal to the current value.</value>
   public Fixed64 Floor { get { return new Fixed64(val&Trunc); } }
   /// <summary>Gets this number's value, rounded.</summary>
@@ -553,6 +564,7 @@ public struct Fixed64 : IFormattable, IComparable, IConvertible
   /// <value>A new fixed-point number containing the square root of the current value.</value>
   public Fixed64 Sqrt { get { return new Fixed64(Math.Sqrt(ToDouble())); } }
   /// <summary>Gets this number's value, truncated towards zero.</summary>
+  /// <value>A new fixed-point number containing the current value truncated towards zero.</value>
   public Fixed64 Truncated { get { return new Fixed64((val<0 ? val+(OneVal-1) : val)&Trunc); } }
   /// <summary>Returns true if this object is equal to the given object.</summary>
   /// <param name="obj">The object to compare against.</param>
@@ -561,8 +573,8 @@ public struct Fixed64 : IFormattable, IComparable, IConvertible
   { if(!(obj is Fixed64)) return false;
     return val == ((Fixed64)obj).val;
   }
-  /// <summary>Returns a hash code for this value.</summary>
-  /// <returns>A hash code for this value.</returns>
+  /// <summary>Returns a hash code for this <see cref="Fixed64"/>.</summary>
+  /// <returns>An integer hash code for this <see cref="Fixed64"/>.</returns>
   public override int GetHashCode() { return wholePart ^ (int)(uint)val; }
   /// <summary>Converts this <see cref="Fixed64"/> to a <see cref="Fixed32"/>.</summary>
   /// <returns>A <see cref="Fixed32"/> containing the approximately the same value.</returns>
@@ -771,7 +783,7 @@ public struct Fixed64 : IFormattable, IComparable, IConvertible
   public static readonly Fixed64 PI = new Fixed64(12884901888L + 608135817);
   /// <summary>PI/2, approximately 1.570796.</summary>
   public static readonly Fixed64 PIover2 = new Fixed64(4294967296L  + 2451551556);
-  /// <summary>PI/2, approximately 6.283185.</summary>
+  /// <summary>PI*2, approximately 6.283185.</summary>
   public static readonly Fixed64 TwoPI = new Fixed64(25769803776L + 1216271633);
   /// <summary>Zero.</summary>
   public static readonly Fixed64 Zero = new Fixed64((long)0);
@@ -781,7 +793,8 @@ public struct Fixed64 : IFormattable, IComparable, IConvertible
   const long OneVal = 0x100000000L;
 
   static long FromDouble(double value)
-  { int whole = (int)value;
+  { if(value<-2147483648 || value>=2147483648) throw new OverflowException();
+    int whole = (int)value;
     long fp = (long)(Math.IEEERemainder(value, 1)*4294967296.0) & ~Trunc;
     if(whole<0 && fp!=0) fp ^= Trunc;
     return ((long)whole<<32) + fp;
@@ -916,7 +929,7 @@ public struct Fixed64 : IFormattable, IComparable, IConvertible
   [System.Runtime.InteropServices.FieldOffset(0)] int wholePart;
   #else
   [System.Runtime.InteropServices.FieldOffset(0)] internal long val;
-  [System.Runtime.InteropServices.FieldOffset(4)] int wholePart;
+  [System.Runtime.InteropServices.FieldOffset(4), NonSerialized] int wholePart;
   #endif
 }
 #endregion
@@ -1170,18 +1183,9 @@ public struct Line
   /// this should be the distance travelled from <paramref name="y"/>.
   /// </param>
   public Line(double x, double y, double xd, double yd) { Start=new Point(x, y); Vector=new Vector(xd, yd); }
-  /// <summary>Initializes this line from a point and a vector.</summary>
-  /// <param name="start">A point on the line (or the start of the line segment).</param>
-  /// <param name="vector">The line's direction. If you're defining a line segment, this should be the distance
-  /// travelled from <paramref name="start"/>.
-  /// </param>
+  /// <include file="documentation.xml" path="//Mathematics/Line/Line/*"/>
   public Line(Point start, Vector vector) { Start=start; Vector=vector; }
-  /// <summary>Initializes this line from two points.</summary>
-  /// <param name="start">A point on the line (or the start of the line segment).</param>
-  /// <param name="end">Another point on the line (or the end of the line segment).</param>
-  /// <remarks>Since the end point will need to be converted into a vector, some miniscule accuracy may be lost.
-  /// Most notably, the <see cref="End"/> property may not be exactly equal to <paramref name="end"/>.
-  /// </remarks>
+  /// <include file="documentation.xml" path="//Mathematics/Line/Line2/*"/>
   public Line(Point start, Point end) { Start=start; Vector=end-start; }
 
   /// <summary>Returns the endpoint of the line segment.</summary>
@@ -1198,7 +1202,6 @@ public struct Line
   /// given the input. A line returned by such a function can be tested for validity using this property.
   /// </remarks>
   public bool Valid { get { return Start.Valid; } }
-
   /// <summary>Returns the intersection of the line with a convex polygon.</summary>
   /// <param name="poly">A convex polygon to intersect to which the line will be clipped.</param>
   /// <returns>The portion of the line inside the polygon, or an invalid line if there is no intersection.</returns>
@@ -1248,15 +1251,7 @@ public struct Line
   /// which side of the line a point is on, use <see cref="WhichSide"/>, which is more efficient.
   /// </returns>
   public double DistanceTo(Point point) { return Vector.CrossVector.Normal.DotProduct(point-Start); }
-  /// <summary>Gets one of the endpoints of the line segment.</summary>
-  /// <param name="point">The index of the point to retrieve. A value of zero indicates that the start point should
-  /// be returned, and a value of 1 indicates that the endpoint should be returned.
-  /// </param>
-  /// <returns>The requested point.</returns>
-  /// <remarks>This method simply returns <see cref="Start"/> or <see cref="End"/> depending on the value of
-  /// <paramref name="point"/>.
-  /// </remarks>
-  /// <exception cref="ArgumentOutOfRangeException">Thrown if <paramref name="point"/> is not 0 or 1.</exception>
+  /// <include file="documentation.xml" path="//Mathematics/Line/GetPoint/*"/>
   public Point GetPoint(int point)
   { if(point<0 || point>1) throw new ArgumentOutOfRangeException("point", point, "must be 0 or 1");
     return point==0 ? Start : End;
@@ -1390,25 +1385,11 @@ public struct Line
   /// polygon. The point would be inside the polygon if it was "inside" all of the lines defining it.
   /// </returns>
   public double WhichSide(Point point) { return Vector.CrossVector.DotProduct(point-Start); }
-  /// <summary>Determines whether the given object is a line equal to this one.</summary>
-  /// <param name="obj">An object to test for equality.</param>
-  /// <returns>Returns true if <paramref name="obj"/> is a <see cref="Line"/> and equals this one.</returns>
+  /// <include file="documentation.xml" path="//Mathematics/Line/Equals/*"/>
   public override bool Equals(object obj) { return obj is Line ? (Line)obj==this : false; }
-  /// <summary>Determines whether the given object is a line equal to this one, within a given margin of error.</summary>
-  /// <param name="obj">An object to test for equality.</param>
-  /// <param name="epsilon">The given margin of error. The difference between both lines' <see cref="Start"/> and
-  /// <see cref="Vector"/> must be less than or equal to this for them to qualify as equal.
-  /// </param>
-  /// <returns>Returns true if <paramref name="obj"/> is a <see cref="Line"/> and equals this one, within the given
-  /// margin of error.
-  /// </returns>
+  /// <include file="documentation.xml" path="//Mathematics/Line/Equals2/*"/>
   public bool Equals(object obj, double epsilon) { return obj is Line && Equals((Line)obj, epsilon); }
-  /// <summary>Determines whether the given line is equal to this one, within a given margin of error.</summary>
-  /// <param name="line">A line to test for equality.</param>
-  /// <param name="epsilon">The given margin of error. The difference between both lines' <see cref="Start"/> and
-  /// <see cref="Vector"/> must be less than or equal to this for them to qualify as equal.
-  /// </param>
-  /// <returns>Returns true if <paramref name="line"/> equals this line, within the given margin of error.</returns>
+  /// <include file="documentation.xml" path="//Mathematics/Line/Equals3/*"/>
   public bool Equals(Line line, double epsilon)
   { return Start.Equals(line.Start, epsilon) && Vector.Equals(line.Vector, epsilon);
   }
@@ -1740,7 +1721,7 @@ public struct Rectangle
 #endregion
 
 #region Polygon
-/// <summary>This structure represents a polygon </summary>
+/// <summary>This class represents a polygon.</summary>
 [Serializable]
 public class Polygon : ICloneable, ISerializable
 { 
@@ -2381,37 +2362,55 @@ public struct Line
   public Line(double x, double y, double z, double xd, double yd, double zd)
   { Start=new Point(x, y, z); Vector=new Vector(xd, yd, zd);
   }
-  /// <summary>Initializes this line from a point and a vector.</summary>
-  /// <param name="start">A point on the line (or the start of the line segment).</param>
-  /// <param name="vector">The line's direction. If you're defining a line segment, this should be the distance
-  /// travelled from <paramref name="start"/>.
-  /// </param>
+  /// <include file="documentation.xml" path="//Mathematics/Line/Line/*"/>
   public Line(Point start, Vector vector) { Start=start; Vector=vector; }
-  /// <summary>Initializes this line from two points.</summary>
-  /// <param name="start">A point on the line (or the start of the line segment).</param>
-  /// <param name="end">Another point on the line (or the end of the line segment).</param>
-  /// <remarks>Since the end point will need to be converted into a vector, some miniscule accuracy may be lost.
-  /// Most notably, the <see cref="End"/> property may not be exactly equal to <paramref name="end"/>.
-  /// </remarks>
+  /// <include file="documentation.xml" path="//Mathematics/Line/Line2/*"/>
   public Line(Point start, Point end) { Start=start; Vector=end-start; }
-
+  /// <summary>Returns the endpoint of the line segment.</summary>
+  /// <remarks>This is calculated by adding <see cref="Vector"/> to <see cref="Start"/>.</remarks>
   public Point End { get { return Start+Vector; } }
+  /// <summary>Calculates and returns the line segment's length.</summary>
+  /// <remarks>This returns the length of <see cref="Vector"/>.</remarks>
   public double Length { get { return Vector.Length; } }
+  /// <summary>Calculates and returns the square of the line segment's length.</summary>
+  /// <remarks>This returns the square of the length of <see cref="Vector"/>.</remarks>
   public double LengthSqr { get { return Vector.LengthSqr; } }
-
+  /// <include file="documentation.xml" path="//Mathematics/Line/GetPoint/*"/>
   public Point GetPoint(int point)
   { if(point<0 || point>1) throw new ArgumentOutOfRangeException("point", point, "must be 0 or 1");
     return point==0 ? Start : End;
   }
-
+  /// <include file="documentation.xml" path="//Mathematics/Line/Equals/*"/>
   public override bool Equals(object obj) { return obj is Line ? (Line)obj==this : false; }
+  /// <include file="documentation.xml" path="//Mathematics/Line/Equals2/*"/>
+  public bool Equals(object obj, double epsilon) { return obj is Line && Equals((Line)obj, epsilon); }
+  /// <include file="documentation.xml" path="//Mathematics/Line/Equals3/*"/>
   public bool Equals(Line line, double epsilon)
   { return Start.Equals(line.Start, epsilon) && Vector.Equals(line.Vector, epsilon);
   }
+  /// <summary>Calculates a hash code for this <see cref="Line"/>.</summary>
+  /// <returns>An integer hash code for this <see cref="Line"/>.</returns>
   public override int GetHashCode() { return Start.GetHashCode() ^ Vector.GetHashCode(); }
+  /// <summary>Converts this <see cref="Line"/> into a human-readable string.</summary>
+  /// <returns>A human-readable string representing this line.</returns>
   public override string ToString() { return string.Format("{0}->{1}", Start, Vector); }
-
-  public static Line FromPoints(Point start, Point end) { return new Line(start, end-start); }
+  /// <summary>Creates a <see cref="Line"/> from two points.</summary>
+  /// <param name="x1">The X coordinate of the first point (a point on the line, or the start of the line segment).</param>
+  /// <param name="y1">The Y coordinate of the first point (a point on the line, or the start of the line segment).</param>
+  /// <param name="z1">The Z coordinate of the first point (a point on the line, or the start of the line segment).</param>
+  /// <param name="x2">The X coordinate of the second point (another point on the line, or the end of the line
+  /// segment).
+  /// </param>
+  /// <param name="y2">The Y coordinate of the second point (another point on the line, or the end of the line
+  /// segment).
+  /// </param>
+  /// <param name="z2">The Z coordinate of the second point (another point on the line, or the end of the line
+  /// segment).
+  /// </param>
+  /// <returns>A <see cref="Line"/> initialized with those values.</returns>
+  /// <remarks>Since the end point will need to be converted into a vector, some miniscule accuracy may be lost.
+  /// Most notably, the <see cref="End"/> property may not be exactly equal to <paramref name="end"/>.
+  /// </remarks>
   public static Line FromPoints(double x1, double y1, double z1, double x2, double y2, double z2)
   { return new Line(x1, y1, z1, x2-x1, y2-y1, z2-z1);
   }
@@ -2419,7 +2418,9 @@ public struct Line
   public static bool operator==(Line lhs, Line rhs) { return lhs.Start==rhs.Start && lhs.Vector==rhs.Vector; }
   public static bool operator!=(Line lhs, Line rhs) { return lhs.Start!=rhs.Start || lhs.Vector!=rhs.Vector; }
 
+  /// <summary>A point on the line, or the start point of the line segment.</summary>
   public Point  Start;
+  /// <summary>The line's direction, or the vector from the start point to the end point of the line segment.</summary>
   public Vector Vector;
 }
 #endregion
