@@ -166,6 +166,7 @@ may not have been evident at earlier stages.
 ! Removed the Vector.Rotate(xa, ya, za) form and replaced it with something
   much more useful -- Vector.Rotate(Vector, angle) [rotation around an
   arbitrary vector]
++ Added .Equals(object obj, double epsilon) to most math objects
 + Added a LOT more documentation (for CD.cs, Config.cs, Events.cs,
   Exceptions.cs, Fonts.cs, GraphicsPrimitives.cs, Input.cs, Interop.cs,
   IO.cs, LinkedList.cs, Math.cs, OpenGL.cs, OpenGLInterop.cs,
