@@ -703,6 +703,48 @@ byte[] output = IOH.Write("dfp?d", parms);
     </Send>
   </Client>
 
+  <MessageConverter>
+    <RegisterType>
+      <remarks>
+      <para>Registering a type allows it to be serialized and deserialized very efficiently. To achieve this
+      efficiency, certain restrictions are placed upon the types that can be registered. However, for each
+      restriction, there is a way to alleviate the restriction, so in effect, almost any type you create can be
+      serialized.
+      </para>
+      <para>The primary restriction is that the type must be blittable. A blittable type is essentially a type
+      that contains no references and has a predetermined memory layout. A value type (structure) that contains
+      only blittable fields has a predetermined memory layout, as do all primitive types. A class can also have
+      a predetermined memory layout if the <see cref="System.Runtime.InteropServices.StructLayoutAttribute"/>
+      attribute is applied to it.
+      </para>
+      <para>Arrays of blittable types are also considered to be blittable. However, you should not register the
+      array type directly. For any type that can be serialized, arrays of that type can also be serialized
+      automatically. Simply register the element type of the array. So if you want to serialize an array of
+      <see cref="System.Drawing.Point"/>, simply register the <see cref="System.Drawing.Point"/> class.
+      However, note that serialization of arrays with more than one dimension is not supported.
+      </para>
+      <para>You can serialize non-blittable types and multi-dimensional arrays using the
+      <see cref="INetSerializable"/> interface. Any type that implements the <see cref="INetSerializable"/>
+      interface can be serialized by this code. However, for deserialization, an object implementing that interface
+      must provide a default constructor (that is, a constructor that takes no arguments).
+      </para>
+      <para>If you are using multiple instances of the <see cref="MessageConverter"/> class, (for instance, one for
+      serialization and one for deserialization), all instances must have the same types registered in the same
+      order or else the behavior is undefined. (At best, an exception will be thrown during deserialization, but
+      that cannot be relied upon. Data corruption or crashes may result.)
+      </para>
+      <para>One final note. For types that do not implement <see cref="INetSerializable"/>, an attempt will be made
+      to determine whether the type is blittable or not. This process uses reflection and requires the
+      <see cref="ReflectionPermission"/> permission with the <see cref="ReflectionPermissionFlag.TypeInformation"/>
+      flag. If the flag is not present, the code will fall back onto using the <see cref="Marshal"/> class to
+      handle blitting, and while this has been tested on Microsoft.NET Framework 1.1, it may not work properly on
+      other implementations of the .NET runtime. For best results, the code should have that permission. Most code
+      does by default, so you probably don't need to do anything to enable it.
+      </para>
+      </remarks>
+    </RegisterType>
+  </MessageConverter>
+
   <NetLink>
     <Send>
       <Common>
