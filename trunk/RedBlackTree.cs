@@ -123,23 +123,18 @@ public class RedBlackBase
   protected void Add(Node node)
   { if(TreeChanged!=null) TreeChanged();
     Node x=root, y=Node.Null, gp;
-    int  c=1;
 
     while(x!=Node.Null)
-    { y=x;
-      c=comparer.Compare(node.Value, x.Value);
-      if(c<0) x=x.Left;
-      else x=x.Right;
+    { y=x; x=comparer.Compare(node.Value, x.Value)<0 ? x.Left : x.Right;
     }
     
     (x=node).Parent = y;
     if(y!=Node.Null)
-    { c=comparer.Compare(x.Value, y.Value);
-      if(c<0) y.Left=x;
+    { if(comparer.Compare(x.Value, y.Value)<0) y.Left=x;
       else y.Right=x; // equal values go to the right
     }
     else root=x;
-    
+
     while(x!=root && x.Parent.Red)
       if(x.Parent==(gp=x.Parent.Parent).Left)
         if((y=gp.Right).Red)
