@@ -463,7 +463,7 @@ public class PSDCodec
   
   Surface ReadImageData()
   { PSDChannel[] channels = new PSDChannel[image.Channels];
-    for(int i=channels.Length==4 ? -1 : 0; i<3; i++) channels[i] = (PSDChannel)i;
+    for(int i=0,id=channels.Length==4 ? -1 : 0; id<3; i++,id++) channels[i] = (PSDChannel)id;
     return ReadImageData(image.Width, image.Height, channels, false);
   }
 
@@ -615,7 +615,7 @@ public class PSDCodec
 
     byte[] data = new byte[128];
     byte* src = (byte*)surface.Data;
-    int xinc=surface.UsingAlpha?4:3, yinc=surface.Pitch-surface.Width*xinc;
+    int xinc=surface.Depth/8, yinc=surface.Pitch-surface.Width*xinc;
     switch(channel+(surface.UsingAlpha?0:1))
     { case 0: src += MaskToOffset(surface.Format.AlphaMask); break;
       case 1: src += MaskToOffset(surface.Format.RedMask); break;
@@ -694,7 +694,7 @@ public class PSDCodec
   unsafe void WriteRawBits(Surface surface, int channel, bool layer)
   { byte[] data = new byte[1024];
     if(layer || channel==0) IOH.WriteBE2(stream, 0); // no compression
-    int xinc=surface.UsingAlpha?4:3, yinc=surface.Pitch-surface.Width*xinc, blen=0;
+    int xinc=surface.Depth/8, yinc=surface.Pitch-surface.Width*xinc, blen=0;
     byte* src = (byte*)surface.Data;
     switch(channel+(surface.UsingAlpha?0:1))
     { case 0: src += MaskToOffset(surface.Format.AlphaMask); break;
