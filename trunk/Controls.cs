@@ -1364,7 +1364,8 @@ public sealed class MessageBox : Form
         }
         btnWidth += (buttonTexts.Length-1) * btnSpace; // space between buttons
         
-        int textWidth = btnWidth < desktop.Width/2 ? desktop.Width/2 : btnWidth, textHeight;
+        int textWidth = desktop.Width/2-font.LineSkip*2, textHeight;
+        if(btnWidth>textWidth) textWidth = btnWidth;
         Rectangle rect = new Rectangle(0, 0, textWidth, int.MaxValue);
         int lines = font.WordWrap(message, rect).Length;
         if(lines==1) textWidth = font.CalculateSize(message).Width;
@@ -1377,7 +1378,6 @@ public sealed class MessageBox : Form
         Label label  = new Label(message);
         label.Bounds = new Rectangle((Width-textWidth)/2, font.LineSkip, Width-font.LineSkip*2, textHeight);
         label.TextAlign = ContentAlignment.TopCenter;
-        Controls.Add(label);
         
         int x = (Width-btnWidth)/2, y = Height-font.LineSkip-btnHeight;
         for(int i=0; i<buttonTexts.Length; i++)
@@ -1388,6 +1388,8 @@ public sealed class MessageBox : Form
           x += sizes[i]+btnSpace;
           Controls.Add(btn);
         }
+        Controls.Add(label);
+        Controls[0].Focus();
       }
     }
     return (int)ShowDialog(desktop);
@@ -1423,7 +1425,8 @@ public sealed class MessageBox : Form
     }
   }
   public static MessageBox Create(string caption, string text, string[] buttonText)
-  { MessageBox box = new MessageBox(text, buttonText);
+  { if(buttonText.Length==0) throw new ArgumentException("Can't create a MessageBox with no buttons!", "buttonText");
+    MessageBox box = new MessageBox(text, buttonText);
     box.Text = caption;
     return box;
   }
