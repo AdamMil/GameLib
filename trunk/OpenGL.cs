@@ -22,6 +22,7 @@ using GameLib.Interop;
 using GameLib.Interop.OpenGL;
 
 // TODO: support 15-bit color
+// nice stuff here: http://www.sulaco.co.za/default.htm
 
 namespace GameLib.Video
 {

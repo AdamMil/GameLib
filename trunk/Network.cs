@@ -221,11 +221,11 @@ public sealed class MessageConverter
     }
     else
     { info = new TypeInfo(type, null);
-
-      try
-      { if(!IsBlittable(type)) throw new ArgumentException("Non-blittable types (types containing reference fields, or unformatted classes) cannot be serialized unless they implement the INetSerializable interface.", "type");
-      }
-      catch(System.Security.SecurityException) { info.Unsafe=true; }
+      info.Size = Marshal.SizeOf(type);
+      MarshalType mt = GetMarshalType(type);
+      if(mt==MarshalType.Bad)
+        throw new ArgumentException("Non-blittable types (types containing reference fields, or unformatted classes) cannot be serialized unless they implement the INetSerializable interface or use MarshalAsAttribute to convert them to blittable types.", "type");
+      info.Unsafe = mt==MarshalType.Unsafe;
     }
 
     int  i;
@@ -292,15 +292,13 @@ public sealed class MessageConverter
           return objects.ToArray(type);
         }
 
-        int size = Marshal.SizeOf(type);
-        Array arr = Array.CreateInstance(type, (length-4)/size);
-
+        Array arr = Array.CreateInstance(type, (length-4)/info.Size);
         if(arr.Length!=0)
           fixed(byte* src=data)
           { GCHandle handle = GCHandle.Alloc(arr, GCHandleType.Pinned);
             try
             { IntPtr dest = Marshal.UnsafeAddrOfPinnedArrayElement(arr, 0);
-              Interop.Unsafe.Copy(src+index+4, dest.ToPointer(), arr.Length*size);
+              Interop.Unsafe.Copy(src+index+4, dest.ToPointer(), arr.Length*info.Size);
             }
             finally { handle.Free(); }
           }
@@ -393,7 +391,7 @@ public sealed class MessageConverter
           }
         }
         else
-        { int size = Marshal.SizeOf(type);
+        { int size = info.Size;
           ret = new byte[arr.Length*size+4];
 
           if(arr.Length!=0)
@@ -420,8 +418,7 @@ public sealed class MessageConverter
         ns.SerializeTo(ret, 4);
       }
       else
-      { int size = Marshal.SizeOf(type);
-        ret = new byte[size+4];
+      { ret = new byte[info.Size+4];
         fixed(byte* dest=ret)
         { IntPtr dp = new IntPtr(dest+4);
           Marshal.StructureToPtr(obj, dp, false);
@@ -440,31 +437,52 @@ public sealed class MessageConverter
   { public TypeInfo(Type type, ConstructorInfo cons) { Type=type; ConsInterface=cons; }
     public Type Type;
     public ConstructorInfo ConsInterface;
+    public int  Size;
     public bool Unsafe;
   }
+
+  enum MarshalType { Bad, Unsafe, Safe };
 
   ArrayList types = new ArrayList();
   HybridDictionary typeIDs = new HybridDictionary();
 
-  static bool IsBlittable(Type type)
-  { if(type.IsPrimitive) return true;
-    if(!type.IsValueType && !type.IsLayoutSequential && !type.IsExplicitLayout) return false;
-    new ReflectionPermission(ReflectionPermissionFlag.TypeInformation).Demand();
-    return IsBlittable(type, null);
+  static MarshalType GetMarshalType(Type type)
+  { if(type.IsPrimitive) return MarshalType.Safe;
+    if(!type.IsValueType && !type.IsLayoutSequential && !type.IsExplicitLayout) return MarshalType.Bad;
+    try { new ReflectionPermission(ReflectionPermissionFlag.TypeInformation).Demand(); }
+    catch(System.Security.SecurityException) { return MarshalType.Unsafe; }
+    return GetMarshalType(type, null);
   }
 
-  static bool IsBlittable(Type type, ArrayList saw)
-  { foreach(FieldInfo fi in type.GetFields(BindingFlags.Instance|BindingFlags.NonPublic|BindingFlags.Public))
+  static MarshalType GetMarshalType(Type type, ArrayList saw)
+  { bool safe=true;
+    foreach(FieldInfo fi in type.GetFields(BindingFlags.Instance|BindingFlags.NonPublic|BindingFlags.Public))
     { Type ft = fi.FieldType;
       if(ft.IsPrimitive) continue;
-      if(!ft.IsValueType && !ft.IsLayoutSequential && !ft.IsExplicitLayout) return false;
+      if(!ft.IsValueType && !ft.IsLayoutSequential && !ft.IsExplicitLayout)
+      { // FIXME: this only works in .NET 2.0!
+        MarshalAsAttribute ma = (MarshalAsAttribute)Attribute.GetCustomAttribute(fi, typeof(MarshalAsAttribute), false);
+        if(ma!=null)
+          switch(ma.Value)
+          { case UnmanagedType.Bool: case UnmanagedType.ByValArray: case UnmanagedType.ByValTStr:
+            case UnmanagedType.I1: case UnmanagedType.I2: case UnmanagedType.I4: case UnmanagedType.I8:
+            case UnmanagedType.R4: case UnmanagedType.R8: case UnmanagedType.SysInt: case UnmanagedType.SysUInt:
+            case UnmanagedType.U1: case UnmanagedType.U2: case UnmanagedType.U4: case UnmanagedType.U8:
+            case UnmanagedType.VariantBool:
+              safe=false; continue;
+          }
+        return MarshalType.Bad;
+      }
+
       if(saw==null) saw = new ArrayList();
       if(!saw.Contains(ft))
       { saw.Add(ft);
-        if(!IsBlittable(ft, saw)) return false;
+        MarshalType mt = GetMarshalType(ft, saw);
+        if(mt==MarshalType.Bad) return mt;
+        else if(mt==MarshalType.Unsafe) safe=false;
       }
     }
-    return true;
+    return safe ? MarshalType.Safe : MarshalType.Unsafe;
   }
 }
 #endregion

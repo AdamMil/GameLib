@@ -2061,6 +2061,9 @@ public sealed class GL
   public static extern int glRenderMode(uint mode);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glRotated(double angle, double x, double y, double z);
+  public static void glRotated(double angle, Mathematics.ThreeD.Vector axis)
+  { glRotated(angle, axis.X, axis.Y, axis.Z);
+  }
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glRotatef(float angle, float x, float y, float z);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
