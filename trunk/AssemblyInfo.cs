@@ -26,10 +26,7 @@ using System.Runtime.CompilerServices;
 #else
 [assembly: AssemblyConfiguration("Release")]
 #endif
-[assembly: AssemblyCompany("")]
 [assembly: AssemblyProduct("GameLib")]
 [assembly: AssemblyCopyright("Copyright 2002-2004 Adam Milazzo")]
-[assembly: AssemblyTrademark("")]
-[assembly: AssemblyCulture("")]		
 
 [assembly: AssemblyVersion("0.2.*")]
