@@ -7,6 +7,8 @@ using System.Runtime.InteropServices;
 using System.Reflection;
 using GameLib.IO;
 
+// TODO: stress test the locking, changes were made that may have destabilized it
+
 namespace GameLib.Network
 {
 
@@ -29,7 +31,8 @@ public enum SendFlag
   ReliableSequential = Reliable|Sequential,
   
   // these are not for Send(). they're used for GetQueueStats().
-  NormalPriority=128, ReceiveQueue=256, AllStats=LowPriority|NormalPriority|HighPriority|ReceiveQueue
+  NormalPriority=128, ReceiveQueue=256, SendStats=LowPriority|NormalPriority|HighPriority,
+  AllStats=SendStats|ReceiveQueue
 }
 
 internal class MessageConverter
@@ -43,7 +46,7 @@ internal class MessageConverter
   public void RegisterTypes(Type[] types) { foreach(Type type in types) RegisterType(type); }
   public void RegisterType(Type type)
   { TypeInfo info;
-    if(type.IsSubclassOf(typeof(INetSerializeable)))
+    if(type.GetInterface("GameLib.Network.INetSerializeable")!=null)
     { ConstructorInfo cons = type.GetConstructor(Type.EmptyTypes);
       if(cons==null) throw new ArgumentException(String.Format("Type {0} has no parameterless constructor", type));
       info = new TypeInfo(type, cons);
@@ -80,7 +83,7 @@ internal class MessageConverter
         return buf;
       }
       else
-      { if(id<0 || id>=types.Count || types[id]==null) return null;
+      { if(id<1 || id>types.Count || types[id-1]==null) return null;
         TypeInfo info = (TypeInfo)types[id-1];
         if(info.ConsInterface!=null)
         { INetSerializeable ns = (INetSerializeable)info.ConsInterface.Invoke(null);
@@ -328,7 +331,7 @@ internal class NetLink
                 nextSize  = IOH.ReadLE2U(recvBuf, 0); // first two bytes are the length
                 nextIndex = 0;
                 recvFlags = (SendFlag)(recvBuf[2]&~(byte)HeadFlag.Mask); // next byte is the send/header flags
-                nextSeq   = (ushort)(((ushort)recvBuf[2]<<2) | recvBuf[3]);
+                nextSeq   = (ushort)((((ushort)recvBuf[2]<<2)&0xFF00) | recvBuf[3]);
                 avail -= HeaderSize;
               }
             }
@@ -338,10 +341,10 @@ internal class NetLink
               nextSize -= read; nextIndex += read;
               if(nextSize==0)
               { nextSize = -1;
-                if((recvFlags&SendFlag.ReliableSequential)==SendFlag.Sequential)
-                  if(nextSeq>recvSeq || recvSeq-nextSeq>SeqMax*4/10) recvSeq=nextSeq; // handles integer wraparound in a probabilistic way
+                if((recvFlags&SendFlag.Sequential)!=0)
+                  if(nextSeq>=recvSeq || recvSeq-nextSeq>SeqMax*4/10) recvSeq=nextSeq; // handles integer wraparound in a probabilistic way
                   else continue;
-                    
+
                 LinkMessage m = new LinkMessage();
                 m.Index  = 0;
                 m.Length = nextIndex;
@@ -498,8 +501,9 @@ public class ServerPlayer
   
   public object     Data;
   public IPEndPoint EndPoint;
-  internal uint     ID;
+  internal uint     ID, DropTime;
   internal NetLink  Link;
+  internal bool     DelayedDrop;
 }
 
 public delegate bool PlayerConnectHandler(Server server, ServerPlayer player);
@@ -525,7 +529,7 @@ public class Server
     remove { lock(this) eMessageSent -= value; }
   }
 
-  public IPEndPoint LocalEndPoint { get { return server==null ? null : (IPEndPoint)server.LocalEndpoint; } }
+  public IPEndPoint LocalEndPoint { get { return listening ? (IPEndPoint)server.LocalEndpoint : null; } }
   public PlayerCollection Players { get { return players; } }
 
   public void RegisterTypes(Type[] types)   { CheckClosed(); cvt.RegisterTypes(types); }
@@ -539,14 +543,15 @@ public class Server
     players = new PlayerCollection();
     links   = new ArrayList();
     nextID  = 1;
-    quit    = false;
+    quit    = listening = false;
+    server  = new TcpListener(IPAddress.Any, 30000); // dummy port
     thread  = new Thread(new ThreadStart(ThreadFunc));
     thread.Start();
   }
 
   public void Close()
   { if(thread!=null)
-    { lock(this) foreach(ServerPlayer p in players) p.Link.Close();
+    { lock(this) lock(links) foreach(ServerPlayer p in players) p.Link.Close();
       quit = true;
       thread.Join(1500);
       thread.Abort();
@@ -557,24 +562,42 @@ public class Server
     links   = null;
   }
 
+  public void Listen(int port) { Listen(new IPEndPoint(IPAddress.Any, port)); }
   public void Listen(IPEndPoint local)
   { if(thread==null) Open();
     lock(this)
     { StopListening();
       server = new TcpListener(local);
       server.Start();
+      listening = true;
     }
   }
 
   public void StopListening()
-  { lock(this)
-      if(server!=null)
-      { server.Stop();
-        server = null;
-      }
+  { server.Stop();
+    listening = false;
   }
   
+  public QueueStats GetQueueStats(ServerPlayer p, SendFlag flags) { lock(this) return p.Link.GetQueueStats(flags); }
+  public QueueStats GetQueueStats(SendFlag flags)
+  { QueueStats qs = new QueueStats(), pqs;
+    lock(this)
+      foreach(NetLink link in links)
+      { pqs = link.GetQueueStats(flags);
+        qs.SendBytes       += pqs.SendBytes;
+        qs.SendMessages    += pqs.SendMessages;
+        qs.ReceiveBytes    += pqs.ReceiveBytes;
+        qs.ReceiveMessages += pqs.ReceiveMessages;
+      }
+    return qs;
+  }
+
   public void DropPlayer(ServerPlayer p) { lock(this) p.Link.Close(); }
+  public void DropPlayerDelayed(ServerPlayer p) { DropPlayerDelayed(p, 0); }
+  public void DropPlayerDelayed(ServerPlayer p, uint timeoutMs)
+  { p.DropTime    = timeoutMs==0 ? 0 : Timing.Ticks+timeoutMs;
+    p.DelayedDrop = true;
+  }
 
   public void Send(object toWho, byte[] data, SendFlag flags) { Send(toWho, data, 0, data.Length, flags); }
   public void Send(object toWho, byte[] data, int length, SendFlag flags) { Send(toWho, data, 0, length, flags); }
@@ -596,6 +619,10 @@ public class Server
   { if(toWho is ICollection)
       foreach(ServerPlayer p in (ICollection)toWho)
         p.Link.Send(data, 0, data.Length, flags, timeoutMs, new DualTag(p, orig));
+    else if(toWho==null)
+      lock(this)
+        foreach(ServerPlayer p in players)
+          p.Link.Send(data, 0, data.Length, flags, timeoutMs, new DualTag(p, orig));
     else
     { ServerPlayer p = (ServerPlayer)toWho;
       p.Link.Send(data, 0, data.Length, flags, timeoutMs, new DualTag(p, orig));
@@ -605,28 +632,34 @@ public class Server
   void ThreadFunc()
   { while(!quit)
     { bool did=false;
-      lock(this)
-      { while(server!=null && server.Pending())
-        { Socket sock = server.AcceptSocket();
-          try
-          { ServerPlayer p = new ServerPlayer((IPEndPoint)sock.RemoteEndPoint, new NetLink(sock), nextID++);
-            if(!quit && (PlayerConnecting==null || PlayerConnecting(this, p)))
+      while(listening && server.Pending())
+      { Socket sock = server.AcceptSocket();
+        try
+        { ServerPlayer p = new ServerPlayer((IPEndPoint)sock.RemoteEndPoint, new NetLink(sock), nextID++);
+          if(!quit && (PlayerConnecting==null || PlayerConnecting(this, p)))
+          { lock(this)
             { players.Array.Add(p);
               links.Add(p.Link);
               p.Link.MessageSent    += new LinkMessageHandler(OnMessageSent);
               p.Link.RemoteReceived += new LinkMessageHandler(OnRemoteReceived);
-              if(PlayerConnected!=null) PlayerConnected(this, p);
             }
-            else sock.Close();
+            if(PlayerConnected!=null) PlayerConnected(this, p);
           }
-          catch(SocketException) { sock.Close(); }
-          catch(HandshakeException) { sock.Close(); }
+          else sock.Close();
         }
+        catch(SocketException) { sock.Close(); }
+        catch(HandshakeException) { sock.Close(); }
+      }
 
+      lock(this)
         for(int i=0; i<players.Count; i++)
         { ServerPlayer p = players[i];
           try
-          { p.Link.Poll();
+          { if(p.DelayedDrop && ((p.DropTime!=0 && Timing.Ticks>=p.DropTime) ||
+                                p.Link.GetQueueStats(SendFlag.SendStats).SendMessages==0))
+              p.Link.Close();
+
+            p.Link.Poll();
 
             LinkMessage msg = p.Link.ReceiveMessage();
             if(msg!=null)
@@ -643,19 +676,16 @@ public class Server
           catch(SocketException) { }
         }
 
-        if(!did) NetLink.WaitForEvent(links, 250);
-      }
+      if(!did) lock(links) NetLink.WaitForEvent(links, 250);
     }
   }
 
   bool OnMessageSent(NetLink link, LinkMessage msg)
-  { lock(this)
-    { if(eMessageSent!=null)
-      { DualTag tag = (DualTag)msg.Tag;
-        eMessageSent(this, (ServerPlayer)tag.Tag1, tag.Tag2);
-      }
-      return true;
+  { if(eMessageSent!=null)
+    { DualTag tag = (DualTag)msg.Tag;
+      eMessageSent(this, (ServerPlayer)tag.Tag1, tag.Tag2);
     }
+    return true;
   }
 
   bool OnRemoteReceived(NetLink link, LinkMessage msg)
@@ -676,7 +706,7 @@ public class Server
   Thread            thread;
   ServerSentHandler eMessageSent;
   uint              nextID;
-  bool              quit;
+  bool              quit, listening;
 }
 #endregion
 
@@ -702,16 +732,22 @@ public class Client
 
   public void Connect(IPEndPoint remote)
   { Disconnect();
-    quit   = false;
+    quit   = delayedDrop = false;
     link   = new NetLink(remote);
     link.MessageSent    += new LinkMessageHandler(OnMessageSent);
     link.RemoteReceived += new LinkMessageHandler(OnRemoteReceived);
     thread = new Thread(new ThreadStart(ThreadFunc));
     thread.Start();
   }
+  public void DelayedDisconnect() { DelayedDisconnect(0); }
+  public void DelayedDisconnect(uint timeoutMs)
+  { dropTime    = timeoutMs==0 ? 0 : Timing.Ticks+timeoutMs;
+    delayedDrop = true;
+  }
   public void Disconnect()
   { if(thread!=null)
-    { quit = true;
+    { if(Disconnected!=null) Disconnected(this);
+      quit = true;
       thread.Join(1500);
       thread.Abort();
     }
@@ -723,6 +759,8 @@ public class Client
   public void UnregisterTypes(Type[] types) { CheckClosed(); cvt.UnregisterTypes(types); }
   public void UnregisterType(Type type)     { CheckClosed(); cvt.UnregisterType(type); }
   public void ClearTypes() { CheckClosed(); cvt.Clear(); }
+
+  public QueueStats GetQueueStats(SendFlag flags) { CheckLink(); return link.GetQueueStats(flags); }
 
   public void Send(byte[] data, SendFlag flags) { Send(data, 0, data.Length, flags); }
   public void Send(byte[] data, int length, SendFlag flags) { Send(data, 0, length, flags); }
@@ -756,21 +794,24 @@ public class Client
   { NetLink[] links = new NetLink[] { link };
     while(!quit)
     { bool did=false;
-      lock(this)
-        try
-        { link.Poll();
+      try
+      { if(delayedDrop && ((dropTime!=0 && Timing.Ticks>=dropTime) ||
+                            link.GetQueueStats(SendFlag.SendStats).SendMessages==0))
+          link.Close();
 
-          LinkMessage msg = link.ReceiveMessage();
-          if(msg!=null)
-          { did=true;
-            if(MessageReceived!=null) MessageReceived(this, cvt.ToObject(msg));
-          }
-          else if(!link.Connected)
-          { if(!quit && Disconnected!=null) Disconnected(this);
-            return;
-          }
+        link.Poll();
+
+        LinkMessage msg = link.ReceiveMessage();
+        if(msg!=null)
+        { did=true;
+          if(MessageReceived!=null) MessageReceived(this, cvt.ToObject(msg));
         }
-        catch { }
+        else if(!link.Connected)
+        { if(!quit && Disconnected!=null) Disconnected(this);
+          return;
+        }
+      }
+      catch(SocketException) { }
 
       if(!did) NetLink.WaitForEvent(links, 250);
     }
@@ -792,7 +833,8 @@ public class Client
   ClientSentHandler eMessageSent;
   NetLink link;
   Thread  thread;
-  bool    quit;
+  uint    dropTime;
+  bool    quit, delayedDrop;
 }
 #endregion
 

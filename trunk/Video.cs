@@ -2,6 +2,8 @@ using System;
 using System.Drawing;
 using GameLib.Interop.SDL;
 
+// TODO: add WM support
+
 namespace GameLib.Video
 {
 
