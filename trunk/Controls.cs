@@ -12,8 +12,8 @@ namespace GameLib.Forms
 #region ContainerControl
 public class ContainerControl : Control
 { protected internal override void OnPaint(PaintEventArgs e)
-  { for(int i=controls.Count-1; i>=0; i--) // we count backwards because the first element is on top
-    { Control c = controls[i];
+  { for(int i=Controls.Count-1; i>=0; i--) // we count backwards because the first element is on top
+    { Control c = Controls[i];
       if(c.Visible)
       { Rectangle paint = Rectangle.Intersect(c.ParentRect, e.ClientRect);
         if(paint.Width>0)
@@ -86,9 +86,14 @@ public class LabelBase : Control
       }
     }
   }
-  
-  protected IBlittable image;
-  protected ContentAlignment imageAlign=ContentAlignment.TopLeft, textAlign=ContentAlignment.TopLeft;
+
+  protected override void OnTextChanged(ValueChangedEventArgs e)
+  { Invalidate();
+    base.OnTextChanged(e);
+  }
+
+  IBlittable image;
+  ContentAlignment imageAlign=ContentAlignment.TopLeft, textAlign=ContentAlignment.TopLeft;
 }
 #endregion
 
@@ -99,16 +104,16 @@ public class Label : LabelBase
 
   protected internal override void OnPaint(PaintEventArgs e)
   { base.OnPaint(e);
-    if(image!=null)
-    { Point at = Utility.CalculateAlignment(DisplayRect, new Size(image.Width, image.Height), imageAlign);
-      image.Blit(e.Surface, at.X, at.Y);
+    if(Image!=null)
+    { Point at = Utility.CalculateAlignment(DisplayRect, new Size(Image.Width, Image.Height), ImageAlign);
+      Image.Blit(e.Surface, at.X, at.Y);
     }
-    if(text != "")
+    if(Text.Length>0)
     { GameLib.Fonts.Font f = Font;
       if(f != null)
       { f.Color     = ForeColor;
         f.BackColor = BackColor;
-        f.Render(e.Surface, text, DisplayRect, textAlign);
+        f.Render(e.Surface, Text, DisplayRect, TextAlign);
       }
     }
   }
@@ -117,63 +122,75 @@ public class Label : LabelBase
 
 #region ButtonBase
 public abstract class ButtonBase : LabelBase
-{ public ButtonBase() { style=ControlStyle.Clickable|ControlStyle.CanFocus; }
+{ public ButtonBase() { Style|=ControlStyle.Clickable|ControlStyle.CanFocus; }
 
   public event ClickEventHandler Click;
 
   protected internal override void OnMouseDown(ClickEventArgs e)
   { Capture = pressed = true;
-    Invalidate();
     base.OnMouseDown(e);
   }
 
   protected internal override void OnMouseUp(ClickEventArgs e)
   { Capture = pressed = false;
-    Invalidate();
     base.OnMouseUp(e);
   }
 
   protected internal override void OnMouseClick(ClickEventArgs e)
-  { if(ClientRect.Contains(e.CE.Point)) OnClick(e);
+  { if(e.CE.Button==0 && !e.Handled)
+    { if(ClientRect.Contains(e.CE.Point)) OnClick(e);
+      e.Handled = true;
+    }
     base.OnMouseClick(e);
   }
   
+  protected internal override void OnKeyDown(KeyEventArgs e)
+  { if((e.KE.Key==Input.Key.Return || e.KE.Key==Input.Key.Space || e.KE.Key==Input.Key.KpEnter) && !e.Handled)
+      OnClick(new ClickEventArgs());
+  }
+
   protected virtual void OnClick(ClickEventArgs e) { if(Click!=null) Click(this, e); }
   
-  protected bool pressed;
+  protected bool Pressed { get { return pressed; } set { pressed=value; } }
+  
+  bool pressed;
 }
 #endregion
 
 #region Button
 public class Button : ButtonBase
-{ public Button() { imageAlign=textAlign=ContentAlignment.MiddleCenter; }
-  public Button(string text) { imageAlign=textAlign=ContentAlignment.MiddleCenter; Text=text; }
+{ public Button() { ImageAlign=TextAlign=ContentAlignment.MiddleCenter; }
+  public Button(string text) { ImageAlign=TextAlign=ContentAlignment.MiddleCenter; Text=text; }
+
+  protected internal override void OnMouseDown(ClickEventArgs e) { Invalidate(); base.OnMouseDown(e); }
+  protected internal override void OnMouseUp(ClickEventArgs e) { Invalidate(); base.OnMouseUp(e); }
+
   protected internal override void OnPaint(PaintEventArgs e)
   { base.OnPaint(e);
 
     Rectangle rect = DisplayRect;
 
-    if(image!=null)
-    { Point at = Utility.CalculateAlignment(rect, new Size(image.Width, image.Height), imageAlign);
-      if(pressed) at.Offset(1, 1);
-      image.Blit(e.Surface, at.X, at.Y);
+    if(Image!=null)
+    { Point at = Utility.CalculateAlignment(rect, new Size(Image.Width, Image.Height), ImageAlign);
+      if(Pressed) at.Offset(1, 1);
+      Image.Blit(e.Surface, at.X, at.Y);
     }
-    if(text.Length>0)
+    if(Text.Length>0)
     { GameLib.Fonts.Font f = Font;
       if(f!=null)
       { Rectangle box = rect;
         box.Inflate(-1, -1);
-        if(pressed) box.Offset(1, 1);
+        if(Pressed) box.Offset(1, 1);
         f.Color     = ForeColor;
         f.BackColor = BackColor;
-        f.Render(e.Surface, text, box, textAlign);
+        f.Render(e.Surface, Text, box, TextAlign);
       }
     }
     
     Color bright, dark, back=BackColor, fore=ForeColor;
     bright = Color.FromArgb(back.R+(255-back.R)*3/5, back.G+(255-back.G)*3/5, back.B+(255-back.B)*3/5);
     dark   = Color.FromArgb(back.R/2, back.G/2, back.B/2);
-    if(pressed) { Color t=bright; bright=dark; dark=t; }
+    if(Pressed) { Color t=bright; bright=dark; dark=t; }
     else if(Focused) bright=dark=Color.Black;
     Primitives.Line(e.Surface, rect.X, rect.Y, rect.Right-1, rect.Y, bright);
     Primitives.Line(e.Surface, rect.X, rect.Y, rect.X, rect.Bottom-1, bright);
@@ -181,20 +198,45 @@ public class Button : ButtonBase
     Primitives.Line(e.Surface, rect.Right-1, rect.Y, rect.Right-1, rect.Bottom-1, dark);
   }
   
-  protected internal override void OnKeyDown(KeyEventArgs e)
-  { if(e.KE.Key==Input.Key.Return || e.KE.Key==Input.Key.Space || e.KE.Key==Input.Key.KpEnter)
-      OnClick(new ClickEventArgs());
-  }
-
   protected override void OnLostFocus(EventArgs e) { Invalidate(); base.OnLostFocus(e); }
   protected override void OnGotFocus(EventArgs e)  { Invalidate(); base.OnGotFocus(e); }
+}
+#endregion
+
+#region CheckBoxBase
+public class CheckBoxBase : ButtonBase
+{ public bool Checked
+  { get { return value; }
+    set
+    { if(value!=this.value)
+      { this.value=value;
+        OnCheckedChanged(new EventArgs());
+      }
+    }
+  }
+  
+  public event EventHandler CheckedChanged;
+  
+  protected virtual void OnCheckedChanged(EventArgs e)
+  { if(CheckedChanged!=null) CheckedChanged(this, new EventArgs());
+  }
+  
+  protected override void OnClick(ClickEventArgs e)
+  { if(e.CE.Button==0 && !e.Handled)
+    { Checked   = !value;
+      e.Handled = true;
+    }
+    base.OnClick(e);
+  }
+  
+  bool value;
 }
 #endregion
 
 #region ScrollBarBase
 public class ScrollBarBase : Control
 { public ScrollBarBase()
-  { style = ControlStyle.Clickable|ControlStyle.Draggable|ControlStyle.CanFocus;
+  { Style = ControlStyle.Clickable|ControlStyle.Draggable|ControlStyle.CanFocus;
     ClickRepeatDelay = 300;
     dragThreshold    = 4;
   }
@@ -204,6 +246,11 @@ public class ScrollBarBase : Control
     public int End;
   }
   public delegate void ThumbHandler(object sender, ThumbEventArgs e);
+
+  #region Properties
+  public bool AutoUpdate { get { return autoUpdate; } set { autoUpdate=value; } }
+
+  public int BigIncrement { get { return bigInc; } set { bigInc=value; } }
 
   public uint ClickRepeatDelay
   { get { return crDelay; }
@@ -232,49 +279,53 @@ public class ScrollBarBase : Control
     }
   }
 
+  public bool DraggingThumb { get { return dragOff!=-1; } }
+
   public int EndSize
   { get { return endSize; }
     set { if(endSize!=value) { endSize=value; Invalidate(); } }
   }
+
+  public bool Horizontal
+  { get { return horizontal; }
+    set { horizontal=value; Invalidate(); }
+  }
+
+  public int Maximum
+  { get { return max; }
+    set { max=value; Invalidate(); }
+  }
+
+  public int Minimum
+  { get { return min; }
+    set { min=value; Invalidate(); }
+  }
+
+  public int SmallIncrement { get { return smallInc; } set { smallInc=value; } }
 
   public int ThumbSize
   { get { return thumbSize; }
     set { if(thumbSize!=value) { thumbSize=value; Invalidate(); } }
   }
 
-  public bool UpdateDuringDrag { get { return immediate; } set { immediate=value; } }
-
   public int Value
   { get { return value; }
     set
-    { if(value!=this.value)
-      { if(value<min) value=min;
-        else if(value>max) value=max;
+    { if(value<min) value=min;
+      else if(value>max) value=max;
+      if(value!=this.value)
+      { valChange.OldValue = this.value;
         this.value = value;
-        if(immediate || dragOff==-1) OnValueChanged(eventArgs);
-        else Refresh();
+        OnValueChanged(valChange);
       }
     }
   }
+  #endregion
 
-  public int SmallIncrement { get { return smallInc; } set { smallInc=value; } }
-  public int BigIncrement { get { return bigInc; } set { bigInc=value; } }
-  public int Minimum
-  { get { return min; }
-    set { min=value; Invalidate(); }
-  }
-  public int Maximum
-  { get { return max; }
-    set { max=value; Invalidate(); }
-  }
-  public bool AutoUpdate { get { return autoUpdate; } set { autoUpdate=value; } }
-  public bool Horizontal
-  { get { return horizontal; }
-    set { horizontal=value; Invalidate(); }
-  }
-  
-  public event EventHandler ValueChanged, Down, Up, PageDown, PageUp;
+  #region Events
+  public event EventHandler Down, Up, PageDown, PageUp;
   public event ThumbHandler ThumbDragStart, ThumbDragMove, ThumbDragEnd;
+  public event ValueChangedEventHandler ValueChanged;
 
   protected enum Place { Down, PageDown, Thumb, PageUp, Up };
   protected class ClickRepeat : GameLib.Events.WindowEvent
@@ -307,12 +358,14 @@ public class ScrollBarBase : Control
   }
   protected internal override void OnMouseClick(ClickEventArgs e)
   { if(!repeated && !e.Handled && e.CE.Button==0)
-      switch(FindPlace(e.CE.Point))
+    { switch(FindPlace(e.CE.Point))
       { case Place.Down: OnDown(eventArgs); break;
         case Place.PageDown: OnPageDown(eventArgs); break;
         case Place.PageUp: OnPageUp(eventArgs); break;
         case Place.Up: OnUp(eventArgs); break;
       }
+      e.Handled = true;
+    }
     base.OnMouseClick(e);
   }
   protected internal override void OnDragStart(DragEventArgs e)
@@ -349,19 +402,17 @@ public class ScrollBarBase : Control
     base.OnCustomEvent(e);
   }
   protected internal override void OnKeyDown(KeyEventArgs e)
-  { switch(e.KE.Key)
-    { case Input.Key.PageDown: OnPageUp(eventArgs); break;
-      case Input.Key.PageUp: OnPageDown(eventArgs); break;
-      case Input.Key.Down: case Input.Key.Right: OnUp(eventArgs); break;
-      case Input.Key.Up: case Input.Key.Left: OnDown(eventArgs); break;
-    }
+  { if(!e.Handled)
+      switch(e.KE.Key)
+      { case Input.Key.PageDown: OnPageUp(eventArgs); break;
+        case Input.Key.PageUp: OnPageDown(eventArgs); break;
+        case Input.Key.Down: case Input.Key.Right: OnUp(eventArgs); break;
+        case Input.Key.Up: case Input.Key.Left: OnDown(eventArgs); break;
+      }
     base.OnKeyDown(e);
   }
 
-  protected virtual void OnValueChanged(EventArgs e)
-  { if(ValueChanged!=null) ValueChanged(this, e);
-    Refresh();
-  }
+  protected virtual void OnValueChanged(ValueChangedEventArgs e) { if(ValueChanged!=null) ValueChanged(this, e); }
   protected virtual void OnDown(EventArgs e)
   { if(autoUpdate) Value=value-smallInc;
     if(Down!=null) Down(this, e);
@@ -386,15 +437,11 @@ public class ScrollBarBase : Control
     if(ThumbDragMove!=null) ThumbDragMove(this, e);
   }
   protected virtual void OnThumbDragEnd(ThumbEventArgs e)
-  { if(autoUpdate)
-    { Value=e.End;
-      if(!immediate && e.Start!=e.End) OnValueChanged(eventArgs);
-    }
+  { if(autoUpdate) Value=e.End;
     if(ThumbDragEnd!=null) ThumbDragEnd(this, e);
   }
+  #endregion
   
-  protected int Space { get { return (horizontal ? Width : Height)-EndSize*2-ThumbSize; } }
-
   protected int ThumbToValue(int position)
   { if(position<0) position=0;
     if(horizontal)
@@ -403,7 +450,7 @@ public class ScrollBarBase : Control
     else if(position>Height) position=Height-1;
     return (position-endSize)*(max-min)/Space;
   }
-  
+    
   protected int ValueToThumb(int value) { return value*Space/(max-min)+endSize; }
 
   protected Place FindPlace(Point click)
@@ -422,32 +469,42 @@ public class ScrollBarBase : Control
   
   protected ThumbEventArgs thumbArgs = new ThumbEventArgs();
   protected EventArgs eventArgs = new EventArgs();
-  protected System.Threading.Timer crTimer;
-  protected ClickRepeat repeatEvent;
-  protected int  value, min, max=100, smallInc=1, bigInc=10, endSize=8, thumbSize=10, dragOff=-1;
-  protected uint crDelay, crRate=50;
-  protected bool autoUpdate, horizontal, repeated, immediate=true;
+  protected ValueChangedEventArgs valChange = new ValueChangedEventArgs(0);
+
+  int Space { get { return (horizontal ? Width : Height)-EndSize*2-ThumbSize; } }
+
+  System.Threading.Timer crTimer;
+  ClickRepeat repeatEvent;
+  int  value, min, max=100, smallInc=1, bigInc=10, endSize=8, thumbSize=10, dragOff=-1;
+  uint crDelay, crRate=50;
+  bool autoUpdate, horizontal, repeated;
 }
 #endregion
 
 #region ScrollBar
 public class ScrollBar : ScrollBarBase // TODO: replace with image-based scrollbar
 { public ScrollBar() { BackColor=Color.LightGray; ForeColor=Color.Gray; }
+  
+  protected override void OnValueChanged(ValueChangedEventArgs e)
+  { Refresh();
+    base.OnValueChanged(e);
+  }
+  
   protected internal override void OnPaint(PaintEventArgs e)
   { base.OnPaint(e);
     Rectangle rect = DisplayRect;
-    int thumb = ValueToThumb(value);
-    if(horizontal)
+    int thumb = ValueToThumb(Value);
+    if(Horizontal)
     { int x=rect.X, w=rect.Width;
-      rect.Width = endSize; e.Surface.Fill(rect, ForeColor);
-      rect.X = x+w-endSize; e.Surface.Fill(rect, ForeColor);
-      rect.X = x+thumb; rect.Width = thumbSize;
+      rect.Width = EndSize; e.Surface.Fill(rect, ForeColor);
+      rect.X = x+w-EndSize; e.Surface.Fill(rect, ForeColor);
+      rect.X = x+thumb; rect.Width = ThumbSize;
     }
     else
     { int y=rect.Y, h=rect.Height;
-      rect.Height = endSize; e.Surface.Fill(rect, ForeColor);
-      rect.Y = y+h-endSize; e.Surface.Fill(rect, ForeColor);
-      rect.Y = y+thumb; rect.Height = thumbSize;
+      rect.Height = EndSize; e.Surface.Fill(rect, ForeColor);
+      rect.Y = y+h-EndSize; e.Surface.Fill(rect, ForeColor);
+      rect.Y = y+thumb; rect.Height = ThumbSize;
     }
     Primitives.Box(e.Surface, rect, Color.Black);
     rect.Inflate(-1, -1);
