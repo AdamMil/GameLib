@@ -28,20 +28,20 @@ public abstract class Event
 }
 public class FocusEvent : Event
 { public FocusEvent() : base(EventType.Focus) { }
-  internal unsafe FocusEvent(SDL.ActiveEvent* evt) : base(EventType.Focus)
-  { FocusType=(FocusType)evt->State; Focused=evt->Focused;
+  internal FocusEvent(ref SDL.ActiveEvent evt) : base(EventType.Focus)
+  { FocusType=(FocusType)evt.State; Focused=evt.Focused;
   }
   public FocusType FocusType;
   public bool      Focused;
 }
 public class KeyboardEvent : Event
 { public KeyboardEvent() : base(EventType.Keyboard) { }
-  internal unsafe KeyboardEvent(SDL.KeyboardEvent* evt) : base(EventType.Keyboard)
-  { Key  = (Input.Key)evt->Key.Sym;
-    Mods = (Input.KeyMod)evt->Key.Mod;
-    Char = evt->Key.Unicode;
-    Scan = evt->Key.Scan;
-    Down = evt->Down;
+  internal KeyboardEvent(ref SDL.KeyboardEvent evt) : base(EventType.Keyboard)
+  { Key  = (Input.Key)evt.Key.Sym;
+    Mods = (Input.KeyMod)evt.Key.Mod;
+    Char = evt.Key.Unicode;
+    Scan = evt.Key.Scan;
+    Down = evt.Down;
   }
   public Input.Key    Key;
   public Input.KeyMod Mods;
@@ -51,8 +51,8 @@ public class KeyboardEvent : Event
 }
 public class MouseMoveEvent : Event
 { public MouseMoveEvent() : base(EventType.MouseMove) { }
-  internal unsafe MouseMoveEvent(SDL.MouseMoveEvent* evt) : base(EventType.MouseMove)
-  { X=(int)evt->X; Y=(int)evt->Y; Xrel=(int)evt->Xrel; Yrel=(int)evt->Yrel; Buttons=evt->State;
+  internal MouseMoveEvent(ref SDL.MouseMoveEvent evt) : base(EventType.MouseMove)
+  { X=(int)evt.X; Y=(int)evt.Y; Xrel=(int)evt.Xrel; Yrel=(int)evt.Yrel; Buttons=evt.State;
   }
   public bool Pressed(byte button) { return (Buttons&(1<<button))!=0; }
   public void SetPressed(byte button, bool down)
@@ -64,8 +64,8 @@ public class MouseMoveEvent : Event
 }
 public class MouseClickEvent : Event
 { public MouseClickEvent() : base(EventType.MouseClick) { }
-  internal unsafe MouseClickEvent(SDL.MouseButtonEvent* evt) : base(EventType.MouseClick)
-  { Button=(byte)(evt->Button-1); Down=evt->Down; X=(int)evt->X; Y=(int)evt->Y;
+  internal MouseClickEvent(ref SDL.MouseButtonEvent evt) : base(EventType.MouseClick)
+  { Button=(byte)(evt.Button-1); Down=evt.Down; X=(int)evt.X; Y=(int)evt.Y;
   }
   public byte Button;
   public bool Down;
@@ -73,32 +73,32 @@ public class MouseClickEvent : Event
 }
 public class JoyMoveEvent : Event
 { public JoyMoveEvent() : base(EventType.JoyMove) { }
-  internal unsafe JoyMoveEvent(SDL.JoyAxisEvent* evt) : base(EventType.JoyMove)
-  { Device=evt->Device; Axis=evt->Axis; Position=(int)evt->Value;
+  internal JoyMoveEvent(ref SDL.JoyAxisEvent evt) : base(EventType.JoyMove)
+  { Device=evt.Device; Axis=evt.Axis; Position=(int)evt.Value;
   }
   public byte Device, Axis;
   public int  Position;
 }
 public class JoyBallEvent : Event
 { public JoyBallEvent() : base(EventType.JoyBall) { }
-  internal unsafe JoyBallEvent(SDL.JoyBallEvent* evt) : base(EventType.JoyBall)
-  { Device=evt->Device; Ball=evt->Ball; Xrel=(int)evt->Xrel; Yrel=(int)evt->Yrel;
+  internal JoyBallEvent(ref SDL.JoyBallEvent evt) : base(EventType.JoyBall)
+  { Device=evt.Device; Ball=evt.Ball; Xrel=(int)evt.Xrel; Yrel=(int)evt.Yrel;
   }
   public byte Device, Ball;
   public int  Xrel, Yrel;
 }
 public class JoyHatEvent : Event
 { public JoyHatEvent() : base(EventType.JoyHat) { }
-  internal unsafe JoyHatEvent(SDL.JoyHatEvent* evt) : base(EventType.JoyHat)
-  { Device=evt->Device; Hat=evt->Hat; Position=(HatPosition)evt->Position;
+  internal JoyHatEvent(ref SDL.JoyHatEvent evt) : base(EventType.JoyHat)
+  { Device=evt.Device; Hat=evt.Hat; Position=(HatPosition)evt.Position;
   }
   public byte Device, Hat;
   public HatPosition Position;
 }
 public class JoyButtonEvent : Event
 { public JoyButtonEvent() : base(EventType.JoyButton) { }
-  internal unsafe JoyButtonEvent(SDL.JoyButtonEvent* evt) : base(EventType.JoyButton)
-  { Device=evt->Device; Button=evt->Button; Down=evt->Down;
+  internal JoyButtonEvent(ref SDL.JoyButtonEvent evt) : base(EventType.JoyButton)
+  { Device=evt.Device; Button=evt.Button; Down=evt.Down;
   }
   public byte Device, Button;
   public bool Down;
@@ -108,8 +108,8 @@ public class QuitEvent : Event
 }
 public class ResizeEvent : Event
 { public ResizeEvent() : base(EventType.Resize) { }
-  internal unsafe ResizeEvent(SDL.ResizeEvent* evt) : base(EventType.Resize)
-  { Width=evt->Width; Height=evt->Height;
+  internal ResizeEvent(ref SDL.ResizeEvent evt) : base(EventType.Resize)
+  { Width=evt.Width; Height=evt.Height;
   }
   int Width, Height;
 }
@@ -143,8 +143,9 @@ public sealed class Events
   { if(initCount++==0)
     { queue = new System.Collections.Queue();
       SDL.Initialize();
-      SDL.EnableUNICODE(1);
       SDL.InitSubSystem(SDL.InitFlag.EventThread);
+      SDL.EnableUNICODE(1); // must be AFTER InitSubSystem(EventThread) (SDL quirk...)
+      // TODO: figure out why the .Char member still isn't being populated
     }
   }
 
@@ -216,8 +217,8 @@ public sealed class Events
     SDL.Event evt = new SDL.Event();
     do
     { unsafe
-      { if(SDL.PollEvent(&evt)!=0)
-        { ret = ConvertEvent(&evt);
+      { if(SDL.PollEvent(ref evt)!=0)
+        { ret = ConvertEvent(ref evt);
           if(!FilterEvent(ret)) ret=null;
         }
         else break;
@@ -231,8 +232,8 @@ public sealed class Events
     SDL.Event evt = new SDL.Event();
     while(true)
     { unsafe
-      { if(SDL.WaitEvent(&evt)!=0)
-        { ret = ConvertEvent(&evt);
+      { if(SDL.WaitEvent(ref evt)!=0)
+        { ret = ConvertEvent(ref evt);
           if(FilterEvent(ret)) return ret;
         }
       }
@@ -253,18 +254,18 @@ public sealed class Events
     return true;
   }
   
-  static unsafe Event ConvertEvent(SDL.Event* evt)
-  { switch(evt->Type)
-    { case SDL.EventType.Active: return new FocusEvent(&evt->Active);
-      case SDL.EventType.KeyDown: case SDL.EventType.KeyUp: return new KeyboardEvent(&evt->Keyboard);
-      case SDL.EventType.MouseMove: return new MouseMoveEvent(&evt->MouseMove);
-      case SDL.EventType.MouseDown: case SDL.EventType.MouseUp: return new MouseClickEvent(&evt->MouseButton);
-      case SDL.EventType.JoyAxis: return new JoyMoveEvent(&evt->JoyAxis);
-      case SDL.EventType.JoyBall: return new JoyBallEvent(&evt->JoyBall);
-      case SDL.EventType.JoyHat:  return new JoyHatEvent(&evt->JoyHat);
-      case SDL.EventType.JoyDown: case SDL.EventType.JoyUp: return new JoyButtonEvent(&evt->JoyButton);
+  static unsafe Event ConvertEvent(ref SDL.Event evt)
+  { switch(evt.Type)
+    { case SDL.EventType.Active: return new FocusEvent(ref evt.Active);
+      case SDL.EventType.KeyDown: case SDL.EventType.KeyUp: return new KeyboardEvent(ref evt.Keyboard);
+      case SDL.EventType.MouseMove: return new MouseMoveEvent(ref evt.MouseMove);
+      case SDL.EventType.MouseDown: case SDL.EventType.MouseUp: return new MouseClickEvent(ref evt.MouseButton);
+      case SDL.EventType.JoyAxis: return new JoyMoveEvent(ref evt.JoyAxis);
+      case SDL.EventType.JoyBall: return new JoyBallEvent(ref evt.JoyBall);
+      case SDL.EventType.JoyHat:  return new JoyHatEvent(ref evt.JoyHat);
+      case SDL.EventType.JoyDown: case SDL.EventType.JoyUp: return new JoyButtonEvent(ref evt.JoyButton);
       case SDL.EventType.Quit: return new QuitEvent();
-      case SDL.EventType.VideoResize: return new ResizeEvent(&evt->Resize);
+      case SDL.EventType.VideoResize: return new ResizeEvent(ref evt.Resize);
       case SDL.EventType.VideoExposed: return new RepaintEvent();
       default: return null;
     }

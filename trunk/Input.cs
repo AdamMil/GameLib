@@ -5,6 +5,7 @@ using GameLib.Events;
 namespace GameLib.Input
 {
 
+#region Types
 public class MouseButton
 { private MouseButton() { }
   public const byte Left      =0;
@@ -209,36 +210,21 @@ public enum KeyMod : uint
 }
 
 public delegate void KeyPressHandler(KeyboardEvent evt);
+public delegate void MouseMoveHandler(MouseMoveEvent evt);
+public delegate void MouseClickHandler(MouseClickEvent evt);
+public delegate void JoyMoveHandler(Joystick js, JoyMoveEvent evt);
+public delegate void JoyBallHandler(Joystick js, JoyBallEvent evt);
+public delegate void JoyHatHandler(Joystick js, JoyHatEvent evt);
+public delegate void JoyButtonHandler(Joystick js, JoyButtonEvent evt);
+#endregion
 
+#region Keyboard
 public sealed class Keyboard
 { private Keyboard() { }
   
   public static event KeyPressHandler KeyPress;
 
   public static KeyMod Modifiers { get { return mods; } }
-
-  public static void Initialize()
-  { if(initCount++==0)
-    { Events.Events.Initialize();
-      Events.Events.EventFilter += new EventFilter(OnEvent);
-      mods = (KeyMod)SDL.GetModState();
-      unsafe
-      { int   i=0, num;
-        byte *keys = SDL.GetKeyState(&num);
-        if(num>(int)Key.NumKeys) num = (int)Key.NumKeys;
-        for(; i<num; i++) state[i]=(keys[i]!=0);
-        for(; i<(int)Key.NumKeys; i++) state[i]=false;
-      }
-    }
-  }
-
-  public static void Deinitialize()
-  { if(initCount==0) throw new InvalidOperationException("Deinitialize called too many times!");
-    if(--initCount==0)
-    { Events.Events.EventFilter -= new EventFilter(OnEvent);
-      Events.Events.Deinitialize();
-    }
-  }
 
   public static string KeyName(Key key) { return Enum.GetName(typeof(Key), key); }
 
@@ -250,19 +236,202 @@ public sealed class Keyboard
   }
   public void DisableKeyRepeat() { EnableKeyRepeat(0, 0); }
   
-  static FilterAction OnEvent(Event evt)
-  { if(evt.Type==EventType.Keyboard)
-    { KeyboardEvent ke = (KeyboardEvent)evt;
-      mods = (KeyMod)ke.Mods;
-      state[(int)ke.Key] = ke.Down;
-      if(KeyPress!=null) KeyPress(ke);
+  internal static void Initialize()
+  { mods = (KeyMod)SDL.GetModState();
+    unsafe
+    { int   i=0, num;
+      byte *keys = SDL.GetKeyState(&num);
+      if(num>(int)Key.NumKeys) num = (int)Key.NumKeys;
+      for(; i<num; i++) state[i]=(keys[i]!=0);
+      for(; i<(int)Key.NumKeys; i++) state[i]=false;
+    }
+  }
+
+  internal static void OnKeyPress(KeyboardEvent e)
+  { mods = (KeyMod)e.Mods;
+    state[(int)e.Key] = e.Down;
+    if(KeyPress!=null) KeyPress(e);
+  }
+
+  static bool[] state = new bool[(int)Key.NumKeys];
+  static KeyMod mods;
+}
+#endregion
+
+#region Mouse
+public sealed class Mouse
+{ private Mouse() { }
+  
+  public static event MouseMoveHandler  MouseMove;
+  public static event MouseClickHandler MouseClick;
+
+  public static int X { get { return x; } }
+  public static int Y { get { return y; } }
+  public static System.Drawing.Point Point { get { return new System.Drawing.Point(x, y); } }
+  
+  public static bool CursorVisible
+  { get { return cursorVisible; }
+    set { SDL.ShowCursor(value?1:0); cursorVisible=(SDL.ShowCursor(-1)!=0); }
+  }
+
+  public static byte Buttons { get { return buttons; } }
+  public static bool Pressed(int button) { return (buttons&(1<<button))!=0; }
+
+  internal static void Initialize()
+  { unsafe
+    { int x, y;
+      Mouse.buttons = SDL.GetMouseState(&x, &y);
+      Mouse.x=x; Mouse.y=y;
+      SDL.ShowCursor(1);
+    }
+  }
+
+  internal static void OnMouseMove(MouseMoveEvent e)
+  { x=e.X; y=e.Y; buttons=e.Buttons; // TODO: mouse moves 100x faster than normal in fullscreen mode. why?
+    if(MouseMove!=null) MouseMove(e);
+  }
+  internal static void OnMouseClick(MouseClickEvent e)
+  { /*x=e.X; y=e.Y;*/ // TODO: should i keep this?
+    if(e.Down) buttons |= (byte)(1<<e.Button);
+    else buttons &= (byte)~(1<<e.Button);
+    if(MouseClick!=null) MouseClick(e);
+  }
+
+  static int  x, y;
+  static byte buttons;
+  static bool cursorVisible;
+}
+#endregion
+
+#region Joystick
+public sealed class Joystick : IDisposable
+{ public sealed class Ball
+  { internal Ball() { }
+    public int Xrel, Yrel;
+  }
+
+  public event JoyMoveHandler   JoyMove;
+  public event JoyBallHandler   JoyBall;
+  public event JoyHatHandler    JoyHat;
+  public event JoyButtonHandler JoyButton;
+
+  internal Joystick(int number)
+  { joystick = SDL.JoystickOpen(number);
+    unsafe { if(joystick.ToPointer()==null) SDL.RaiseError(); }
+
+    balls   = new Ball[SDL.JoystickNumBalls(joystick)];
+    hats    = new HatPosition[SDL.JoystickNumHats(joystick)];
+    buttons = new bool[SDL.JoystickNumButtons(joystick)];
+    axes    = new int[SDL.JoystickNumAxes(joystick)];
+    name    = SDL.JoystickName(number);
+    for(int i=0; i<balls.Length; i++) balls[i] = new Ball();
+
+    this.number=number;
+  }
+  ~Joystick() { Dispose(true); } // TODO: find out if finalizer is called if an exception is thrown from a constructor
+  public void Dispose() { Dispose(false); GC.SuppressFinalize(this); }
+
+  public Ball[] Balls       { get { return balls; } }
+  public HatPosition[] Hats { get { return hats; } }
+  public bool[] Buttons     { get { return buttons; } }
+  public int[] Axes         { get { return axes; } }
+  public string Name        { get { return name; } }
+  public int Number         { get { return number; } }
+
+  internal void OnJoyMove(JoyMoveEvent e)
+  { axes[e.Axis] = e.Position;
+    if(JoyMove!=null) JoyMove(this, e);
+  }
+
+  internal void OnJoyBall(JoyBallEvent e)
+  { balls[e.Ball].Xrel=e.Xrel; balls[e.Ball].Yrel=e.Yrel;
+    if(JoyBall!=null) JoyBall(this, e);
+  }
+  
+  internal void OnJoyHat(JoyHatEvent e)
+  { hats[e.Hat]=e.Position;
+    if(JoyHat!=null) JoyHat(this, e);
+  }
+  
+  internal void OnJoyButton(JoyButtonEvent e)
+  { buttons[e.Button]=e.Down;
+    if(JoyButton!=null) JoyButton(this, e);
+  }
+
+  void Dispose(bool deconstructor) { SDL.JoystickClose(joystick); }
+
+  IntPtr        joystick;
+  Ball[]        balls;
+  HatPosition[] hats;
+  bool[]        buttons;
+  int[]         axes;
+  string        name;
+  int           number;
+}
+#endregion
+
+#region Input
+public sealed class Input
+{ private Input() { }
+
+  public Joystick[] Joysticks { get { return joysticks; } }
+
+  public static void Initialize(bool useJoysticks)
+  { if(initCount++==0)
+    { Events.Events.Initialize();
+      Events.Events.EventFilter += new EventFilter(OnEvent);
+      Keyboard.Initialize();
+      Mouse.Initialize();
+      SDL.ShowCursor(0);
+      
+      if(useJoysticks)
+      { joysticks = new Joystick[SDL.NumJoysticks()];
+        for(int i=0; i<joysticks.Length; i++) joysticks[i] = new Joystick(i);
+      }
+    }
+  }
+
+  public static void Deinitialize()
+  { if(initCount==0) throw new InvalidOperationException("Deinitialize called too many times!");
+    if(--initCount==0)
+    { Events.Events.EventFilter -= new EventFilter(OnEvent);
+      Events.Events.Deinitialize();
+      joysticks = null;
+    }
+  }
+
+  static FilterAction OnEvent(Event e)
+  { switch(e.Type)
+    { case EventType.MouseMove:  Mouse.OnMouseMove((MouseMoveEvent)e); break;
+      case EventType.JoyMove:
+      { JoyMoveEvent je = (JoyMoveEvent)e;
+        joysticks[je.Device].OnJoyMove(je);
+        break;
+      }
+      case EventType.Keyboard:   Keyboard.OnKeyPress((KeyboardEvent)e); break;
+      case EventType.MouseClick: Mouse.OnMouseClick((MouseClickEvent)e); break;
+      case EventType.JoyBall:
+      { JoyBallEvent je = (JoyBallEvent)e;
+        joysticks[je.Device].OnJoyBall(je);
+        break;
+      }
+      case EventType.JoyButton:
+      { JoyButtonEvent je = (JoyButtonEvent)e;
+        joysticks[je.Device].OnJoyButton(je);
+        break;
+      }
+      case EventType.JoyHat:
+      { JoyHatEvent je = (JoyHatEvent)e;
+        joysticks[je.Device].OnJoyHat(je);
+        break;
+      }
     }
     return FilterAction.Continue;
   }
 
-  static bool[] state = new bool[(int)Key.NumKeys];
-  static uint   initCount;
-  static KeyMod mods;
+  static Joystick[] joysticks;
+  static uint initCount;
 }
+#endregion
 
 }

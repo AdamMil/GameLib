@@ -115,11 +115,12 @@ internal class SDL
     public short  X, Y;
     public ushort Width, Height;
   }
-  [StructLayout(LayoutKind.Explicit, Size=4)]
+  [StructLayout(LayoutKind.Explicit)]
   public struct Color
   { [FieldOffset(0)] public byte Red;
     [FieldOffset(1)] public byte Green;
     [FieldOffset(2)] public byte Blue;
+    [FieldOffset(3)] public byte Alpha; // TODO: make bigendian friendly? (is it necessary? check SDL docs)
 
     [FieldOffset(0)] public uint Value;
   }
@@ -154,14 +155,14 @@ internal class SDL
     private uint   FormatVersion;
     private int    RefCount;
   }
-  [StructLayout(LayoutKind.Sequential, Pack=4)]
-  public struct KeySym {
-    public byte Scan;
-    public int  Sym;
-    public uint Mod;
-    public char Unicode;
+  [StructLayout(LayoutKind.Explicit)] // TODO: do something to make these more compatible with different systems
+  public struct KeySym
+  { [FieldOffset(0)]  public byte Scan;
+    [FieldOffset(4)]  public int  Sym;
+    [FieldOffset(8)]  public uint Mod;
+    [FieldOffset(12)] public char Unicode;
   }
-  [StructLayout(LayoutKind.Explicit, Pack=4)]
+  [StructLayout(LayoutKind.Explicit)]
   public struct Event
   { [FieldOffset(0)] public EventType        Type;
     [FieldOffset(0)] public ActiveEvent      Active;
@@ -177,67 +178,78 @@ internal class SDL
     [FieldOffset(0)] public QuitEvent        Quit;
     [FieldOffset(0)] public UserEvent        User;
   }
-  [StructLayout(LayoutKind.Sequential, Pack=4)]
+  [StructLayout(LayoutKind.Explicit)]
   public struct ActiveEvent
-  { public EventType Type;
-    public bool      Focused;
-    public FocusType State;
+  { [FieldOffset(0)] public EventType Type;
+    [FieldOffset(1)] public bool      Focused;
+    [FieldOffset(2)] public FocusType State;
   }
-  [StructLayout(LayoutKind.Sequential, Pack=4)]
+  [StructLayout(LayoutKind.Explicit)]
   public struct KeyboardEvent
-  { public EventType Type;
-    public bool   Down;
-    public byte   Device, State;
-    public KeySym Key;
+  { [FieldOffset(0)] public EventType Type;
+    [FieldOffset(1)] public byte   Device;
+    [FieldOffset(2)] public bool   Down;
+    [FieldOffset(4)] public KeySym Key;
   }
-  [StructLayout(LayoutKind.Sequential, Pack=4)]
+  [StructLayout(LayoutKind.Explicit)]
   public struct MouseMoveEvent
-  { public EventType Type;
-    public byte   Device, State;
-    public ushort X, Y;
-    public short  Xrel, Yrel;
+  { [FieldOffset(0)]  public EventType Type;
+    [FieldOffset(1)]  public byte   Device;
+    [FieldOffset(2)]  public byte   State;
+    [FieldOffset(4)]  public ushort X;
+    [FieldOffset(6)]  public ushort Y;
+    [FieldOffset(8)]  public short  Xrel;
+    [FieldOffset(10)] public short  Yrel;
   }
-  [StructLayout(LayoutKind.Sequential, Pack=4)]
+  [StructLayout(LayoutKind.Explicit)]
   public struct MouseButtonEvent
-  { public EventType Type;
-    public byte   Device, Button;
-    public bool   Down;
-    public ushort X, Y;
+  { [FieldOffset(0)] public EventType Type;
+    [FieldOffset(1)] public byte   Device;
+    [FieldOffset(2)] public byte   Button;
+    [FieldOffset(3)] public bool   Down;
+    [FieldOffset(4)] public ushort X;
+    [FieldOffset(6)] public ushort Y;
   }
-  [StructLayout(LayoutKind.Sequential, Pack=4)]
+  [StructLayout(LayoutKind.Explicit)]
   public struct JoyAxisEvent
-  { public EventType Type;
-    public byte  Device, Axis;
-    public short Value;
+  { [FieldOffset(0)] public EventType Type;
+    [FieldOffset(1)] public byte  Device;
+    [FieldOffset(2)] public byte  Axis;
+    [FieldOffset(4)] public short Value;
   }
-  [StructLayout(LayoutKind.Sequential, Pack=4)]
+  [StructLayout(LayoutKind.Explicit)]
   public struct JoyBallEvent
-  { public EventType Type;
-    public byte  Device, Ball;
-    public short Xrel, Yrel;
+  { [FieldOffset(0)] public EventType Type;
+    [FieldOffset(1)] public byte  Device;
+    [FieldOffset(2)] public byte  Ball;
+    [FieldOffset(4)] public short Xrel;
+    [FieldOffset(6)] public short Yrel;
   }
-  [StructLayout(LayoutKind.Sequential, Pack=4)]
+  [StructLayout(LayoutKind.Explicit)]
   public struct JoyHatEvent
-  { public EventType Type;
-    public byte   Device, Hat;
-    public HatPos Position;
+  { [FieldOffset(0)] public EventType Type;
+    [FieldOffset(1)] public byte   Device;
+    [FieldOffset(2)] public byte   Hat;
+    [FieldOffset(3)] public HatPos Position;
   }
-  [StructLayout(LayoutKind.Sequential, Pack=4)]
+  [StructLayout(LayoutKind.Explicit)]
   public struct JoyButtonEvent
-  { public EventType Type;
-    public byte Device, Button;
-    public bool Down;
+  { [FieldOffset(0)] public EventType Type;
+    [FieldOffset(1)] public byte Device;
+    [FieldOffset(2)] public byte Button;
+    [FieldOffset(3)] public bool Down;
   }
-  [StructLayout(LayoutKind.Sequential, Pack=4)]
+  [StructLayout(LayoutKind.Explicit)]
   public struct ResizeEvent
-  { public EventType Type;
-    public int Width, Height;
+  { [FieldOffset(0)] public EventType Type;
+    [FieldOffset(4)] public int Width;
+    [FieldOffset(8)] public int Height;
   }
-  [StructLayout(LayoutKind.Sequential, Pack=4)]
+  [StructLayout(LayoutKind.Sequential)]
   public struct ExposedEvent
   { public EventType Type;
   }
-  [StructLayout(LayoutKind.Sequential, Pack=4)]
+  [StructLayout(LayoutKind.Sequential)]
   public struct QuitEvent
   { public EventType Type;
   }
@@ -365,12 +377,12 @@ internal class SDL
   
   #region Events
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_PollEvent", CallingConvention=CallingConvention.Cdecl)]
-  public unsafe static extern int PollEvent(Event* evt);
+  public static extern int PollEvent(ref Event evt);
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_WaitEvent", CallingConvention=CallingConvention.Cdecl)]
-  public unsafe static extern int WaitEvent(Event* evt);
+  public static extern int WaitEvent(ref Event evt);
   #endregion
   
-  #region Keyboard
+  #region Input
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_EnableUNICODE", CallingConvention=CallingConvention.Cdecl)]
   public static extern int EnableUNICODE(int enable);
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_EnableKeyRepeat", CallingConvention=CallingConvention.Cdecl)]
@@ -379,19 +391,22 @@ internal class SDL
   public unsafe static extern byte* GetKeyState(int* numkeys);
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_GetModState", CallingConvention=CallingConvention.Cdecl)]
   public static extern KeyMod GetModState();
-  #endregion  
+
+  [DllImport(Config.SDLImportPath, EntryPoint="SDL_GetMouseState", CallingConvention=CallingConvention.Cdecl)]
+  public unsafe static extern byte GetMouseState(int* x, int* y);
+  #endregion
 
   #region Window manager
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_WM_SetCaption", CallingConvention=CallingConvention.Cdecl)]
-  public static extern void SetCaption(string title, string icon);
+  public static extern void WM_SetCaption(string title, string icon);
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_WM_GetCaption", CallingConvention=CallingConvention.Cdecl)]
-  public static extern void GetCaption(out string title, out string icon);
+  public static extern void WM_GetCaption(out string title, out string icon);
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_WM_SetIcon", CallingConvention=CallingConvention.Cdecl)]
-  public unsafe static extern void SetIcon(Surface* icon, ref byte mask);
+  public unsafe static extern void WM_SetIcon(Surface* icon, ref byte mask);
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_WM_IconifyWindow", CallingConvention=CallingConvention.Cdecl)]
-  public static extern int IconifyWindow();
+  public static extern int WM_IconifyWindow();
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_WM_GrabInput", CallingConvention=CallingConvention.Cdecl)]
-  public static extern int GrabInput(int grab);
+  public static extern int WM_GrabInput(int grab);
   #endregion
   
   #region Joysticks
