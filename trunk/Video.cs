@@ -57,6 +57,8 @@ public class GammaRamp
   ushort[] red = new ushort[256], green = new ushort[256], blue = new ushort[256];
 }
 
+public delegate void ModeChangedHandler();
+
 [System.Security.SuppressUnmanagedCodeSecurity()]
 public sealed class Video
 { private Video() { }
@@ -78,6 +80,8 @@ public sealed class Video
     SDL.InfoFlag flags;
     uint         videoMem;
   }
+
+  public static event ModeChangedHandler ModeChanged;
 
   public bool Initialized { get { return initCount>0; } }
   public static VideoInfo   Info { get { CheckInit(); return info; } }
@@ -134,21 +138,22 @@ public sealed class Video
     return ret;
   }
 
-  public static byte IsModeSupported(uint width, uint height, byte depth, Surface.Flag flags)
+  public static byte IsModeSupported(int width, int height, byte depth, Surface.Flag flags)
   { CheckInit();
     return (byte)SDL.VideoModeOK(width, height, depth, (uint)flags);
   }
   
-  public unsafe static void SetMode(uint width, uint height, byte depth)
+  public unsafe static void SetMode(int width, int height, byte depth)
   { SetMode(width, height, depth, Surface.Flag.None);
   }
-  public unsafe static void SetMode(uint width, uint height, byte depth, Surface.Flag flags)
+  public unsafe static void SetMode(int width, int height, byte depth, Surface.Flag flags)
   { CheckInit();
     SDL.Surface* surface = SDL.SetVideoMode(width, height, depth, (uint)flags);
     if(surface==null) SDL.RaiseError();
     if(display!=null) display.Dispose();
     display = new Surface(surface, false);
     UpdateInfo();
+    if(ModeChanged!=null) ModeChanged();
   }
   
   public static void GetGamma(out float red, out float green, out float blue)

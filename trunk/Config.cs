@@ -9,6 +9,7 @@ public class Config
   public const string SDLImportPath = "SDL";
   public const string SDLMixerImportPath = "SDL_mixer";
   public const string SDLImageImportPath = "SDL_image";
+  public const string SDLTTFImportPath   = "SDL_ttf";
   
   #if BIGENDIAN
   public const bool CompiledBigEndian = true;
