@@ -173,7 +173,7 @@ public class RepaintEvent : Event
 }
 
 public abstract class WindowEvent : Event
-{ public WindowEvent(GameLib.Forms.Control control) : base(EventType.Window) { Control=control; }
+{ public WindowEvent(GameLib.Forms.Control control) : this(control, MessageType.Custom) { }
   public WindowEvent(GameLib.Forms.Control control, MessageType subType) : base(EventType.Window)
   { Control=control; SubType=subType;
   }
