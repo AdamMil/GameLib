@@ -63,7 +63,7 @@ class Asteroid
 
     Vector cent = new Vector(Poly.GetCentroid());
     for(int i=0; i<Poly.Length; i++) Poly[i] -= cent;
-    Hits = Poly.SplitIntoConvexPolygons();
+    Hits = Poly.Split();
     Size = diameter;
     Pos  = pos;
     Vel  = vel;

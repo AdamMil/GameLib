@@ -997,7 +997,7 @@ public struct Vector
   public void Rotate(double angle) { Assign(Rotated(angle)); }
   /// <summary>Returns a copy of this vector, rotated by the given number of radians.</summary>
   /// <param name="angle">The angle to rotate by, in radians.</param>
-  /// <returns>A new vector of the same magnitude as this one, and rotated by the given angle.</returns>
+  /// <returns>A new vector with the same magnitude as this one, and rotated by the given angle.</returns>
   public Vector Rotated(double angle)
   { double sin = Math.Sin(angle), cos = Math.Cos(angle);
     return new Vector(X*cos-Y*sin, X*sin+Y*cos);
@@ -1018,7 +1018,7 @@ public struct Vector
   { fixed(double* dp=&X) { int* p=(int*)dp; return *p ^ *(p+4) ^ *(p+8) ^ *(p+12); }
   }
   /// <summary>Converts this <see cref="Vector"/> into an equivalent <see cref="Point"/>.</summary>
-  /// <returns>Returns a <see cref="Point"/> with X and Y coordinates corresponding to the X and Y magnitudes of this
+  /// <returns>Returns a <see cref="Point"/> with X and Y coordinates equal to the X and Y magnitudes of this
   /// vector.
   /// </returns>
   public Point ToPoint() { return new Point(X, Y); }
@@ -1058,6 +1058,9 @@ public struct Point
   /// <summary>Initializes this <see cref="Point"/> from a <see cref="System.Drawing.Point"/>.</summary>
   /// <param name="pt">The <see cref="System.Drawing.Point"/> from which this point will be initialized.</param>
   public Point(System.Drawing.Point pt) { X=pt.X; Y=pt.Y; }
+  /// <summary>Initializes this <see cref="Point"/> from a <see cref="System.Drawing.PointF"/>.</summary>
+  /// <param name="pt">The <see cref="System.Drawing.PointF"/> from which this point will be initialized.</param>
+  public Point(System.Drawing.PointF pt) { X=pt.X; Y=pt.Y; }
   /// <summary>Initializes this <see cref="Point"/> from a set of coordinates.</summary>
   /// <param name="x">The point's X coordinate.</param>
   /// <param name="y">The point's Y coordinate.</param>
@@ -1087,6 +1090,9 @@ public struct Point
   /// will be rounded using <see cref="Math.Round"/> in order to convert them to integers.
   /// </returns>
   public System.Drawing.Point ToPoint() { return new System.Drawing.Point((int)Math.Round(X), (int)Math.Round(Y)); }
+  /// <summary>Converts this point to a <see cref="System.Drawing.PointF"/>.</summary>
+  /// <returns>A <see cref="System.Drawing.PointF"/> containing approximately the same coordinates.</returns>
+  public System.Drawing.PointF ToPointF() { return new System.Drawing.PointF((float)X, (float)Y); }
   /// <include file="documentation.xml" path="//Mathematics/Point/Equals/*"/>
   public override bool Equals(object obj) { return obj is Point ? (Point)obj==this : false; }
   /// <include file="documentation.xml" path="//Mathematics/Point/Equals2/*"/>
@@ -1177,10 +1183,10 @@ public struct Line
   /// <param name="x">The X coordinate of a point on the line (or the start of the line segment).</param>
   /// <param name="y">The Y coordinate of a point on the line (or the start of the line segment).</param>
   /// <param name="xd">The magnitude along the X axis of the line's direction. If you're defining a line segment,
-  /// this should be the distance travelled from <paramref name="x"/>.
+  /// this should be the distance from <paramref name="x"/> to the endpoint's X coordinate.
   /// </param>
   /// <param name="yd">The magnitude along the Y axis of the line's direction. If you're defining a line segment,
-  /// this should be the distance travelled from <paramref name="y"/>.
+  /// this should be the distance from <paramref name="y"/> to the endpoint's Y coordinate.
   /// </param>
   public Line(double x, double y, double xd, double yd) { Start=new Point(x, y); Vector=new Vector(xd, yd); }
   /// <include file="documentation.xml" path="//Mathematics/Line/Line/*"/>
@@ -1189,7 +1195,7 @@ public struct Line
   public Line(Point start, Point end) { Start=start; Vector=end-start; }
 
   /// <summary>Returns the endpoint of the line segment.</summary>
-  /// <remarks>This is calculated by adding <see cref="Vector"/> to <see cref="Start"/>.</remarks>
+  /// <remarks>This is equivalent to <see cref="Start"/> + <see cref="Vector"/>.</remarks>
   public Point End { get { return Start+Vector; } set { Vector=value-Start; } }
   /// <summary>Calculates and returns the line segment's length.</summary>
   /// <remarks>This returns the length of <see cref="Vector"/>.</remarks>
@@ -1198,14 +1204,14 @@ public struct Line
   /// <remarks>This returns the square of the length of <see cref="Vector"/>.</remarks>
   public double LengthSqr { get { return Vector.LengthSqr; } }
   /// <summary>Determines whether the line is valid.</summary>
-  /// <remarks>Invalid line are returned by some mathematical functions to signal that the function is undefined
+  /// <remarks>Invalid lines are returned by some mathematical functions to signal that the function is undefined
   /// given the input. A line returned by such a function can be tested for validity using this property.
   /// </remarks>
   public bool Valid { get { return Start.Valid; } }
   /// <summary>Returns the intersection of the line with a convex polygon.</summary>
-  /// <param name="poly">A convex polygon to intersect to which the line will be clipped.</param>
-  /// <returns>The portion of the line inside the polygon, or an invalid line if there is no intersection.</returns>
-  /// <remarks>This method has the effect of clipping the line (not a line segment) to a polygon.</remarks>
+  /// <param name="poly">A convex <see cref="Polygon"/> to which the line will be clipped.</param>
+  /// <returns>The portion of the line inside the polygon, or an <see cref="Invalid"/> if there is no intersection.</returns>
+  /// <remarks>This method has the effect of clipping the line (not a line segment) to a convex polygon.</remarks>
   public Line ConvexIntersection(Polygon poly)
   { poly.AssertValid();
     Point start = Start, end = End;
@@ -1228,11 +1234,11 @@ public struct Line
     return new Line(start, end);
   }
   /// <summary>Determines whether this line intersects the given convex polygon.</summary>
-  /// <param name="poly">A convex polygon to test for intersection.</param>
+  /// <param name="poly">A convex <see cref="Polygon"/> to test for intersection.</param>
   /// <returns>True if this line intersects <paramref name="poly"/>.</returns>
   public bool ConvexIntersects(Polygon poly) { return ConvexIntersection(poly).Valid; }
   /// <summary>Determines whether this line segment intersects the given convex polygon.</summary>
-  /// <param name="poly">A convex polygon to test for intersection.</param>
+  /// <param name="poly">A convex <see cref="Polygon"/> to test for intersection.</param>
   /// <returns>True if this line segment intersects <paramref name="poly"/>.</returns>
   public bool ConvexSegmentIntersects(Polygon poly)
   { if(poly.ConvexContains(Start) || poly.ConvexContains(End)) return true;
@@ -1240,7 +1246,7 @@ public struct Line
     return false;
   }
   /// <summary>Returns the signed distance from the line to a given point.</summary>
-  /// <param name="point">The point to find the distance to.</param>
+  /// <param name="point">The <see cref="Point"/> to find the distance to.</param>
   /// <returns>Returns the distance from the point to the nearest point on the line. The distance may be positive or
   /// negative, with the sign indicating which side of the line the point is on. For a line defined in a clockwise
   /// manner, a positive value means that the point is "outside" the line and a negative value indicates that the
@@ -1256,7 +1262,9 @@ public struct Line
   { if(point<0 || point>1) throw new ArgumentOutOfRangeException("point", point, "must be 0 or 1");
     return point==0 ? Start : End;
   }
-  /// <summary>Returns information about the intersection of this line with another line or line segment.</summary>
+  /// <summary>Returns information about the intersection of this line or line segment with another line or line
+  /// segment.
+  /// </summary>
   /// <param name="line">The line or line segment to test for intersection.</param>
   /// <returns>A <see cref="LineIntersectInfo"/> containing information about the intersection of the two
   /// lines or line segments.
@@ -1376,7 +1384,7 @@ public struct Line
   /// <returns>Returns true if this line intersects <paramref name="rect"/> and false otherwise.</returns>
   public bool Intersects(Rectangle rect) { return Intersection(rect).Valid; }
   /// <summary>Determines which side of a line the given point is on.</summary>
-  /// <param name="point">The point to test.</param>
+  /// <param name="point">The <see cref="Point"/> to test.</param>
   /// <returns>A value indicating which side of the line the point is on. The value's sign indicates which side of
   /// the line the point is on. For a line defined in a clockwise
   /// manner, a positive value means that the point is "outside" the line and a negative value indicates that the
@@ -1410,7 +1418,8 @@ public struct Line
   /// </param>
   /// <returns>A <see cref="Line"/> initialized with those values.</returns>
   /// <remarks>Since the end point will need to be converted into a vector, some miniscule accuracy may be lost.
-  /// Most notably, the <see cref="End"/> property may not be exactly equal to <paramref name="end"/>.
+  /// Most notably, the <see cref="End"/> property may not be exactly equal to the point defined by
+  /// <paramref name="x2"/> and <paramref name="y2"/>.
   /// </remarks>
   public static Line FromPoints(double x1, double y1, double x2, double y2) { return new Line(x1, y1, x2-x1, y2-y1); }
   public static bool operator==(Line lhs, Line rhs) { return lhs.Start==rhs.Start && lhs.Vector==rhs.Vector; }
@@ -1446,7 +1455,7 @@ public struct Circle
   public double Area { get { return Radius*Radius*Math.PI; } }
 
   /// <summary>Determines whether the given point is contained within the circle.</summary>
-  /// <param name="point">The point to test for containment.</param>
+  /// <param name="point">The <see cref="Point"/> to test for containment.</param>
   /// <returns>Returns true if <paramref name="point"/> is contained within this circle.</returns>
   public bool Contains(Point point) { return (point-Center).Length < Radius; }
 
@@ -1471,10 +1480,10 @@ public struct Corner
   /// <remarks>The edge's start point will be equal to <see cref="Point"/>.</remarks>
   public Line Edge1 { get { return new Line(Point, Vector1); } }
   /// <summary>Gets the signed magnitude of the cross product of the two edge vectors.</summary>
-  /// <remarks>Given that the two edges both line on the same plane, their cross product will be a vector perpendicular
+  /// <remarks>Given that the two edges both lie on the same plane, their cross product will be a vector perpendicular
   /// to that plane. The sign of the value determines from which side of the plane the vector extends. This can be
   /// used to determine whether the two corner edges are defined in a clockwise or counter-clockwise manner. A
-  /// positive value means the edges are indicates a clockwise ordering, and a negative value indicates a
+  /// positive value means the edges indicates a clockwise ordering, and a negative value indicates a
   /// counter-clockwise ordering. A zero value indicates that the two edge vectors are coincident.
   /// </remarks>
   public double CrossZ
@@ -1486,7 +1495,7 @@ public struct Corner
   /// <summary>Gets the specified edge.</summary>
   /// <param name="edge">The index of the edge to retrieve, either 0 or 1.</param>
   /// <returns>Returns <see cref="Edge0"/> or <see cref="Edge1"/> depending on whether <paramref name="edge"/> is
-  /// zero or one, respectively.
+  /// 0 or 1, respectively.
   /// </returns>
   /// <exception cref="ArgumentOutOfRangeException">Thrown if <paramref name="edge"/> is not 0 or 1.</exception>
   public Line GetEdge(int edge)
@@ -1512,7 +1521,7 @@ public struct Corner
   }
   /// <summary>The corner point.</summary>
   public Point Point;
-  /// <summary>The vector from the corner point (<see cref="Point"/>) to the end of the first edge.</summary>
+  /// <summary>The vector from the corner point (<see cref="Point"/>) to the beginning of the first edge.</summary>
   public Vector Vector0;
   /// <summary>The vector from the corner point (<see cref="Point"/>) to the end of the second edge.</summary>
   public Vector Vector1;
@@ -1544,6 +1553,18 @@ public struct Rectangle
   /// In other words, a vector holding the width and height of the rectangle.
   /// </param>
   public Rectangle(Point location, Vector size) { X=location.X; Y=location.Y; Width=size.X; Height=size.Y; }
+  /// <summary>Initializes this rectangle from two points.</summary>
+  /// <param name="corner1">One corner of the rectangle.</param>
+  /// <param name="corner2">The opposite corner of the rectangle.</param>
+  /// <remarks>Since one corner will need to be converted into a vector, some miniscule accuracy may be lost.</remarks>
+  public Rectangle(Point corner1, Point corner2)
+  { double x2, y2;
+    if(corner1.X<=corner2.X) { X=corner1.X; x2=corner2.X; }
+    else { X=corner2.X; x2=corner1.X; }
+    if(corner1.Y<=corner2.Y) { Y=corner1.Y; y2=corner2.Y; }
+    else { Y=corner2.Y; y2=corner1.Y; }
+    Width=x2-X; Height=y2-Y;
+  }
 
   /// <summary>Gets the bottom of the rectangle.</summary>
   /// <remarks>This is equivalent to <see cref="Y"/> + <see cref="Height"/>.</remarks>
@@ -1551,14 +1572,24 @@ public struct Rectangle
   /// <summary>Gets the bottom-right corner of the rectangle.</summary>
   /// <remarks>This is equivalent to <see cref="TopLeft"/> + <see cref="Size"/>.</remarks>
   public Point BottomRight { get { return new Point(X+Width, Y+Height); } }
-  /// <summary>Gets the top-left corner of the rectangle.</summary>
-  public Point Location { get { return new Point(X, Y); } }
+  /// <summary>Gets or sets the top-left corner of the rectangle.</summary>
+  public Point Location
+  { get { return new Point(X, Y); }
+    set { X=value.X; Y=value.Y; }
+  }
   /// <summary>Gets the right side of the rectangle.</summary>
   /// <remarks>This is equivalent to <see cref="X"/> + <see cref="Width"/>.</remarks>
   public double Right { get { return X+Width; } }
-  public Vector Size { get { return new Vector(Width, Height); } }
-  /// <summary>Gets the top-left corner of the rectangle.</summary>
-  public Point TopLeft { get { return new Point(X, Y); } }
+  /// <summary>Gets or sets the size of the rectangle.</summary>
+  public Vector Size
+  { get { return new Vector(Width, Height); }
+    set { Width=value.X; Height=value.Y; }
+  }
+  /// <summary>Gets or sets the top-left corner of the rectangle.</summary>
+  public Point TopLeft
+  { get { return new Point(X, Y); }
+    set { X=value.X; Y=value.Y; }
+  }
   /// <summary>Determines whether the specified point lies within the rectangle.</summary>
   /// <param name="point">The point to test for containment.</param>
   /// <returns>True if the point is inside the rectangle and false otherwise.</returns>
@@ -1578,7 +1609,7 @@ public struct Rectangle
   /// <summary>Gets an edge of the rectangle.</summary>
   /// <param name="i">The index of the edge to retrieve (from 0 to 3).</param>
   /// <returns>The top, left, right, and bottom edges for respective values of <paramref name="i"/> from 0 to 3.</returns>
-  /// <exception cref="ArgumentOutOfRangeException">Thrown if <paramref name="i"/> is less than zero or greater than 3.</exception>
+  /// <exception cref="ArgumentOutOfRangeException">Thrown if <paramref name="i"/> is less than 0 or greater than 3.</exception>
   public Line GetEdge(int i)
   { if(i<0 || i>3) throw new ArgumentOutOfRangeException("i", i, "must be from 0 to 3");
     switch(i)
@@ -1589,12 +1620,12 @@ public struct Rectangle
       default: return Line.Invalid; // can't get here
     }
   }
-  /// <summary>Gets an corner of the rectangle.</summary>
+  /// <summary>Gets a corner of the rectangle.</summary>
   /// <param name="i">The index of the point to retrieve (from 0 to 3).</param>
-  /// <returns>The top-left, top-right, bottom-right, and bottom-left edges for respective values of
+  /// <returns>The top-left, top-right, bottom-right, and bottom-left corners for respective values of
   /// <paramref name="i"/> from 0 to 3.
   /// </returns>
-  /// <exception cref="ArgumentOutOfRangeException">Thrown if <paramref name="i"/> is less than zero or greater than 3.</exception>
+  /// <exception cref="ArgumentOutOfRangeException">Thrown if <paramref name="i"/> is less than 0 or greater than 3.</exception>
   public Point GetPoint(int i)
   { if(i<0 || i>3) throw new ArgumentOutOfRangeException("i", i, "must be from 0 to 3");
     switch(i)
@@ -1608,15 +1639,15 @@ public struct Rectangle
   /// <summary>Inflates this rectangle by the given amount.</summary>
   /// <param name="x">The amount to inflate by on the X axis.</param>
   /// <param name="y">The amount to inflate by on the Y axis.</param>
-  /// <remarks>All edges will be moved by the given values, so the actual difference in width and height will be twice
-  /// the value of x and y.
+  /// <remarks>All edges will be offset by the given values, so the actual difference in width and height will be
+  /// twice the value of x and y.
   /// </remarks>
   public void Inflate(double x, double y) { X-=x; Width+=x*2; Y-=y; Height+=y*2; }
   /// <summary>Returns a copy of this rectangle, inflated by the given amount.</summary>
   /// <param name="x">The amount to inflate by on the X axis.</param>
   /// <param name="y">The amount to inflate by on the Y axis.</param>
-  /// <remarks>All edges will be moved by the given values, so the actual difference in width and height will be twice
-  /// the value of x and y.
+  /// <remarks>All edges will be offset by the given values, so the actual difference in width and height will be
+  /// twice the value of x and y.
   /// </remarks>
   public Rectangle Inflated(double x, double y) { return new Rectangle(X-x, Y-y, Width+x*2, Height+y*2); }
   /// <summary>Sets this rectangle to the intersection of this rectangle with the specified rectangle.</summary>
@@ -1669,7 +1700,7 @@ public struct Rectangle
   /// <param name="rect">The rectangle to test for intersection.</param>
   /// <returns>True if the given rectangle intersects this one and false otherwise.</returns>
   public bool Intersects(Rectangle rect)
-  { return Contains(rect.Location) || Contains(rect.BottomRight) || rect.Contains(Location) ||
+  { return Contains(rect.TopLeft) || Contains(rect.BottomRight) || rect.Contains(TopLeft) ||
            rect.Contains(BottomRight);
   }
   /// <summary>Returns the union of this rectangle with the given rectangle.</summary>
@@ -1707,6 +1738,15 @@ public struct Rectangle
   /// <returns>An integer hash code for this <see cref="Rectangle"/>.</returns>
   public unsafe override int GetHashCode()
   { fixed(double* dp=&X) { int* p=(int*)dp; return *p ^ *(p+4) ^ *(p+8) ^ *(p+12); }
+  }
+  /// <summary>Initializes a rectangle from two points and returns it.</summary>
+  /// <param name="x1">The X coordinate of one corner of the rectangle.</param>
+  /// <param name="y1">The Y coordinate of one corner of the rectangle.</param>
+  /// <param name="x2">The X coordinate of the opposite corner of the rectangle.</param>
+  /// <param name="y2">The Y coordinate of the opposite corner of the rectangle.</param>
+  /// <returns></returns>
+  public static Rectangle FromPoints(double x1, double y1, double x2, double y2)
+  { return new Rectangle(new Point(x1, y1), new Point(x2, y2));
   }
 
   /// <summary>The X coordinate of the top-left corner of the rectangle.</summary>
@@ -1758,7 +1798,7 @@ public class Polygon : ICloneable, ISerializable
     for(int i=0; i<length; i++) points[i] = (Point)info.GetValue(i.ToString(), typeof(Point));
   }
   /// <summary>Gets or sets one of the polygon's points.</summary>
-  /// <param name="index">The index of the point to retrieve.</param>
+  /// <param name="index">The index of the point to get or set.</param>
   /// <exception cref="ArgumentOutOfRangeException">Thrown if <paramref name="index"/> is less than zero or greater
   /// than or equal to <see cref="Length"/>.
   /// </exception>
@@ -1826,7 +1866,7 @@ public class Polygon : ICloneable, ISerializable
   public void AddPoints(Point[] points) { AddPoints(points, points.Length); }
   /// <summary>Adds a list of points to the polygon.</summary>
   /// <param name="points">An array of points.</param>
-  /// <param name="nPoints">The number of points to add to the polygon.</param>
+  /// <param name="nPoints">The number of points to read from the array.</param>
   public void AddPoints(Point[] points, int nPoints)
   { ResizeTo(length+nPoints);
     for(int i=0; i<nPoints; i++) this.points[length++] = points[i];
@@ -1839,7 +1879,7 @@ public class Polygon : ICloneable, ISerializable
   /// <summary>Removes all points from the polygon.</summary>
   public void Clear() { length=0; }
   /// <summary>Determines whether this convex polygon contains the given point.</summary>
-  /// <param name="point">The point to test.</param>
+  /// <param name="point">The <see cref="Point"/> to test.</param>
   /// <returns>Returns true if the polygon contains the given point.</returns>
   /// <remarks>The polygon can be defined clockwise or counter-clockwise, but must be a convex polygon. If the polygon
   /// is not convex, the results of this method are undefined.
@@ -1888,7 +1928,7 @@ public class Polygon : ICloneable, ISerializable
     ret.Height = y2-ret.Y;
     return ret;
   }
-  /// <summary>Calculates and return the polygon's centroid.</summary>
+  /// <summary>Calculates and returns the polygon's centroid.</summary>
   /// <returns>The centroid of the polygon.</returns>
   /// <remarks>The centroid of a polygon is its center of mass (assuming it has mass).</remarks>
   public Point GetCentroid()
@@ -1940,8 +1980,8 @@ public class Polygon : ICloneable, ISerializable
   public void InsertPoint(Point point, int index)
   { if(length==points.Length) ResizeTo(length+1);
     if(index<length) for(int i=length; i>index; i--) points[i] = points[i-1];
-    this[index] = point;
     length++;
+    this[index] = point;
   }
   /// <summary>Determines whether the polygon was defined in a clockwise or counter-clockwise manner.</summary>
   /// <returns>True if the polygon points are defined in a clockwise manner and false otherwise.</returns>
@@ -1978,7 +2018,7 @@ public class Polygon : ICloneable, ISerializable
   public void Offset(Vector offset) { Offset(offset.X, offset.Y); }
   /// <summary>Offsets the polygon by the given amount by offsetting all the points.</summary>
   /// <param name="xd">The distance to offset along the X axis.</param>
-  /// <param name="yd">The distance to offset along the X axis.</param>
+  /// <param name="yd">The distance to offset along the Y axis.</param>
   public void Offset(double xd, double yd) { for(int i=0; i<length; i++) points[i].Offset(xd, yd); }
   /// <summary>Removes a point from the polygon.</summary>
   /// <param name="index">The index of the point to remove.</param>
@@ -2002,14 +2042,14 @@ public class Polygon : ICloneable, ISerializable
     this.length -= length;
   }
   /// <summary>Reverses the order of this polygon's points.</summary>
-  /// <remarks>This can be used to convert a convex polygon to and from a clockwise ordering.</remarks>
+  /// <remarks>This can be used to convert a convex polygon to and from clockwise ordering.</remarks>
   public void Reverse()
   { Point pt;
-    for(int i=0,len=length/2; i<len; i++) { pt = points[i]; points[i] = points[length-i]; points[length-i] = pt; }
+    for(int i=0,j=length-1,len=length/2; i<len; j--,i++) { pt = points[i]; points[i] = points[j]; points[j] = pt; }
   }
   /// <summary>Returns a copy of this polygon, with the points in reversed order.</summary>
   /// <returns>A copy of this polygon, with the points reversed.</returns>
-  /// <remarks>This can be used to convert a convex polygon to and from a clockwise ordering.</remarks>
+  /// <remarks>This can be used to convert a convex polygon to and from clockwise ordering.</remarks>
   public Polygon Reversed()
   { Polygon newPoly = new Polygon(length);
     for(int i=length-1; i>=0; i--) newPoly.AddPoint(points[i]);
@@ -2351,13 +2391,13 @@ public struct Line
   /// <param name="y">The Y coordinate of a point on the line (or the start of the line segment).</param>
   /// <param name="z">The Z coordinate of a point on the line (or the start of the line segment).</param>
   /// <param name="xd">The magnitude along the X axis of the line's direction. If you're defining a line segment,
-  /// this should be the distance travelled from <paramref name="x"/>.
+  /// this should be the distance from <paramref name="x"/> to the X coordinate of the endpoint.
   /// </param>
   /// <param name="yd">The magnitude along the Y axis of the line's direction. If you're defining a line segment,
-  /// this should be the distance travelled from <paramref name="y"/>.
+  /// this should be the distance from <paramref name="y"/> to the Y coordinate of the endpoint.
   /// </param>
   /// <param name="zd">The magnitude along the Z axis of the line's direction. If you're defining a line segment,
-  /// this should be the distance travelled from <paramref name="z"/>.
+  /// this should be the distance from <paramref name="z"/> to the Z coordinate of the endpoint.
   /// </param>
   public Line(double x, double y, double z, double xd, double yd, double zd)
   { Start=new Point(x, y, z); Vector=new Vector(xd, yd, zd);
@@ -2367,7 +2407,7 @@ public struct Line
   /// <include file="documentation.xml" path="//Mathematics/Line/Line2/*"/>
   public Line(Point start, Point end) { Start=start; Vector=end-start; }
   /// <summary>Returns the endpoint of the line segment.</summary>
-  /// <remarks>This is calculated by adding <see cref="Vector"/> to <see cref="Start"/>.</remarks>
+  /// <remarks>This is equivalent to <see cref="Start"/> + <see cref="Vector"/>.</remarks>
   public Point End { get { return Start+Vector; } }
   /// <summary>Calculates and returns the line segment's length.</summary>
   /// <remarks>This returns the length of <see cref="Vector"/>.</remarks>
@@ -2459,7 +2499,7 @@ public struct Sphere
   public double Volume { get { return Radius*Radius*Radius*Math.PI*4/3; } }
 
   /// <summary>Determines whether the given point is contained within the sphere.</summary>
-  /// <param name="point">The point to test for containment.</param>
+  /// <param name="point">The <see cref="Point"/> to test for containment.</param>
   /// <returns>Returns true if <paramref name="point"/> is contained within this sphere.</returns>
   public bool Contains(Point point) { return (point-Center).Length < Radius; }
 

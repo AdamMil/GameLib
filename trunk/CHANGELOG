@@ -167,11 +167,12 @@ may not have been evident at earlier stages.
   much more useful -- Vector.Rotate(Vector, angle) [rotation around an
   arbitrary vector]
 + Added .Equals(object obj, double epsilon) to most math objects
++ Added Point.ToPointF
 + Added a LOT more documentation (for CD.cs, Config.cs, Events.cs,
   Exceptions.cs, Fonts.cs, GraphicsPrimitives.cs, Input.cs, Interop.cs,
   IO.cs, LinkedList.cs, Math.cs, OpenGL.cs, OpenGLInterop.cs,
   PriorityQueue.cs, PSD.cs, RedBlackTree.cs, Surface.cs, and Video.cs).
-* A couple bugfixes I forgot to add to the changelog
+* A couple bugfixes and additions I forgot to add to the changelog
 
 2004.02.07 (alpha/beta)
 -----------------------
