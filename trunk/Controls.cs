@@ -191,7 +191,7 @@ public abstract class ButtonBase : LabelBase
   }
 
   protected internal override void OnKeyDown(KeyEventArgs e)
-  { if((e.KE.Key==Key.Return || e.KE.Key==Key.Space || e.KE.Key==Key.KpEnter) && !e.Handled)
+  { if((e.KE.Key==Key.Enter || e.KE.Key==Key.Space || e.KE.Key==Key.KpEnter) && !e.Handled)
       OnClick(new ClickEventArgs());
   }
 

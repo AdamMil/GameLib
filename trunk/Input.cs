@@ -23,7 +23,7 @@ public enum Key : int
   Backspace       =SDL.Key.Backspace,
   Tab             =SDL.Key.Tab,
   Clear           =SDL.Key.Clear,
-  Return          =SDL.Key.Return,
+  Enter           =SDL.Key.Return,
   Pause           =SDL.Key.Pause,
   Escape          =SDL.Key.Escape,
   Space           =SDL.Key.Space,
