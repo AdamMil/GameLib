@@ -784,6 +784,8 @@ public struct Vector
   public static bool operator==(Vector a, Vector b) { return a.X==b.X && a.Y==b.Y; }
   public static bool operator!=(Vector a, Vector b) { return a.X!=b.X || a.Y!=b.Y; }
 
+  public static Vector Invalid { get { return new Vector(float.NaN, float.NaN); } }
+
   public float X, Y;
 
   void Assign(Vector v) { X=v.X; Y=v.Y; }
@@ -842,10 +844,70 @@ public struct LineIntersectInfo
 public struct Line
 { public Line(float x, float y, float xd, float yd) { Start=new Point(x, y); Vector=new Vector(xd, yd); }
   public Line(Point start, Vector vector) { Start=start; Vector=vector; }
+  public Line(Point start, Point end) { Start=start; Vector=end-start; }
 
-  public Point End { get { return Start+Vector; } }
-  public float Length { get { return Vector.Length; } }
+  public Point End { get { return Start+Vector; } set { Vector=value-Start; } }
+  public float Length { get { return Vector.Length; } set { Vector.Length=value; } }
   public float LengthSqr { get { return Vector.LengthSqr; } }
+  public bool Valid { get { return Start.Valid; } }
+
+  public Line ConvexIntersection(Polygon poly)
+  { poly.AssertValid();
+    Point end = End;
+    int sgn = poly.IsClockwise() ? 1 : -1;
+    bool si=true, ei=true;
+
+    unsafe
+    { bool* sout = stackalloc bool[poly.Length];
+      bool* eout = stackalloc bool[poly.Length];
+      for(int i=0; i<poly.Length; i++)
+      { Line edge = poly.GetEdge(i);
+        if((sout[i] = (Math.Sign(edge.WhichSide(Start)) != sgn))) si=false;
+        if((eout[i] = (Math.Sign(edge.WhichSide(end)) != sgn))) ei=false;
+        if(sout[i] && eout[i]) return Line.Invalid;
+      }
+      if(si && ei) return this;
+    
+      Line ret = this;
+      for(int i=0; i<poly.Length; i++)
+      { if(!sout[i] && !eout[i]) continue;
+        LineIntersectInfo info = ret.GetIntersection(poly.GetEdge(i));
+        if(sout[i]) ret = new Line(info.Point, ret.End);
+        else ret.End = info.Point;
+      }
+      return ret;
+    }
+  }
+  
+  public bool ConvexIntersects(Polygon poly) { return ConvexIntersection(poly).Valid; }
+
+  public Line ConvexOutside(Polygon poly)
+  { poly.AssertValid();
+    Point end = End;
+    int sgn = poly.IsClockwise() ? 1 : -1;
+    bool si=true, ei=true;
+
+    unsafe
+    { bool* sout = stackalloc bool[poly.Length];
+      bool* eout = stackalloc bool[poly.Length];
+      for(int i=0; i<poly.Length; i++)
+      { Line edge = poly.GetEdge(i);
+        if((sout[i] = (Math.Sign(edge.WhichSide(Start)) != sgn))) si=false;
+        if((eout[i] = (Math.Sign(edge.WhichSide(end)) != sgn))) ei=false;
+        if(sout[i] && eout[i]) return this;
+      }
+      if(si && ei) return Line.Invalid;
+    
+      Line ret = this;
+      for(int i=0; i<poly.Length; i++)
+      { if(!sout[i] && !eout[i]) continue;
+        LineIntersectInfo info = ret.GetIntersection(poly.GetEdge(i));
+        if(sout[i]) ret.End = info.Point;
+        else ret = new Line(info.Point, ret.End);
+      }
+      return ret;
+    }
+  }
 
   public float DistanceTo(Point point) { return Vector.CrossVector.Normal.DotProduct(point-Start); }
 
@@ -873,7 +935,52 @@ public struct Line
     if(ub<0 || ub>1) return Point.Invalid;
     return new Point(Start.X + Vector.X*ua, Start.Y + Vector.Y*ua);
   }
+  
+  public Line Intersection(Rectangle rect)
+  { float x2=rect.Right-float.Epsilon, y2=rect.Bottom-float.Epsilon;
+    Point start=Start, end=End, pt;
+    int c, c2;
+
+    while(true)
+    { c = start.Y<rect.Y ? 1 : start.Y>y2 ? 2 : 0;
+      if(start.X<rect.X) c |= 4;
+      else if(start.X>x2) c |= 8;
+
+      c2 = end.Y<rect.Y ? 1 : end.Y>y2 ? 2 : 0;
+      if(end.X<rect.X) c2 |= 4;
+      else if(end.X>x2) c2 |= 8;
+
+      if(c==0 && c2==0) return new Line(start, end);
+      if((c&c2) != 0) return Line.Invalid;
+
+      if(c==0) { pt=end; c=c2; }
+      else pt=start;
+
+      if((c&1)!=0)
+      { pt.X += (rect.Y-pt.Y) * Vector.X / Vector.Y;
+        pt.Y = rect.Y;
+      }
+      else if((c&2)!=0)
+      { pt.X -= (pt.Y-y2) * Vector.X / Vector.Y;
+        pt.Y = y2;
+      }
+      else if((c&4)!=0)
+      { pt.Y += (rect.X-pt.X) * Vector.Y / Vector.X;
+        pt.X = rect.X;
+      }
+      else
+      { pt.Y -= (pt.X-x2) * Vector.Y / Vector.X;
+        pt.X = x2;
+      }
+
+      if(c2==0) end=pt;
+      else start=pt;
+    }
+  }
+
   public bool Intersects(Line segment) { return Intersection(segment).Valid; }
+
+  public bool Intersects(Rectangle rect) { return Intersection(rect).Valid; }
 
   public Point LineIntersection(Line line)
   { Point p2 = End, p4 = line.End;
@@ -898,6 +1005,8 @@ public struct Line
   
   public static bool operator==(Line lhs, Line rhs) { return lhs.Start==rhs.Start && lhs.Vector==rhs.Vector; }
   public static bool operator!=(Line lhs, Line rhs) { return lhs.Start!=rhs.Start || lhs.Vector!=rhs.Vector; }
+  
+  public static Line Invalid { get { return new Line(Point.Invalid, new Vector()); } }
 
   public Point  Start;
   public Vector Vector;
@@ -964,6 +1073,17 @@ public struct Rectangle
 
   public bool Contains(Rectangle rect) { return Contains(rect.Location) && Contains(rect.BottomRight); }
 
+  public Line GetEdge(int i)
+  { if(i<0 || i>=4) throw new ArgumentOutOfRangeException("i", i, "must be from 0 to 3");
+    switch(i)
+    { case 0: return new Line(X, Y, 0, Height);
+      case 1: return new Line(X, Y, Width, 0);
+      case 2: return new Line(X+Width-float.Epsilon, Y, 0, Height);
+      case 3: return new Line(X, Y+Height-float.Epsilon, Width, 0);
+      default: return Line.Invalid;
+    }
+  }
+
   public void Intersect(Rectangle rect)
   { float x2=Right, ox2=rect.Right;
     if(X<rect.X)
@@ -1000,18 +1120,6 @@ public struct Rectangle
   { Rectangle ret = new Rectangle(X, Y, Width, Height);
     ret.Intersect(rect);
     return ret;
-  }
-
-  public bool Intersects(Line line)
-  { if(Contains(line.Start) || Contains(line.End)) return true;
-    LineIntersectInfo info = line.GetIntersection(new Line(X, Y, Width, 0));
-    if(info.OnBoth) return true;
-    info = line.GetIntersection(new Line(X, Y, 0, Height));
-    if(info.OnBoth) return true;
-    info = line.GetIntersection(new Line(X, Bottom-float.Epsilon, Width, 0));
-    if(info.OnBoth) return true;
-    info = line.GetIntersection(new Line(Right-float.Epsilon, Y, 0, Height));
-    return info.OnBoth;
   }
 
   public bool Intersects(Rectangle rect)
@@ -1074,6 +1182,10 @@ public class Polygon
   public void AddPoints(Point[] points, int nPoints)
   { ResizeTo(length+nPoints);
     for(int i=0; i<nPoints; i++) this.points[length++] = points[i];
+  }
+
+  public void AssertValid()
+  { if(length<3) throw new InvalidOperationException("Not a valid polygon [not enough points]!");
   }
 
   public void Clear() { length=0; }
@@ -1148,7 +1260,7 @@ public class Polygon
   }
 
   public Corner GetCorner(int index)
-  { if(length<3) throw new InvalidOperationException("Not a valid polygon [not enough points]!");
+  { AssertValid();
     Corner c = new Corner();
     c.Point = this[index];
     c.Vector0 = GetPoint(index-1) - c.Point;
@@ -1173,19 +1285,12 @@ public class Polygon
   }
 
   public bool IsClockwise()
-  { bool neg=false, pos=false;
-    for(int i=0; i<length; i++) 
-    { float z = GetCorner(i).CrossZ;
-      if(z<0)
-      { if(pos) throw new InvalidOperationException("Not a simple, convex polygon!");
-        neg=true;
-      }
-      else if(z>0)
-      { if(neg) throw new InvalidOperationException("Not a simple, convex polygon!");
-        pos=true;
-      }
+  { for(int i=0; i<length; i++)
+    { int sgn = Math.Sign(GetCorner(i).CrossZ);
+      if(sgn==1) return true;
+      else if(sgn==-1) return false;
     }
-    return pos;
+    return true;
   }
 
   public bool IsConvex()

@@ -32,7 +32,7 @@ Changes
   (eg, removed the 'target' parameter)
 + Started on a wrapper for a 2D OpenGL texture
 + Added a 2D Rectangle class
-* Fixed some bugs in the Polygon class, added some basic intersection tests
+* Fixed some bugs in the Polygon class, added some basic intersection code
 + Added a 32 and 64 bit fixed-point math classes
 * Improved some samples (used GLTexture2D in OpenGL and added better
   exception handling to Asteroids)
