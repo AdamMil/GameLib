@@ -112,6 +112,16 @@
                     BuildAction = "Compile"
                 />
                 <File
+                    RelPath = "GLMixerInterop.cs"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "GraphicsPrimitives.cs"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
                     RelPath = "Input.cs"
                     SubType = "Code"
                     BuildAction = "Compile"
@@ -123,6 +133,11 @@
                 />
                 <File
                     RelPath = "LinkedList.cs"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "Mixer.cs"
                     SubType = "Code"
                     BuildAction = "Compile"
                 />
@@ -143,6 +158,11 @@
                 />
                 <File
                     RelPath = "RedBlackTree.cs"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "SDLGFXInterop.cs"
                     SubType = "Code"
                     BuildAction = "Compile"
                 />
