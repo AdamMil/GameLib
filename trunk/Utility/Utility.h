@@ -39,6 +39,10 @@ extern DECLSPEC double SDLCALL GLU_GetSeconds();
 extern DECLSPEC wchar_t SDLCALL GLU_Getch();
 extern DECLSPEC wchar_t SDLCALL GLU_Getche();
 
+extern DECLSPEC void SDLCALL GLU_MemCopy(void *src, void *dest, int length);
+extern DECLSPEC void SDLCALL GLU_MemFill(void *dest, Uint8 value, int length);
+extern DECLSPEC void SDLCALL GLU_MemMove(void *src, void *dest, int length);
+
 #ifdef __cplusplus
 }
 #endif

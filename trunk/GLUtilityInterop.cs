@@ -46,6 +46,13 @@ internal sealed class Utility
   [DllImport(Config.GLUtilityImportPath, EntryPoint="GLU_Getche", CallingConvention=CallingConvention.Cdecl)]
   public static extern char Getche();
 
+  [DllImport(Config.GLUtilityImportPath, EntryPoint="GLU_MemCopy", CallingConvention=CallingConvention.Cdecl)]
+  public unsafe static extern void MemCopy(void *src, void *dest, int length);
+  [DllImport(Config.GLUtilityImportPath, EntryPoint="GLU_MemFill", CallingConvention=CallingConvention.Cdecl)]
+  public unsafe static extern void MemFill(void *dest, byte value, int length);
+  [DllImport(Config.GLUtilityImportPath, EntryPoint="GLU_MemMove", CallingConvention=CallingConvention.Cdecl)]
+  public unsafe static extern void MemMove(void *src, void *dest, int length);
+
   public static void Check(int result) { if(result<0) RaiseError(); }
   public static void RaiseError()
   { string error = GetError();
