@@ -26,7 +26,7 @@ public class GameLibException : ApplicationException
 { public GameLibException(string message) : base(message) { }
 }
 
-public class DataTooLargeException : NetworkException
+public class DataTooLargeException : GameLibException
 { public DataTooLargeException() : base("The data is too large.") { MaxSize=-1; }
   public DataTooLargeException(int maxSize)
     : base(String.Format("The data is too large. Maximum size is {0}", maxSize)) { MaxSize=maxSize; }
@@ -42,6 +42,8 @@ public class CodecNotFoundException : GameLibException
 }
 
 #region Video
+namespace Video
+{
 public class VideoException : GameLibException
 { public VideoException(string message) : base(message) { }
 }
@@ -54,9 +56,12 @@ public class SurfaceLostException : VideoException
 public class OpenGLException : VideoException
 { public OpenGLException(string message) : base(message) { }
 }
+} // namespace Video
 #endregion
 
 #region Network
+namespace Network
+{
 public class NetworkException : GameLibException
 { public NetworkException(string message) : base(message) { }
 }
@@ -70,36 +75,42 @@ public class HandshakeException : NetworkException
 { public HandshakeException() : base("An error occurred during handshaking. Connection aborted") { }
   public HandshakeException(string message) : base(message) { }
 }
+} // namespace Network
 #endregion
 
 #region Input
+namespace Input
+{
 public class InputException : GameLibException
 { public InputException(string message) : base(message) { }
 }
+} // namespace Input
 #endregion
 
 #region Audio
+namespace Audio
+{ 
+
 public class AudioException : GameLibException
 { public AudioException(string message) : base(message) { }
 }
 
-namespace Audio
-{ 
 public enum OggError
 { Read=Ogg.OggError.Read, Fault=Ogg.OggError.Fault, NotImpl=Ogg.OggError.NotImpl, Invalid=Ogg.OggError.Invalid,
   NotVorbis=Ogg.OggError.NotVorbis, BadHeader=Ogg.OggError.BadHeader, BadVersion=Ogg.OggError.BadVersion,
   NotAudio =Ogg.OggError.NotAudio,  BadPacket=Ogg.OggError.BadPacket, BadLink   =Ogg.OggError.BadLink,
   NoSeek   =Ogg.OggError.NoSeek
 }
-} // namespace GameLib.Audio
 
 public class OggVorbisException : AudioException
-{ public OggVorbisException(Audio.OggError code, string message)
+{ public OggVorbisException(OggError code, string message)
     : base(String.Format("{0} (error code {1})", message, (int)code)) { this.code=code; }
-  public Audio.OggError Code { get { return code; } }
+  public OggError Code { get { return code; } }
   
-  protected Audio.OggError code;
+  protected OggError code;
 }
+
+} // namespace GameLib.Audio
 #endregion
 
 } // namespace GameLib

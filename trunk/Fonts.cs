@@ -423,7 +423,7 @@ public class TrueTypeFont : NonFixedFont, IDisposable
     }
 
     if(cacheMax!=0)
-    { if(list.Count>=cacheMax) CacheRemove(list.Tail);
+    { while(list.Count>=cacheMax) CacheRemove(list.Tail);
       tree[ind]=list.Prepend(cc);
     }
     return cc;
@@ -435,11 +435,13 @@ public class TrueTypeFont : NonFixedFont, IDisposable
   { tree.Clear();
     list.Clear();
   }
-  protected void CacheRemove(LinkedList.Node n)
-  { CachedChar cc = (CachedChar)n.Data;
+  protected void CacheRemove(LinkedList.Node node)
+  { CachedChar cc = (CachedChar)node.Data;
     cc.Dispose();
+if(tree[cc.Index]!=node) throw new Exception("ftest1");
     tree.Remove(cc.Index);
-    list.Remove(n);
+if(tree[cc.Index]!=null) throw new Exception("ftest2");
+    list.Remove(node);
   }
 
   protected void Dispose(bool destructing)

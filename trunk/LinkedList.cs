@@ -132,11 +132,21 @@ public class LinkedList : ICollection, IEnumerable
   public bool Contains(object o) { return Find(o)!=null; }
 
   public Node Append(Node newNode)
-  { if(tail==null) { AssertEmpty(); count=1; return head=tail=newNode; }
+  { if(tail==null)
+    { AssertEmpty();
+      count=1;
+      newNode.Next=newNode.Prev=null;
+      return head=tail=newNode;
+    }
     else return InsertAfter(tail, newNode);
   }
   public Node Prepend(Node newNode)
-  { if(head==null) { AssertEmpty(); count=1; return head=tail=newNode; }
+  { if(head==null)
+    { AssertEmpty();
+      count=1;
+      newNode.Next=newNode.Prev=null;
+      return head=tail=newNode;
+    }
     else return InsertBefore(head, newNode);
   }
   public Node Find(object o) { return Find(o, head); }
@@ -149,6 +159,10 @@ public class LinkedList : ICollection, IEnumerable
   { while(end!=null && cmp.Compare(end.Data, o)!=0) end=end.Prev;
     return end;
   }
+  public bool Contains(Node node)
+  { for(Node test=head; test!=null; test=test.Next) if(test==node) return true;
+    return false;
+  }
   public Node InsertAfter(Node node, object o) { return InsertAfter(node, new Node(o)); }
   public Node InsertAfter(Node node, Node newNode)
   { if(node==null || newNode==null) throw new ArgumentNullException();
@@ -159,6 +173,7 @@ public class LinkedList : ICollection, IEnumerable
     newNode.Next = node.Next;
     node.Next    = newNode;
     if(node==tail) tail=newNode;
+    else node.Next.Prev=newNode;
     count++;
     if(ListChanged!=null) ListChanged();
     AssertIn(node);
@@ -166,7 +181,7 @@ public class LinkedList : ICollection, IEnumerable
     Validate();
     return newNode;
   }
-  public Node InsertBefore(Node node, object o) { return InsertAfter(node, new Node(o)); }
+  public Node InsertBefore(Node node, object o) { AssertIn(node); return InsertBefore(node, new Node(o)); }
   public Node InsertBefore(Node node, Node newNode)
   { if(node==null || newNode==null) throw new ArgumentNullException();
     AssertIn(node);
@@ -176,6 +191,7 @@ public class LinkedList : ICollection, IEnumerable
     newNode.Next = node;
     node.Prev    = newNode;
     if(node==head) head=newNode;
+    else node.Prev.Next=newNode;
     count++;
     if(ListChanged!=null) ListChanged();
     AssertIn(node);
@@ -187,10 +203,10 @@ public class LinkedList : ICollection, IEnumerable
   { if(node==null) return;
     AssertIn(node);
     Validate();
-    if(node.Prev!=null) node.Prev.Next=node.Next;
-    if(node.Next!=null) node.Next.Prev=node.Prev;
     if(node==head) head=node.Next;
+    else node.Prev.Next=node.Next;
     if(node==tail) tail=node.Prev;
+    else node.Next.Prev=node.Prev;
     count--;
     if(ListChanged!=null) ListChanged();
     AssertOut(node);
@@ -203,9 +219,9 @@ public class LinkedList : ICollection, IEnumerable
   }
 
   public void AssertIn(Node node)
-  { Node tn = head;
-    while(tn!=null) { if(tn==node) return; tn=tn.Next; }
-    throw new Exception("test1");
+  { /*Node tn = head;
+    while(tn!=null) { if(tn==node) return; tn=tn.Next; }*/
+    if(!Contains(node)) throw new Exception("test1");
   }
 
   public void AssertOut(Node node)
@@ -214,7 +230,8 @@ public class LinkedList : ICollection, IEnumerable
   }
   
   public void Validate()
-  { Hashtable hash = new Hashtable();
+  { if(head!=null && head.Prev!=null || tail!=null && tail.Next!=null) throw new Exception("test6");
+    Hashtable hash = new Hashtable();
     Node tn = head;
     int c=0;
     while(tn!=null)
