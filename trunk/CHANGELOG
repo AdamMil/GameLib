@@ -24,7 +24,8 @@ DEVELOPMENT (alpha/beta)
 - Removed BoundsType because it's no longer needed with the simpler layout
   system
 + Added ScrollableControl (a control that supports built-in scrollbars)
-+ Added basic list controls (eg, ListBox and ComboBox)
++ Added basic list controls (ListBox and ComboBox, though ComboBox isn't
+  perfect yet)
 * Fixed an awful bug that caused bits of Controls to disappear if they had
   a backing surface and certain types of child controls
 * Various other windowing changes
@@ -44,10 +45,11 @@ DEVELOPMENT (alpha/beta)
   graphs
 + Added support for floating point sample data in the audio mixer
 + Added a tone generator audio source (sine, saw, triangle, and square)
-+ Added some built-in audio filters (Biquad, Eq [supporting lowpass,
++ Added some built-in audio filters (Biquad, Equalizer [supporting lowpass,
   highpass, bandpass, bandpass with gain, allpass, notch, peaking, low shelf,
   and high shelf], and a configurable graphic equalizer)
-
+* Fixed a bug that caused the area behind a control not to be redrawn when
+  the control was marked as invisible
 
 2004.06.28 (alpha/beta)
 -------------------
