@@ -20,7 +20,7 @@ public class Surface : IDisposable
     Software  = SDL.VideoFlag.SWSurface, Hardware  = SDL.VideoFlag.HWSurface,
     HWPalette = SDL.VideoFlag.HWPalette, AsyncBlit = SDL.VideoFlag.AsyncBlit,
     // non-display surfaces only
-    RLE = SDL.VideoFlag.RLEAccel,
+    RLE = SDL.VideoFlag.RLEAccel, SrcAlpha=SDL.VideoFlag.SrcAlpha,
     // display surfaces only
     DoubleBuffer = SDL.VideoFlag.DoubleBuffer, FullScreen = SDL.VideoFlag.FullScreen,
     OpenGL       = SDL.VideoFlag.OpenGL,       OpenGLBlit = SDL.VideoFlag.OpenGLBlit,
@@ -32,10 +32,7 @@ public class Surface : IDisposable
   public Surface(Bitmap bitmap) { throw new NotImplementedException(); }
   public Surface(uint width, uint height, byte depth) : this(width, height, depth, Flag.None) { }
   public Surface(uint width, uint height, byte depth, Flag flags)
-  { PixelFormat format = new PixelFormat();
-    format.Depth = depth;
-    format.GenerateDefaultMasks();
-    InitFromFormat(width, height, format, flags);
+  { InitFromFormat(width, height, new PixelFormat(depth, (flags&Flag.SrcAlpha)!=0), flags);
   }
 
   public Surface(uint width, uint height, byte depth, uint Rmask, uint Gmask, uint Bmask, uint Amask)
@@ -118,25 +115,26 @@ public class Surface : IDisposable
     set { if(value!=usingAlpha) if(value) SetAlpha(alpha); else DisableAlpha(); }
   }
 
-  public unsafe void Flip() { Check(SDL.Flip(surface)); }
+  public unsafe void Flip() { SDL.Check(SDL.Flip(surface)); }
 
+  public void Fill()            { Fill(Bounds, MapColor(Color.Black)); }
   public void Fill(Color color) { Fill(Bounds, MapColor(color)); }
   public void Fill(uint color)  { Fill(Bounds, color); }
   public void Fill(Rectangle rect, Color color) { Fill(rect, MapColor(color)); }
   public unsafe void Fill(Rectangle rect, uint color)
   { SDL.Rect drect = new SDL.Rect(rect);
-    Check(SDL.FillRect(surface, ref drect, color));
+    SDL.Check(SDL.FillRect(surface, ref drect, color));
   }
 
   public void Blit(Surface dest, Point dpt) { Blit(dest, dpt.X, dpt.Y); }
   public unsafe void Blit(Surface dest, int dx, int dy)
   { SDL.Rect rect = new SDL.Rect(dx, dy);
-    Check(SDL.BlitSurface(surface, null, dest.surface, &rect));
+    SDL.Check(SDL.BlitSurface(surface, null, dest.surface, &rect));
   }
   public void Blit(Surface dest, Rectangle src, Point dpt) { Blit(dest, src, dpt.X, dpt.Y); }
   public unsafe void Blit(Surface dest, Rectangle src, int dx, int dy)
   { SDL.Rect srect = new SDL.Rect(src), drect = new SDL.Rect(dx, dy);
-    Check(SDL.BlitSurface(surface, &srect, dest.surface, &drect));
+    SDL.Check(SDL.BlitSurface(surface, &srect, dest.surface, &drect));
   }
 
   public void  PutPixel(int x, int y, Color color) { PutPixelRaw(x, y, MapColor(color)); }
@@ -184,17 +182,18 @@ public class Surface : IDisposable
   
   public Color GetColorKey() { return key; }
   public unsafe void SetColorKey(Color color) // automatically enables color key
-  { Check(SDL.SetColorKey(surface, (uint)SDL.VideoFlag.SrcColorKey, MapColor(key=color)));
+  { SDL.Check(SDL.SetColorKey(surface, (uint)SDL.VideoFlag.SrcColorKey, MapColor(key=color)));
   }
-  public unsafe void DisableColorKey() { Check(SDL.SetColorKey(surface, 0, 0)); }
+  public unsafe void DisableColorKey() { SDL.Check(SDL.SetColorKey(surface, 0, 0)); }
 
   public byte GetAlpha() { return alpha; }
   public unsafe void SetAlpha(byte alpha) // automatically enables alpha
-  { Check(SDL.SetAlpha(surface, (uint)(alpha==AlphaLevel.Opaque ? SDL.VideoFlag.None : SDL.VideoFlag.SrcAlpha), alpha));
+  { SDL.Check(SDL.SetAlpha(surface, (uint)((alpha==AlphaLevel.Opaque ? SDL.VideoFlag.None : SDL.VideoFlag.SrcAlpha) |
+                                    (usingRLE ? SDL.VideoFlag.RLEAccel : 0)), alpha));
   }
-  public unsafe void DisableAlpha() { Check(SDL.SetAlpha(surface, 0, 0)); }
+  public unsafe void DisableAlpha() { SDL.Check(SDL.SetAlpha(surface, 0, 0)); }
 
-  public unsafe void Lock()   { Check(SDL.LockSurface(surface)); }
+  public unsafe void Lock()   { SDL.Check(SDL.LockSurface(surface)); }
   public unsafe void Unlock() { SDL.UnlockSurface(surface); }
 
   public unsafe uint MapColor(Color color)
@@ -279,8 +278,6 @@ public class Surface : IDisposable
   { InitFromSurface(SDL.CreateRGBSurface((uint)flags, width, height, format.Depth, format.RedMask,
                                          format.GreenMask, format.BlueMask, format.AlphaMask));
   }
-
-  protected void Check(int result) { if(result!=0) SDL.RaiseError(); }
 
   protected unsafe void ValidatePaletteArgs(Color[] colors, uint startColor, uint numColors)
   { SDL.Palette* palette = surface->Format->Palette;

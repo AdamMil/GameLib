@@ -181,14 +181,14 @@ internal class SDL
   [StructLayout(LayoutKind.Explicit)]
   public struct ActiveEvent
   { [FieldOffset(0)] public EventType Type;
-    [FieldOffset(1)] public bool      Focused;
+    [FieldOffset(1)] public byte      Focused;
     [FieldOffset(2)] public FocusType State;
   }
   [StructLayout(LayoutKind.Explicit)]
   public struct KeyboardEvent
   { [FieldOffset(0)] public EventType Type;
     [FieldOffset(1)] public byte   Device;
-    [FieldOffset(2)] public bool   Down;
+    [FieldOffset(2)] public byte   Down;
     [FieldOffset(4)] public KeySym Key;
   }
   [StructLayout(LayoutKind.Explicit)]
@@ -206,7 +206,7 @@ internal class SDL
   { [FieldOffset(0)] public EventType Type;
     [FieldOffset(1)] public byte   Device;
     [FieldOffset(2)] public byte   Button;
-    [FieldOffset(3)] public bool   Down;
+    [FieldOffset(3)] public byte   Down;
     [FieldOffset(4)] public ushort X;
     [FieldOffset(6)] public ushort Y;
   }
@@ -237,7 +237,7 @@ internal class SDL
   { [FieldOffset(0)] public EventType Type;
     [FieldOffset(1)] public byte Device;
     [FieldOffset(2)] public byte Button;
-    [FieldOffset(3)] public bool Down;
+    [FieldOffset(3)] public byte Down;
   }
   [StructLayout(LayoutKind.Explicit)]
   public struct ResizeEvent
@@ -260,25 +260,24 @@ internal class SDL
     public IntPtr Data1;
     public IntPtr Data2;
   }
-  [StructLayout(LayoutKind.Sequential, Pack=4)]
+  [StructLayout(LayoutKind.Sequential, Pack=4, Size=12)]
   public struct CDTrack
   { public byte      Number;
     public TrackType Type;
-    public uint      Length, Offset; // in frames
+    public int       Length, Offset; // in frames
   }
-  [StructLayout(LayoutKind.Sequential, Pack=4)]
+  [StructLayout(LayoutKind.Sequential, Pack=4, Size=1220)]
   public struct CD
-  { public unsafe CDTrack* GetTrack(uint track)
-    { if(track>=NumTracks) throw new ArgumentOutOfRangeException("track", track, "Must be <NumTracks");
-      fixed(byte* data = Tracks) return (CDTrack*)data+track;
+  { public unsafe CDTrack* GetTrack(int track)
+    { if(track<0 || track>=NumTracks) throw new ArgumentOutOfRangeException("track");
+      fixed(CDTrack* tracks=&Tracks) return tracks+track;
     }
     public int      ID;
     public CDStatus Status;
-    public uint NumTracks;
-    public uint CurTrack;
-    public uint CurFrame;
-    [MarshalAs(UnmanagedType.ByValArray, SizeConst=1200)]
-    public byte[] Tracks;
+    public int NumTracks;
+    public int CurTrack;
+    public int CurFrame;
+    public CDTrack Tracks;
   };
   [StructLayout(LayoutKind.Sequential, Pack=4)]
   public unsafe struct RWOps
@@ -290,13 +289,13 @@ internal class SDL
   
   #region General
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_Init", CallingConvention=CallingConvention.Cdecl)]
-  public static extern int Init(InitFlag flags);
+  private static extern int Init(InitFlag flags);
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_InitSubSystem", CallingConvention=CallingConvention.Cdecl)]
-  public static extern int InitSubSystem(InitFlag systems);
+  private static extern int InitSubSystem(InitFlag systems);
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_QuitSubSystem", CallingConvention=CallingConvention.Cdecl)]
-  public static extern void QuitSubSystem(InitFlag systems);
+  private static extern void QuitSubSystem(InitFlag systems);
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_Quit", CallingConvention=CallingConvention.Cdecl)]
-  public static extern void Quit();
+  private static extern void Quit();
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_WasInit", CallingConvention=CallingConvention.Cdecl)]
   public static extern uint WasInit(InitFlag systems);
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_GetError", CallingConvention=CallingConvention.Cdecl)]
@@ -440,7 +439,6 @@ internal class SDL
   #endregion
 
   #region CDROM
-  #if FALSE
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_CDNumDrives", CallingConvention=CallingConvention.Cdecl)]
   public static extern int CDNumDrives();
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_CDName", CallingConvention=CallingConvention.Cdecl)]
@@ -463,10 +461,11 @@ internal class SDL
   public unsafe static extern int CDEject(CD* cdrom);
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_CDClose", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern void CDClose(CD* cdrom);
-  #endif
   #endregion
   
   #region Non-SDL helper functions
+  public static void Check(int result) { if(result!=0) SDL.RaiseError(); }
+
   public static void RaiseError() // TODO: add parameter specifying type of exception to throw (instead of GameLibException)
   { string error = GetError();
     if(error==null) throw new GameLibException("GameLib sez: Something bad happened, but SDL disagrees");
@@ -475,14 +474,46 @@ internal class SDL
     else throw new GameLibException(error);
   }
   
-  public static void Initialize() { if(initCount++==0) Init(InitFlag.Nothing); }
-  public static void Deinitialize()
-  { if(initCount==0) throw new InvalidOperationException("Deinitialize called too many times!");
-    if(--initCount==0) Quit();
+  public static void Initialize(InitFlag sys)
+  { if(sys==InitFlag.Nothing) return;
+  
+    int  i;
+    bool done=false;
+
+    for(i=0; i<counts.Length; i++) if(counts[i]!=0) break;
+    if(i==counts.Length) { Init(sys); done=true; }
+
+    for(i=0; i<counts.Length; i++)
+      if((sys&inits[i])!=0)
+      { if(counts[i]++==0 && !done) InitSubSystem(inits[i]);
+        sys &= ~inits[i];
+      }
+    if(sys!=InitFlag.Nothing && !done)
+      throw new ArgumentException("Unknown flag, or flag that must be passed on the first call.", "sys");
+  }
+
+  public static void Deinitialize(InitFlag sys)
+  { if(sys==InitFlag.Nothing) return;
+
+    uint count=0;
+    for(int i=0; i<counts.Length; i++) count += counts[i];
+    if(count==0) throw new InvalidOperationException("Deinitialize called too many times!");
+
+    for(int i=0; i<counts.Length; i++)
+      if((sys&inits[i])!=0)
+      { if(--counts[i]==0) QuitSubSystem(inits[i]);
+        sys &= ~inits[i];
+        count--;
+      }
+    if(sys!=InitFlag.Nothing) throw new ArgumentException("Invalid flag(s)", "sys");
+    if(count==0) Quit();
   }
   #endregion
   
-  static uint initCount;
+  static readonly InitFlag[] inits = new InitFlag[6]
+  { InitFlag.Timer, InitFlag.Audio, InitFlag.Video, InitFlag.CDRom, InitFlag.Joystick, InitFlag.EventThread
+  };
+  static uint[] counts = new uint[6];
 }
 
 internal class StreamSource

@@ -17,7 +17,8 @@ public enum PaletteType
 
 public class PixelFormat
 { public PixelFormat() { }
-  public PixelFormat(byte depth) { Depth=depth; GenerateDefaultMasks(); }
+  public PixelFormat(byte depth) : this(depth, false) { }
+  public PixelFormat(byte depth, bool withAlpha) { Depth=depth; GenerateDefaultMasks(withAlpha); }
   internal unsafe PixelFormat(SDL.PixelFormat* pf) { format = *pf; }
 
   public byte Depth
@@ -33,11 +34,15 @@ public class PixelFormat
   public uint BlueMask  { get { return format.Bmask; } set { format.Bmask=value; } }
   public uint AlphaMask { get { return format.Amask; } set { format.Amask=value; } }
   
-  public void GenerateDefaultMasks()
+  public void GenerateDefaultMasks() { GenerateDefaultMasks(false); }
+  public void GenerateDefaultMasks(bool withAlpha)
   { switch(Depth) // TODO: make big-endian compatible
-    { case 16: RedMask=0x0000001F; GreenMask=0x000007E0; BlueMask=0x0000F800; AlphaMask=0; break;
-      case 24: RedMask=0x000000FF; GreenMask=0x0000FF00; BlueMask=0x00FF0000; AlphaMask=0; break;
-      case 32: RedMask=0x000000FF; GreenMask=0x0000FF00; BlueMask=0x00FF0000; AlphaMask=0xFF000000; break;
+    { case 16: RedMask=0x0000F800; GreenMask=0x000007E0; BlueMask=0x0000001F; AlphaMask=0; break;
+      case 24: RedMask=0x00FF0000; GreenMask=0x0000FF00; BlueMask=0x000000FF; AlphaMask=0; break;
+      case 32:
+        RedMask=0x00FF0000; GreenMask=0x0000FF00; BlueMask=0x000000FF;
+        AlphaMask=withAlpha ? 0xFF000000 : 0;
+        break;
       default: RedMask=GreenMask=BlueMask=AlphaMask=0; break;
     }
   }
@@ -55,6 +60,8 @@ public class GammaRamp
 [System.Security.SuppressUnmanagedCodeSecurity()]
 public sealed class Video
 { private Video() { }
+  
+  TODO: implement video info
   
   public bool Initialized { get { return initCount>0; } }
   public static Surface     DisplaySurface { get { return display; } }
@@ -83,20 +90,11 @@ public sealed class Video
   }
 
   public static void Initialize()
-  { if(initCount++==0)
-    { SDL.Initialize();
-      Events.Events.Initialize();
-      SDL.InitSubSystem(SDL.InitFlag.Video);
-      SDL.EnableUNICODE(1); // for some reason, initializing the video subsystem resets this
-    }
+  { if(initCount++==0) SDL.Initialize(SDL.InitFlag.Video);
   }
   public static void Deinitialize()
   { if(initCount==0) throw new InvalidOperationException("Deinitialize called too many times!");
-    if(--initCount==0)
-    { SDL.QuitSubSystem(SDL.InitFlag.Video);
-      Events.Events.Deinitialize();
-      SDL.Deinitialize();
-    }
+    if(--initCount==0) SDL.Deinitialize(SDL.InitFlag.Video);
   }
 
   public static void Flip() { DisplaySurface.Flip(); }

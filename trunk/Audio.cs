@@ -283,8 +283,7 @@ public sealed class Audio
   }
   public static bool Initialize(uint frequency, Format format, Speakers chans, uint bufferSize)
   { if(init) throw new InvalidOperationException("Already initialized. Deinitialize first to change format");
-    SDL.Initialize();
-    SDL.Init(SDL.InitFlag.Audio);
+    SDL.Initialize(SDL.InitFlag.Audio);
     init=true;
     try { Check(Mixer.OpenAudio(frequency, (uint)format, (uint)chans, bufferSize)); }
     catch(Exception e) { Deinitialize(); throw e; }
@@ -309,8 +308,7 @@ public sealed class Audio
       foreach(Channel c in Channels) c.RemoveAllFilters();
       Mixer.CloseAudio();
       channels = new Channel[0];
-      SDL.QuitSubSystem(SDL.InitFlag.Audio);
-      SDL.Deinitialize();
+      SDL.Deinitialize(SDL.InitFlag.Audio);
       init=false;
     }
   }
