@@ -27,34 +27,27 @@ namespace GameLib.Video
 enum PSDChannel { Alpha=-1, Red=0, Green=1, Blue=2 };
 
 #region PSDLayer
-public class PSDLayer : IDisposable
+public class PSDLayer
 { public PSDLayer(Rectangle bounds) : this(null, bounds, null) { }
   public PSDLayer(Rectangle bounds, string name) : this(null, bounds, name) { }
   public PSDLayer(Surface surface) : this(surface, surface.Bounds, null) { }
   public PSDLayer(Surface surface, string name) : this(surface, surface.Bounds, name) { }
   public PSDLayer(Surface surface, Rectangle bounds) : this(surface, bounds, null) { }
   public PSDLayer(Surface surface, Rectangle bounds, string name)
-  { Surface=surface; Bounds=bounds; Name=name; Channels=surface.UsingAlpha ? 4 : 3; Blend="norm"; Opacity=255;
+  { Surface=surface; Bounds=bounds; Name=name; Channels = surface==null ? 0 : surface.Format.AlphaMask==0 ? 3 : 4;
   }
-  ~PSDLayer() { Dispose(true); }
-  public void Dispose() { Dispose(false); GC.SuppressFinalize(this); }
 
-  public int Width  { get { return Bounds.Width; } }
-  public int Height { get { return Bounds.Height; } }
+  public int Width  { get { return Bounds.Width; } set { Bounds.Width=value; } }
+  public int Height { get { return Bounds.Height; } set { Bounds.Height=value; } }
+  public Point Location { get { return Bounds.Location; } set { Bounds.Location=value; } }
+  public Size  Size     { get { return Bounds.Size; } set { Bounds.Size=value; } }
 
   public Rectangle Bounds;
   public Surface   Surface;
-  public string    Name, Blend;
+  public string    Name, Blend="norm";
   public int       Channels;
-  public byte      Opacity, Clipping, Flags;
+  public byte      Opacity=255, Clipping, Flags;
   
-  protected void Dispose(bool destructing)
-  { if(Surface!=null)
-    { Surface.Dispose();
-      Surface = null;
-    }
-  }
-
   internal PSDLayer(Stream stream)
   { int y=IOH.ReadBE4(stream), x=IOH.ReadBE4(stream), y2=IOH.ReadBE4(stream), x2=IOH.ReadBE4(stream), chans;
     Bounds = new Rectangle(x, y, x2-x, y2-y);
@@ -92,18 +85,10 @@ public class PSDLayer : IDisposable
 #endregion
 
 #region PSDImage
-public class PSDImage : IDisposable
-{ ~PSDImage() { Dispose(true); }
-  public void Dispose() { Dispose(false); }
-
-  public PSDLayer[] Layers;
+public class PSDImage
+{ public PSDLayer[] Layers;
   public Surface Flattened;
   public int Width, Height, Channels;
-  
-  void Dispose(bool destructing)
-  { if(Layers!=null) foreach(PSDLayer layer in Layers) layer.Dispose();
-    if(Flattened!=null) { Flattened.Dispose(); Flattened=null; }
-  }
 }
 #endregion
 
@@ -208,7 +193,7 @@ public class PSDCodec
         for(int i=0; i<numLayers; i++) img.Layers[i] = new PSDLayer(stream);
       }
     }
-    catch(Exception e) { if(autoClose) stream.Close(); img.Dispose(); throw e; }
+    catch(Exception e) { if(autoClose) stream.Close(); throw e; }
 
     done:
     this.stream = stream;
@@ -313,7 +298,7 @@ public class PSDCodec
   { PSDImage image = new PSDImage();
     image.Width = surface.Width;
     image.Height = surface.Height;
-    image.Channels = surface.UsingAlpha ? 4 : 3;
+    image.Channels = surface.Format.AlphaMask==0 ? 3 : 4;
     image.Flattened = surface;
     Write(image, stream, autoClose);
   }
@@ -322,12 +307,12 @@ public class PSDCodec
   { AssertWriting();
     if(state!=State.Layers) throw new InvalidOperationException("Not all the layers have been written yet!");
     if(surface==null) throw new ArgumentNullException("surface");
-    if(surface.Depth<24) surface = surface.Clone(new PixelFormat(surface.UsingAlpha ? 32 : 24, surface.UsingAlpha));
+    if(surface.Depth<24)
+      surface = surface.Clone(new PixelFormat(surface.Format.AlphaMask==0 ? 24 : 32, surface.Format.AlphaMask!=0));
     try { WriteImageData(surface); state=State.Flattened; }
     catch(Exception e) { Abort(); throw e; }
   }
 
-  public void WriteLayer() { WriteLayer(null); }
   public void WriteLayer(Surface surface)
   { AssertLayerWrite();
     try
@@ -346,8 +331,8 @@ public class PSDCodec
       }
       else
       { int[] sizes = new int[layer.Channels];
-        if(surface.Depth<24)
-          surface = surface.Clone(new PixelFormat(surface.UsingAlpha ? 32 : 24, surface.UsingAlpha));
+        if(surface.Depth<24) surface = surface.Clone(new PixelFormat(surface.Format.AlphaMask==0 ? 24 : 32,
+                                                                     surface.Format.AlphaMask!=0));
         for(int i=0; i<layer.Channels; i++) sizes[i] = WriteChannelData(layer.Surface, i);
         int endPos = (int)stream.Position;
         stream.Position = layer.savedPos;
@@ -422,12 +407,11 @@ public class PSDCodec
   }
 
   static internal void ValidateChannels(int channels)
-  { if(channels<3 && channels>4) throw new NotSupportedException("Unsupported number of channels: "+channels);
+  { if(channels<3 || channels>4) throw new NotSupportedException("Unsupported number of channels: "+channels);
   }
 
   void Abort()
   { if(autoClose) stream.Close();
-    if(reading && image!=null) image.Dispose();
 
     stream  = null;
     image   = null;
@@ -562,7 +546,8 @@ public class PSDCodec
   }
 
   Surface ReadLayerData(PSDLayer layer)
-  { return layer.Surface = ReadImageData(layer.Width, layer.Height, layer.channels, true);
+  { return layer.Surface = layer.Width==0 || layer.Height==0 ? null
+            : ReadImageData(layer.Width, layer.Height, layer.channels, true);
   }
 
   int WriteChannelData(Surface surface, int channel)
@@ -584,8 +569,8 @@ public class PSDCodec
   void WriteImageData(Surface surface)
   { surface.Lock();
     try
-    { int chans=surface.UsingAlpha?4:3, thresh = surface.Width*surface.Height*chans, pos = (int)stream.Position;
-      int len = surface.Height*2*chans;
+    { int chans=surface.Format.AlphaMask==0 ? 3 : 4, thresh = surface.Width*surface.Height*chans;
+      int pos = (int)stream.Position, len = surface.Height*2*chans;
 
       IOH.WriteBE2(stream, 1); // packbits compression
       stream.Position += len;
@@ -616,7 +601,7 @@ public class PSDCodec
     byte[] data = new byte[128];
     byte* src = (byte*)surface.Data;
     int xinc=surface.Depth/8, yinc=surface.Pitch-surface.Width*xinc;
-    switch(channel+(surface.UsingAlpha?0:1))
+    switch(channel+(surface.Format.AlphaMask==0 ? 1 : 0))
     { case 0: src += MaskToOffset(surface.Format.AlphaMask); break;
       case 1: src += MaskToOffset(surface.Format.RedMask); break;
       case 2: src += MaskToOffset(surface.Format.GreenMask); break;
@@ -696,7 +681,7 @@ public class PSDCodec
     if(layer || channel==0) IOH.WriteBE2(stream, 0); // no compression
     int xinc=surface.Depth/8, yinc=surface.Pitch-surface.Width*xinc, blen=0;
     byte* src = (byte*)surface.Data;
-    switch(channel+(surface.UsingAlpha?0:1))
+    switch(channel+(surface.Format.AlphaMask==0 ? 1 : 0))
     { case 0: src += MaskToOffset(surface.Format.AlphaMask); break;
       case 1: src += MaskToOffset(surface.Format.RedMask); break;
       case 2: src += MaskToOffset(surface.Format.GreenMask); break;

@@ -24,7 +24,7 @@ namespace GameLib.Video
 {
 
 #region Supporting Types
-public class AlphaLevel
+public sealed class AlphaLevel
 { private AlphaLevel() { }
   public const byte Transparent=0, Quarter=64, Middle=128, ThreeQuarters=192, Opaque=255;
 }
@@ -43,7 +43,7 @@ public delegate void ModeChangedHandler();
 #endregion
 
 #region PixelFormat
-public class PixelFormat
+public sealed class PixelFormat
 { public PixelFormat() { }
   public PixelFormat(int depth) : this(depth, false) { }
   public PixelFormat(int depth, bool withAlpha) { Depth=depth; GenerateDefaultMasks(withAlpha); }
@@ -80,7 +80,7 @@ public class PixelFormat
 #endregion
 
 #region GammaRamp
-public class GammaRamp
+public sealed class GammaRamp
 { public ushort[] Red   { get { return red; } }
   public ushort[] Green { get { return green; } }
   public ushort[] Blue  { get { return blue; } }
