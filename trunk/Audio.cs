@@ -522,7 +522,7 @@ public class VorbisSource : AudioSource
             link.CVT.CalcLenCvt();
             GLMixer.Check(GLMixer.Convert(ref link.CVT));
             read=link.CVT.lenCvt;
-            GameLib.Interop.Unsafe.Copy(dest+index, cvtbuf, read);
+            GameLib.Interop.Unsafe.Copy(cvtbuf, dest+index, read);
           }
         }
         else

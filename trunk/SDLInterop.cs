@@ -616,14 +616,14 @@ internal sealed class SDL
 internal class StreamRWOps : StreamCallbackSource
 { public StreamRWOps(Stream stream) : this(stream, true) { }
   public unsafe StreamRWOps(Stream stream, bool autoClose) : base(stream, true)
-  { seek  = new SDL.SeekHandler(OnSeek);
-    read  = new SDL.ReadHandler(OnRead);
-    write = new SDL.WriteHandler(OnWrite);
-    close = new SDL.CloseHandler(OnClose);
-    ops.Seek  = new DelegateMarshaller(seek).ToPointer();
-    ops.Read  = new DelegateMarshaller(read).ToPointer();
-    ops.Write = new DelegateMarshaller(write).ToPointer();
-    ops.Close = new DelegateMarshaller(close).ToPointer();
+  { seek  = new DelegateMarshaller(new SDL.SeekHandler(OnSeek));
+    read  = new DelegateMarshaller(new SDL.ReadHandler(OnRead));
+    write = new DelegateMarshaller(new SDL.WriteHandler(OnWrite));
+    close = new DelegateMarshaller(new SDL.CloseHandler(OnClose));
+    ops.Seek  = seek.ToPointer();
+    ops.Read  = read.ToPointer();
+    ops.Write = write.ToPointer();
+    ops.Close = close.ToPointer();
   }
 
   unsafe int OnSeek(SDL.RWOps* ops, int offset, SDL.SeekType type) { return (int)Seek(offset, (SeekType)type); }
@@ -632,10 +632,7 @@ internal class StreamRWOps : StreamCallbackSource
   unsafe int OnClose(SDL.RWOps* ops) { MaybeClose(); return 0; }
   
   internal SDL.RWOps ops;
-  SDL.SeekHandler  seek;
-  SDL.ReadHandler  read;
-  SDL.WriteHandler write;
-  SDL.CloseHandler close;
+  DelegateMarshaller seek, read, write, close;
 }
 
 internal class SeekableStreamRWOps : StreamRWOps

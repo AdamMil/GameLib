@@ -37,6 +37,9 @@ Changes
 * Improved some samples (used GLTexture2D in OpenGL and added better
   exception handling to Asteroids)
 * Improved the Vector classes (you can now normalize to a given length)
+* Changed the hash code functions for Point and Vector
+* Added a ToPoint() method to the Vector classes
+! Swapped the first two parameters to Unsafe.Copy
 
 2004.02.07 (beta)
 -----------------

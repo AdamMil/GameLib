@@ -172,8 +172,8 @@ internal class StreamIOCalls : StreamCallbackSource
   }
   
   long OnSeek(IntPtr context, long offset, SF.SeekType type) { return Seek(offset, (SeekType)type); }
-  unsafe long OnRead(IntPtr context, byte* data, long size, long maxnum) { return Read(data, size, maxnum); }
-  unsafe long OnWrite(IntPtr context, byte* data, long size, long num) { return Write(data, size, num); }
+  unsafe long OnRead(IntPtr context, byte* data, long size, long maxnum) { return Read(data, (int)size, (int)maxnum); }
+  unsafe long OnWrite(IntPtr context, byte* data, long size, long num) { return Write(data, (int)size, (int)num); }
   long OnTell(IntPtr context) { return stream.Position; }
   unsafe long OnGets(IntPtr context, byte* buffer, long bufsize)
   { long i=0;
