@@ -288,7 +288,7 @@ class App
   }
 
   static void SetMode(int width, int height)
-  { Video.SetGLMode(width, height, 16, SurfaceFlag.Fullscreen);
+  { Video.SetGLMode(width, height, 16);
     GL.glEnable(GL.GL_BLEND);
     GL.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA);
     GL.glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
