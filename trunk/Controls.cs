@@ -555,13 +555,11 @@ public abstract class ScrollBarBase : Control, IDisposable
           crTimer.Change(crDelay, crRate);
         }
       }
-      if(!repeated)
-      { switch(FindPlace(e.CE.Point))
-        { case Place.Down: OnDown(eventArgs); break;
-          case Place.PageDown: OnPageDown(eventArgs); break;
-          case Place.PageUp: OnPageUp(eventArgs); break;
-          case Place.Up: OnUp(eventArgs); break;
-        }
+      if(!repeated) switch(FindPlace(e.CE.Point))
+      { case Place.Down: OnDown(eventArgs); break;
+        case Place.PageDown: OnPageDown(eventArgs); break;
+        case Place.PageUp: OnPageUp(eventArgs); break;
+        case Place.Up: OnUp(eventArgs); break;
       }
       e.Handled = true;
     }
@@ -602,24 +600,21 @@ public abstract class ScrollBarBase : Control, IDisposable
     base.OnDragEnd(e);
   }
   protected internal override void OnCustomEvent(Events.WindowEvent e)
-  { if(e is ClickRepeat)
-    { switch(((ClickRepeat)e).Place)
-      { case Place.Down: OnDown(eventArgs); break;
-        case Place.PageDown: OnPageDown(eventArgs); break;
-        case Place.PageUp: OnPageUp(eventArgs); break;
-        case Place.Up: OnUp(eventArgs); break;
-      }
+  { if(e is ClickRepeat) switch(((ClickRepeat)e).Place)
+    { case Place.Down: OnDown(eventArgs); break;
+      case Place.PageDown: OnPageDown(eventArgs); break;
+      case Place.PageUp: OnPageUp(eventArgs); break;
+      case Place.Up: OnUp(eventArgs); break;
     }
     base.OnCustomEvent(e);
   }
   protected internal override void OnKeyDown(KeyEventArgs e)
-  { if(!e.Handled)
-      switch(e.KE.Key)
-      { case Key.PageDown: OnPageUp(eventArgs); break;
-        case Key.PageUp: OnPageDown(eventArgs); break;
-        case Key.Down: case Key.Right: OnUp(eventArgs); break;
-        case Key.Up: case Key.Left: OnDown(eventArgs); break;
-      }
+  { if(!e.Handled) switch(e.KE.Key)
+    { case Key.PageDown: OnPageUp(eventArgs); break;
+      case Key.PageUp: OnPageDown(eventArgs); break;
+      case Key.Down: case Key.Right: OnUp(eventArgs); break;
+      case Key.Up: case Key.Left: OnDown(eventArgs); break;
+    }
     base.OnKeyDown(e);
   }
 
