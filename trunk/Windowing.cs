@@ -1297,7 +1297,8 @@ public class DesktopControl : ContainerControl, IDisposable
 
   #region ProcessEvent
   public FilterAction ProcessEvent(Event e)
-  {
+  { Input.Input.ProcessEvent(e);
+
     #region Mouse moves
     if(moves && e is MouseMoveEvent)
     { MouseMoveEvent ea = (MouseMoveEvent)e;
@@ -1384,6 +1385,7 @@ public class DesktopControl : ContainerControl, IDisposable
     else if(keys && e is KeyboardEvent)
     { if(FocusedControl!=null || KeyPreview)
       { KeyEventArgs ea = new KeyEventArgs((KeyboardEvent)e);
+        ea.KE.Mods = Input.Keyboard.Mods;
         keyProcessing=true;
         if(heldKey!=null) heldKey.Mods = ea.KE.Mods;
         if(ea.KE.Down)
@@ -1510,6 +1512,7 @@ public class DesktopControl : ContainerControl, IDisposable
   { if(init)
     { Video.Video.ModeChanged -= modeChanged;
       modeChanged = null;
+      Input.Input.Deinitialize();
       Events.Events.Deinitialize();
       init = false;
     }
@@ -1603,6 +1606,7 @@ public class DesktopControl : ContainerControl, IDisposable
 
   void Init()
   { Events.Events.Initialize();
+    Input.Input.Initialize(false);
     init = true;
     drag = new DragEventArgs();
     modeChanged = new ModeChangedHandler(UpdateBackingSurfaces);

@@ -135,6 +135,10 @@ internal class SDL
   { Stopped, Playing, Paused
   }
   
+  public enum JoystickMode : int
+  { Query=-1, Poll=0, Events=1
+  }
+
   public enum GrabMode : int
   { Query=-1, Off=0, On=1
   }
@@ -496,6 +500,8 @@ internal class SDL
   #endregion
   
   #region Joysticks
+  [DllImport(Config.SDLImportPath, EntryPoint="SDL_JoystickEventState", CallingConvention=CallingConvention.Cdecl)]
+  public static extern void JoystickEventState(JoystickMode mode);
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_NumJoysticks", CallingConvention=CallingConvention.Cdecl)]
   public static extern int NumJoysticks();
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_JoystickName", CallingConvention=CallingConvention.Cdecl)]
