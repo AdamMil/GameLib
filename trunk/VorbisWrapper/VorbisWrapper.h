@@ -29,12 +29,11 @@ extern "C" {
 
 enum { ALLSECTIONS=-1 };
 
-// FIXME: HACK: change to SDLCALL for release
 typedef struct
-{ Sint32 (__stdcall *Read)(void *context, void *dest, Sint32 size, Sint32 maxnum); // TODO: change to SDLCALL
-  Sint32 (__stdcall *Seek)(void *context, Sint32 offset, int whence);
-  Sint32 (__stdcall *Tell)(void *context);
-  void   (__stdcall *Close)(void *context);
+{ Sint32 (SDLCALL *Read)(void *context, void *dest, Sint32 size, Sint32 maxnum); // TODO: change to SDLCALL
+  Sint32 (SDLCALL *Seek)(void *context, Sint32 offset, int whence);
+  Sint32 (SDLCALL *Tell)(void *context);
+  void   (SDLCALL *Close)(void *context);
   void  *Context;
 } VW_Callbacks;
 

@@ -37,7 +37,7 @@
 				Name="VCLinkerTool"
 				OutputFile="$(OutDir)/Utility.dll"
 				LinkIncremental="2"
-				GenerateDebugInformation="FALSE"
+				GenerateDebugInformation="TRUE"
 				ProgramDatabaseFile="$(OutDir)/Utility.pdb"
 				SubSystem="2"
 				EnableCOMDATFolding="0"

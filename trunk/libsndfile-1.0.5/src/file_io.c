@@ -33,8 +33,6 @@
 
 #define	SENSIBLE_SIZE	(0x40000000)
 
-#define CALLCONV __stdcall
-
 static void psf_log_syserr (SF_PRIVATE *psf, int error) ;
 
 sf_count_t psf_fseek (SF_PRIVATE *psf, sf_count_t offset, int whence)

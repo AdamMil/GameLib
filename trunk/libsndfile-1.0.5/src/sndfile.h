@@ -280,7 +280,7 @@ typedef struct
 /* The SF_IOCALLS struct is used to allow reading from/writing to arbitrary
 ** data sources.
 */
-#define CALLCONV __stdcall
+#define CALLCONV __cdecl
 typedef struct
 {	sf_count_t (CALLCONV *seek)    (void *context, sf_count_t offset, int whence);
   sf_count_t (CALLCONV *read)    (void *context, void *ptr, sf_count_t bytes, sf_count_t items);
@@ -291,7 +291,6 @@ typedef struct
   int        (CALLCONV *truncate)(void *context, sf_count_t len);
   int        (CALLCONV *close)   (void *context);
 } SF_IOCALLS ;
-#define CALLCONV __cdecl
 
 /*
 ** Enums and typedefs for adding dither on read and write. 

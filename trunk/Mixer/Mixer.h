@@ -36,8 +36,7 @@ typedef struct
   Uint8  srcChans,  destChans;
 } GLM_AudioCVT;
 
-// FIXME: HACK: change this to SDLCALL when releasing
-typedef void (__stdcall *MixCallback)(Sint32 *stream, Uint32 frames, void *context);
+typedef void (SDLCALL *MixCallback)(Sint32 *stream, Uint32 frames, void *context);
 
 extern DECLSPEC int  SDLCALL GLM_Init(Uint32 freq, Uint16 format, Uint8 channels, Uint32 bufferMs,
                                       MixCallback callback, void *context);
