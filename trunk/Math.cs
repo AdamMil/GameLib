@@ -37,65 +37,133 @@ public sealed class GLMath
   }
 }
 
-/*#region Fixed32
-// TODO: make sure int*int==long
-// TODO: check if int<<n ==long
-public struct Fixed32 : IComparable, IConvertible
-{ public Fixed32(int value) { val=value; }
-  public Fixed32(double value) { val=FromDouble(value); }
+#region Fixed32
+[Serializable, System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+public struct Fixed32 : IFormattable, IComparable, IConvertible
+{ public Fixed32(double value) { val=FromDouble(value); }
+  public Fixed32(int value) { val=value<<16; }
+  private Fixed32(uint value) { val=(int)value; }
 
-  public Fixed32 Abs();
-  public Fixed32 Ceiling();
-  public Fixed32 Floor();
-  public Fixed32 Round();
-  public Fixed32 Sqrt();
+  public Fixed32 Abs() { return val<0 ? new Fixed32((uint)-val) : this; }
+
+  public Fixed32 Ceiling()
+  { if(val<0)
+    { ushort fp = (ushort)val;
+      return new Fixed32((uint)(fp==0 ? val : ((val+OneVal)&Trunc)));
+    }
+    else return new Fixed32((uint)((val+(OneVal-1)) & Trunc));
+  }
+
+  public Fixed32 Floor()
+  { if(val<0)
+    { ushort fp = (ushort)val;
+      return new Fixed32((uint)(fp==0 ? val : (val&Trunc)));
+    }
+    else return new Fixed32((uint)(val&Trunc));
+  }
+
+  public Fixed32 Round() // does banker's rounding
+  { ushort fp = (ushort)val;
+    if(fp<0x8000) return new Fixed32((uint)(val&Trunc));
+    else if(fp>0x8000 || (val&OneVal)!=0) return new Fixed32((uint)((val+OneVal)&Trunc));
+    else return new Fixed32((uint)(val&Trunc));
+  }
+
+  public Fixed32 Sqrt() { return new Fixed32(Math.Sqrt(ToDouble())); }
+
+  public Fixed32 Truncated()
+  { if(val<0)
+    { ushort fp = (ushort)val;
+      return new Fixed32((uint)((fp==0 ? val : val+OneVal)&Trunc));
+    }
+    else return new Fixed32((uint)(val&Trunc));
+  }
 
   public override bool Equals(object obj)
   { if(!(obj is Fixed32)) return false;
     return val == ((Fixed32)obj).val;
   }
   
-  public override int GetHashCode() { return (int)val ^ (int)(val>>32); }
+  public override int GetHashCode() { return val; }
   
-  public double ToDouble();
-  public int ToInt() { return (int)(val.val>>16); }
-  public override string ToString();
+  public double ToDouble()
+  { int ret = val>>16;
+    if(ret<0)
+    { ushort fp = (ushort)val;
+      return fp==0 ? ret : (ret+1) + fp*-0.0000152587890625; // 1 / (1<<16)
+    }
+    else return ret + (ushort)val*0.0000152587890625;
+  }
 
-  public static Fixed32 Abs(Fixed32 val) { return val.Abs(); }
+  public int ToInt()
+  { int ret = val>>16;
+    if(ret<0 && (ushort)val!=0) ret++;
+    return ret;
+  }
+
+  public override string ToString() { return ToString(null, null); }
+  public string ToString(string format) { return ToString(format, null); }
+
+  public static Fixed32 Abs(Fixed32 val) { return val.val<0 ? new Fixed32((uint)-val.val) : val; }
+  public static Fixed32 Acos(Fixed32 val) { return new Fixed32(Math.Acos(val.ToDouble())); }
+  public static Fixed32 Asin(Fixed32 val) { return new Fixed32(Math.Asin(val.ToDouble())); }
+  public static Fixed32 Atan(Fixed32 val) { return new Fixed32(Math.Atan(val.ToDouble())); }
   public static Fixed32 Ceiling(Fixed32 val) { return val.Ceiling(); }
+  public static Fixed32 Cos(Fixed32 val) { return new Fixed32(Math.Cos(val.ToDouble())); }
   public static Fixed32 Floor(Fixed32 val) { return val.Floor(); }
   public static Fixed32 Round(Fixed32 val) { return val.Round(); }
-  public static Fixed32 Sqrt(Fixed32 val) { return val.Sqrt(); }
+  public static Fixed32 Sin(Fixed32 val) { return new Fixed32(Math.Sin(val.ToDouble())); }
+  public static Fixed32 Sqrt(Fixed32 val) { return new Fixed32(Math.Sqrt(val.ToDouble())); }
+  public static Fixed32 Tan(Fixed32 val) { return new Fixed32(Math.Tan(val.ToDouble())); }
+  public static Fixed32 Truncate(Fixed32 val) { return val.Truncated(); }
 
-  public static Fixed32 Parse(string s);
-  
-  public static Fixed32 operator-(Fixed32 val) { return new Fixed32(0-val.val); }
+  public static Fixed32 Parse(string s)
+  { int pos = s.IndexOf('e');
+    if(pos==-1)
+    { pos = s.IndexOf('.');
+      if(pos==-1)
+      { pos = s.IndexOf('/');
+        if(pos==-1) return new Fixed32((uint)(int.Parse(s)<<16));
+        else return new Fixed32((uint)((int.Parse(s.Substring(0, pos))<<16) + int.Parse(s.Substring(pos+1))));
+      }
+      else
+      { int val = pos==0 ? 0 : (int.Parse(s.Substring(0, pos))<<16);
+        return new Fixed32((uint)(val + (int)(double.Parse(s.Substring(pos))*65536.0)));
+      }
+    }
+    else return new Fixed32(double.Parse(s));
+  }
 
-  public static Fixed32 operator+(Fixed32 lhs, int rhs) { return new Fixed32(lhs.val+((long)rhs<<16)); }
-  public static Fixed32 operator-(Fixed32 lhs, int rhs) { return new Fixed32(lhs.val-((long)rhs<<16)); }
-  public static Fixed32 operator*(Fixed32 lhs, int rhs) { return new Fixed32(lhs.val*rhs); }
-  public static Fixed32 operator/(Fixed32 lhs, int rhs) { return new Fixed32(lhs.val/rhs); }
+  #region Math operators
+  public static Fixed32 operator-(Fixed32 val) { return new Fixed32((uint)-val.val); }
 
-  public static Fixed32 operator+(Fixed32 lhs, double rhs) { return new Fixed32(lhs.val+FromDouble(rhs)); }
-  public static Fixed32 operator-(Fixed32 lhs, double rhs) { return new Fixed32(lhs.val-FromDouble(rhs)); }
-  public static Fixed32 operator*(Fixed32 lhs, double rhs) { return new Fixed32((lhs.val*FromDouble(rhs))>>16); }
-  public static Fixed32 operator/(Fixed32 lhs, double rhs) { return new Fixed32(((long)lhs.val<<16)/FromDouble(rhs)); }
+  public static Fixed32 operator+(Fixed32 lhs, int rhs) { return new Fixed32((uint)(lhs.val+(rhs<<16))); }
+  public static Fixed32 operator-(Fixed32 lhs, int rhs) { return new Fixed32((uint)(lhs.val-(rhs<<16))); }
+  public static Fixed32 operator*(Fixed32 lhs, int rhs) { return new Fixed32((uint)(lhs.val*rhs)); }
+  public static Fixed32 operator/(Fixed32 lhs, int rhs) { return new Fixed32((uint)(lhs.val/rhs)); }
 
-  public static Fixed32 operator+(int lhs, Fixed32 rhs) { return new Fixed32(((long)lhs<<16)+rhs.val); }
-  public static Fixed32 operator-(int lhs, Fixed32 rhs) { return new Fixed32(((long)lhs<<16)-rhs.val); }
-  public static Fixed32 operator*(int lhs, Fixed32 rhs) { return new Fixed32(lhs*rhs.val); }
-  public static Fixed32 operator/(int lhs, Fixed32 rhs) { return new Fixed32(((long)lhs<<32) / rhs.val); }
+  public static Fixed32 operator+(Fixed32 lhs, double rhs) { return new Fixed32((uint)(lhs.val+FromDouble(rhs))); }
+  public static Fixed32 operator-(Fixed32 lhs, double rhs) { return new Fixed32((uint)(lhs.val-FromDouble(rhs))); }
+  public static Fixed32 operator*(Fixed32 lhs, double rhs) { return new Fixed32((uint)(((long)lhs.val*FromDouble(rhs))>>16)); }
+  public static Fixed32 operator/(Fixed32 lhs, double rhs) { return new Fixed32((uint)(((long)lhs.val<<16)/FromDouble(rhs))); }
 
-  public static Fixed32 operator+(double lhs, Fixed32 rhs) { return new Fixed32(FromDouble(lhs)+rhs.val); }
-  public static Fixed32 operator-(double lhs, Fixed32 rhs) { return new Fixed32(FromDouble(lhs)-rhs.val); }
-  public static Fixed32 operator*(double lhs, Fixed32 rhs) { return new Fixed32((FromDouble(lhs)*rhs.val)>>16); }
-  public static Fixed32 operator/(double lhs, Fixed32 rhs) { return new Fixed32(((long)FromDouble(lhs)<<16)/rhs.val); }
+  public static Fixed32 operator+(int lhs, Fixed32 rhs) { return new Fixed32((uint)((lhs<<16)+rhs.val)); }
+  public static Fixed32 operator-(int lhs, Fixed32 rhs) { return new Fixed32((uint)((lhs<<16)-rhs.val)); }
+  public static Fixed32 operator*(int lhs, Fixed32 rhs) { return new Fixed32((uint)(lhs*rhs.val)); }
+  public static Fixed32 operator/(int lhs, Fixed32 rhs) { return new Fixed32((uint)(((long)lhs<<32)/rhs.val)); }
 
-  public static Fixed32 operator+(Fixed32 lhs, Fixed32 rhs) { return new Fixed32(lhs.val+rhs.val); }
-  public static Fixed32 operator-(Fixed32 lhs, Fixed32 rhs) { return new Fixed32(lhs.val-rhs.val); }
-  public static Fixed32 operator*(Fixed32 lhs, Fixed32 rhs) { return new Fixed32((lhs.val*rhs.val)>>16); }
-  public static Fixed32 operator/(Fixed32 lhs, Fixed32 rhs) { return new Fixed32(((long)lhs.val<<16)/rhs.val); }
+  public static Fixed32 operator+(double lhs, Fixed32 rhs) { return new Fixed32((uint)(FromDouble(lhs)+rhs.val)); }
+  public static Fixed32 operator-(double lhs, Fixed32 rhs) { return new Fixed32((uint)(FromDouble(lhs)-rhs.val)); }
+  public static Fixed32 operator*(double lhs, Fixed32 rhs) { return new Fixed32((uint)(((long)FromDouble(lhs)*rhs.val)>>16)); }
+  public static Fixed32 operator/(double lhs, Fixed32 rhs) { return new Fixed32((uint)(((long)FromDouble(lhs)<<16)/rhs.val)); }
 
+  public static Fixed32 operator+(Fixed32 lhs, Fixed32 rhs) { return new Fixed32((uint)(lhs.val+rhs.val)); }
+  public static Fixed32 operator-(Fixed32 lhs, Fixed32 rhs) { return new Fixed32((uint)(lhs.val-rhs.val)); }
+  public static Fixed32 operator*(Fixed32 lhs, Fixed32 rhs) { return new Fixed32((uint)(((long)lhs.val*rhs.val)>>16)); }
+  public static Fixed32 operator/(Fixed32 lhs, Fixed32 rhs) { return new Fixed32((uint)(((long)lhs.val<<16)/rhs.val)); }
+  #endregion
+
+  #region Comparison operators
   public static bool operator<(Fixed32 lhs, Fixed32 rhs) { return lhs.val<rhs.val; }
   public static bool operator<=(Fixed32 lhs, Fixed32 rhs) { return lhs.val<=rhs.val; }
   public static bool operator>(Fixed32 lhs, Fixed32 rhs) { return lhs.val>rhs.val; }
@@ -130,132 +198,153 @@ public struct Fixed32 : IComparable, IConvertible
   public static bool operator>=(double lhs, Fixed32 rhs) { return FromDouble(lhs)>=rhs.val; }
   public static bool operator==(double lhs, Fixed32 rhs) { return FromDouble(lhs)==rhs.val; }
   public static bool operator!=(double lhs, Fixed32 rhs) { return FromDouble(lhs)!=rhs.val; }
-
-  public static readonly Fixed32 Epsilon  = new Fixed32(1);
-  public static readonly Fixed32 MinValue = new Fixed32((int)0xFFFFFFFF);
-  public static readonly Fixed32 MaxValue = new Fixed32(0x7FFFFFFF);
-  public static readonly Fixed32 PI;
-  public static readonly Fixed32 E;
-
-  static int FromDouble(double value);
+  #endregion
   
+  public static implicit operator Fixed32(int i) { return new Fixed32((uint)(i<<16)); }
+  public static implicit operator Fixed32(double d) { return new Fixed32((uint)FromDouble(d)); }
+
+  #region Useful constants
+  public static readonly Fixed32 E        = new Fixed32((uint)(178145 + 20835));
+  public static readonly Fixed32 Epsilon  = new Fixed32((uint)1);
+  public static readonly Fixed32 MaxValue = new Fixed32((uint)0x7FFFFFFF);
+  public static readonly Fixed32 MinValue = new Fixed32((uint)0x80000001);
+  public static readonly Fixed32 MinusOne = new Fixed32((uint)0xFFFF0000);
+  public static readonly Fixed32 One      = new Fixed32((uint)OneVal);
+  public static readonly Fixed32 PI       = new Fixed32((uint)((411774 + 54545)/2));
+  public static readonly Fixed32 PIover2  = new Fixed32((uint)((411774 + 54545)/4));
+  public static readonly Fixed32 TwoPI    = new Fixed32((uint)(411774 + 54545));
+  public static readonly Fixed32 Zero     = new Fixed32((uint)0);
+  #endregion
+
+  const int Trunc  = unchecked((int)0xFFFF0000);
+  const int OneVal = 0x10000;
+
+  static int FromDouble(double value)
+  { int whole = (int)value;
+    int fp = (int)(Math.IEEERemainder(value, 1)*65536.0) & ~Trunc;
+    if(whole<0) fp ^= Trunc;
+    return (whole<<16) + fp;
+  }
+
   int val;
 
   #region IComparable Members
   public int CompareTo(object obj)
-  {
-    // TODO:  Add Fixed32.CompareTo implementation
-    return 0;
+  { if(obj==null) return 1;
+    if(obj is Fixed32)
+    { Fixed32 o = (Fixed32)obj;
+      return val<o.val ? -1 : val>o.val ? 1 : 0;
+    }
+    throw new ArgumentException("'obj' is not a Fixed32");
   }
   #endregion
 
   #region IConvertible Members
-
+  // FIXME: these should probably do rounding
   public ulong ToUInt64(IFormatProvider provider)
-  {
-    // TODO:  Add Fixed64.ToUInt64 implementation
-    return 0;
+  { int n = ToInt();
+    if(n<0) throw new OverflowException();
+    return (ulong)n;
   }
 
   public sbyte ToSByte(IFormatProvider provider)
-  {
-    // TODO:  Add Fixed64.ToSByte implementation
-    return 0;
+  { int n = ToInt();
+    if(n<sbyte.MinValue || n>sbyte.MaxValue) throw new OverflowException();
+    return (sbyte)n;
   }
 
-  public double ToDouble(IFormatProvider provider)
-  {
-    // TODO:  Add Fixed64.ToDouble implementation
-    return 0;
-  }
-
-  public DateTime ToDateTime(IFormatProvider provider)
-  {
-    // TODO:  Add Fixed64.ToDateTime implementation
-    return new DateTime ();
-  }
+  public double ToDouble(IFormatProvider provider) { return ToDouble(); }
+  public DateTime ToDateTime(IFormatProvider provider) { throw new InvalidCastException(); }
 
   public float ToSingle(IFormatProvider provider)
-  {
-    // TODO:  Add Fixed64.ToSingle implementation
-    return 0;
+  { double d = ToDouble();
+    if(d<float.MinValue || d>float.MaxValue) throw new OverflowException();
+    return (float)d;
   }
 
-  public bool ToBoolean(IFormatProvider provider)
-  {
-    // TODO:  Add Fixed64.ToBoolean implementation
-    return false;
-  }
+  public bool ToBoolean(IFormatProvider provider) { return val==0; }
 
-  public int ToInt32(IFormatProvider provider)
-  {
-    // TODO:  Add Fixed64.ToInt32 implementation
-    return 0;
-  }
+  public int ToInt32(IFormatProvider provider) { return ToInt(); }
 
   public ushort ToUInt16(IFormatProvider provider)
-  {
-    // TODO:  Add Fixed64.ToUInt16 implementation
-    return 0;
+  { int n = ToInt();
+    if(n<ushort.MinValue || n>ushort.MaxValue) throw new OverflowException();
+    return (ushort)n;
   }
 
   public short ToInt16(IFormatProvider provider)
-  {
-    // TODO:  Add Fixed64.ToInt16 implementation
-    return 0;
+  { int n = ToInt();
+    if(n<short.MinValue || n>short.MaxValue) throw new OverflowException();
+    return (short)n;
   }
 
-  public string ToString(IFormatProvider provider)
-  {
-    // TODO:  Add Fixed64.ToString implementation
-    return null;
-  }
+  public string ToString(IFormatProvider provider) { return ToString(null, provider); }
 
   public byte ToByte(IFormatProvider provider)
-  {
-    // TODO:  Add Fixed64.ToByte implementation
-    return 0;
+  { int n = ToInt();
+    if(n<byte.MinValue || n>byte.MaxValue) throw new OverflowException();
+    return (byte)n;
   }
 
   public char ToChar(IFormatProvider provider)
-  {
-    // TODO:  Add Fixed64.ToChar implementation
-    return '\0';
+  { int n = ToInt();
+    if(n<ushort.MinValue || n>ushort.MaxValue) throw new OverflowException();
+    return (char)n;
   }
 
-  public long ToInt64(IFormatProvider provider)
-  {
-    // TODO:  Add Fixed64.ToInt64 implementation
-    return 0;
-  }
+  public long ToInt64(IFormatProvider provider) { return ToInt(); }
 
-  public System.TypeCode GetTypeCode()
-  {
-    // TODO:  Add Fixed64.GetTypeCode implementation
-    return new System.TypeCode ();
-  }
+  public System.TypeCode GetTypeCode() { return System.TypeCode.Object; }
 
-  public decimal ToDecimal(IFormatProvider provider)
-  {
-    // TODO:  Add Fixed64.ToDecimal implementation
-    return 0;
-  }
+  public decimal ToDecimal(IFormatProvider provider) { return new decimal(ToDouble()); }
 
   public object ToType(Type conversionType, IFormatProvider provider)
-  {
-    // TODO:  Add Fixed64.ToType implementation
-    return null;
+  { if(conversionType==typeof(int)) return ToInt32(provider);
+    if(conversionType==typeof(double)) return ToDouble();
+    if(conversionType==typeof(string)) return ToString(null, provider);
+    if(conversionType==typeof(float)) return ToSingle(provider);
+    if(conversionType==typeof(short)) return ToInt16(provider);
+    if(conversionType==typeof(ushort)) return ToUInt16(provider);
+    if(conversionType==typeof(uint)) return ToUInt32(provider);
+    if(conversionType==typeof(long)) return ToInt64(provider);
+    if(conversionType==typeof(ulong)) return ToUInt64(provider);
+    if(conversionType==typeof(bool)) return ToBoolean(provider);
+    if(conversionType==typeof(short)) return ToInt16(provider);
+    if(conversionType==typeof(byte)) return ToByte(provider);
+    if(conversionType==typeof(sbyte)) return ToSByte(provider);
+    if(conversionType==typeof(decimal)) return ToDecimal(provider);
+    if(conversionType==typeof(char)) return ToChar(provider);
+    throw new InvalidCastException();
   }
 
   public uint ToUInt32(IFormatProvider provider)
-  {
-    // TODO:  Add Fixed64.ToUInt32 implementation
-    return 0;
+  { int n = ToInt();
+    if(n<0) throw new OverflowException();
+    return (uint)n;
   }
+  #endregion
 
+  #region IFormattable Members
+  public string ToString(string format, IFormatProvider formatProvider)
+  { if(format==null) format="F";
+    switch(char.ToUpper(format[0]))
+    { case 'F':
+        string uf = format.Length==1 ? "F15" : format.ToUpper();
+        int whole = val>>16;
+        ushort fp = (ushort)val;
+        if(fp!=0 && uf[1]!='0')
+        { string s = whole<0 ? whole<-1 ? (whole+1).ToString() : "-0" : whole.ToString();
+          s += '.';
+          return s += ((whole<0 ? (ushort)-fp : fp) * 0.0000152587890625).ToString(uf).TrimEnd('0').Substring(2);
+        }
+        else return whole.ToString();
+      case 'R': return (val>>16).ToString() + '/' + ((ushort)val).ToString();
+      default: return ToDouble().ToString(format);
+    }
+  }
   #endregion
 }
-#endregion*/
+#endregion
 
 #region Fixed64
 [Serializable, System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
@@ -271,7 +360,7 @@ public struct Fixed64 : IFormattable, IComparable, IConvertible
     { uint fp = (uint)val;
       return new Fixed64(fp==0 ? val : ((val+OneVal)&Trunc));
     }
-    else return new Fixed64((val+OneVal) & Trunc);
+    else return new Fixed64((val+(OneVal-1)) & Trunc);
   }
 
   public Fixed64 Floor()
@@ -386,46 +475,36 @@ public struct Fixed64 : IFormattable, IComparable, IConvertible
   }
 
   public static Fixed64 operator/(Fixed64 lhs, Fixed64 rhs)
-  public static Fixed64 Divide(Fixed64 lhs, Fixed64 rhs, Fixed64 remainder) // TODO: make sure this works for big endian machines
   { long quot, rem;
     uint fp = (uint)rhs.val;
     int  count;
-    if(fp==0) return new Fixed64(lhs.val / rhs.ToInt());
+    if(fp==0) { return new Fixed64(lhs.val / rhs.ToInt()); }
 
-    bool neg=false;
-    if(lhs.val<0) { lhs.val=-lhs.val; neg=!neg; }
-    if(rhs.val<0) { rhs.val=-rhs.val; neg=!neg; }
+    byte neg=0;
+    if(lhs.val<0) { lhs.val=-lhs.val; neg=(byte)~neg; }
+    if(rhs.val<0) { rhs.val=-rhs.val; neg=(byte)~neg; }
 
-    count=0; // reduce a bit, if we can
+    count=0; // reduce if we can
     { uint op = (uint)lhs.val, mask=1;
       if((fp&mask)==0 && (op&mask)==0)
       { do { mask<<=1; count++; } while((fp&mask)==0 && (op&mask)==0);
-        rhs.val>>=count;
+        rhs.val>>=count; lhs.val>>=count;
       }
     }
 
     if(rhs.val<0x100000000)
-    { lhs.val>>=count;
-      Math.DivRem(lhs.val>>32, rhs.val, out rem);
-      quot  = Math.DivRem((rem<<32)+(int)lhs.val, rhs.val, out rem)<<32;
+    { quot  = Math.DivRem(lhs.val, rhs.val, out rem)<<32;
       quot += Math.DivRem(rem<<32, rhs.val, out rem);
     }
     else if(rhs.val<0x1000000000000)
-    { lhs.val>>=count;
-      uint n = (uint)(lhs.val>>32);
-      Math.DivRem(n>>16, rhs.val, out rem);
-      Math.DivRem((rem<<16)+(n&0xFFFF), rhs.val, out rem);
-      n = (uint)lhs.val;
-      quot  = Math.DivRem((rem<<16)+(n>>16), rhs.val, out rem)<<48;
-      quot += Math.DivRem((rem<<16)+(n&0xFFFF), rhs.val, out rem)<<32;
+    { Math.DivRem((uint)(lhs.val>>32), rhs.val, out rem);
+      quot  = Math.DivRem((rem<<32)+(uint)lhs.val, rhs.val, out rem)<<32;
       quot += Math.DivRem(rem<<16, rhs.val, out rem)<<16;
       quot += Math.DivRem(rem<<16, rhs.val, out rem);
     }
-    else
-    { if((rhs.val>>32) > lhs.val) return new Fixed64(0); // TODO: make sure this is right
-
-      Union ls = new Union(lhs.val), rs = new Union(rhs.val);
-      Union  t = new Union();
+    else // TODO: long division is slow! is there something better we can use?
+    { // TODO: optimize for divisor>=dividend
+      Union ls = new Union(lhs.val<<count), t = new Union();
       int  bits = 96-count;
       byte bit;
 
@@ -436,7 +515,7 @@ public struct Fixed64 : IFormattable, IComparable, IConvertible
         ls.Long <<= 1;
         bits--;
       }
-      while(rem<rs.Long);
+      while(rem<rhs.val);
       
       ls.Long = lhs.val;
       rem >>= 1;
@@ -444,14 +523,15 @@ public struct Fixed64 : IFormattable, IComparable, IConvertible
       
       do
       { rem = (rem<<1) | (byte)((ls.Uint&0x80000000)>>31);
-        t.Long = rem - rs.Long;
+        t.Long = rem - rhs.val;
         bit  = (byte)((~t.Uint&0x80000000)>>31);
         quot = (quot<<1) | bit;
         if(bit!=0) rem=t.Long;
         ls.Long <<= 1;
       } while(--bits>0);
     }
-    return new Fixed64(neg ? -quot : quot);
+    
+    return new Fixed64(neg==0 ? quot : -quot);
   }
   #endregion
 
@@ -502,18 +582,19 @@ public struct Fixed64 : IFormattable, IComparable, IConvertible
   public static readonly Fixed64 MinValue = new Fixed64(unchecked((long)0x8000000000000001));
   public static readonly Fixed64 MinusOne = new Fixed64(Trunc);
   public static readonly Fixed64 One      = new Fixed64(OneVal);
-  public static readonly Fixed64 TwoPI    = 
   public static readonly Fixed64 PI       = new Fixed64(12884901888L + 608135817);
   public static readonly Fixed64 PIover2  = new Fixed64((12884901888L + 608135817)/2);
+  public static readonly Fixed64 TwoPI    = new Fixed64(26986075409L + 189141414);
   public static readonly Fixed64 Zero     = new Fixed64((long)0);
   #endregion
 
   const long Trunc  = unchecked((long)0xFFFFFFFF00000000);
-  const long OneVal = unchecked(0x100000000L);
+  const long OneVal = 0x100000000L;
 
   static long FromDouble(double value)
-  { uint fp = (uint)(Math.IEEERemainder(value, 1)*4294967296.0);
-    int whole = value<0 && fp!=0 ? (int)value-1 : (int)value;
+  { int whole = (int)value;
+    long fp = (long)(Math.IEEERemainder(value, 1)*4294967296.0) & ~Trunc;
+    if(whole<0) fp ^= Trunc;
     return ((long)whole<<32) + fp;
   }
 
@@ -555,7 +636,7 @@ public struct Fixed64 : IFormattable, IComparable, IConvertible
 
   public bool ToBoolean(IFormatProvider provider) { return val==0; }
 
-  public int ToInt32(IFormatProvider provider) { return (int)(val>>32); }
+  public int ToInt32(IFormatProvider provider) { return ToInt(); }
 
   public ushort ToUInt16(IFormatProvider provider)
   { int n = ToInt();
@@ -633,7 +714,6 @@ public struct Fixed64 : IFormattable, IComparable, IConvertible
     }
   }
   #endregion
-  
   
   [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Explicit)]
   struct Union
