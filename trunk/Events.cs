@@ -188,7 +188,9 @@ public class WindowPaintEvent : WindowEvent
 }
 
 public class WindowLayoutEvent : WindowEvent
-{ public WindowLayoutEvent(GameLib.Forms.Control control) : base(control, WindowEvent.MessageType.Layout) { }
+{ public WindowLayoutEvent(GameLib.Forms.Control control, bool recursive)
+    : base(control, WindowEvent.MessageType.Layout) { Recursive=recursive; }
+  public bool Recursive;
 }
 
 public class KeyRepeatEvent : WindowEvent

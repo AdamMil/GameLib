@@ -171,6 +171,20 @@ public delegate void ClickEventHandler(object sender, ClickEventArgs e);
 /// to control coordinates when the event handler is called.
 /// </summary>
 public delegate void MouseMoveEventHandler(object sender, MouseMoveEvent e);
+
+/// <summary>This class is used in layout events.</summary>
+public class LayoutEventArgs : EventArgs
+{ 
+  /// <summary>This constructor sets <see cref="Recursive"/> to <paramref name="recursive"/></summary>
+  /// <param name="recursive">If true, a recursive layout should be performed.</param>
+  public LayoutEventArgs(bool recursive) { Recursive=recursive; }
+
+  /// <summary>If true, a recursive layout should be performed.</summary>
+  public bool Recursive;
+}
+
+/// <summary>This delegate is used along with <see cref="LayoutEventArgs"/> to service layout events.</summary>
+public delegate void LayoutEventHandler(object sender, LayoutEventArgs e);
 #endregion
 
 #region Control class
@@ -214,7 +228,9 @@ public enum BoundsType
   Normal,
   /// <summary>The layout logic will be altered so that the new bounds come out the same as the specified
   /// bounds. This differs from <see cref="Layout"/> in that future layouts will not move the control. This
-  /// allows the control to be placed even above docked areas.
+  /// allows the control to be placed even above docked areas. Note that this value requires the control to
+  /// have an existing parent for it to work properly. If it doesn't, it behaves the same as
+  /// <see cref="Normal"/>.
   /// </summary>
   Absolute,
   /// <summary>No layout logic will be considered. The bounds will be used as-is.</summary>
@@ -248,7 +264,7 @@ public enum ControlStyle
   /// <summary>Instead of drawing to the desktop directly, the control will have a backing surface to which all
   /// drawing will be done. This is especially useful if it's difficult for the control to keep its drawing within
   /// its window. Another use for backing surfaces is to create a semi-transparent window by using
-  /// <see cref="Surface.SetAlpha"/>.
+  /// <see cref="Surface.SetSurfaceAlpha"/>.
   /// </summary>
   BackingSurface=16
 }
@@ -1048,28 +1064,6 @@ public class Control
   /// be equal to the <see cref="Width"/> and <see cref="Height"/> of this control.
   /// </remarks>
   public Rectangle WindowRect { get { return new Rectangle(0, 0, bounds.Width, bounds.Height); } }
-
-  /*
-  /// <summary>Gets this control's offsets from its parent's edges.</summary>
-  /// <remarks>This property is meant to be used by controls handling <see cref="OnLayout"/> and doing custom
-  /// layout. The <see cref="Rectangle.Left"/>, <see cref="Rectangle.Top"/>, <see cref="Rectangle.Right"/>, and
-  /// <see cref="Rectangle.Bottom"/> properties hold the offsets in pixels from the left, top, right, and, bottom
-  /// edges of the parent, respectively. All offsets are positive values, and the <see cref="Rectangle.Width"/>
-  /// and <see cref="Rectangle.Height"/> properties are meaningless. The <see cref="ContainerControl"/> class
-  /// implements the standard <see cref="OnLayout"/> handler, and it's recommended that you consider deriving
-  /// from <see cref="ContainerControl"/> instead of attempting to implement anchoring and docking yourself.
-  /// </remarks>
-  /// <exception cref="InvalidOperationException">Thrown if control has no parent.</exception>
-  public Rectangle AnchorOffsets { get { return anchorOffsets; } }*/
-
-  /// <summary>Gets the space available for anchoring child controls.</summary>
-  /// <remarks>Anchoring is performed after docking, so the available space for anchoring will not be the same as
-  /// the <see cref="Bounds"/> if there are docked child controls. This property gets the space available for
-  /// anchoring child controls. This property is normally updated by the <see cref="ContainerControl.OnLayout"/>
-  /// method.
-  /// </remarks>
-  // TODO: move these
-  internal Rectangle AnchorSpace { get { return anchorSpace; } set { anchorSpace=value; } }
   #endregion
   
   #region Public methods
@@ -1481,7 +1475,7 @@ public class Control
   /// <remarks>This event should be raised before the actual layout code executes, so the event handler can
   /// make modifications to control positions and expect the changes to be taken into account.
   /// </remarks>
-  public event EventHandler Layout;
+  public event LayoutEventHandler Layout;
 
   /// <summary>Occurs when the mouse is positioned over the control or one of its ancestors.</summary>
   /// <remarks>If at any level in the control hierarchy, there are multiple overlapping sibling controls under the
@@ -1744,7 +1738,7 @@ public class Control
     Size old = (Size)e.OldValue;
     if(parent!=null && (bounds.Width<old.Width || bounds.Height<old.Height))
     { if(bounds.Width<old.Width && bounds.Height<old.Height) // invalidate the smallest rectangle necessary
-        parent.Invalidate(new Rectangle(WindowToParent(bounds.Location), old));
+        parent.Invalidate(new Rectangle(bounds.Location, old));
       if(bounds.Width<old.Width)
         parent.Invalidate(new Rectangle(WindowToParent(new Point(bounds.Width, 0)),
                                         new Size(old.Width-bounds.Width, old.Height)));
@@ -1808,7 +1802,7 @@ public class Control
   /// version to ensure that the default processing gets performed. The proper place to do this is at
   /// the beginning of the derived version.
   /// </remarks>
-  protected internal virtual void OnLayout(EventArgs e)
+  protected internal virtual void OnLayout(LayoutEventArgs e)
   { if(Layout!=null) Layout(this, e);
     pendingLayout=false;
   }
@@ -2108,7 +2102,7 @@ public class Control
   protected internal bool HasStyle(ControlStyle test) { return (style & test) != ControlStyle.None; }
 
   /// <summary>Converts a rectangle from control coordinates to the coordinate space of the backing surface.</summary>
-  /// <param name="backingRect">The rectangle to convert, in control coordinates.</param>
+  /// <param name="windowRect">The rectangle to convert, in control coordinates.</param>
   /// <returns>The converted rectangle, in backing surface coordinates.</returns>
   /// <exception cref="InvalidOperationException">Thrown if the control has no backing surface.</exception>
   protected internal Rectangle WindowToBacking(Rectangle windowRect)
@@ -2117,6 +2111,14 @@ public class Control
     if(c==null) throw new InvalidOperationException("This control has no backing surface!");
     return windowRect;
   }
+
+  /// <summary>Gets the space available for anchoring child controls.</summary>
+  /// <remarks>Anchoring is performed after docking, so the available space for anchoring will not be the same as
+  /// the <see cref="Bounds"/> if there are docked child controls. This property gets the space available for
+  /// anchoring child controls. This property is normally updated by the <see cref="ContainerControl.OnLayout"/>
+  /// method.
+  /// </remarks>
+  internal Rectangle AnchorSpace { get { return anchorSpace; } set { anchorSpace=value; } }
 
   internal bool Transparent
   { get
@@ -2199,12 +2201,22 @@ public class Control
   }
 
   /// <summary>Triggers a relayout of this control's children.</summary>
-  /// <remarks>Calling this method pushes a new <see cref="WindowLayoutEvent"/> onto the event queue for this
-  /// control, if one is not already there.
+  /// <remarks>Calling this method is equivalent to calling <see cref="TriggerLayout(bool)"/> and passing
+  /// false to signify a non-recursive layout. See <see cref="TriggerLayout(bool)"/> for more information.
   /// </remarks>
-  protected void TriggerLayout()
+  protected void TriggerLayout() { TriggerLayout(false); }
+
+  /// <summary>Triggers a relayout of this control's children or ancestors.</summary>
+  /// <param name="recursive">If true, a recursive layout should be performed.</param>
+  /// <remarks>Calling this method pushes a new <see cref="WindowLayoutEvent"/> onto the event queue for this
+  /// control, if one is not already there. Generally, recursive layouts are not necessary because the default
+  /// layout implementation will trickle down to ancestors automatically. However, it can be used to force
+  /// layouts of all descendants to happen at the same time, if that's necessary, though doing so can use
+  /// substantially more CPU time than the default non-recursive, trickle-down implementation.
+  /// </remarks>
+  protected void TriggerLayout(bool recursive)
   { if(!pendingLayout && Events.Events.Initialized)
-    { Events.Events.PushEvent(new WindowLayoutEvent(this));
+    { Events.Events.PushEvent(new WindowLayoutEvent(this, recursive));
       pendingLayout=true;
     }
   }
@@ -2522,8 +2534,8 @@ public class DesktopControl : ContainerControl, IDisposable
           else if(capturing==null || capturing==p)
           { int xd = ea.X-drag.Start.X;
             int yd = ea.Y-drag.Start.Y;
-            if(xd*xd+yd*yd >= (p.DragThreshold==-1 ? DragThreshold : p.DragThreshold))
-            { drag.Start = p.DisplayToWindow(drag.Start);
+            if(xd*xd+yd*yd >= (dragging.DragThreshold==-1 ? DragThreshold : p.DragThreshold))
+            { drag.Start = dragging.DisplayToWindow(drag.Start);
               drag.End = ea.Point;
               drag.Buttons = ea.Buttons;
               drag.Cancel = false;
@@ -2663,7 +2675,9 @@ public class DesktopControl : ContainerControl, IDisposable
           }
           break;
         case WindowEvent.MessageType.Paint: DoPaint(we.Control); break;
-        case WindowEvent.MessageType.Layout: we.Control.OnLayout(new EventArgs()); break;
+        case WindowEvent.MessageType.Layout:
+          we.Control.OnLayout(new LayoutEventArgs(((WindowLayoutEvent)we).Recursive));
+          break;
         case WindowEvent.MessageType.DesktopUpdated: if(we.Control!=this) return false; break;
       }
       return true;
