@@ -92,7 +92,17 @@
                     BuildAction = "Compile"
                 />
                 <File
+                    RelPath = "Events.cs"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
                     RelPath = "Exceptions.cs"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
+                    RelPath = "Input.cs"
                     SubType = "Code"
                     BuildAction = "Compile"
                 />

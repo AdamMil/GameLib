@@ -119,11 +119,14 @@ public class Song : IDisposable
     { Mixer.FreeMusic(music);
       music=new IntPtr(null);
     }
-    if(delete!=null) new FileInfo(delete).Delete();
+    if(delete!=null)
+    { new FileInfo(delete).Delete();
+      delete=null;
+    }
   }
   
-  internal IntPtr music;
-  string delete;
+  internal  IntPtr music;
+  protected string delete;
 }
 #endregion
 
@@ -234,7 +237,7 @@ public class Channel
 
 #region Audio
 [System.Security.SuppressUnmanagedCodeSecurity()]
-public class Audio
+public sealed class Audio
 { private Audio() { }
 
   [Flags]
@@ -252,6 +255,7 @@ public class Audio
     public int Channel;
   }
 
+  public bool Initialized { get { return init; } }
   public static Channel[] Channels  { get { return channels; } }
   public static int ChannelsPlaying { get { CheckInit(); return Mixer.Playing(Mixer.AllChannels); } }
   public static int ChannelsPaused  { get { CheckInit(); return Mixer.Paused(Mixer.AllChannels); } }
@@ -423,26 +427,26 @@ public class Audio
   { channels[channel].sample  = sample;
     channels[channel].timeout = timeoutMs;
   }
-  protected static void Unlink(int channel)
+  static void Unlink(int channel)
   { channels[channel].sample = null;
   }
 
-  protected static void CheckInit() { if(!init) throw new InvalidOperationException("Not initialized"); }
-  protected static void CheckChannel(int channel)
+  static void CheckInit() { if(!init) throw new InvalidOperationException("Not initialized"); }
+  static void CheckChannel(int channel)
   { if(channel<0 || channel>=channels.Length) throw new ArgumentOutOfRangeException("channel");
   }
-  protected static void CheckGroup(int group)
+  static void CheckGroup(int group)
   { if(group<0 && group!=NoGroup) throw new ArgumentOutOfRangeException("group");
   }
 
-  protected static void OnChannelFinished(int channel)
+  static void OnChannelFinished(int channel)
   { if(ChannelFinished!=null) ChannelFinished(channel);
     Unlink(channel);
   }
   
-  protected static void OnMusicFinished() { if(MusicFinished!=null) MusicFinished(); }
-  protected unsafe static void OnMusicMix(void *mydata, byte *stream, int bytes) { musicHandler(mydata, stream, bytes); }
-  protected unsafe static void OnPostMix(void *mydata, byte *stream, int bytes) { postHandler(mydata, stream, bytes); }
+  static void OnMusicFinished() { if(MusicFinished!=null) MusicFinished(); }
+  unsafe static void OnMusicMix(void *mydata, byte *stream, int bytes) { musicHandler(mydata, stream, bytes); }
+  unsafe static void OnPostMix(void *mydata, byte *stream, int bytes) { postHandler(mydata, stream, bytes); }
 
   static Channel[] channels = new Channel[0];
   static Mixer.ChannelFinishedHandler channelFin;
