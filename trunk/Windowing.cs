@@ -699,11 +699,11 @@ public class Control
         parent.Invalidate(new Rectangle(WindowToParent(bounds.Location), old));
       if(bounds.Width<old.Width)
         parent.Invalidate(new Rectangle(WindowToParent(new Point(bounds.Width, 0)),
-                                        new Size(old.Width-bounds.Width, bounds.Height)));
+                                        new Size(old.Width-bounds.Width, old.Height)));
       else parent.Invalidate(new Rectangle(WindowToParent(new Point(0, bounds.Height)),
-                                           new Size(bounds.Width, old.Height-bounds.Height)));
+                                           new Size(old.Width, old.Height-bounds.Height)));
     }
-    if(bounds.Width>old.Width || bounds.Height>old.Height) Invalidate();
+    Invalidate();
     OnResize(e);
     foreach(Control c in controls) c.OnParentResized(e);
   }
