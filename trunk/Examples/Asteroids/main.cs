@@ -34,19 +34,19 @@ namespace Asteroids
 class Asteroid
 { const int SIDES=8;
 
-  public Asteroid(float diameter, Point pos, Vector vel)
+  public Asteroid(double diameter, Point pos, Vector vel)
   { retryPoly:
-    float angleLeft = (SIDES-2)*(float)Math.PI;
-    float lengthLeft = diameter * (float)Math.PI;
+    double angleLeft = (SIDES-2)*Math.PI;
+    double lengthLeft = diameter * Math.PI;
     Point pt = new Point();
     Vector vect = new Vector(1, 0);
     Poly.AddPoint(pt);
     for(int side=0,tries=0; side<SIDES; tries=0,side++)
     { retryEdge:
-      float goalAngle  = angleLeft/(SIDES-side);
-      float goalLength = lengthLeft/(SIDES-side);
-      float angle = goalAngle  + goalAngle*0.6f*(float)App.Rand.NextDouble()-goalAngle*0.3f;
-      float length = goalLength + goalAngle*0.6f*(float)App.Rand.NextDouble()-goalAngle*0.3f;
+      double goalAngle  = angleLeft/(SIDES-side);
+      double goalLength = lengthLeft/(SIDES-side);
+      double angle = goalAngle  + goalAngle*0.6f*App.Rand.NextDouble()-goalAngle*0.3f;
+      double length = goalLength + goalAngle*0.6f*App.Rand.NextDouble()-goalAngle*0.3f;
       Vector tv = (-vect.Normal*length).Rotated(angle);
       Line segment = new Line(pt, tv);
       for(int i=0; i<side; i++)
@@ -90,17 +90,17 @@ class Asteroid
   }
 
   public void Draw()
-  { GL.glTranslatef(Pos.X, Pos.Y, 0);
-    GL.glRotatef(Angle, 0, 0, 1);
+  { GL.glTranslated(Pos.X, Pos.Y, 0);
+    GL.glRotated(Angle, 0, 0, 1);
     GL.glColor(System.Drawing.Color.Gray);
     foreach(Polygon poly in Hits)
     { GL.glBegin(GL.GL_POLYGON);
-      for(int i=0; i<poly.Length; i++) GL.glVertex2f(poly[i].X, poly[i].Y);
+      for(int i=0; i<poly.Length; i++) GL.glVertex2d(poly[i].X, poly[i].Y);
       GL.glEnd();
     }
     GL.glBegin(GL.GL_LINE_LOOP);
     GL.glColor(System.Drawing.Color.White);
-    for(int i=0; i<Poly.Length; i++) GL.glVertex2f(Poly[i].X, Poly[i].Y);
+    for(int i=0; i<Poly.Length; i++) GL.glVertex2d(Poly[i].X, Poly[i].Y);
     GL.glEnd();
     GL.glLoadIdentity();
   }
@@ -108,7 +108,7 @@ class Asteroid
   public Polygon Poly = new Polygon();
   public Point   Pos;
   public Vector  Vel;
-  public float   Size, Angle, AngleVel;
+  public double  Size, Angle, AngleVel;
   Polygon[] Hits;
 }
 #endregion
@@ -120,7 +120,7 @@ public class Bullet
   public void Draw()
   { GL.glBegin(GL.GL_POINTS);
     GL.glColor(System.Drawing.Color.White);
-    GL.glVertex2f(Pos.X, Pos.Y);
+    GL.glVertex2d(Pos.X, Pos.Y);
     GL.glEnd();
   }
 
@@ -133,25 +133,25 @@ public class Bullet
 
   public Point  Pos;
   public Vector Vel;
-  public float  Life;
+  public double Life;
 }
 #endregion
 
 #region Ship
 public class Ship
 { public void Draw()
-  { GL.glTranslatef(Pos.X, Pos.Y, 0);
-    GL.glRotatef(Angle, 0, 0, 1);
+  { GL.glTranslated(Pos.X, Pos.Y, 0);
+    GL.glRotated(Angle, 0, 0, 1);
 
     byte alpha = (byte)(64 + Fade*191);
     GL.glBegin(GL.GL_POLYGON);
     GL.glColor(alpha, System.Drawing.Color.LightGreen);
-    for(int i=0; i<Poly.Length; i++) GL.glVertex2f(Poly[i].X, Poly[i].Y);
+    for(int i=0; i<Poly.Length; i++) GL.glVertex2d(Poly[i].X, Poly[i].Y);
     GL.glEnd();
 
     GL.glBegin(GL.GL_LINE_LOOP);
     GL.glColor(alpha, System.Drawing.Color.Green);
-    for(int i=0; i<Poly.Length; i++) GL.glVertex2f(Poly[i].X, Poly[i].Y);
+    for(int i=0; i<Poly.Length; i++) GL.glVertex2d(Poly[i].X, Poly[i].Y);
     GL.glEnd();
 
     GL.glLoadIdentity();
@@ -168,7 +168,7 @@ public class Ship
   { const int turnSpeed=300, accel=300, bulletSpeed=250;
     if(Keyboard.Pressed(Key.Left)) Angle += turnSpeed*App.TimeDelta;
     if(Keyboard.Pressed(Key.Right)) Angle -= turnSpeed*App.TimeDelta;
-    float angle = Angle*(float)Math.PI/180;
+    double angle = Angle*Math.PI/180;
     if(Keyboard.Pressed(Key.Up))
     { Vel += new Vector(0, accel).Rotated(angle)*App.TimeDelta;
     }
@@ -185,14 +185,14 @@ public class Ship
   public Polygon Poly = new Polygon(new Point[] { new Point(0, 10), new Point(8, -10), new Point(-8, -10) });
   public Point  Pos;
   public Vector Vel;
-  public float  Angle, AngleVel, Fade;
-  float Delay;
+  public double Angle, AngleVel, Fade;
+  double Delay;
 }
 #endregion
 
 class App
 { public static Random Rand = new Random();
-  public static float TimeDelta;
+  public static double TimeDelta;
 
   #if DEBUG
   static string dataPath = "../../../";
@@ -218,7 +218,7 @@ class App
   static void Main()
   { Initialize();
 
-    float lastTime = (float)Timing.Seconds;
+    double lastTime = Timing.Seconds;
     try
     { while(true)
       { Event e;
@@ -237,7 +237,7 @@ class App
           bullets.Clear();
           difficulty *= 1.1f;
         }
-        float time = (float)Timing.Seconds;
+        double time = Timing.Seconds;
         TimeDelta = time-lastTime; lastTime=time;
         UpdateWorld();
         Draw();
@@ -356,7 +356,7 @@ class App
   static SampleSource shot, exp;
   static ArrayList asteroids = new ArrayList(), bullets = new ArrayList();
   static Ship ship = new Ship();
-  static float difficulty = 1.0f;
+  static double difficulty = 1.0f;
   static int lives = 3, score, playedDrive = -1;
 }
 

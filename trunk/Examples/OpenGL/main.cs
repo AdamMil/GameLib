@@ -38,7 +38,7 @@ class App
   #endif
 
   const int NUM_PARTICLES=150;
-  const float ZOOM=-15f;
+  const double ZOOM=-15;
 
   struct Particle
   { public float  Life, Decay, R, G, B, Angle, AngleVel;
@@ -111,7 +111,7 @@ class App
 
     foreach(Particle p in Particles)
     { GL.glPushMatrix();
-      GL.glTranslatef(p.Pos.X, p.Pos.Y, ZOOM);
+      GL.glTranslated(p.Pos.X, p.Pos.Y, ZOOM);
       GL.glRotatef(p.Angle, 0, 0, 1);
       GL.glBegin(GL.GL_QUADS);
       GL.glColor4f(p.R, p.G, p.B, p.Life);
@@ -137,8 +137,8 @@ class App
       }
     }
 
-    float angle;  // angle between the spigot and the mouse (in radians)
-    float length; // distance to the mouse from the spigot
+    double angle;  // angle between the spigot and the mouse (in radians)
+    double length; // distance to the mouse from the spigot
     { double[] model=new double[16], proj=new double[16];
       int[] view=new int[4];
       double x, y, z;
@@ -146,7 +146,7 @@ class App
       GL.glGetDoublev(GL.GL_PROJECTION_MATRIX, proj);
       GL.glGetIntegerv(GL.GL_VIEWPORT, view);
       GLU.gluUnProject(Mouse.X, Mouse.Y, 1, model, proj, view, out x, out y, out z);
-      Vector dir = new Vector((float)x/2, (float)y/2);
+      Vector dir = new Vector(x/2, y/2);
       length = dir.Length;
       angle  = dir.Angle;
     }
@@ -171,7 +171,7 @@ class App
         Particles[i].Pos   = new Point(0, 0); // position of the spigot
         Particles[i].Angle = 0;
         // rotate faster for higher velocities
-        Particles[i].AngleVel = (Rand.Next(360)-180)*vel.LengthSqr/10;
+        Particles[i].AngleVel = (float)((Rand.Next(360)-180)*vel.LengthSqr/10);
         Particles[i].R=Color[0]; Particles[i].G=Color[1]; Particles[i].B=Color[2];
       }
     }
