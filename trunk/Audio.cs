@@ -232,15 +232,13 @@ public enum ToneType { Sine, Square, Saw, Triangle };
 public class ToneGenerator : AudioSource
 { public ToneGenerator()
   { format=new AudioFormat(Audio.Initialized ? Audio.Format.Frequency : 22050, SampleFormat.S16Sys, 1);
-    freq=200; steps=5;
+    freq=200; num=float.NaN;
   }
-  public ToneGenerator(ToneType type) : this()
-  { this.type=type;
-    steps = type==ToneType.Square ? 8 : 5;
-  }
-  public ToneGenerator(ToneType type, float frequency) : this(type) { Frequency=frequency; }
-  public ToneGenerator(ToneType type, float frequency, uint sampleRate) : this(type)
-  { format     = new AudioFormat(0, SampleFormat.S16Sys, 1);
+  public ToneGenerator(ToneType type) : this() { this.type=type; }
+  public ToneGenerator(ToneType type, float frequency) : this() { this.type=type; Frequency=frequency; }
+  public ToneGenerator(ToneType type, float frequency, uint sampleRate) : this()
+  { this.type  = type;
+    format     = new AudioFormat(0, SampleFormat.S16Sys, 1);
     Frequency  = frequency;
     SampleRate = sampleRate;
   }
@@ -256,7 +254,7 @@ public class ToneGenerator : AudioSource
     }
   }
 
-  public override int Position { get { return curPos; } set { curPos=value; } }
+  public override int Position { get { return curPos; } set { curPos=value; num=float.NaN; } }
 
   public uint SampleRate
   { get { return format.Frequency; }
@@ -266,14 +264,6 @@ public class ToneGenerator : AudioSource
     }
   }
   
-  public int Steps
-  { get { return steps; }
-    set
-    { if(steps<1) throw new ArgumentOutOfRangeException("Steps", value, "must be at least one");
-      steps = value;
-    }
-  }
-
   public ToneType Type { get { return type; } set { type=value; } }
   
   public override byte[] ReadAll()
@@ -284,12 +274,48 @@ public class ToneGenerator : AudioSource
   { length /= 2;
     fixed(byte* bp=buf)
     { short* data=(short*)bp;
-      float scale=2*(float)Math.PI*freq/SampleRate;
       switch(type)
-      { case ToneType.Sine:
+      { case ToneType.Saw:
+        { float inc=format.Frequency/freq;
+          if(float.IsNaN(num)) num=1-(float)Math.IEEERemainder(curPos, inc)*2/inc;
+          inc=2/inc;
+          for(int i=0; i<length; i++)
+          { data[i] = (short)(num*32767);
+            num -= inc;
+            if(num<-1) num+=2;
+          }
+          break;
+        }
+
+        case ToneType.Square:
+        { float inc=format.Frequency/freq;
+          if(float.IsNaN(num)) num=1-(float)Math.IEEERemainder(curPos, inc)*2/inc;
+          inc=2/inc;
+          for(int i=0; i<length; i++)
+          { data[i] = num<=0 ? (short)-32767 : (short)32767;
+            num -= inc;
+            if(num<-1) num+=2;
+          }
+          break;
+        }
+
+        case ToneType.Sine:
+        { float scale=2*(float)Math.PI*freq/SampleRate;
           for(int i=0; i<length; i++) data[i] = (short)(Math.Sin((i+curPos)*scale)*32767);
           break;
-        default: throw new NotImplementedException("Tone type not implemented: "+type);
+        }
+        
+        case ToneType.Triangle:
+        { float inc=format.Frequency/freq;
+          if(float.IsNaN(num)) num=2-(float)Math.IEEERemainder(curPos, inc)*4/inc;
+          inc=4/inc;
+          for(int i=0; i<length; i++)
+          { data[i] = (short)((num<=0 ? -1-num : 1+num)*32767);
+            num -= inc;
+            if(num<-2) num+=4;
+          }
+          break;
+        }
       }
     }
     curPos += length;
@@ -297,8 +323,7 @@ public class ToneGenerator : AudioSource
   }
 
   ToneType type;
-  float freq;
-  int   steps;
+  float freq, num;
 }
 #endregion
 
