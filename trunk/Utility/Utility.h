@@ -19,6 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifndef GAMELIB_UTILITY_H
 #define GAMELIB_UTILITY_H
 
+#include <wchar.h>
 #include "SDL_types.h"
 #include "begin_code.h"
 
@@ -34,6 +35,9 @@ extern DECLSPEC Uint32 SDLCALL GLU_GetMilliseconds();
 extern DECLSPEC Uint64 SDLCALL GLU_GetTimerFrequency();
 extern DECLSPEC Uint64 SDLCALL GLU_GetTimerCounter();
 extern DECLSPEC double SDLCALL GLU_GetSeconds();
+
+extern DECLSPEC wchar_t SDLCALL GLU_Getch();
+extern DECLSPEC wchar_t SDLCALL GLU_Getche();
 
 #ifdef __cplusplus
 }

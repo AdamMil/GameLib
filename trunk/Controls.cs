@@ -48,9 +48,13 @@ public class ContainerControl : Control
   { base.OnLayout(e);
     foreach(Control c in Controls)
       if(c.Dock==DockStyle.None && c.Anchor!=AnchorStyle.TopLeft)
-      { int x=(c.Anchor&AnchorStyle.Right )==0 ? c.Left : Right-c.RightAnchorOffset-c.Width;
-        int y=(c.Anchor&AnchorStyle.Bottom)==0 ? c.Top  : Bottom-c.BottomAnchorOffset-c.Height;
-        c.Location = new Point(x, y);
+      { Rectangle bounds = c.Bounds;
+        if((c.Anchor&AnchorStyle.LeftRight)==AnchorStyle.LeftRight) bounds.Width = Right-c.RightAnchorOffset-bounds.X;
+        else if((c.Anchor&AnchorStyle.Right)!=0) bounds.X = Right-c.RightAnchorOffset-bounds.Width;
+        if((c.Anchor&AnchorStyle.TopBottom)==AnchorStyle.TopBottom)
+          bounds.Height = Bottom-c.BottomAnchorOffset-bounds.Y;
+        else if((c.Anchor&AnchorStyle.Bottom)!=0) bounds.Y = Bottom-c.BottomAnchorOffset-bounds.Height;
+        c.Bounds = bounds;
       }
   }
 }

@@ -24,8 +24,9 @@ namespace GameLib.Interop.OpenGL
 
 #region OpenGL
 [System.Security.SuppressUnmanagedCodeSecurity()]
-public class GL
-{ 
+public sealed class GL
+{ private GL() { }
+
   #region Flags, Enums, Defines, etc
   #region AccumOp
   public const uint GL_ACCUM                          =0x0100;
@@ -2605,8 +2606,8 @@ public class GL
 #endregion
 
 [System.Security.SuppressUnmanagedCodeSecurity()]
-public class GLU
-{
+public sealed class GLU
+{ private GLU() { }
   // TODO: add GLU objects (nurbs, etc)
 
   #region Enums & Constants

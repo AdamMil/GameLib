@@ -37,7 +37,7 @@ class App
   static void Main()
   { Video.Initialize();
     Video.SetMode(640, 480, 32); // set 640x480x32bpp windowed mode
-    GameLib.Video.WM.WindowTitle = "BasicVideo Example";
+    WM.WindowTitle = "BasicVideo Example";
 
     font = new TrueTypeFont(dataPath+"mstrr.ttf", 24); // load a font
     font.RenderStyle = RenderStyle.Blended;
@@ -54,7 +54,7 @@ class App
         if(ke.Down && ke.Key==Key.Escape) break;
         // alt-enter to toggle fullscreen
         else if(ke.Down && ke.Key==Key.Enter && ke.HasOnlyKeys(KeyMod.Alt))
-        { Video.SetMode(640, 480, 32,
+        { Video.SetMode(Video.Width, Video.Height, Video.Depth,
                         Video.DisplaySurface.Flags ^ SurfaceFlag.Fullscreen);
           Draw();
         }

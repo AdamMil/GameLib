@@ -37,7 +37,7 @@ class App
 
   static void Main()
   { Initialize();
-    GameLib.Video.WM.WindowTitle = "OpenGL Example";
+    WM.WindowTitle = "OpenGL Example";
 
     Events.Initialize();
 

@@ -14,12 +14,18 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Audio", "Audio\Audio.csproj", "{8FCEFC22-3E71-4BF4-B30E-DD77C32B579F}"
 	ProjectSection(ProjectDependencies) = postProject
 	EndProjectSection
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CDAudio", "CDAudio\CDAudio.csproj", "{E5008C10-74A0-4A49-A15E-663D0E1AAC8C}"
 	ProjectSection(ProjectDependencies) = postProject
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Input", "Input\Input.csproj", "{DACDCE27-05A9-461E-8BDD-6B7659747029}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Windowing", "Windowing\Windowing.csproj", "{07EFCEE9-D597-4281-B493-9CB476EC26AC}"
 	ProjectSection(ProjectDependencies) = postProject
 	EndProjectSection
 EndProject
@@ -53,6 +59,10 @@ Global
 		{DACDCE27-05A9-461E-8BDD-6B7659747029}.Debug.Build.0 = Debug|.NET
 		{DACDCE27-05A9-461E-8BDD-6B7659747029}.Release.ActiveCfg = Release|.NET
 		{DACDCE27-05A9-461E-8BDD-6B7659747029}.Release.Build.0 = Release|.NET
+		{07EFCEE9-D597-4281-B493-9CB476EC26AC}.Debug.ActiveCfg = Debug|.NET
+		{07EFCEE9-D597-4281-B493-9CB476EC26AC}.Debug.Build.0 = Debug|.NET
+		{07EFCEE9-D597-4281-B493-9CB476EC26AC}.Release.ActiveCfg = Release|.NET
+		{07EFCEE9-D597-4281-B493-9CB476EC26AC}.Release.Build.0 = Release|.NET
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 	EndGlobalSection

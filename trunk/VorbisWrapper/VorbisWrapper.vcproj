@@ -19,7 +19,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="&quot;C:\code\SDL-1.2.5\include&quot;;C:\code\oggvorbis\include"
+				AdditionalIncludeDirectories="C:\code\sdl\include;C:\code\oggvorbis\include"
 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;VORBISWRAPPER_EXPORTS"
 				MinimalRebuild="TRUE"
 				BasicRuntimeChecks="3"

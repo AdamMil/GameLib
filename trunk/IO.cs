@@ -27,6 +27,9 @@ namespace GameLib.IO
 public class IOH
 { private IOH() {}
 
+  public static char Getch() { return GameLib.Interop.GLUtility.Utility.Getch(); }
+  public static char Getche() { return GameLib.Interop.GLUtility.Utility.Getche(); }
+
   public static int CopyStream(Stream source, Stream dest) { return CopyStream(source, dest, false); }
   public static int CopyStream(Stream source, Stream dest, bool rewindSource)
   { if(rewindSource) source.Position=0;

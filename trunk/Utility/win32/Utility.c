@@ -18,6 +18,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "../Utility.h"
 #include <windows.h>
+#include <wchar.h>
 
 static LARGE_INTEGER hrFreq, hrStart;
 static DWORD  msStart;
@@ -72,4 +73,12 @@ double GLU_GetSeconds()
     return (double)(cur.QuadPart-hrStart.QuadPart)/hrFreq.QuadPart;
   }
   else return (GetTickCount()-msStart)/1000.0;
+}
+
+wchar_t GLU_Getch()
+{ return _getwch();
+}
+
+wchar_t GLU_Getche()
+{ return _getwche();
 }

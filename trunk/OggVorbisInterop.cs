@@ -24,7 +24,7 @@ namespace GameLib.Interop.OggVorbis
 {
 
 [System.Security.SuppressUnmanagedCodeSecurity()]
-internal class Ogg
+internal sealed class Ogg
 { 
   [CallConvCdecl] public unsafe delegate int  ReadHandler(void* context, byte* buf, int size, int maxnum);
   [CallConvCdecl] public unsafe delegate int  SeekHandler(void* context, int offset, SeekType type);
