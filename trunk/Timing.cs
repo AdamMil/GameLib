@@ -23,10 +23,11 @@ namespace GameLib
 {
 
 /// <summary>This class provides methods to measure the passage of time.</summary>
-/// <remarks>Time is not measured from any specific point, but it will likely be from the first time the class is
-/// used. <see cref="Reset"/> can be used to set the base time point, if you really want.
-/// The class provides tick-based timing (<see cref="Frequency"/> and <see cref="Counter"/>) and real-time
-/// timing (<see cref="Msecs"/> and <see cref="Seconds"/>).
+/// <remarks>Time is normally measured from when the timing system was initialized, but<see cref="Reset"/> can
+/// be used to reset the base time point. The class provides tick-based timing (<see cref="Frequency"/> and
+/// <see cref="Counter"/>) and real-time timing (<see cref="Msecs"/> and <see cref="Seconds"/>). The real-time
+/// timers are based on the tick-based timers. The tick-based timers provide the maximum resolution and
+/// precision.
 /// </remarks>
 public sealed class Timing
 { private Timing() { }
@@ -43,9 +44,16 @@ public sealed class Timing
   public static long Counter { get { return GLU.Utility.GetTimerCounter(); } }
 
   /// <summary>Gets the number of milliseconds that have elapsed since the timer started counting.</summary>
-  /// <remarks>This property will overflow after about 49 days of timing.</remarks>
+  /// <remarks>This property will overflow after about 49 days of timing, though <see cref="Reset"/> can be
+  /// used to reset the base time point, extending the time until overflow.
+  /// </remarks>
   public static uint Msecs { get { return GLU.Utility.GetMilliseconds(); } }
   /// <summary>Gets the number of seconds that have elapsed since the timer started counting.</summary>
+  /// <remarks>While likely insignificant, this property will lose precision as time goes on due to the nature of
+  /// floating point numbers. In applications where this cannot be tolerated, <see cref="Reset"/> can be used to
+  /// reset the timer to zero, restoring the precision. Alternately, you might be able to use <see cref="Counter"/>
+  /// for your timing, as it always provides the maximum precision possible.
+  /// </remarks>
   public static double Seconds { get { return GLU.Utility.GetSeconds(); } }
 
   /// <summary>Resets the timer to zero.</summary>
