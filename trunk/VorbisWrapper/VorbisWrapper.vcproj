@@ -33,7 +33,7 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="ogg_static.lib vorbis_static.lib vorbisfile_static.lib"
+				AdditionalDependencies="ogg_static_d.lib vorbis_static_d.lib vorbisfile_static_d.lib"
 				OutputFile="$(OutDir)/VorbisWrapper.dll"
 				LinkIncremental="2"
 				AdditionalLibraryDirectories="C:\code\oggvorbis\lib"

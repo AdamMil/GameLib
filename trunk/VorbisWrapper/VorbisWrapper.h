@@ -30,14 +30,14 @@ extern "C" {
 enum { ALLSECTIONS=-1 };
 
 typedef struct
-{ Sint32 (SDLCALL *Read)(void *context, void *dest, Sint32 size, Sint32 maxnum); // TODO: change to SDLCALL
-  Sint32 (SDLCALL *Seek)(void *context, Sint32 offset, int whence);
-  Sint32 (SDLCALL *Tell)(void *context);
-  void   (SDLCALL *Close)(void *context);
+{ Sint32 (SDLCALL *Read)(void *dest, Sint32 size, Sint32 maxnum);
+  Sint32 (SDLCALL *Seek)(Sint32 offset, int whence);
+  Sint32 (SDLCALL *Tell)();
+  void   (SDLCALL *Close)();
   void  *Context;
 } VW_Callbacks;
 
-extern DECLSPEC int  SDLCALL VW_Open(OggVorbis_File *vf, VW_Callbacks *calls);
+extern DECLSPEC int  SDLCALL VW_Open(OggVorbis_File **vf, VW_Callbacks calls);
 extern DECLSPEC void SDLCALL VW_Close(OggVorbis_File *vf);
 
 extern DECLSPEC Sint32 SDLCALL VW_PcmLength(OggVorbis_File *vf, int section);
