@@ -6,7 +6,11 @@ Legend
 !  Alteration/Removal/other that breaks backwards compatibility
 
 2004.04.11 (alpha/beta)
--------
+-----------------------
+This release has a lot more interface changes than I'd have liked, but the
+process of documenting the source code reveals problems with the design that
+may not have been evident at earlier stages.
+
 * Made Asteroids example use the CD drive better
 * Fixed a bug in which OnControlRemoved/OnControlAdded could be fired before
   the control was actually removed from its parent's control array. This was
@@ -146,15 +150,28 @@ Legend
 * Fixed a bug in the ToDouble method of the fixed-point classes
 * Fixed some fixed-point mathematical constants (whoops!)
 * Further optimized many fixed-point math functions
-* Changed math classes to use double instead of float
+! Changed math classes to use double instead of float
 + Added TrueTypeFont.CopyAlpha, which causes the font to store alpha
   information instead of blending
-+ Added a lot more documentation (for CD.cs, Config.cs, Events.cs,
+! Removed vector/vector multiplication and division. These operations are not
+  generally useful and may be confusing
+* Optimized BitmapFont for the case that the charset is contiguous
++ Added Line.LineIntersection
+! Removed Line.FromPoints(Point, Point), since there's already a constructor
+  to do that
+! Renamed Polygon.SplitIntoConvexPolygons to Polygon.Split
+! Moved Polygon.ConvexIntersects to Line.ConvexSegmentIntersects and
+  Rectangle.ConvexIntersects (and fixed a bug there)
++ Added Rectangle.GetPoint
+! Removed the Vector.Rotate(xa, ya, za) form and replaced it with something
+  much more useful -- Vector.Rotate(Vector, angle) [rotation around an
+  arbitrary vector]
++ Added a LOT more documentation (for CD.cs, Config.cs, Events.cs,
   Exceptions.cs, Fonts.cs, GraphicsPrimitives.cs, Input.cs, Interop.cs,
-  IO.cs, LinkedList.cs, OpenGL.cs, OpenGLInterop.cs, PriorityQueue.cs,
-  PSD.cs, RedBlackTree.cs, Surface.cs, and Video.cs).
+  IO.cs, LinkedList.cs, Math.cs, OpenGL.cs, OpenGLInterop.cs,
+  PriorityQueue.cs, PSD.cs, RedBlackTree.cs, Surface.cs, and Video.cs).
 * A couple bugfixes I forgot to add to the changelog
 
 2004.02.07 (alpha/beta)
------------------
+-----------------------
 * First public release

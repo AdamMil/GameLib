@@ -346,24 +346,12 @@ public abstract class StyledFont : Font
 public class BitmapFont : Font
 { 
   /// <summary>Initializes a fixed-width font with default spacing.</summary>
-  /// <param name="font">A surface containing the font data.</param>
-  /// <param name="charset">A list of characters in the font, in the order in which they appear in the image.</param>
-  /// <param name="charWidth">The width of the characters in the font.</param>
-  /// <remarks>The surface should contain all the characters, in the order specified by <paramref name="charset"/>,
-  /// all in a single row. Each character should be <paramref name="charWidth"/> pixels wide, and there should be no
-  /// unused space anywhere. If the surface has a color key set, it will be used.
-  /// </remarks>
+  /// <include file="documentation.xml" path="//Fonts/BitmapFont/BitmapFont1/*"/>
   public BitmapFont(Surface font, string charset, int charWidth) : this(font, charset, charWidth, 1, 2) { }
   /// <summary>Initializes a fixed-width font.</summary>
-  /// <param name="font">A surface containing the font data.</param>
-  /// <param name="charset">A list of characters in the font, in the order in which they appear in the image.</param>
-  /// <param name="charWidth">The width of the characters in the font.</param>
   /// <param name="horzSpacing">The horizontal spacing that will be added after each character.</param>
   /// <param name="vertSpacing">The vertical spacing that will be added between lines.</param>
-  /// <remarks>The surface should contain all the characters, in the order specified by <paramref name="charset"/>,
-  /// all in a single row. Each character should be <paramref name="charWidth"/> pixels wide, and there should be no
-  /// unused space anywhere. If the surface has a color key set, it will be used.
-  /// </remarks>
+  /// <include file="documentation.xml" path="//Fonts/BitmapFont/BitmapFont1/*"/>
   public BitmapFont(Surface font, string charset, int charWidth, int horzSpacing, int vertSpacing)
   { orig     = font;
     width    = charWidth;
@@ -372,32 +360,15 @@ public class BitmapFont : Font
     this.xAdd    = horzSpacing;
     if(font.Width<charset.Length*charWidth)
       throw new ArgumentException("The given font bitmap is too small to have this many characters!");
-    OnDisplayFormatChanged();
-    bgColor = Color.Transparent;
+    Init();
   }
   /// <summary>Initializes a variable-width font with default spacing.</summary>
-  /// <param name="font">A surface containing the font data.</param>
-  /// <param name="charset">A list of characters in the font, in the order in which they appear in the image.</param>
-  /// <param name="charWidths">An array the same length as <paramref name="charset"/>, containing the width of each
-  /// character.
-  /// </param>
-  /// <remarks>The surface should contain all the characters, in the order specified by <paramref name="charset"/>,
-  /// all in a single row. Each character should the number of pixels specified in <paramref name="charWidths"/>
-  /// pixels wide, and there should be no unused space anywhere. If the surface has a color key set, it will be used.
-  /// </remarks>
+  /// <include file="documentation.xml" path="//Fonts/BitmapFont/BitmapFont2/*"/>
   public BitmapFont(Surface font, string charset, int[] charWidths) : this(font, charset, charWidths, 1, 2) { }
   /// <summary>Initializes a variable-width font with default spacing.</summary>
-  /// <param name="font">A surface containing the font data.</param>
-  /// <param name="charset">A list of characters in the font, in the order in which they appear in the image.</param>
-  /// <param name="charWidths">An array the same length as <paramref name="charset"/>, containing the width of each
-  /// character.
-  /// </param>
   /// <param name="horzSpacing">The horizontal spacing that will be added after each character.</param>
   /// <param name="vertSpacing">The vertical spacing that will be added between lines.</param>
-  /// <remarks>The surface should contain all the characters, in the order specified by <paramref name="charset"/>,
-  /// all in a single row. Each character should the number of pixels specified in <paramref name="charWidths"/>
-  /// pixels wide, and there should be no unused space anywhere. If the surface has a color key set, it will be used.
-  /// </remarks>
+  /// <include file="documentation.xml" path="//Fonts/BitmapFont/BitmapFont2/*"/>
   public BitmapFont(Surface font, string charset, int[] charWidths, int horzSpacing, int vertSpacing)
   { if(charWidths==null) throw new ArgumentNullException("charWidths");
     if(charset.Length != charWidths.Length)
@@ -411,8 +382,7 @@ public class BitmapFont : Font
       throw new ArgumentException("The given font bitmap is too small to have this many characters!");
     this.xAdd     = horzSpacing;
     this.charset  = charset;
-    OnDisplayFormatChanged();
-    bgColor = Color.Transparent;
+    Init();
   }
   
   /// <summary>Gets the height of the font, in pixels.</summary>
@@ -446,7 +416,7 @@ public class BitmapFont : Font
     }
     Size ret = new Size(Height, -xAdd);
     for(int i=0; i<text.Length; i++)
-    { int off = charset.IndexOf(text[i]);
+    { int off = GetOffset(text[i]);
       if(off!=-1) ret.Width += widths[off]+xAdd;
     }
     return ret;
@@ -462,7 +432,7 @@ public class BitmapFont : Font
     width += xAdd;
     if(widths==null) return width/(this.width+xAdd);
     for(int i=0; i<text.Length; i++)
-    { int off = charset.IndexOf(text[i]);
+    { int off = GetOffset(text[i]);
       if(off==-1) continue;
       width -= widths[off]+xAdd;
       if(width<0) return i;
@@ -483,7 +453,7 @@ public class BitmapFont : Font
     if(widths==null)
     { if(bgColor != Color.Transparent) dest.Fill(new Rectangle(x, y, text.Length*(width+xAdd), lineSkip), bgColor);
       for(int i=0,add=width+xAdd; i<text.Length; i++)
-      { int off = charset.IndexOf(text[i]);
+      { int off = GetOffset(text[i]);
         if(off!=-1) font.Blit(dest, new Rectangle(off*width, 0, width, Height), x, y);
         x += add;
       }
@@ -491,7 +461,7 @@ public class BitmapFont : Font
     else
     { if(bgColor != Color.Transparent) dest.Fill(new Rectangle(x, y, CalculateSize(text).Width, lineSkip), bgColor);
       for(int i=0; i<text.Length; i++)
-      { int off = charset.IndexOf(text[i]);
+      { int off = GetOffset(text[i]);
         if(off==-1) continue;
         font.Blit(dest, new Rectangle(offsets[off], 0, widths[off], Height), x, y);
         x += widths[off]+xAdd;
@@ -510,11 +480,27 @@ public class BitmapFont : Font
     base.Dispose(finalizing);
   }
 
+  int GetOffset(char c)
+  { if(contiguous)
+    { if(charset.Length==0 || c<charset[0] || c>charset[charset.Length-1]) return -1;
+      return c-charset[0];
+    }
+    else return charset.IndexOf(c);
+  }
+
+  void Init()
+  { OnDisplayFormatChanged();
+    bgColor = Color.Transparent;
+    contiguous = true;
+    for(int i=1; i<charset.Length; i++) if(charset[i]!=charset[i-1]+1) { contiguous=false; break; }
+  }
+
   Surface font, orig;
   string charset;
   int[]  widths, offsets;
   int    width, lineSkip, xAdd;
   Color  bgColor;
+  bool   contiguous;
 }
 #endregion
 

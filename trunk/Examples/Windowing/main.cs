@@ -210,9 +210,9 @@ class App
     if(MessageBox.Show(desktop, "Hello", text,
                        new string[] { "Blow it up!", "I think not." }, 1) == 0)
       MessageBox.Show(desktop, "Boom?", "Boom!!! Wait... no, that didn't "+
-                                        "work. Lemme try again.");
-    else MessageBox.Show(desktop, "Boom?",
-                         "Okay, fine. I'll format the hard drive instead!");
+                                        "quite work.");
+    else MessageBox.Show(desktop, "Boom?", "Okay, fine. I guess I'll just "+
+                         "format the hard drive.");
   }
 
   private static void Form_Click(object sender, EventArgs e)

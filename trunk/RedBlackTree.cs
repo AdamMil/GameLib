@@ -387,7 +387,7 @@ public sealed class Map : RedBlackBase, IDictionary
   /// <remarks>The <see cref="IComparer"/> passed to the constructor is used to search for the key.
   /// See <see cref="IDictionary.Remove"/> for more information.<seealso cref="IDictionary.Remove"/>
   /// </remarks>
-  public void Remove(object key) { Remove(FindKey(key)); }
+  public void Remove(object key) { base.Remove(FindKey(key)); }
   #endregion
 
   #region ICollection
@@ -571,7 +571,7 @@ public sealed class Map : RedBlackBase, IDictionary
   
   void AssertNotEmpty() { if(base.Count==0) throw new InvalidOperationException("The collection is empty"); }
   
-  Node FindKey(object key) { return Find(new Entry(key, null)); }
+  Node FindKey(object key) { return base.Find(new Entry(key, null)); }
 
   Entry Maximum()
   { AssertNotEmpty();

@@ -62,71 +62,46 @@ public sealed class OpenGL
   }
 
   #region TexImage2D
-  /// <summary>Uploads a surface to video memory as a 2d texture.</summary>
-  /// <param name="surface">The surface to upload.</param>
-  /// <returns>Returns true if the texture was successfully uploaded and false otherwise.</returns>
-  /// <remarks>This method wraps the <see cref="GL.glTexImage2D"/> method. See the official OpenGL documentation for
-  /// more information.
-  /// </remarks>
+  /// <include file="documentation.xml" path="//Video/OpenGL/TexImage2D/*"/>
   public static bool TexImage2D(Surface surface)
   { Size dummy;
     return TexImage2D(0, 0, 0, surface, out dummy);
   }
-  /// <summary>Uploads a surface to video memory as a 2d texture.</summary>
-  /// <param name="surface">The surface to upload.</param>
   /// <param name="texSize">An output parameter that will be filled with the dimensions of the texture that was
   /// created. This may be different from the dimensions of the surface because most OpenGL implementations require
   /// texture dimensions to be powers of two in length.
   /// </param>
-  /// <returns>Returns true if the texture was successfully uploaded and false otherwise.</returns>
-  /// <remarks>This method wraps the <see cref="GL.glTexImage2D"/> method. See the official OpenGL documentation for
-  /// more information.
-  /// </remarks>
+  /// <include file="documentation.xml" path="//Video/OpenGL/TexImage2D/*"/>
   public static bool TexImage2D(Surface surface, out Size texSize)
   { return TexImage2D(0, 0, 0, surface, out texSize);
   }
-  /// <summary>Uploads a surface to video memory as a 2d texture.</summary>
   /// <param name="internalFormat">The internal format that OpenGL should use to store the texture.</param>
-  /// <param name="surface">The surface to upload.</param>
   /// <param name="texSize">An output parameter that will be filled with the dimensions of the texture that was
   /// created. This may be different from the dimensions of the surface because most OpenGL implementations require
   /// texture dimensions to be powers of two in length.
   /// </param>
-  /// <returns>Returns true if the texture was successfully uploaded and false otherwise.</returns>
-  /// <remarks>This method wraps the <see cref="GL.glTexImage2D"/> method. See the official OpenGL documentation for
-  /// more information.
-  /// </remarks>
+  /// <include file="documentation.xml" path="//Video/OpenGL/TexImage2D/*"/>
   public static bool TexImage2D(uint internalFormat, Surface surface, out Size texSize)
   { return TexImage2D(internalFormat, 0, 0, surface, out texSize);
   }
-  /// <summary>Uploads a surface to video memory as a 2d texture.</summary>
   /// <param name="internalFormat">The internal format that OpenGL should use to store the texture.</param>
   /// <param name="level">The mipmap level to upload this image into.</param>
-  /// <param name="surface">The surface to upload.</param>
   /// <param name="texSize">An output parameter that will be filled with the dimensions of the texture that was
   /// created. This may be different from the dimensions of the surface because most OpenGL implementations require
   /// texture dimensions to be powers of two in length.
   /// </param>
-  /// <returns>Returns true if the texture was successfully uploaded and false otherwise.</returns>
-  /// <remarks>This method wraps the <see cref="GL.glTexImage2D"/> method. See the official OpenGL documentation for
-  /// more information.
-  /// </remarks>
+  /// <include file="documentation.xml" path="//Video/OpenGL/TexImage2D/*"/>
   public static bool TexImage2D(uint internalFormat, int level, Surface surface, out Size texSize)
   { return TexImage2D(internalFormat, level, 0, surface, out texSize);
   }
-  /// <summary>Uploads a surface to video memory as a 2d texture.</summary>
   /// <param name="internalFormat">The internal format that OpenGL should use to store the texture.</param>
   /// <param name="level">The mipmap level to upload this image into.</param>
   /// <param name="border">The width of the border.</param>
-  /// <param name="surface">The surface to upload.</param>
   /// <param name="texSize">An output parameter that will be filled with the dimensions of the texture that was
   /// created. This may be different from the dimensions of the surface because most OpenGL implementations require
   /// texture dimensions to be powers of two in length.
   /// </param>
-  /// <returns>Returns true if the texture was successfully uploaded and false otherwise.</returns>
-  /// <remarks>This method wraps the <see cref="GL.glTexImage2D"/> method. See the official OpenGL documentation for
-  /// more information.
-  /// </remarks>
+  /// <include file="documentation.xml" path="//Video/OpenGL/TexImage2D/*"/>
   public static bool TexImage2D(uint internalFormat, int level, int border, Surface surface, out Size texSize)
   { PixelFormat pf = surface.Format;
     uint format=0;
@@ -236,42 +211,18 @@ public sealed class OpenGL
   #endregion
   
   #region WillTextureFit
-  /// <summary>Determines whether a texture of the given size and format can be created.</summary>
-  /// <param name="internalFormat">The internal format OpenGL should use.</param>
-  /// <param name="width">The width of the texture.</param>
-  /// <param name="height">The height of the texture.</param>
-  /// <returns>True if the texture can be created and false otherwise.</returns>
-  /// <remarks>This method wraps <see cref="GL.glTexImage2D"/> using <see cref="GL.GL_PROXY_TEXTURE_2D"/> to
-  /// attempt to create the texture. It's especially useful for checking whether there's enough texture memory to
-  /// create hold a given texture. See the official OpenGL documentation for more information.
-  /// </remarks>
+  /// <include file="documentation.xml" path="//Video/OpenGL/WillTextureFit/*"/>
   public static bool WillTextureFit(uint internalFormat, int width, int height)
   { return WillTextureFit(internalFormat, 0, 0, width, height);
   }
-  /// <summary>Determines whether a texture of the given size and format can be created.</summary>
-  /// <param name="internalFormat">The internal format OpenGL should use.</param>
   /// <param name="level">The mipmap level of the texture.</param>
-  /// <param name="width">The width of the texture.</param>
-  /// <param name="height">The height of the texture.</param>
-  /// <returns>True if the texture can be created and false otherwise.</returns>
-  /// <remarks>This method wraps <see cref="GL.glTexImage2D"/> using <see cref="GL.GL_PROXY_TEXTURE_2D"/> to
-  /// attempt to create the texture. It's especially useful for checking whether there's enough texture memory to
-  /// create hold a given texture. See the official OpenGL documentation for more information.
-  /// </remarks>
+  /// <include file="documentation.xml" path="//Video/OpenGL/WillTextureFit/*"/>
   public static bool WillTextureFit(uint internalFormat, int level, int width, int height)
   { return WillTextureFit(internalFormat, level, 0, width, height);
   }
-  /// <summary>Determines whether a texture of the given size and format can be created.</summary>
-  /// <param name="internalFormat">The internal format OpenGL should use.</param>
   /// <param name="level">The mipmap level of the texture.</param>
   /// <param name="border">The width of the texture's border.</param>
-  /// <param name="width">The width of the texture.</param>
-  /// <param name="height">The height of the texture.</param>
-  /// <returns>True if the texture can be created and false otherwise.</returns>
-  /// <remarks>This method wraps <see cref="GL.glTexImage2D"/> using <see cref="GL.GL_PROXY_TEXTURE_2D"/> to
-  /// attempt to create the texture. It's especially useful for checking whether there's enough texture memory to
-  /// create hold a given texture. See the official OpenGL documentation for more information.
-  /// </remarks>
+  /// <include file="documentation.xml" path="//Video/OpenGL/WillTextureFit/*"/>
   public static bool WillTextureFit(uint internalFormat, int level, int border, int width, int height)
   { int fits;
     unsafe
