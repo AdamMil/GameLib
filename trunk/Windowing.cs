@@ -1337,7 +1337,7 @@ public class Control
   { rect.Intersect(WindowRect);
     if(rect.Width==0) return;
     if(invalid.Width==0) invalid = rect;
-    else invalid = Rectangle.Union(rect, invalid);
+    else invalid = Rectangle.Union(rect, invalid); // FIXME: this causes too much to be invalidated when two rectangles far apart are invalidated. keep a small list or something
   }
 
   /// <summary>Brings this control to the front of the Z-order.</summary>
