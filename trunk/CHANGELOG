@@ -24,7 +24,7 @@ DEVELOPMENT (alpha/beta)
 - Removed BoundsType because it's no longer needed with the simpler layout
   system
 + Added ScrollableControl (a control that supports built-in scrollbars)
-+ Added basic list controls (eg, ListBox)
++ Added basic list controls (eg, ListBox and ComboBox)
 * Fixed an awful bug that caused bits of Controls to disappear if they had
   a backing surface and certain types of child controls
 * Various other windowing changes
