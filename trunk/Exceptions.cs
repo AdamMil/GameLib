@@ -56,6 +56,15 @@ public class SurfaceLostException : VideoException
 public class OpenGLException : VideoException
 { public OpenGLException(string message) : base(message) { }
 }
+
+public class NoMoreTexturesException : OpenGLException
+{ public NoMoreTexturesException() : base("GL refuses to create more textures!") { }
+}
+
+public class OutOfTextureMemoryException : OpenGLException
+{ public OutOfTextureMemoryException() : base("Out of texture memory.") { }
+}
+
 } // namespace Video
 #endregion
 

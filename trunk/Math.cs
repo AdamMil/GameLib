@@ -30,8 +30,460 @@ public sealed class MathConst
 }
 
 public sealed class GLMath
-{ public static float AngleBetween(TwoD.Point start, TwoD.Point end) { return (end-start).Angle; }
+{ private GLMath() { }
+  public static float AngleBetween(TwoD.Point start, TwoD.Point end) { return (end-start).Angle; }
+  public static int FloorDiv(int numerator, int denominator)
+  { return (numerator<0 ? (numerator-denominator+1) : numerator) / denominator;
+  }
 }
+
+#region Fixed32
+// TODO: make sure int*int==long
+// TODO: check if int<<n ==long
+public struct Fixed32 : IComparable, IConvertible
+{ public Fixed32(int value) { val=value; }
+  public Fixed32(double value) { val=FromDouble(value); }
+
+  public Fixed32 Abs();
+  public Fixed32 Ceiling();
+  public Fixed32 Floor();
+  public Fixed32 Round();
+  public Fixed32 Sqrt();
+
+  public override bool Equals(object obj)
+  { if(!(obj is Fixed32)) return false;
+    return val == ((Fixed32)obj).val;
+  }
+  
+  public override int GetHashCode() { return (int)val ^ (int)(val>>32); }
+  
+  public double ToDouble();
+  public int ToInt() { return (int)(val.val>>16); }
+  public override string ToString();
+
+  public static Fixed32 Abs(Fixed32 val) { return val.Abs(); }
+  public static Fixed32 Ceiling(Fixed32 val) { return val.Ceiling(); }
+  public static Fixed32 Floor(Fixed32 val) { return val.Floor(); }
+  public static Fixed32 Round(Fixed32 val) { return val.Round(); }
+  public static Fixed32 Sqrt(Fixed32 val) { return val.Sqrt(); }
+
+  public static Fixed32 Parse(string s);
+  
+  public static Fixed32 operator-(Fixed32 val) { return new Fixed32(0-val.val); }
+
+  public static Fixed32 operator+(Fixed32 lhs, int rhs) { return new Fixed32(lhs.val+((long)rhs<<16)); }
+  public static Fixed32 operator-(Fixed32 lhs, int rhs) { return new Fixed32(lhs.val-((long)rhs<<16)); }
+  public static Fixed32 operator*(Fixed32 lhs, int rhs) { return new Fixed32(lhs.val*rhs); }
+  public static Fixed32 operator/(Fixed32 lhs, int rhs) { return new Fixed32(lhs.val/rhs); }
+
+  public static Fixed32 operator+(Fixed32 lhs, double rhs) { return new Fixed32(lhs.val+FromDouble(rhs)); }
+  public static Fixed32 operator-(Fixed32 lhs, double rhs) { return new Fixed32(lhs.val-FromDouble(rhs)); }
+  public static Fixed32 operator*(Fixed32 lhs, double rhs) { return new Fixed32((lhs.val*FromDouble(rhs))>>16); }
+  public static Fixed32 operator/(Fixed32 lhs, double rhs) { return new Fixed32(((long)lhs.val<<16)/FromDouble(rhs)); }
+
+  public static Fixed32 operator+(int lhs, Fixed32 rhs) { return new Fixed32(((long)lhs<<16)+rhs.val); }
+  public static Fixed32 operator-(int lhs, Fixed32 rhs) { return new Fixed32(((long)lhs<<16)-rhs.val); }
+  public static Fixed32 operator*(int lhs, Fixed32 rhs) { return new Fixed32(lhs*rhs.val); }
+  public static Fixed32 operator/(int lhs, Fixed32 rhs) { return new Fixed32(((long)lhs<<32) / rhs.val); }
+
+  public static Fixed32 operator+(double lhs, Fixed32 rhs) { return new Fixed32(FromDouble(lhs)+rhs.val); }
+  public static Fixed32 operator-(double lhs, Fixed32 rhs) { return new Fixed32(FromDouble(lhs)-rhs.val); }
+  public static Fixed32 operator*(double lhs, Fixed32 rhs) { return new Fixed32((FromDouble(lhs)*rhs.val)>>16); }
+  public static Fixed32 operator/(double lhs, Fixed32 rhs) { return new Fixed32(((long)FromDouble(lhs)<<16)/rhs.val); }
+
+  public static Fixed32 operator+(Fixed32 lhs, Fixed32 rhs) { return new Fixed32(lhs.val+rhs.val); }
+  public static Fixed32 operator-(Fixed32 lhs, Fixed32 rhs) { return new Fixed32(lhs.val-rhs.val); }
+  public static Fixed32 operator*(Fixed32 lhs, Fixed32 rhs) { return new Fixed32((lhs.val*rhs.val)>>16); }
+  public static Fixed32 operator/(Fixed32 lhs, Fixed32 rhs) { return new Fixed32(((long)lhs.val<<16)/rhs.val); }
+
+  public static bool operator<(Fixed32 lhs, Fixed32 rhs) { return lhs.val<rhs.val; }
+  public static bool operator<=(Fixed32 lhs, Fixed32 rhs) { return lhs.val<=rhs.val; }
+  public static bool operator>(Fixed32 lhs, Fixed32 rhs) { return lhs.val>rhs.val; }
+  public static bool operator>=(Fixed32 lhs, Fixed32 rhs) { return lhs.val>=rhs.val; }
+  public static bool operator==(Fixed32 lhs, Fixed32 rhs) { return lhs.val==rhs.val; }
+  public static bool operator!=(Fixed32 lhs, Fixed32 rhs) { return lhs.val!=rhs.val; }
+
+  public static bool operator<(Fixed32 lhs, int rhs) { return lhs.val<(rhs<<16); }
+  public static bool operator<=(Fixed32 lhs, int rhs) { return lhs.val<=(rhs<<16); }
+  public static bool operator>(Fixed32 lhs, int rhs) { return lhs.val>(rhs<<16); }
+  public static bool operator>=(Fixed32 lhs, int rhs) { return lhs.val>=(rhs<<16); }
+  public static bool operator==(Fixed32 lhs, int rhs) { return lhs.val==(rhs<<16); }
+  public static bool operator!=(Fixed32 lhs, int rhs) { return lhs.val!=(rhs<<16); }
+
+  public static bool operator<(Fixed32 lhs, double rhs) { return lhs.val<FromDouble(rhs); }
+  public static bool operator<=(Fixed32 lhs, double rhs) { return lhs.val<=FromDouble(rhs); }
+  public static bool operator>(Fixed32 lhs, double rhs) { return lhs.val>FromDouble(rhs); }
+  public static bool operator>=(Fixed32 lhs, double rhs) { return lhs.val>=FromDouble(rhs); }
+  public static bool operator==(Fixed32 lhs, double rhs) { return lhs.val==FromDouble(rhs); }
+  public static bool operator!=(Fixed32 lhs, double rhs) { return lhs.val!=FromDouble(rhs); }
+
+  public static bool operator<(int lhs, Fixed32 rhs) { return (lhs<<16)<rhs.val; }
+  public static bool operator<=(int lhs, Fixed32 rhs) { return (lhs<<16)<=rhs.val; }
+  public static bool operator>(int lhs, Fixed32 rhs) { return (lhs<<16)>rhs.val; }
+  public static bool operator>=(int lhs, Fixed32 rhs) { return (lhs<<16)>=rhs.val; }
+  public static bool operator==(int lhs, Fixed32 rhs) { return (lhs<<16)==rhs.val; }
+  public static bool operator!=(int lhs, Fixed32 rhs) { return (lhs<<16)!=rhs.val; }
+
+  public static bool operator<(double lhs, Fixed32 rhs) { return FromDouble(lhs)<rhs.val; }
+  public static bool operator<=(double lhs, Fixed32 rhs) { return FromDouble(lhs)<=rhs.val; }
+  public static bool operator>(double lhs, Fixed32 rhs) { return FromDouble(lhs)>rhs.val; }
+  public static bool operator>=(double lhs, Fixed32 rhs) { return FromDouble(lhs)>=rhs.val; }
+  public static bool operator==(double lhs, Fixed32 rhs) { return FromDouble(lhs)==rhs.val; }
+  public static bool operator!=(double lhs, Fixed32 rhs) { return FromDouble(lhs)!=rhs.val; }
+
+  public static readonly Fixed32 Epsilon  = new Fixed32(1);
+  public static readonly Fixed32 MinValue = new Fixed32((int)0xFFFFFFFF);
+  public static readonly Fixed32 MaxValue = new Fixed32(0x7FFFFFFF);
+  public static readonly Fixed32 PI;
+  public static readonly Fixed32 E;
+
+  static int FromDouble(double value);
+  
+  int val;
+
+  #region IComparable Members
+  public int CompareTo(object obj)
+  {
+    // TODO:  Add Fixed32.CompareTo implementation
+    return 0;
+  }
+  #endregion
+
+  #region IConvertible Members
+
+  public ulong ToUInt64(IFormatProvider provider)
+  {
+    // TODO:  Add Fixed64.ToUInt64 implementation
+    return 0;
+  }
+
+  public sbyte ToSByte(IFormatProvider provider)
+  {
+    // TODO:  Add Fixed64.ToSByte implementation
+    return 0;
+  }
+
+  public double ToDouble(IFormatProvider provider)
+  {
+    // TODO:  Add Fixed64.ToDouble implementation
+    return 0;
+  }
+
+  public DateTime ToDateTime(IFormatProvider provider)
+  {
+    // TODO:  Add Fixed64.ToDateTime implementation
+    return new DateTime ();
+  }
+
+  public float ToSingle(IFormatProvider provider)
+  {
+    // TODO:  Add Fixed64.ToSingle implementation
+    return 0;
+  }
+
+  public bool ToBoolean(IFormatProvider provider)
+  {
+    // TODO:  Add Fixed64.ToBoolean implementation
+    return false;
+  }
+
+  public int ToInt32(IFormatProvider provider)
+  {
+    // TODO:  Add Fixed64.ToInt32 implementation
+    return 0;
+  }
+
+  public ushort ToUInt16(IFormatProvider provider)
+  {
+    // TODO:  Add Fixed64.ToUInt16 implementation
+    return 0;
+  }
+
+  public short ToInt16(IFormatProvider provider)
+  {
+    // TODO:  Add Fixed64.ToInt16 implementation
+    return 0;
+  }
+
+  public string ToString(IFormatProvider provider)
+  {
+    // TODO:  Add Fixed64.ToString implementation
+    return null;
+  }
+
+  public byte ToByte(IFormatProvider provider)
+  {
+    // TODO:  Add Fixed64.ToByte implementation
+    return 0;
+  }
+
+  public char ToChar(IFormatProvider provider)
+  {
+    // TODO:  Add Fixed64.ToChar implementation
+    return '\0';
+  }
+
+  public long ToInt64(IFormatProvider provider)
+  {
+    // TODO:  Add Fixed64.ToInt64 implementation
+    return 0;
+  }
+
+  public System.TypeCode GetTypeCode()
+  {
+    // TODO:  Add Fixed64.GetTypeCode implementation
+    return new System.TypeCode ();
+  }
+
+  public decimal ToDecimal(IFormatProvider provider)
+  {
+    // TODO:  Add Fixed64.ToDecimal implementation
+    return 0;
+  }
+
+  public object ToType(Type conversionType, IFormatProvider provider)
+  {
+    // TODO:  Add Fixed64.ToType implementation
+    return null;
+  }
+
+  public uint ToUInt32(IFormatProvider provider)
+  {
+    // TODO:  Add Fixed64.ToUInt32 implementation
+    return 0;
+  }
+
+  #endregion
+}
+#endregion
+
+#region Fixed64
+// TODO: consider using more bits for the whole value
+public struct Fixed64 : IComparable, IConvertible
+{ public Fixed64(long value) { val=value; }
+  public Fixed64(double value) { val=FromDouble(value); }
+
+  public Fixed64 Abs();
+  public Fixed64 Ceiling();
+  public Fixed64 Floor();
+  public Fixed64 Round();
+  public Fixed64 Sqrt();
+
+  public override bool Equals(object obj)
+  { if(!(obj is Fixed64)) return false;
+    return val == ((Fixed64)obj).val;
+  }
+  
+  public override int GetHashCode() { return (int)val ^ (int)(val>>32); }
+  
+  public double ToDouble();
+  public int ToInt() { return (int)(val.val>>32); }
+  public override string ToString();
+
+  public static Fixed64 Abs(Fixed64 val) { return val.Abs(); }
+  public static Fixed64 Acos(Fixed64 val);
+  public static Fixed64 Asin(Fixed64 val);
+  public static Fixed64 Atan(Fixed64 val);
+  public static Fixed64 Ceiling(Fixed64 val) { return val.Ceiling(); }
+  public static Fixed64 Cos(Fixed64 val);
+  public static Fixed64 Floor(Fixed64 val) { return val.Floor(); }
+  public static Fixed64 Round(Fixed64 val) { return val.Round(); }
+  public static Fixed64 Sin(Fixed64 val);
+  public static Fixed64 Sqrt(Fixed64 val) { return val.Sqrt(); }
+  public static Fixed64 Tan(Fixed64 val);
+
+  public static Fixed64 Parse(string s);
+  
+  public static Fixed64 operator-(Fixed64 val) { return new Fixed64(0-val.val); }
+
+  public static Fixed64 operator+(Fixed64 lhs, int rhs) { return new Fixed64(lhs.val+((long)rhs<<32)); }
+  public static Fixed64 operator-(Fixed64 lhs, int rhs) { return new Fixed64(lhs.val-((long)rhs<<32)); }
+  public static Fixed64 operator*(Fixed64 lhs, int rhs) { return new Fixed64(lhs.val*rhs); }
+  public static Fixed64 operator/(Fixed64 lhs, int rhs) { return new Fixed64(lhs.val/rhs); }
+
+  public static Fixed64 operator+(Fixed64 lhs, double rhs) { return new Fixed64(lhs.val+FromDouble(rhs)); }
+  public static Fixed64 operator-(Fixed64 lhs, double rhs) { return new Fixed64(lhs.val-FromDouble(rhs)); }
+  public static Fixed64 operator*(Fixed64 lhs, double rhs) { return lhs * new Fixed64(rhs); }
+  public static Fixed64 operator/(Fixed64 lhs, double rhs) { return lhs / new Fixed64(rhs); }
+
+  public static Fixed64 operator+(int lhs, Fixed64 rhs) { return new Fixed64(((long)lhs<<32)+rhs.val); }
+  public static Fixed64 operator-(int lhs, Fixed64 rhs) { return new Fixed64(((long)lhs<<32)-rhs.val); }
+  public static Fixed64 operator*(int lhs, Fixed64 rhs) { return new Fixed64(lhs*rhs.val); }
+  public static Fixed64 operator/(int lhs, Fixed64 rhs) { return new Fixed64((long)lhs<<32) / rhs; }
+
+  public static Fixed64 operator+(double lhs, Fixed64 rhs) { return new Fixed64(FromDouble(lhs)+rhs.val); }
+  public static Fixed64 operator-(double lhs, Fixed64 rhs) { return new Fixed64(FromDouble(lhs)-rhs.val); }
+  public static Fixed64 operator*(double lhs, Fixed64 rhs) { return new Fixed64(lhs) * rhs; }
+  public static Fixed64 operator/(double lhs, Fixed64 rhs) { return new Fixed64(lhs) / rhs; }
+
+  public static Fixed64 operator+(Fixed64 lhs, Fixed64 rhs) { return new Fixed64(lhs.val+rhs.val); }
+  public static Fixed64 operator-(Fixed64 lhs, Fixed64 rhs) { return new Fixed64(lhs.val-rhs.val); }
+  public static Fixed64 operator*(Fixed64 lhs, Fixed64 rhs)
+  { long a=lhs.val>>32, b=lhs.val&0xFFFFFFFF, c=rhs.val>>32, d=rhs.val&0xFFFFFFFF;
+    return new Fixed64(((a*b)<<32) + a*d + b*c + ((b*d)>>32));
+  }
+  public static Fixed64 operator/(Fixed64 lhs, Fixed64 rhs);
+
+  public static bool operator<(Fixed64 lhs, Fixed64 rhs) { return lhs.val<rhs.val; }
+  public static bool operator<=(Fixed64 lhs, Fixed64 rhs) { return lhs.val<=rhs.val; }
+  public static bool operator>(Fixed64 lhs, Fixed64 rhs) { return lhs.val>rhs.val; }
+  public static bool operator>=(Fixed64 lhs, Fixed64 rhs) { return lhs.val>=rhs.val; }
+  public static bool operator==(Fixed64 lhs, Fixed64 rhs) { return lhs.val==rhs.val; }
+  public static bool operator!=(Fixed64 lhs, Fixed64 rhs) { return lhs.val!=rhs.val; }
+
+  public static bool operator<(Fixed64 lhs, int rhs) { return lhs.val<((long)rhs<<32); }
+  public static bool operator<=(Fixed64 lhs, int rhs) { return lhs.val<=((long)rhs<<32); }
+  public static bool operator>(Fixed64 lhs, int rhs) { return lhs.val>((long)rhs<<32); }
+  public static bool operator>=(Fixed64 lhs, int rhs) { return lhs.val>=((long)rhs<<32); }
+  public static bool operator==(Fixed64 lhs, int rhs) { return lhs.val==((long)rhs<<32); }
+  public static bool operator!=(Fixed64 lhs, int rhs) { return lhs.val!=((long)rhs<<32); }
+
+  public static bool operator<(Fixed64 lhs, double rhs) { return lhs.val<FromDouble(rhs); }
+  public static bool operator<=(Fixed64 lhs, double rhs) { return lhs.val<=FromDouble(rhs); }
+  public static bool operator>(Fixed64 lhs, double rhs) { return lhs.val>FromDouble(rhs); }
+  public static bool operator>=(Fixed64 lhs, double rhs) { return lhs.val>=FromDouble(rhs); }
+  public static bool operator==(Fixed64 lhs, double rhs) { return lhs.val==FromDouble(rhs); }
+  public static bool operator!=(Fixed64 lhs, double rhs) { return lhs.val!=FromDouble(rhs); }
+
+  public static bool operator<(int lhs, Fixed64 rhs) { return ((long)lhs<<32)<rhs.val; }
+  public static bool operator<=(int lhs, Fixed64 rhs) { return ((long)lhs<<32)<=rhs.val; }
+  public static bool operator>(int lhs, Fixed64 rhs) { return ((long)lhs<<32)>rhs.val; }
+  public static bool operator>=(int lhs, Fixed64 rhs) { return ((long)lhs<<32)>=rhs.val; }
+  public static bool operator==(int lhs, Fixed64 rhs) { return ((long)lhs<<32)==rhs.val; }
+  public static bool operator!=(int lhs, Fixed64 rhs) { return ((long)lhs<<32)!=rhs.val; }
+
+  public static bool operator<(double lhs, Fixed64 rhs) { return FromDouble(lhs)<rhs.val; }
+  public static bool operator<=(double lhs, Fixed64 rhs) { return FromDouble(lhs)<=rhs.val; }
+  public static bool operator>(double lhs, Fixed64 rhs) { return FromDouble(lhs)>rhs.val; }
+  public static bool operator>=(double lhs, Fixed64 rhs) { return FromDouble(lhs)>=rhs.val; }
+  public static bool operator==(double lhs, Fixed64 rhs) { return FromDouble(lhs)==rhs.val; }
+  public static bool operator!=(double lhs, Fixed64 rhs) { return FromDouble(lhs)!=rhs.val; }
+
+  public static readonly Fixed64 Epsilon  = new Fixed64(1);
+  public static readonly Fixed64 MinValue = new Fixed64(unchecked((long)0xFFFFFFFFFFFFFFFF));
+  public static readonly Fixed64 MaxValue = new Fixed64(0x7FFFFFFFFFFFFFFF);
+  public static readonly Fixed64 PI;
+  public static readonly Fixed64 E;
+
+  static long FromDouble(double value);
+  
+  long val;
+
+  #region IComparable Members
+  public int CompareTo(object obj)
+  {
+    // TODO:  Add Fixed64.CompareTo implementation
+    return 0;
+  }
+  #endregion
+
+  #region IConvertible Members
+
+  public ulong ToUInt64(IFormatProvider provider)
+  {
+    // TODO:  Add Fixed64.ToUInt64 implementation
+    return 0;
+  }
+
+  public sbyte ToSByte(IFormatProvider provider)
+  {
+    // TODO:  Add Fixed64.ToSByte implementation
+    return 0;
+  }
+
+  public double ToDouble(IFormatProvider provider)
+  {
+    // TODO:  Add Fixed64.ToDouble implementation
+    return 0;
+  }
+
+  public DateTime ToDateTime(IFormatProvider provider)
+  {
+    // TODO:  Add Fixed64.ToDateTime implementation
+    return new DateTime ();
+  }
+
+  public float ToSingle(IFormatProvider provider)
+  {
+    // TODO:  Add Fixed64.ToSingle implementation
+    return 0;
+  }
+
+  public bool ToBoolean(IFormatProvider provider)
+  {
+    // TODO:  Add Fixed64.ToBoolean implementation
+    return false;
+  }
+
+  public int ToInt32(IFormatProvider provider)
+  {
+    // TODO:  Add Fixed64.ToInt32 implementation
+    return 0;
+  }
+
+  public ushort ToUInt16(IFormatProvider provider)
+  {
+    // TODO:  Add Fixed64.ToUInt16 implementation
+    return 0;
+  }
+
+  public short ToInt16(IFormatProvider provider)
+  {
+    // TODO:  Add Fixed64.ToInt16 implementation
+    return 0;
+  }
+
+  public string ToString(IFormatProvider provider)
+  {
+    // TODO:  Add Fixed64.ToString implementation
+    return null;
+  }
+
+  public byte ToByte(IFormatProvider provider)
+  {
+    // TODO:  Add Fixed64.ToByte implementation
+    return 0;
+  }
+
+  public char ToChar(IFormatProvider provider)
+  {
+    // TODO:  Add Fixed64.ToChar implementation
+    return '\0';
+  }
+
+  public long ToInt64(IFormatProvider provider)
+  {
+    // TODO:  Add Fixed64.ToInt64 implementation
+    return 0;
+  }
+
+  public System.TypeCode GetTypeCode()
+  {
+    // TODO:  Add Fixed64.GetTypeCode implementation
+    return new System.TypeCode ();
+  }
+
+  public decimal ToDecimal(IFormatProvider provider)
+  {
+    // TODO:  Add Fixed64.ToDecimal implementation
+    return 0;
+  }
+
+  public object ToType(Type conversionType, IFormatProvider provider)
+  {
+    // TODO:  Add Fixed64.ToType implementation
+    return null;
+  }
+
+  public uint ToUInt32(IFormatProvider provider)
+  {
+    // TODO:  Add Fixed64.ToUInt32 implementation
+    return 0;
+  }
+
+  #endregion
+}
+#endregion
 
 // TODO: once generics become available, implement these in a type-generic fashion
 #region 2D math
@@ -132,6 +584,7 @@ public struct LineIntersectInfo
 { public LineIntersectInfo(Point point, bool onFirst, bool onSecond)
   { Point=point; OnFirst=onFirst; OnSecond=onSecond;
   }
+  public bool OnBoth { get { return OnFirst && OnSecond; } }
   public Point Point;
   public bool  OnFirst, OnSecond;
 }
@@ -242,8 +695,102 @@ public struct Corner
 }
 #endregion
 
+#region Rectangle
+public struct Rectangle
+{ public Rectangle(System.Drawing.Rectangle rect)
+  { X=(float)rect.X; Y=(float)rect.Y; Width=(float)rect.Width; Height=(float)rect.Height;
+  }
+  public Rectangle(System.Drawing.RectangleF rect) { X=rect.X; Y=rect.Y; Width=rect.Width; Height=rect.Height; }
+  public Rectangle(float x, float y, float width, float height) { X=x; Y=y; Width=width; Height=height; }
+  public Rectangle(Point location, Vector size) { X=location.X; Y=location.Y; Width=size.X; Height=size.Y; }
+
+  public float Bottom { get { return Y+Height; } }
+  public Point BottomRight { get { return new Point(X+Width, Y+Height); } }
+  public Point Location { get { return new Point(X, Y); } }
+  public float Right { get { return X+Width; } }
+  public Vector Size { get { return new Vector(Width, Height); } }
+  
+  public bool Contains(Point point) { return point.Y>=Y && point.Y<Bottom && point.X>=X && point.X<Right; }
+
+  public bool Contains(Rectangle rect) { return Contains(rect.Location) && Contains(rect.BottomRight); }
+
+  public void Intersect(Rectangle rect)
+  { float x2=Right, ox2=rect.Right;
+    if(X<rect.X)
+    { if(x2<rect.X) goto abort;
+      X=rect.X;
+    }
+    else if(X>=ox2) goto abort;
+
+    if(x2>ox2)
+    { if(X>=ox2) goto abort;
+      Width -= ox2-x2;
+    }
+    else if(X<rect.X) goto abort;
+
+    float y2=Bottom, oy2=rect.Bottom;
+    if(Y<rect.Y)
+    { if(y2<rect.Y) goto abort;
+      Y=rect.Y;
+    }
+    else if(Y>=oy2) goto abort;
+
+    if(y2>oy2)
+    { if(Y>=oy2) goto abort;
+      Height -= oy2-y2;
+    }
+    else if(Y<rect.Y) goto abort;
+    
+    return;
+    abort:
+    X=Y=Width=Height=0;
+  }
+
+  public Rectangle Intersection(Rectangle rect)
+  { Rectangle ret = new Rectangle(X, Y, Width, Height);
+    ret.Intersect(rect);
+    return ret;
+  }
+
+  public bool Intersects(Line line)
+  { if(Contains(line.Start) || Contains(line.End)) return true;
+    LineIntersectInfo info = line.GetIntersection(new Line(X, Y, Width, 0));
+    if(info.OnBoth) return true;
+    info = line.GetIntersection(new Line(X, Y, 0, Height));
+    if(info.OnBoth) return true;
+    info = line.GetIntersection(new Line(X, Bottom-float.Epsilon, Width, 0));
+    if(info.OnBoth) return true;
+    info = line.GetIntersection(new Line(Right-float.Epsilon, Y, 0, Height));
+    return info.OnBoth;
+  }
+
+  public bool Intersects(Rectangle rect)
+  { return Contains(rect.Location) || Contains(rect.BottomRight) || rect.Contains(Location) ||
+           rect.Contains(BottomRight);
+  }
+
+  public Rectangle Union(Rectangle rect)
+  { Rectangle ret = new Rectangle(X, Y, Width, Height);
+    ret.Unite(rect);
+    return ret;
+  }
+  
+  public void Unite(Rectangle rect)
+  { if(X<rect.X) X=rect.X;
+    if(Y<rect.Y) Y=rect.Y;
+    if(Right>rect.Right)   Width  += rect.Right-Right;
+    if(Bottom>rect.Bottom) Height += rect.Bottom-Bottom;
+  }
+
+  public void Offset(float x, float y) { X+=x; Y+=y; }
+  public void Offset(Vector vect) { X+=vect.X; Y+=vect.Y; }
+
+  public float X, Y, Width, Height;
+}
+#endregion
+
 #region Polygon
-public sealed class Polygon
+public class Polygon
 { public Polygon() { points=new Point[4]; }
   public Polygon(Point[] points) : this(points.Length) { AddPoints(points); }
   public Polygon(Point[] points, int nPoints) : this(nPoints) { AddPoints(points, nPoints); }
@@ -293,18 +840,53 @@ public sealed class Polygon
     return true;
   }
 
+  public bool ConvexIntersects(Line segment)
+  { if(ConvexContains(segment.Start) || ConvexContains(segment.End)) return true;
+    for(int i=0; i<length-1; i++)
+    { LineIntersectInfo info = segment.GetIntersection(GetEdge(i));
+      if(info.OnBoth) return true;
+    }
+    return false;
+  }
+
+  public bool ConvexIntersects(Rectangle rect)
+  { return ConvexIntersects(new Line(rect.X, rect.Y, rect.Width, 0)) ||
+           ConvexIntersects(new Line(rect.X, rect.Y, 0, rect.Height)) ||
+           ConvexIntersects(new Line(rect.X, rect.Bottom-float.Epsilon, rect.Width, 0)) ||
+           ConvexIntersects(new Line(rect.Right-float.Epsilon, rect.Y, 0, rect.Height));
+  }
+
+  public bool ConvexIntersects(Polygon poly)
+  { for(int i=0; i<length-1; i++) if(poly.ConvexIntersects(GetEdge(i))) return true;
+    return false;
+  }
+
   public float GetArea()
   { float area=0;
     int i;
-    for(i=0; i<points.Length-1; i++) area += points[i].X*points[i+1].Y - points[i+1].X*points[i].Y;
+    for(i=0; i<length-1; i++) area += points[i].X*points[i+1].Y - points[i+1].X*points[i].Y;
     area += points[i].X*points[0].Y - points[0].X*points[i].Y;
     return Math.Abs(area)/2;
   }
 
+  public Rectangle GetBounds()
+  { Rectangle ret = new Rectangle(float.MaxValue, float.MaxValue, 0, 0);
+    float x2=float.MinValue, y2=float.MinValue;
+    for(int i=0; i<points.Length; i++)
+    { if(points[i].X<ret.X) ret.X = points[i].X;
+      if(points[i].Y<ret.Y) ret.Y = points[i].Y;
+      if(points[i].X>x2) x2 = points[i].X;
+      if(points[i].Y>y2) y2 = points[i].Y;
+    }
+    ret.Width  = x2-ret.X;
+    ret.Height = y2-ret.Y;
+    return ret;
+  }
+
   public Point GetCentroid()
   { float area=0,x=0,y=0,d;
-    for(int i=0,j; i<points.Length; i++)
-    { j = i+1==points.Length ? 0 : i+1;
+    for(int i=0,j; i<length; i++)
+    { j = i+1==length ? 0 : i+1;
       d = points[i].X*points[j].Y - points[j].X*points[i].Y;
       x += (points[i].X+points[j].X)*d;
       y += (points[i].Y+points[j].Y)*d;

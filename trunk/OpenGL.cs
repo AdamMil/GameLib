@@ -33,6 +33,9 @@ public sealed class OpenGL
   { get { if(extensions==null) InitExtensions(); return extensions.Keys; }
   }
 
+  public static int VersionMajor { get { if(major==0) InitVersion(); return major; } }
+  public static int VersionMinor { get { if(minor==0) InitVersion(); return minor; } }
+
   public static bool UseNPOTExtension { get { return useNPOT; } set { useNPOT=value; } }
   
   public static bool HasExtension(string name)
@@ -41,20 +44,16 @@ public sealed class OpenGL
   }
 
   #region TexImage2D
-  public static void TexImage2D(Surface surface, out Size texSize)
-  { TexImage2D(0, GL.GL_TEXTURE_2D, 0, 0, surface, out texSize);
+  public static bool TexImage2D(Surface surface, out Size texSize)
+  { return TexImage2D(0, 0, 0, surface, out texSize);
   }
-  public static void TexImage2D(uint internalFormat, Surface surface, out Size texSize)
-  { TexImage2D(internalFormat, GL.GL_TEXTURE_2D, 0, 0, surface, out texSize);
+  public static bool TexImage2D(uint internalFormat, Surface surface, out Size texSize)
+  { return TexImage2D(internalFormat, 0, 0, surface, out texSize);
   }
-  public static void TexImage2D(uint internalFormat, uint target, Surface surface, out Size texSize)
-  { TexImage2D(internalFormat, target, 0, 0, surface, out texSize);
+  public static bool TexImage2D(uint internalFormat, int level, Surface surface, out Size texSize)
+  { return TexImage2D(internalFormat, level, 0, surface, out texSize);
   }
-  public static void TexImage2D(uint internalFormat, uint target, int level, Surface surface, out Size texSize)
-  { TexImage2D(internalFormat, target, level, 0, surface, out texSize);
-  }
-  public static void TexImage2D(uint internalFormat, uint target, int level, int border, Surface surface,
-                                out Size texSize)
+  public static bool TexImage2D(uint internalFormat, int level, int border, Surface surface, out Size texSize)
   { PixelFormat pf = surface.Format;
     uint format=0;
     int nwidth, nheight, awidth=surface.Width-border*2, aheight=surface.Height-border*2;
@@ -64,13 +63,28 @@ public sealed class OpenGL
       while(nwidth<awidth) nwidth<<=1;
       while(nheight<aheight) nheight<<=1;
     }
+
+    if(!WillTextureFit(internalFormat, level, border, nwidth, nheight))
+    { texSize = new Size(0, 0);
+      return false;
+    }
     texSize = new Size(nwidth, nheight);
 
     if(awidth==nwidth && aheight==nheight && surface.Pitch==surface.Width*surface.Depth/8)
-    { if(surface.Depth==24)
+    { uint type = GL.GL_UNSIGNED_BYTE;
+      bool hasPPE = VersionMinor>=2 && major==1 || HasExtension("GL_EXT_packed_pixels") || major>1;
+      bool hasBGR = VersionMinor>=2 && major==1 || HasExtension("EXT_bgra") || major>1;
+      if(surface.Depth==16 && hasPPE)
+      { // TODO: make this work with big-endian machines
+        if(pf.RedMask==0xF800 && pf.GreenMask==0x7E0 && pf.BlueMask==0x1F)
+        { format = GL.GL_RGB;
+          type = GL.GL_UNSIGNED_SHORT_5_6_5;
+        }
+      }
+      else if(surface.Depth==24)
       { if(pf.RedMask==0xFF && pf.GreenMask==0xFF00 && pf.BlueMask==0xFF0000)
           #if BIGENDIAN
-          format = GL.GL_BGR_EXT;
+          format = hasBGR ? GL.GL_BGR_EXT : 0;
           #else
           format = GL.GL_RGB;
           #endif
@@ -78,7 +92,7 @@ public sealed class OpenGL
           #if BIGENDIAN
           format = GL.GL_RGB;
           #else
-          format = GL.GL_BGR_EXT;
+          format = hasBGR ? GL.GL_BGR_EXT : 0;
           #endif
       }
       else if(surface.Depth==32 && pf.AlphaMask!=0)
@@ -87,12 +101,12 @@ public sealed class OpenGL
         if(pf.RedMask==0xFF000000 && pf.GreenMask==0xFF0000 && pf.BlueMask==0xFF00 && pf.AlphaMask==0xFF)
           format = GL.GL_RGBA;
         else if(pf.RedMask==0xFF00 && pf.GreenMask==0xFF0000 && pf.BlueMask==0xFF000000 && pf.AlphaMask==0xFF)
-          format = GL.GL_BGRA_EXT;
+          format = hasBGR ? GL.GL_BGR_EXT : 0;
         #else
         if(pf.RedMask==0xFF && pf.GreenMask==0xFF00 && pf.BlueMask==0xFF0000 && pf.AlphaMask==0xFF000000)
           format = GL.GL_RGBA;
         else if(pf.RedMask==0xFF0000 && pf.GreenMask==0xFF00 && pf.BlueMask==0xFF && pf.AlphaMask==0xFF000000)
-          format = GL.GL_BGRA_EXT;
+          format = hasBGR ? GL.GL_BGR_EXT : 0;
         #endif
       }
       if(format!=0)
@@ -100,11 +114,11 @@ public sealed class OpenGL
         unsafe
         { if(internalFormat==0)
             internalFormat = format==GL.GL_RGBA || format==GL.GL_BGRA_EXT ? GL.GL_RGBA8 : GL.GL_RGB8;
-          GL.glTexImage2D(target, level, internalFormat, surface.Width, surface.Height, border, format,
-                          GL.GL_UNSIGNED_BYTE, surface.Data);
+          GL.glTexImage2D(GL.GL_TEXTURE_2D, level, internalFormat, surface.Width, surface.Height, border, format,
+                          type, surface.Data);
         }
         surface.Unlock();
-        return;
+        return true;
       }
     }
     
@@ -125,7 +139,7 @@ public sealed class OpenGL
     { if(internalFormat==0) internalFormat = pf.Depth==32 ? GL.GL_RGBA : GL.GL_RGB;
       if(temp.Pitch==temp.Width*temp.Depth/8)
         unsafe
-        { GL.glTexImage2D(target, level, internalFormat, temp.Width, temp.Height, border,
+        { GL.glTexImage2D(GL.GL_TEXTURE_2D, level, internalFormat, temp.Width, temp.Height, border,
                           pf.Depth==32 ? GL.GL_RGBA : GL.GL_RGB, GL.GL_UNSIGNED_BYTE, temp.Data);
         }
       else
@@ -135,13 +149,32 @@ public sealed class OpenGL
         { fixed(byte* arrp=arr)
           { byte* dest=arrp, src=(byte*)temp.Data;
             for(int y=0; y<temp.Height; dest+=line,src+=temp.Pitch,y++) Unsafe.Copy(dest, src, line);
-            GL.glTexImage2D(target, level, internalFormat, temp.Width, temp.Height, border,
+            GL.glTexImage2D(GL.GL_TEXTURE_2D, level, internalFormat, temp.Width, temp.Height, border,
                             pf.Depth==32 ? GL.GL_RGBA : GL.GL_RGB, GL.GL_UNSIGNED_BYTE, arrp);
           }
         }
       }
     }
     finally { temp.Unlock(); temp.Dispose(); }
+    return true;
+  }
+  #endregion
+  
+  #region WillTextureFit
+  public static bool WillTextureFit(uint internalFormat, int width, int height)
+  { return WillTextureFit(internalFormat, 0, 0, width, height);
+  }
+  public static bool WillTextureFit(uint internalFormat, int level, int width, int height)
+  { return WillTextureFit(internalFormat, level, 0, width, height);
+  }
+  public static bool WillTextureFit(uint internalFormat, int level, int border, int width, int height)
+  { int fits;
+    unsafe
+    { GL.glTexImage2D(GL.GL_PROXY_TEXTURE_2D, level, internalFormat, width, height, border, GL.GL_RGB,
+                      GL.GL_UNSIGNED_BYTE, (void*)null);
+    }
+    GL.glGetTexLevelParameteriv(GL.GL_PROXY_TEXTURE_2D, level, GL.GL_TEXTURE_WIDTH, out fits);
+    return fits!=0;
   }
   #endregion
   
@@ -153,32 +186,31 @@ public sealed class OpenGL
     foreach(string s in exts) extensions[s] = null;
   }
 
+  static void InitVersion()
+  { string str = GL.glGetString(GL.GL_VERSION);
+    if(str==null) throw new InvalidOperationException("OpenGL not initialized yet!");
+    int pos = str.IndexOf(' ');
+    string[] bits = (pos==-1 ? str : str.Substring(0, pos)).Split('.');
+    major = int.Parse(bits[0]);
+    minor = int.Parse(bits[1]);
+  }
+
   static System.Collections.Hashtable extensions;
+  static int major, minor;
   static bool useNPOT=true;
 }
 #endregion
 
 #region GLTexture2D
-public class GLTexture : IDisposable
-{ 
-  public GLTexture(Surface surface) : this(0, 0, 0, surface) { }
-  public GLTexture(uint internalFormat, Surface surface) : this(internalFormat, 0, 0, surface) { }
-  public GLTexture(uint internalFormat, int level, Surface surface) : this(internalFormat, level, 0, surface) { }
-  public GLTexture(uint internalFormat, int level, int border, Surface surface)
-  { if(!Load(internalFormat, level, border, surface))
-    {
-    }
+// TODO: add support for mipmapping
+public class GLTexture2D : IDisposable
+{ public GLTexture2D(Surface surface) : this(0, 0, 0, surface) { }
+  public GLTexture2D(uint internalFormat, Surface surface) : this(internalFormat, 0, 0, surface) { }
+  public GLTexture2D(uint internalFormat, int level, Surface surface) : this(internalFormat, level, 0, surface) { }
+  public GLTexture2D(uint internalFormat, int level, int border, Surface surface)
+  { if(!Load(internalFormat, level, border, surface)) throw new OutOfTextureMemoryException();
   }
-
-  /*public GLTexture(int width, int height) : this(0, 0, 0, width, height) { }
-  public GLTexture(uint internalFormat, int width, int height) : this(internalFormat, 0, 0, width, height) { }
-  public GLTexture(uint internalFormat, int level, int width, int height)
-    : this(internalFormat, level, 0, width, height) { }
-  public GLTexture(uint internalFormat, int level, int border, int width, int height)
-  { if(!Create(internalFormat, level, border, width, height))
-    {
-    }
-  }*/
+  ~GLTexture2D() { Dispose(true); }
 
   public void Dispose() { Dispose(false); GC.SuppressFinalize(this); }
 
@@ -221,9 +253,15 @@ public class GLTexture : IDisposable
   { Unload();
     uint tex;
     GL.glGenTexture(out tex);
+    if(tex==0) throw new NoMoreTexturesException();
+
     GL.glBindTexture(GL.GL_TEXTURE_2D, texture);
-    OpenGL.TexImage2D(internalFormat, GL.GL_TEXTURE_2D, level, border, surface, out size);
+    if(!OpenGL.TexImage2D(internalFormat, level, border, surface, out size))
+    { GL.glDeleteTexture(tex);
+      return false;
+    }
     imgSize = surface.Size; texture = tex;
+    return true;
   }
 
   public void Unload()
