@@ -748,12 +748,16 @@ public struct Vector
   }
 
   public Vector CrossVector { get { return new Vector(-Y, X); } }
-  public float  Length    { get { return (float)System.Math.Sqrt(X*X+Y*Y); } }
+  public float  Length
+  { get { return (float)System.Math.Sqrt(X*X+Y*Y); }
+    set { Normalize(value); }
+  }
   public float  LengthSqr { get { return X*X+Y*Y; } }
   public Vector Normal { get { return this/Length; } }
   
   public float DotProduct(Vector v) { return X*v.X + Y*v.Y; }
   public void  Normalize() { Assign(Normal); }
+  public void  Normalize(float length) { Assign(this / (Length/length)); }
 
   public void Rotate(float angle) { Assign(Rotated(angle)); }
   public Vector Rotated(float angle)
@@ -787,7 +791,8 @@ public struct Vector
 
 #region Point
 public struct Point
-{ public Point(float x, float y) { X=x; Y=y; }
+{ public Point(System.Drawing.Point pt) { X=pt.X; Y=pt.Y; }
+  public Point(float x, float y) { X=x; Y=y; }
 
   public bool Valid { get { return !float.IsNaN(X); } }
 
@@ -1352,13 +1357,17 @@ public struct Vector
 { public Vector(float x, float y, float z) { X=x; Y=y; Z=z; }
   public Vector(Point pt) { X=pt.X; Y=pt.Y; Z=pt.Z; }
   
-  public float  Length    { get { return (float)System.Math.Sqrt(X*X+Y*Y+Z*Z); } }
+  public float  Length
+  { get { return (float)System.Math.Sqrt(X*X+Y*Y+Z*Z); }
+    set { Normalize(value); }
+  }
   public float  LengthSqr { get { return X*X+Y*Y+Z*Z; } }
   public Vector Normal { get { return this/Length; } }
   
   public Vector CrossProduct(Vector v) { return new Vector(X*v.Z-Z*v.Y, Z*v.X-X*v.Z, X*v.Y-Y*v.X); }
   public float  DotProduct(Vector v) { return X*v.X + Y*v.Y + Z*v.Z; }
   public void Normalize() { Assign(Normal); }
+  public void Normalize(float length) { Assign(this / (Length/length)); }
 
   public void Rotate(float xangle, float yangle, float zangle) { Assign(Rotated(xangle, yangle, zangle)); }
   public void RotateX(float angle) { Assign(RotatedX(angle)); } 
