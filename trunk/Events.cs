@@ -8,7 +8,7 @@ namespace GameLib.Events
 [Flags]
 public enum EventType
 { Focus, Keyboard, MouseMove, MouseClick, JoyMove, JoyBall, JoyHat, JoyButton, Quit,
-  Resize, Repaint, UserDefined
+  Resize, Repaint, Exception, UserDefined
 }
 public enum FilterAction { Continue, Drop, Queue }
 public enum FocusType
@@ -111,13 +111,23 @@ public class ResizeEvent : Event
   internal ResizeEvent(ref SDL.ResizeEvent evt) : base(EventType.Resize)
   { Width=evt.Width; Height=evt.Height;
   }
-  int Width, Height;
+  public int Width, Height;
 }
 public class RepaintEvent : Event
 { public RepaintEvent() : base(EventType.Repaint) { }
 }
 public class UserEvent : Event
 { public UserEvent() : base(EventType.UserDefined) { }
+}
+public enum ExceptionLocation { Unknown, AudioThread };
+public class ExceptionEvent : Event
+{ public ExceptionEvent(ExceptionLocation loc, Exception e) : base(EventType.Exception) { location=loc; ex=e; }
+  
+  public ExceptionLocation Location { get { return location; } }
+  public Exception Exception { get { return ex; } }
+  
+  protected ExceptionLocation location;
+  protected Exception ex;
 }
 #endregion
 
@@ -138,11 +148,11 @@ public sealed class Events
       max=value;
     }
   }
+  public static object SyncRoot { get { return queue; } }
 
   public static void Initialize()
   { if(initCount++==0)
-    { queue = new System.Collections.Queue();
-      SDL.Initialize(SDL.InitFlag.Video);
+    { SDL.Initialize(SDL.InitFlag.Video);
       SDL.Initialize(SDL.InitFlag.EventThread); // SDL quirk: this must be done AFTER video
       SDL.EnableUNICODE(1); // SDL quirk: must be AFTER Initialize(EventThread)
     }
@@ -151,23 +161,23 @@ public sealed class Events
   public static void Deinitialize()
   { if(initCount==0) throw new InvalidOperationException("Deinitialize called too many times!");
     if(--initCount==0)
-    { SDL.Deinitialize(SDL.InitFlag.Video|SDL.InitFlag.EventThread);
-      queue = null;
-    }
+      lock(queue)
+      { SDL.Deinitialize(SDL.InitFlag.Video|SDL.InitFlag.EventThread);
+        queue.Clear();
+      }
   }
 
-  public static void LockQueue()   { System.Threading.Monitor.Enter(queue); }
-  public static void UnlockQueue() { System.Threading.Monitor.Exit(queue); }
-  
   public static bool PumpEvents()
-  { CheckInit();
-    Event evt;
-    bool  ret=false;
-    while(true)
-    { evt = PeekSDLEvent();
-      if(evt==null) return ret;
-      QueueEvent(evt);
-      ret = true;
+  { lock(queue)
+    { CheckInit();
+      Event evt;
+      bool  ret=false;
+      while(true)
+      { evt = PeekSDLEvent();
+        if(evt==null) return ret;
+        QueueEvent(evt);
+        ret = true;
+      }
     }
   }
 
@@ -176,38 +186,43 @@ public sealed class Events
   public static Event PeekEvent(int timeout) { return NextEvent(timeout, false); }
   public static Event NextEvent(int timeout) { return NextEvent(timeout, true);  }
   public static Event NextEvent(int timeout, bool remove)
-  { CheckInit();
-    if(queue.Count>0) return (Event)(remove ? queue.Dequeue() : queue.Peek());
+  { lock(queue)
+    { CheckInit();
+      if(queue.Count>0) return (Event)(remove ? queue.Dequeue() : queue.Peek());
 
-    Event ret = PeekSDLEvent();
-    if(ret!=null) return ret;
-    if(timeout==0) return null;
-    if(timeout==Infinite)
-    { ret = NextSDLEvent();
-      if(!remove) QueueEvent(ret);
-      return ret;
-    }
-
-    uint start = SDL.GetTicks();
-    do
-    { ret = PeekSDLEvent();
-      if(ret!=null)
-      { if(!remove) QueueEvent(ret);
+      Event ret = PeekSDLEvent();
+      if(ret!=null) return ret;
+      if(timeout==0) return null;
+      if(timeout==Infinite)
+      { ret = NextSDLEvent();
+        if(!remove) QueueEvent(ret);
         return ret;
       }
-      System.Threading.Thread.Sleep(10);
-      timeout -= (int)(SDL.GetTicks()-start);
-    } while(timeout>0);
-    return null;
+
+      uint start = SDL.GetTicks();
+      do
+      { ret = PeekSDLEvent();
+        if(ret!=null)
+        { if(!remove) QueueEvent(ret);
+          return ret;
+        }
+        System.Threading.Thread.Sleep(10);
+        timeout -= (int)(SDL.GetTicks()-start);
+      } while(timeout>0);
+      return null;
+    }
   }
 
   public static bool PushEvent(Event evt) { return PushEvent(evt, false); }
   public static bool PushEvent(Event evt, bool filter)
   { if(evt==null) throw new ArgumentNullException("evt");
-    CheckInit();
-    if(filter && !FilterEvent(evt)) return false;
-    QueueEvent(evt);
-    return true;
+    lock(queue)
+    { CheckInit();
+      if(initCount==0) return false;
+      if(filter && !FilterEvent(evt)) return false;
+      QueueEvent(evt);
+      return true;
+    }
   }
 
   static unsafe Event PeekSDLEvent()
@@ -274,7 +289,7 @@ public sealed class Events
     queue.Enqueue(evt);
   }
 
-  static System.Collections.Queue queue;
+  static System.Collections.Queue queue = new System.Collections.Queue();
   static uint initCount;
   static int  max=512;
 }

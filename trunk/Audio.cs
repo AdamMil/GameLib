@@ -7,7 +7,7 @@ using GameLib.Interop.GLMixer;
 using GameLib.Interop.SndFile;
 using GameLib.Interop.OggVorbis;
 
-using System.Runtime.InteropServices; // TODO: remove me
+// TODO: find out why vorbis is unstable
 
 namespace GameLib.Audio
 {
@@ -31,6 +31,25 @@ public enum Fade { None, In, Out }
 public enum PlayPolicy { Fail, Oldest, Priority, OldestPriority }
 public enum MixPolicy  { DontDivide, Divide }
 
+public struct SizedArray
+{ public SizedArray(byte[] array) { Array=array; Length=array.Length; }
+  public SizedArray(byte[] array, int length)
+  { Array=array; Length=length;
+  }
+  public byte[] Shrunk
+  { get
+    { if(Array.Length>Length)
+      { byte[] ret = new byte[Length];
+        System.Array.Copy(Array, ret, Length);
+        Array=ret;
+      }
+      return Array;
+    }
+  }
+  public byte[] Array;
+  public int    Length;
+}
+  
 public struct AudioFormat
 { public AudioFormat(uint frequency, SampleFormat format, byte channels)
   { Frequency=frequency; Format=format; Channels=channels;
@@ -67,26 +86,28 @@ public abstract class AudioSource : IDisposable
 
   public virtual void Rewind() { Position=0; }
 
-  public int Play() { return Play(0, Audio.Infinite, Audio.FreeChannel); }
-  public int Play(int loops) { return Play(loops, Audio.Infinite, Audio.FreeChannel); }
-  public int Play(int loops, int timeoutMs) { return Play(loops, timeoutMs, Audio.FreeChannel); }
-  public int Play(int loops, int timeoutMs, int channel)
-  { if(channel<0) return Audio.StartPlaying(channel, this, loops, Fade.None, 0, timeoutMs);
+  public int Play() { return Play(0, Audio.Infinite, 0, Audio.FreeChannel); }
+  public int Play(int loops) { return Play(loops, Audio.Infinite, 0, Audio.FreeChannel); }
+  public int Play(int loops, int timeoutMs) { return Play(loops, timeoutMs, 0, Audio.FreeChannel); }
+  public int Play(int loops, int timeoutMs, int position) { return Play(loops, timeoutMs, position, Audio.FreeChannel); }
+  public int Play(int loops, int timeoutMs, int position, int channel)
+  { if(channel<0) return Audio.StartPlaying(channel, this, loops, position, Fade.None, 0, timeoutMs);
     else
       lock(Audio.Channels[channel])
-      { Audio.Channels[channel].StartPlaying(this, loops, Fade.None, 0, timeoutMs);
+      { Audio.Channels[channel].StartPlaying(this, loops, position, Fade.None, 0, timeoutMs);
         return channel;
       }
   }
 
-  public int FadeIn(uint fadeMs) { return FadeIn(fadeMs, 0, Audio.FreeChannel, Audio.Infinite); }
-  public int FadeIn(uint fadeMs, int loops) { return FadeIn(fadeMs, loops, Audio.FreeChannel, Audio.Infinite); }
-  public int FadeIn(uint fadeMs, int loops, int timeoutMs) { return FadeIn(fadeMs, loops, timeoutMs, Audio.FreeChannel); }
-  public int FadeIn(uint fadeMs, int loops, int timeoutMs, int channel)
-  { if(channel<0) return Audio.StartPlaying(channel, this, loops, Fade.In, fadeMs, timeoutMs);
+  public int FadeIn(uint fadeMs) { return FadeIn(fadeMs, 0, Audio.Infinite, Audio.FreeChannel, 0); }
+  public int FadeIn(uint fadeMs, int loops) { return FadeIn(fadeMs, loops, Audio.Infinite, Audio.FreeChannel, 0); }
+  public int FadeIn(uint fadeMs, int loops, int timeoutMs) { return FadeIn(fadeMs, loops, timeoutMs, Audio.FreeChannel, 0); }
+  public int FadeIn(uint fadeMs, int loops, int timeoutMs, int channel) { return FadeIn(fadeMs, loops, timeoutMs, channel, 0); }
+  public int FadeIn(uint fadeMs, int loops, int timeoutMs, int channel, int position)
+  { if(channel<0) return Audio.StartPlaying(channel, this, loops, position, Fade.In, fadeMs, timeoutMs);
     else
       lock(Audio.Channels[channel])
-      { Audio.Channels[channel].StartPlaying(this, loops, Fade.In, fadeMs, timeoutMs);
+      { Audio.Channels[channel].StartPlaying(this, loops, position, Fade.In, fadeMs, timeoutMs);
         return channel;
       }
   }
@@ -124,8 +145,8 @@ public abstract class AudioSource : IDisposable
       { pos = Position;
         Rewind();
       }
-      if(Length>=0)
-      { ret = new byte[Length*format.FrameSize];
+      if(length>=0)
+      { ret = new byte[length*format.FrameSize];
         if(ReadBytes(ret, ret.Length)!=ret.Length) throw new EndOfStreamException();
       }
       else ret=ReadAllUL();
@@ -140,15 +161,14 @@ public abstract class AudioSource : IDisposable
   public unsafe int ReadFrames(int* dest, int frames) { return ReadFrames(dest, frames, -1); }
   public virtual unsafe int ReadFrames(int* dest, int frames, int volume)
   { lock(this)
-    { int toRead=Math.Min(length-curPos, frames), read, samples;
-      SizeBuffer(toRead);
-      read    = ReadBytes(buffer, toRead*format.FrameSize);
+    { int toRead=length<0 ? frames : Math.Min(length-curPos, frames), bytes=toRead*format.FrameSize, read, samples;
+      SizeBuffer(bytes);
+      read    = ReadBytes(buffer, bytes);
       samples = read/format.SampleSize;
       fixed(byte* src = buffer)
         GLMixer.Check(GLMixer.ConvertMix(dest, src, (uint)samples, (ushort)format.Format,
                                           (ushort)(volume<0 ? Audio.MaxVolume : volume)));
       read = format.Channels==1 ? samples : samples/2;
-      curPos += read;
       return read;
     }
   }
@@ -193,7 +213,7 @@ public abstract class StreamSource : AudioSource
     this.stream=stream;
     this.format=format;
     this.startPos=startPos;
-    this.length=length/format.FrameSize;
+    this.length=length<0 ? length : length/format.FrameSize;
     this.autoClose=autoClose;
     curPos = stream.CanSeek ? (int)(stream.Position-startPos/format.FrameSize) : 0;
   }
@@ -383,13 +403,19 @@ public class VorbisSource : AudioSource
 { public VorbisSource(string filename)
     : this(new FileStream(filename, FileMode.Open, FileAccess.Read, FileShare.Read), true) { }
   public VorbisSource(Stream stream) : this(stream, true) { }
-  public VorbisSource(Stream stream, bool autoClose)
+  public unsafe VorbisSource(Stream stream, bool autoClose)
+  { calls = new VorbisCallbacks(stream, autoClose);
+    unsafe
+    { fixed(Ogg.Callbacks* io = &calls.calls) Ogg.Check(Ogg.Open(out file, io));
+      Init(autoClose, new AudioFormat((uint)file.Info->Rate,
+                                      Audio.Initialized ? Audio.Format.Format : SampleFormat.S16Sys,
+                                      (byte)file.Info->Channels));
+    }
+  }
+  public VorbisSource(Stream stream, bool autoClose, AudioFormat format)
   { calls = new VorbisCallbacks(stream, autoClose);
     unsafe { fixed(Ogg.Callbacks* io = &calls.calls) Ogg.Check(Ogg.Open(out file, io)); }
-    if(file.NumLinks>1) throw new NotImplementedException("Support for chained oggs is not supported yet!");
-    length = Ogg.PcmLength(ref file, -1)/2; // FIXME: this isn't correct!!
-    format = new AudioFormat(44100, SampleFormat.S16Sys, 2);
-    open   = true;
+    Init(autoClose, format);
   }
   ~VorbisSource() { Dispose(true); }
 
@@ -403,8 +429,24 @@ public class VorbisSource : AudioSource
     { if(value==curPos) return;
       if(!CanSeek) Ogg.Check((int)Ogg.OggError.NoSeek);
       lock(this)
-      { Ogg.Check(Ogg.PcmSeek(ref file, value*2)); // FIXME: this isn't correct!
-        curPos = value*2; // FIXME: neither is this!
+      { if(links==null) Ogg.Check(Ogg.PcmSeek(ref file, value));
+        else
+        { int i, pos=value, pbase=0;
+          for(i=0; i<links.Length && links[i].CvtLen<=pos; i++)
+          { pos   -= links[i].CvtLen;
+            pbase += links[i].RealLen;
+          }
+          if(i==links.Length)
+          { Ogg.Check(Ogg.PcmSeek(ref file, pbase));
+            value = length;
+            curLink = 0;
+          }
+          else
+          { Ogg.Check(Ogg.PcmSeek(ref file, pbase+(int)((long)pos*links[i].CVT.lenDiv/links[i].CVT.lenMul)));
+            curLink = i;
+          }
+        }
+        curPos = value;
       }
     }
   }
@@ -413,24 +455,52 @@ public class VorbisSource : AudioSource
   { BytesToFrames(length);
     fixed(byte* dest = buf)
     { Ogg.VorbisInfo* info;
-      int oldsection, section=-1;
-      int read, total=0, be=(format.Format&SampleFormat.BigEndian)==0 ? 0 : 1;
-      read = Ogg.Read(ref file, dest+index, length, be, 2, 1, out oldsection);
-      info = Ogg.GetInfo(ref file, oldsection);
-      while(read>0)
-      { if(info->Rate!=44100 || info->Channels!=2)
-        { throw new NotImplementedException("ogg resampling not supported");
-          read=read; // something else
+      int read, toRead, total=0, section, be=(format.Format&SampleFormat.BigEndian)==0 ? 0 : 1;
+      int signed = (format.Format&SampleFormat.Signed)==0 ? 0 : 1;
+
+      do
+      { info = file.Info+curLink;
+        if(info->Rate!=format.Frequency || info->Channels!=format.Channels)
+        { Link link = links[curLink];
+          int   len = Math.Min(length, 16384);
+          toRead = (int)((long)len*link.CVT.lenDiv/link.CVT.lenMul);
+          len = Math.Max(toRead, len);
+          if(cvtBuf==null || cvtBuf.Length<len) cvtBuf = new byte[len];
+          fixed(byte* cvtbuf = cvtBuf)
+          { read = Ogg.Read(ref file, cvtbuf, toRead, be, format.SampleSize, signed, out section);
+            Ogg.Check(read);
+            if(read==0) break;
+            link.CVT.buf = cvtbuf;
+            link.CVT.len = read;
+            link.CVT.CalcLenCvt();
+            GLMixer.Check(GLMixer.Convert(ref link.CVT));
+            read=link.CVT.lenCvt;
+            GameLib.Interop.Unsafe.Copy(dest+index, cvtbuf, read);
+          }
         }
+        else
+        { read = Ogg.Read(ref file, dest+index, length, be, format.SampleSize, signed, out section);
+          Ogg.Check(read);
+          if(read==0) break;
+        }
+
+        curLink = section;
         total += read; index += read; length -= read;
-        if(length==0) break;
-        read = Ogg.Read(ref file, dest+index, length, be, 2, 1, out section);
-        if(section!=oldsection) info = Ogg.GetInfo(ref file, oldsection=section);
-      }
+      } while(length>0);
+      curPos += total/format.FrameSize;
       return total;
     }
   }
   
+  protected class Link
+  { public Link(AudioFormat format, GLMixer.AudioCVT cvt, int realLen, int cvtLen)
+    { Format=format; CVT=cvt; RealLen=realLen; CvtLen=cvtLen;
+    }
+    public AudioFormat Format;
+    public GLMixer.AudioCVT CVT;
+    public int RealLen, CvtLen;
+  }
+
   protected void Dispose(bool destructor)
   { if(open)
     { base.Dispose();
@@ -439,9 +509,37 @@ public class VorbisSource : AudioSource
     }
   }
   
-  Ogg.VorbisFile  file = new Ogg.VorbisFile();
-  VorbisCallbacks calls;
-  protected bool  open;
+  void Init(bool autoClose, AudioFormat format)
+  { if(CanSeek)
+    { length = 0;
+      links  = new Link[file.NumLinks];
+      GLMixer.AudioCVT cvt;
+      AudioFormat sf;
+      int  len;
+      bool grr=false;
+      for(int i=0; i<file.NumLinks; i++)
+        unsafe
+        { Ogg.VorbisInfo* info = file.Info+i;
+          sf  = new AudioFormat((uint)info->Rate, format.Format, (byte)info->Channels);
+          if(!sf.Equals(format)) grr=true;
+          cvt = Audio.SetupCVT(sf, format);
+          len = Ogg.PcmLength(ref file, i);
+          Ogg.Check(len);
+          links[i] = new Link(sf, cvt, len, (int)((long)len*cvt.lenMul/cvt.lenDiv));
+          length += links[i].CvtLen;
+        }
+      if(!grr) links=null; // yay, it's all what we want
+    }
+    this.format = format;
+    open = true;
+  }
+  
+  Ogg.VorbisFile   file = new Ogg.VorbisFile();
+  VorbisCallbacks  calls;
+  protected byte[] cvtBuf;
+  protected int    curLink;
+  protected Link[] links;
+  protected bool   open;
 }
 #endregion
 
@@ -481,7 +579,7 @@ public sealed class Channel
     }
   }
 
-  internal void StartPlaying(AudioSource source, int loops, Fade fade, uint fadeMs, int timeoutMs)
+  internal void StartPlaying(AudioSource source, int loops, int position, Fade fade, uint fadeMs, int timeoutMs)
   { StopPlaying();
     lock(source)
     { if(!source.CanRewind && loops!=0) throw new ArgumentException("Can't play loop sources that can't be rewound");
@@ -491,9 +589,9 @@ public sealed class Channel
       this.loops    = loops;
       this.fade     = fade;
       this.timeout  = timeoutMs;
-      if(source.CanRewind) source.Rewind();
+      this.position = position;
+      if(!source.CanSeek && source.CanRewind && position==0) source.Rewind();
       priority  = source.Priority;
-      position  = source.Position;
       paused    = false;
       startTime = Timing.Ticks;
       source.playing++;
@@ -578,7 +676,7 @@ public sealed class Channel
           }
           index += read;
         }
-        Audio.SizedArray sa = Audio.Convert(convBuf, format, Audio.Format, toRead, mustWrite);
+        SizedArray sa = Audio.Convert(convBuf, format, Audio.Format, toRead, mustWrite);
         if(sa.Array!=convBuf) convBuf = sa.Array;
         framesRead = sa.Length/Audio.Format.FrameSize;
         samples    = framesRead*Audio.Format.Channels;
@@ -631,7 +729,7 @@ public sealed class Channel
       position = source.Position;
     }
   }
-  
+
   int   EffectiveVolume { get { int v=source.Volume; return v==Audio.MaxVolume ? volume : (volume*v)>>8; } }
   float EffectiveRate   { get { return source.PlaybackRate*rate; } }
 
@@ -831,145 +929,8 @@ public class Audio
         for(int i=0; i<list.Count; i++) chans[(int)list[i]].Stop();
       }
   }
-  
-  internal static void OnFiltersFinished(Channel channel)
-  { if(eFilters!=null) lock(callback) unsafe { eFilters(channel, null, 0, Format); }
-  }
 
-  internal static void OnChannelFinished(Channel channel)
-  { if(ChannelFinished!=null) ChannelFinished(channel);
-  }
-  
-  internal static int StartPlaying(int channel, AudioSource source, int loops, Fade fade, uint fadeMs, int timeoutMs)
-  { CheckInit();
-    if(reserved==chans.Length) return -1;
-
-    IList group=null;
-    bool  tried=false;
-    do
-    { if(channel==FreeChannel)
-      { for(int i=reserved; i<chans.Length; i++)
-          if(chans[i].Status==AudioStatus.Stopped) // try to lock as little as possible
-          { tried=true;
-            lock(chans[i])
-              if(chans[i].Status==AudioStatus.Stopped)
-              { chans[i].StartPlaying(source, loops, fade, fadeMs, timeoutMs);
-                return i;
-              }
-          }
-      }
-      else
-        lock(groups)
-        { group = GetGroup(channel);
-          for(int i=0; i<group.Count; i++)
-          { int chan = (int)group[i];
-            if(chan<reserved) continue;
-            if(chans[chan].Status==AudioStatus.Stopped) // try to lock as little as possible
-            { tried=true;
-              lock(chans[chan])
-                if(chans[chan].Status==AudioStatus.Stopped)
-                { chans[chan].StartPlaying(source, loops, fade, fadeMs, timeoutMs);
-                  return chan;
-                }
-            }
-          }
-        }
-    } while(!tried);
-
-    switch(playPolicy)
-    { case PlayPolicy.Oldest:
-        lock(callback)
-        { int  oi=reserved;
-          uint age=0;
-          if(channel==FreeChannel)
-            for(int i=reserved; i<chans.Length; i++) { if(chans[i].Age>age) { age=chans[i].Age; oi=i; } }
-          else
-            lock(groups)
-              for(int i=0; i<group.Count; i++)
-              { int chan = (int)group[i];
-                if(chan<reserved) continue;
-                if(chans[chan].Age>age) { age=chans[chan].Age; oi=chan; }
-              }
-          lock(chans[oi]) chans[oi].StartPlaying(source, loops, fade, fadeMs, timeoutMs);
-          return oi;
-        }
-      case PlayPolicy.Priority:
-        lock(callback)
-        { int pi=reserved, prio=int.MaxValue;
-          if(channel==FreeChannel)
-            for(int i=reserved; i<chans.Length; i++) { if(chans[i].Priority<prio) { prio=chans[i].Priority; pi=i; } }
-          else
-            lock(groups)
-              for(int i=0; i<group.Count; i++)
-              { int chan = (int)group[i];
-                if(chan<reserved) continue;
-                if(chans[chan].Priority<prio) { prio=chans[chan].Priority; pi=chan; }
-              }
-          lock(chans[pi]) chans[pi].StartPlaying(source, loops, fade, fadeMs, timeoutMs);
-          return pi;
-        }
-      case PlayPolicy.OldestPriority:
-        lock(callback)
-        { int  pi=reserved, oi, prio=int.MaxValue;
-          uint age=0;
-          if(channel==FreeChannel)
-          { for(int i=reserved; i<chans.Length; i++) if(chans[i].Priority<prio) { prio=chans[i].Priority; pi=i; }
-            oi=pi;
-            for(int i=reserved; i<chans.Length; i++)
-              if(chans[i].Priority==prio && chans[i].Age>age) { oi=i; age=chans[i].Age; }
-          }
-          else
-            lock(groups)
-            { for(int i=0; i<group.Count; i++)
-              { int chan = (int)group[i];
-                if(chan<reserved) continue;
-                if(chans[chan].Priority<prio) { prio=chans[chan].Priority; pi=chan; }
-              }
-              oi=pi;
-              for(int i=0; i<group.Count; i++)
-              { int chan = (int)group[i];
-                if(chan<reserved) continue;
-                if(chans[chan].Priority==prio && chans[chan].Age>age) { oi=chan; age=chans[chan].Age; }
-              }
-            }
-          lock(chans[oi]) chans[oi].StartPlaying(source, loops, fade, fadeMs, timeoutMs);
-          return oi;
-        }
-      default: return -1;
-    }
-  }
-
-  internal class SizedArray
-  { public SizedArray(byte[] array) { Array=array; Length=array.Length; }
-    public SizedArray(byte[] array, int length)
-    { Array=array; Length=length;
-    }
-    public byte[] Shrunk
-    { get
-      { if(Array.Length>Length)
-        { byte[] ret = new byte[Length];
-          System.Array.Copy(Array, ret, Length);
-          Array=ret;
-        }
-        return Array;
-      }
-    }
-    public byte[] Array;
-    public int    Length;
-  }
-  
-  internal static void CheckRate(float rate)
-  { if(rate<0f) throw new ArgumentOutOfRangeException("PlaybackRate");
-  }
-  internal static void CheckChannel(int channel)
-  { CheckInit();
-    if(channel!=FreeChannel && channel<0) throw new ArgumentOutOfRangeException("channel");
-  }
-  internal static void CheckVolume(int volume)
-  { if(volume<0 || volume>Audio.MaxVolume) throw new ArgumentOutOfRangeException("value");
-  }
-
-  internal static GLMixer.AudioCVT SetupCVT(AudioFormat srcFormat, AudioFormat destFormat)
+  public static GLMixer.AudioCVT SetupCVT(AudioFormat srcFormat, AudioFormat destFormat)
   { GLMixer.AudioCVT cvt = new GLMixer.AudioCVT();
     if(srcFormat.Equals(destFormat)) { cvt.lenMul=cvt.lenDiv=1; }
     cvt.srcRate    = (int)srcFormat.Frequency;
@@ -982,21 +943,21 @@ public class Audio
     return cvt;
   }
 
-  internal static SizedArray Convert(byte[] srcData, AudioFormat srcFormat, SampleFormat destFormat)
+  public static SizedArray Convert(byte[] srcData, AudioFormat srcFormat, SampleFormat destFormat)
   { return Convert(srcData, srcFormat, destFormat, -1);
   }
-  internal static SizedArray Convert(byte[] srcData, AudioFormat srcFormat, SampleFormat destFormat, int length)
+  public static SizedArray Convert(byte[] srcData, AudioFormat srcFormat, SampleFormat destFormat, int length)
   { AudioFormat df = srcFormat;
     df.Format = destFormat;
     return Convert(srcData, srcFormat, df, length, -1);
   }
-  internal static SizedArray Convert(byte[] srcData, AudioFormat srcFormat, AudioFormat destFormat)
+  public static SizedArray Convert(byte[] srcData, AudioFormat srcFormat, AudioFormat destFormat)
   { return Convert(srcData, srcFormat, destFormat, -1, -1);
   }
-  internal static SizedArray Convert(byte[] srcData, AudioFormat srcFormat, AudioFormat destFormat, int length)
+  public static SizedArray Convert(byte[] srcData, AudioFormat srcFormat, AudioFormat destFormat, int length)
   { return Convert(srcData, srcFormat, destFormat, -1, -1);
   }
-  internal static SizedArray Convert(byte[] srcData, AudioFormat srcFormat, AudioFormat destFormat,
+  public static SizedArray Convert(byte[] srcData, AudioFormat srcFormat, AudioFormat destFormat,
                                      int length, int mustWrite)
   { if(srcFormat.Equals(destFormat)) return new SizedArray(srcData);
     unsafe
@@ -1031,6 +992,124 @@ public class Audio
       }
     }
   }
+  
+  internal static void OnFiltersFinished(Channel channel)
+  { if(eFilters!=null) lock(callback) unsafe { eFilters(channel, null, 0, Format); }
+  }
+
+  internal static void OnChannelFinished(Channel channel)
+  { if(ChannelFinished!=null) ChannelFinished(channel);
+  }
+  
+  internal static int StartPlaying(int channel, AudioSource source, int loops, int position, Fade fade, uint fadeMs, int timeoutMs)
+  { CheckInit();
+    if(reserved==chans.Length) return -1;
+
+    IList group=null;
+    bool  tried=false;
+    do
+    { if(channel==FreeChannel)
+      { for(int i=reserved; i<chans.Length; i++)
+          if(chans[i].Status==AudioStatus.Stopped) // try to lock as little as possible
+          { tried=true;
+            lock(chans[i])
+              if(chans[i].Status==AudioStatus.Stopped)
+              { chans[i].StartPlaying(source, loops, position, fade, fadeMs, timeoutMs);
+                return i;
+              }
+          }
+      }
+      else
+        lock(groups)
+        { group = GetGroup(channel);
+          for(int i=0; i<group.Count; i++)
+          { int chan = (int)group[i];
+            if(chan<reserved) continue;
+            if(chans[chan].Status==AudioStatus.Stopped) // try to lock as little as possible
+            { tried=true;
+              lock(chans[chan])
+                if(chans[chan].Status==AudioStatus.Stopped)
+                { chans[chan].StartPlaying(source, loops, position, fade, fadeMs, timeoutMs);
+                  return chan;
+                }
+            }
+          }
+        }
+    } while(!tried);
+
+    switch(playPolicy)
+    { case PlayPolicy.Oldest:
+        lock(callback)
+        { int  oi=reserved;
+          uint age=0;
+          if(channel==FreeChannel)
+            for(int i=reserved; i<chans.Length; i++) { if(chans[i].Age>age) { age=chans[i].Age; oi=i; } }
+          else
+            lock(groups)
+              for(int i=0; i<group.Count; i++)
+              { int chan = (int)group[i];
+                if(chan<reserved) continue;
+                if(chans[chan].Age>age) { age=chans[chan].Age; oi=chan; }
+              }
+          lock(chans[oi]) chans[oi].StartPlaying(source, loops, position, fade, fadeMs, timeoutMs);
+          return oi;
+        }
+      case PlayPolicy.Priority:
+        lock(callback)
+        { int pi=reserved, prio=int.MaxValue;
+          if(channel==FreeChannel)
+            for(int i=reserved; i<chans.Length; i++) { if(chans[i].Priority<prio) { prio=chans[i].Priority; pi=i; } }
+          else
+            lock(groups)
+              for(int i=0; i<group.Count; i++)
+              { int chan = (int)group[i];
+                if(chan<reserved) continue;
+                if(chans[chan].Priority<prio) { prio=chans[chan].Priority; pi=chan; }
+              }
+          lock(chans[pi]) chans[pi].StartPlaying(source, loops, position, fade, fadeMs, timeoutMs);
+          return pi;
+        }
+      case PlayPolicy.OldestPriority:
+        lock(callback)
+        { int  pi=reserved, oi, prio=int.MaxValue;
+          uint age=0;
+          if(channel==FreeChannel)
+          { for(int i=reserved; i<chans.Length; i++) if(chans[i].Priority<prio) { prio=chans[i].Priority; pi=i; }
+            oi=pi;
+            for(int i=reserved; i<chans.Length; i++)
+              if(chans[i].Priority==prio && chans[i].Age>age) { oi=i; age=chans[i].Age; }
+          }
+          else
+            lock(groups)
+            { for(int i=0; i<group.Count; i++)
+              { int chan = (int)group[i];
+                if(chan<reserved) continue;
+                if(chans[chan].Priority<prio) { prio=chans[chan].Priority; pi=chan; }
+              }
+              oi=pi;
+              for(int i=0; i<group.Count; i++)
+              { int chan = (int)group[i];
+                if(chan<reserved) continue;
+                if(chans[chan].Priority==prio && chans[chan].Age>age) { oi=chan; age=chans[chan].Age; }
+              }
+            }
+          lock(chans[oi]) chans[oi].StartPlaying(source, loops, position, fade, fadeMs, timeoutMs);
+          return oi;
+        }
+      default: return -1;
+    }
+  }
+
+  internal static void CheckRate(float rate)
+  { if(rate<0f) throw new ArgumentOutOfRangeException("PlaybackRate");
+  }
+  internal static void CheckChannel(int channel)
+  { CheckInit();
+    if(channel!=FreeChannel && channel<0) throw new ArgumentOutOfRangeException("channel");
+  }
+  internal static void CheckVolume(int volume)
+  { if(volume<0 || volume>Audio.MaxVolume) throw new ArgumentOutOfRangeException("value");
+  }
 
   static int ToGroup(int group) { return -group-2; }
   static ArrayList GetGroup(int group)
@@ -1046,10 +1125,17 @@ public class Audio
   { if(!init) throw new InvalidOperationException("Audio has not been initialized.");
   }
   static unsafe void FillBuffer(int* stream, uint frames, IntPtr context)
-  { lock(callback)
-    { for(int i=0; i<chans.Length; i++) lock(chans[i]) chans[i].Mix(stream, (int)frames, eFilters);
-      if(ePostFilters!=null) ePostFilters(null, stream, (int)frames, format);
-      if(MixPolicy==MixPolicy.Divide) GLMixer.Check(GLMixer.DivideAccumulator(chans.Length));
+  { try
+    { lock(callback)
+      { for(int i=0; i<chans.Length; i++) lock(chans[i]) chans[i].Mix(stream, (int)frames, eFilters);
+        if(ePostFilters!=null) ePostFilters(null, stream, (int)frames, format);
+        if(MixPolicy==MixPolicy.Divide) GLMixer.Check(GLMixer.DivideAccumulator(chans.Length));
+      }
+    }
+    catch(Exception e)
+    { if(Events.Events.Initialized)
+        try { Events.Events.PushEvent(new Events.ExceptionEvent(Events.ExceptionLocation.AudioThread, e)); }
+        catch { }
     }
   }
 

@@ -200,7 +200,7 @@ static void ConvertRate(GLM_AudioCVT *cvt, int destLen)
   { 
     #define HALVE for(; i; src+=2,i--) *dest++ = (src[0]+src[1])/2;
     if(BITS(cvt->srcFormat)==16) /* 16bit */
-    { i = cvt->len/4;
+    { i = destLen/2;
       if(SIGNED(cvt->srcFormat)) /* 16bit signed */
       { Sint16 *src = (Sint16*)cvt->buf, *dest = src;
         HALVE
@@ -211,7 +211,7 @@ static void ConvertRate(GLM_AudioCVT *cvt, int destLen)
       }
     }
     else /* 8bit */
-    { i = cvt->len/2;
+    { i = destLen;
       if(SIGNED(cvt->srcFormat)) /* 8bit signed */
       { Sint8 *src = (Sint8*)cvt->buf, *dest = src;
         HALVE
