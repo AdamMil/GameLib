@@ -54,15 +54,15 @@ public unsafe class Primitives
   { Check(GFX.lineColor(dest.surface, (short)x1, (short)y1, (short)x2, (short)y2, color));
   }
   
-  public static void LineAA(Surface dest, Point p1, Point p2, Color color) { Line(dest, p1.X, p1.Y, p2.X, p2.Y, color); }
-  public static void LineAA(Surface dest, Point p1, Point p2, Color color, byte alpha) { Line(dest, p1.X, p1.Y, p2.X, p2.Y, color, alpha); }
+  public static void LineAA(Surface dest, Point p1, Point p2, Color color) { LineAA(dest, p1.X, p1.Y, p2.X, p2.Y, color); }
+  public static void LineAA(Surface dest, Point p1, Point p2, Color color, byte alpha) { LineAA(dest, p1.X, p1.Y, p2.X, p2.Y, color, alpha); }
   public static void LineAA(Surface dest, int x1, int y1, int x2, int y2, Color color)
   { Check(GFX.aalineRGBA(dest.surface, (short)x1, (short)y1, (short)x2, (short)y2, color.R, color.G, color.B, color.A));
   }
   public static void LineAA(Surface dest, int x1, int y1, int x2, int y2, Color color, byte alpha)
   { Check(GFX.aalineRGBA(dest.surface, (short)x1, (short)y1, (short)x2, (short)y2, color.R, color.G, color.B, alpha));
   }
-  public static void LineAA(Surface dest, Point p1, Point p2, uint color) { Line(dest, p1.X, p1.Y, p2.X, p2.Y, color); }
+  public static void LineAA(Surface dest, Point p1, Point p2, uint color) { LineAA(dest, p1.X, p1.Y, p2.X, p2.Y, color); }
   public static void LineAA(Surface dest, int x1, int y1, int x2, int y2, uint color)
   { Check(GFX.aalineColor(dest.surface, (short)x1, (short)y1, (short)x2, (short)y2, color));
   }

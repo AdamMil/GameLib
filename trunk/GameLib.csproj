@@ -114,6 +114,11 @@
                     BuildAction = "Compile"
                 />
                 <File
+                    RelPath = "Controls.cs"
+                    SubType = "Code"
+                    BuildAction = "Compile"
+                />
+                <File
                     RelPath = "Events.cs"
                     SubType = "Code"
                     BuildAction = "Compile"
@@ -254,6 +259,7 @@
                 />
                 <File
                     RelPath = "Windowing.cs"
+                    SubType = "Code"
                     BuildAction = "Compile"
                 />
             </Include>

@@ -147,10 +147,11 @@ public class RepaintEvent : Event
 }
 
 public abstract class WindowEvent : Event
-{ public WindowEvent(GameLib.Forms.Control control, MessageType subType) : base(EventType.Window)
+{ public WindowEvent(GameLib.Forms.Control control) : base(EventType.Window) { Control=control; }
+  public WindowEvent(GameLib.Forms.Control control, MessageType subType) : base(EventType.Window)
   { Control=control; SubType=subType;
   }
-  public enum MessageType { Unknown, Paint, Layout, KeyRepeat };
+  public enum MessageType { Custom, Paint, Layout, KeyRepeat };
   public GameLib.Forms.Control Control;
   public MessageType SubType;
 }

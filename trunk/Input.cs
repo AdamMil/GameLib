@@ -17,7 +17,7 @@ public class MouseButton
 
 #region Key enum
 public enum Key : int
-{ Unknown         =SDL.Key.Unknown,
+{ Unknown         =SDL.Key.Unknown, None=Unknown,
   
   /* These are mapped to ascii -- BEGIN ASCII MAPPED SECTION */
   Backspace       =SDL.Key.Backspace,
@@ -275,7 +275,7 @@ public sealed class Mouse
   public static int Y { get { return y; } }
   public static System.Drawing.Point Point { get { return new System.Drawing.Point(x, y); } }
   
-  public static bool CursorVisible
+  public static bool SystemCursorVisible
   { get { return cursorVisible; }
     set { SDL.ShowCursor(value?1:0); cursorVisible=(SDL.ShowCursor(-1)!=0); }
   }
