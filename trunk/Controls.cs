@@ -1066,7 +1066,7 @@ public class Form : FormBase
 #endregion
 
 #region MessageBox
-public enum MessageBoxButtons { Ok, OkCancel, YesNo }
+public enum MessageBoxButtons { Ok, OkCancel, YesNo, YesNoCancel }
 public class MessageBox : Form
 { internal MessageBox(string text, string[] buttons) { message=text; buttonText=buttons; }
 
@@ -1079,6 +1079,7 @@ public class MessageBox : Form
     { case MessageBoxButtons.Ok: return Create(caption, text, ok);
       case MessageBoxButtons.OkCancel: return Create(caption, text, okCancel);
       case MessageBoxButtons.YesNo: return Create(caption, text, yesNo);
+      case MessageBoxButtons.YesNoCancel: return Create(caption, text, yesNoCancel);
       default: throw new ArgumentException("Unknown MessageBoxButtons value");
     }
   }
@@ -1099,6 +1100,7 @@ public class MessageBox : Form
   static string[] ok = new string[] { "Ok" };
   static string[] okCancel = new string[] { "Ok", "Cancel" };
   static string[] yesNo = new string[] { "Yes", "No" };
+  static string[] yesNoCancel = new string[] { "Yes", "No", "Cancel" };
 }
 #endregion
 

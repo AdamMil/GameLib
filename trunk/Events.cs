@@ -314,8 +314,7 @@ public sealed class Events
   public static void PumpEvents(EventProcedure proc)
   { if(proc!=null) EventProcedure += proc;
     else if(EventProcedure==null) throw new InvalidOperationException("No event procedure has been registered");
-    if(quit) return;
-    while(EventProcedure(NextEvent()));
+    while(!quit && EventProcedure(NextEvent()));
     quit=true;
   }
   
