@@ -70,9 +70,14 @@ double GLU_GetSeconds()
 { if(hiRes)
   { LARGE_INTEGER cur;
     QueryPerformanceCounter(&cur);
-    return (double)(cur.QuadPart-hrStart.QuadPart)/hrFreq.QuadPart;
+    return (double)(cur.QuadPart-hrStart.QuadPart)/(double)hrFreq.QuadPart;
   }
   else return (GetTickCount()-msStart)/1000.0;
+}
+
+void GLU_ResetTimer()
+{ if(hiRes) QueryPerformanceCounter(&hrStart);
+  else msStart = GetTickCount();
 }
 
 wchar_t GLU_Getch()
