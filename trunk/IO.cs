@@ -563,9 +563,7 @@ public sealed class IOH
   /// <param name="buf">The byte array to read from.</param>
   /// <param name="index">The index from which to begin reading.</param>
   /// <returns>The value read from the array.</returns>
-  public static short ReadBE2(byte[] buf, int index)
-  { return (short)((buf[index]<<8)|buf[index+1]);
-  }
+  public static short ReadBE2(byte[] buf, int index) { return (short)((buf[index]<<8)|buf[index+1]); }
 
   /// <summary>Reads a little-endian integer (4 bytes) from a stream.</summary>
   /// <param name="stream">The stream to read from.</param>
