@@ -313,7 +313,7 @@ public class TrueTypeFont : NonFixedFont, IDisposable
     void Dispose(bool destructor) { Surface.Dispose(); }
   }
   
-  // TODO: implement a priority queue to efficiently limit the cache size
+  // TODO: implement a priority queue or something to efficiently limit the cache size
   protected CachedChar GetChar(char c)
   { CacheIndex ind = new CacheIndex(c, color, bgColor, fstyle, rstyle);
     LinkedList.Node node = (LinkedList.Node)tree[ind];

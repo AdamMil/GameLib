@@ -41,9 +41,10 @@ public unsafe class Drive : IDisposable
   ~Drive() { Dispose(true); }
   public void Dispose() { Dispose(false); GC.SuppressFinalize(this); }
 
-  public int    ID       { get { Update(); return cd->ID; } }
-  public int    CurTrack { get { Update(); return cd->CurTrack; } }
-  public int    CurFrame { get { Update(); return cd->CurFrame; } }
+  public int      ID     { get { Update(); return cd->ID; } }
+  public int      Track  { get { Update(); return cd->CurTrack; } }
+  public int      Frame  { get { Update(); return cd->CurFrame; } }
+  public int      Length { get { Update(); return frames; } }
   public CDStatus Status { get { Update(); return (CDStatus)cd->Status; } }
   public Track[]  Tracks { get { Update(); return tracks; } }
 
@@ -54,13 +55,20 @@ public unsafe class Drive : IDisposable
 
   public void Play() { PlayTracks(0, 0, 0, 0); }
   public void Play(int track)
-  { Track[] tracks = Tracks;
+  { Update();
     Play(tracks[track].Start, tracks[track].Length);
   }
-  public void Play(int start, int length) { SDL.Check(SDL.CDPlay(cd, start, length)); }
+  public void Play(int start, int length)
+  { Update();
+    if(start<0 || length<0 || start+length>frames) throw new ArgumentOutOfRangeException();
+    SDL.Check(SDL.CDPlay(cd, start, length));
+  }
   public void PlayTracks(int startTrack, int numTracks) { PlayTracks(startTrack, 0, numTracks, 0); }
   public void PlayTracks(int startTrack, int startFrame, int numTracks, int endFrame)
-  { SDL.Check(SDL.CDPlayTracks(cd, startTrack, startFrame, numTracks, endFrame));
+  { Update();
+    if(startTrack<0 || startFrame<0 || startTrack+numTracks>tracks.Length)
+      throw new ArgumentOutOfRangeException();
+    SDL.Check(SDL.CDPlayTracks(cd, startTrack, startFrame, numTracks, endFrame));
   }
   
   public void Pause()  { SDL.Check(SDL.CDPause(cd)); }
@@ -73,7 +81,11 @@ public unsafe class Drive : IDisposable
   { SDL.GetCDStatus(cd);
     if(cd->ID!=oldID)
     { tracks = new Track[cd->NumTracks];
-      for(int i=0; i<tracks.Length; i++) tracks[i] = new Track(cd->GetTrack(i));
+      frames = 0;
+      for(int i=0; i<tracks.Length; i++)
+      { tracks[i] = new Track(cd->GetTrack(i));
+        frames += tracks[i].Length;
+      }
       oldID=cd->ID;
     }
   }
@@ -88,7 +100,7 @@ public unsafe class Drive : IDisposable
   SDL.CD* cd;
   Track[] tracks;
   string  name;
-  int     num, oldID;
+  int     num, oldID, frames;
 }
 
 public class CD
