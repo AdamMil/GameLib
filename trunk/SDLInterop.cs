@@ -556,7 +556,7 @@ internal sealed class SDL
   { string error = GetError();
     if(error==null) throw new GameLibException("GameLib says something bad happened, but SDL disagrees");
     ClearError();
-    if(error.IndexOf("Surface was lost")!=-1) throw new Video.SurfaceLostException(error);
+    if(error.IndexOf("Surface was lost")!=-1) throw new Video.SurfaceLostException(); // assumptions about text == bad
     else throw new GameLibException(error);
   }
   

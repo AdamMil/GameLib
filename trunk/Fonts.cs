@@ -654,7 +654,8 @@ public class TrueTypeFont : StyledFont
   /// <see cref="GameLib.Fonts.RenderStyle.Shaded"/>.
   /// </summary>
   /// <remarks>If this property is set to <see cref="System.Drawing.Color.Transparent"/>, the <see cref="BackColor"/>
-  /// will be used instead to shade the font.
+  /// will be used instead to shade the font. If both this and <see cref="BackColor"/> are set to
+  /// <see cref="System.Drawing.Color.Transparent"/>, the font will be shaded against a black background.
   /// </remarks>
   public Color ShadeColor
   { get { return shadeColor; }

@@ -101,27 +101,22 @@ internal sealed class Ogg
   
   public static void Check(int result)
   { if(result>-128) return;
+    string message;
     switch((OggError)result)
-    { case OggError.Read:
-        throw new Audio.OggVorbisException((Audio.OggError)result, "Read error while fetching compressed data for decode");
-      case OggError.Fault:
-        throw new Audio.OggVorbisException((Audio.OggError)result, "Internal inconsistency in decode state. Continuing is likely not possible.");
-      case OggError.NotImpl:
-        throw new Audio.OggVorbisException((Audio.OggError)result, "Feature not implemented");
-      case OggError.Invalid:
-        throw new Audio.OggVorbisException((Audio.OggError)result, "Either an invalid argument, or incompletely initialized argument passed to libvorbisfile call");
-      case OggError.NotVorbis:
-        throw new Audio.OggVorbisException((Audio.OggError)result, "The given file/data was not recognized as Ogg Vorbis data.");
-      case OggError.BadHeader:
-        throw new Audio.OggVorbisException((Audio.OggError)result, "The file/data is apparently an Ogg Vorbis stream, but contains a corrupted or undecipherable header.");
-      case OggError.BadVersion:
-        throw new Audio.OggVorbisException((Audio.OggError)result, "The bitstream format revision of the given stream is not supported.");
-      case OggError.BadLink:
-        throw new Audio.OggVorbisException((Audio.OggError)result, "The given link exists in the Vorbis data stream, but is not decipherable due to garbage or corruption.");
-      case OggError.NoSeek:
-        throw new Audio.OggVorbisException((Audio.OggError)result, "The given stream is not seekable");
-      default: throw new Audio.OggVorbisException((Audio.OggError)result, "Unknown error");
+    { case OggError.Read: message = "Read error while fetching compressed data for decode."; break;
+      case OggError.Fault: message = "Internal inconsistency in decode state. Continuing is likely not possible."; break;
+      case OggError.NotImpl: message = "Feature not implemented."; break;
+      case OggError.Invalid: message = "Either an invalid argument, or incompletely initialized argument passed to libvorbisfile call."; break;
+      case OggError.NotVorbis: message = "The given file/data was not recognized as Ogg Vorbis data."; break;
+      case OggError.BadHeader: message = "The file/data is apparently an Ogg Vorbis stream, but contains a corrupted or undecipherable header."; break;
+      case OggError.BadVersion: message = "The bitstream format revision of the given stream is not supported."; break;
+      case OggError.BadLink: message = "The given link exists in the Vorbis data stream, but is not decipherable due to garbage or corruption."; break;
+      case OggError.NoSeek: message = "The given stream is not seekable."; break;
+      case OggError.NotAudio: message = "The stream does not appear to be an audio stream."; break;
+      case OggError.BadPacket: message = "A packet is not decipherable due to garbage or corruption."; break;
+      default: message = "Unknown error"; break;
     }
+    throw new Audio.OggVorbisException((Audio.OggError)result, message);
   }
 }
 

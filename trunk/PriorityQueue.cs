@@ -22,50 +22,133 @@ using System.Collections;
 namespace GameLib.Collections
 {
 
-public class PriorityQueue : RedBlackTree
+// TODO: use generics when they become available
+
+/// <summary>This class represents a priority queue.</summary>
+/// <remarks>A priority queue works like a standard <see cref="Queue"/>, except that the items are ordered by a
+/// predicate. The value with the highest priority will always be dequeued first. The object with the highest priority
+/// is the object with the greatest value, as determined by the <see cref="IComparer"/> used to initialize the queue.
+/// Multiple objects with the same priority level can be added to the queue.
+/// </remarks>
+public sealed class PriorityQueue : ICollection, IEnumerable
 { 
-  #region IDictionary
-  public new object this[object key]
-  { get { CheckKey(key); return base[key]; }
-    set { CheckKey(key); base[key]=value; }
+  /// <summary>Initializes a new, empty instance of the <see cref="PriorityQueue"/> class, with a default capacity and
+  /// using <see cref="Comparer.Default"/> to compare elements.
+  /// </summary>
+  public PriorityQueue() : this(Comparer.Default, 0) { }
+  /// <summary>Initializes a new, empty instance of the <see cref="PriorityQueue"/> class, with the specified capacity
+  /// and using <see cref="Comparer.Default"/> to compare elements.
+  /// </summary>
+  /// <param name="capacity">The initial capacity of the queue.</param>
+  public PriorityQueue(int capacity) : this(Comparer.Default, capacity) { }
+  /// <summary>Initializes a new, empty instance of the <see cref="PriorityQueue"/> class, with a default capacity
+  /// and using the specified <see cref="IComparer"/> to compare elements.
+  /// </summary>
+  /// <param name="comparer">The <see cref="IComparer"/> that will be used to compare elements.</param>
+  public PriorityQueue(IComparer comparer) : this(comparer, 0) { }
+  /// <summary>Initializes a new, empty instance of the <see cref="PriorityQueue"/> class, with the specified capacity
+  /// and using the given <see cref="IComparer"/> to compare elements.
+  /// </summary>
+  /// <param name="comparer">The <see cref="IComparer"/> that will be used to compare elements.</param>
+  /// <param name="capacity">The initial capacity of the queue.</param>
+  public PriorityQueue(IComparer comparer, int capacity)
+  { if(comparer==null) throw new ArgumentNullException("comparer");
+    if(capacity<0) throw new ArgumentOutOfRangeException("capacity", capacity, "capacity must not be negative");
+    cmp = comparer;
+    array = new ArrayList(capacity);
+  }
+
+  /// <summary>Gets or sets the number of elements that the internal array can contain.</summary>
+  public int Capacity
+  { get { return array.Capacity; }
+    set { array.Capacity = value; }
+  }
+
+  /// <summary>Gets the number of elements contained in the priority queue.</summary>
+  public int Count { get { return array.Count; } }
+
+  /// <summary>Gets the element in the queue with the highest priority.</summary>
+  /// <exception cref="InvalidOperationException">Thrown if the collection is empty.</exception>
+  public object Maximum
+  { get
+    { if(Count==0) throw new InvalidOperationException("The collection is empty.");
+      return array[0];
+    }
+  }
+
+  /// <summary>Removes all elements from the priority queue.</summary>
+  public void Clear() { array.Clear(); }
+
+  /// <summary>Removes and returns the element in the queue with the highest priority.</summary>
+  /// <returns>The element in the queue with the highest priority.</returns>
+  /// <exception cref="InvalidOperationException">Thrown if the collection is empty.</exception>
+  public object DequeueMaximum()
+  { if(Count==0) throw new InvalidOperationException("The collection is empty.");
+    object max = array[0];
+    array[0] = array[Count-1];
+    array.RemoveAt(Count-1);
+    Heapify(0);
+    return max;
   }
   
-  public new void Add(object key, object value)
-  { CheckKey(key);
-    base.Add(key, value);
+  /// <summary>Adds an object to the queue.</summary>
+  /// <param name="value">The object to add to the queue.</param>
+  public void Enqueue(object value)
+  { array.Add(value);
+    int i = Count, ip;
+    while(i>1)
+    { ip=i/2; // i=Parent(i)
+      if(cmp.Compare(array[ip-1], value)>=0) break;
+      array[i-1]=array[ip-1]; i=ip;
+    }
+    array[i-1]=value;
   }
+
+  /// <summary>Shrinks the capacity to the actual number of elements in the priority queue.</summary>
+  public void TrimToSize() { array.TrimToSize(); }
+
+  #region ICollection
+  /// <summary>Copies the queue elements to an existing one-dimensional Array, starting at the specified array index.</summary>
+  /// <param name="array">The one-dimensional <see cref="Array"/> that is the destination of the elements copied
+  /// from the queue.
+  /// </param>
+  /// <param name="startIndex">The zero-based index in array at which copying begins.</param>
+  /// <remarks>See <see cref="ICollection.CopyTo"/> for more information. <seealso cref="ICollection.CopyTo"/></remarks>
+  public void CopyTo(Array array, int index) { array.CopyTo(array, index); }
+  /// <summary>Gets a value indicating whether access to the queue is synchronized (thread-safe).</summary>
+  /// <remarks>See the <see cref="ICollection.IsSynchronized"/> property for more information.
+  /// <seealso cref="ICollection.IsSynchronized"/>
+  /// </remarks>
+  public bool IsSynchronized { get { return array.IsSynchronized; } }
+  /// <summary>Gets an object that can be used to synchronize access to the queue.</summary>
+  /// <remarks>See the <see cref="ICollection.SyncRoot"/> property for more information.
+  /// <seealso cref="ICollection.SyncRoot"/>
+  /// </remarks>
+  public object SyncRoot { get { return array.SyncRoot; } }
   #endregion
 
-  public void Add(int priority, object value) { base.Add(priority, value); }
+  #region IEnumerable
+  /// <summary>Returns an enumerator that can iterate through the queue.</summary>
+  /// <returns>An <see cref="IEnumerator"/> that can be used to iterate through the queue.</returns>
+  public IEnumerator GetEnumerator() { return array.GetEnumerator(); }
+  #endregion
 
-  public object RemoveMinimum()
-  { if(Count==0) throw new InvalidOperationException("The collection is empty");
-    Node n=Root;
-    do n=n.Left; while(n.Left!=Node.Null);
-    Remove(n);
-    return n.Value;
+  void Heapify(int i)
+  { object tmp;
+    int li, ri, largest, count=Count;
+    i++;
+    while(true)
+    { li=i*2-1; ri=i*2; i--; // li=Left(i), ri=Right(i)
+      largest = li<count && cmp.Compare(array[li], array[i])>0 ? li : i;
+      if(ri<count && cmp.Compare(array[ri], array[largest])>0) largest=ri;
+      if(largest==i) break;
+      tmp=array[i]; array[i]=array[largest]; array[largest]=tmp;
+      i = largest+1;
+    }
   }
 
-  public object RemoveMaximum()
-  { if(Count==0) throw new InvalidOperationException("The collection is empty");
-    Node n=Root;
-    do n=n.Right; while(n.Right!=Node.Null);
-    Remove(n);
-    return n.Value;
-  }
-
-  public void SetPriority(int oldPriority, int newPriority)
-  { if(Contains(newPriority))
-      throw new ArgumentException("Tree already contains the priority "+newPriority, "newPriority");
-    Node n = Find(oldPriority);
-    if(n==Node.Null) throw new ArgumentException("The old priority does not exist in the tree", "oldPriority");
-    Remove(n);
-    Add(newPriority, n.Value);
-  }
-
-  protected void CheckKey(object key)
-  { if(!(key is int)) throw new ArgumentException("Key must be an integer");
-  }
+  ArrayList array;
+  IComparer cmp;
 }
 
 } // namespace GameLib.Collections

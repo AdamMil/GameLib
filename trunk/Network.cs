@@ -317,7 +317,7 @@ public sealed class NetLink
     buf[2] = (byte)(flags&~(SendFlag)HeadFlag.Mask);
     if((flags&SendFlag.Sequential)!=0)
     { buf[2] |= (byte)((sendSeq&0xFF00)>>2);          // sequence number uses top two bits of sendflags field
-      buf[3]  = (byte)sendSeq;
+      buf[3]  = (byte)sendSeq;                        // to provide a 10-bit sequence number
       if(++sendSeq>=SeqMax) sendSeq=0;
     }
     Array.Copy(data, index, buf, HeaderSize, length);
