@@ -135,7 +135,7 @@ public abstract class LabelBase : Control
     }
   }
   
-  public IBlittable Image
+  public Surface Image
   { get { return image; }
     set
     { if(image != value)
@@ -173,7 +173,7 @@ public abstract class LabelBase : Control
 
   protected virtual void OnTextAlignChanged(ValueChangedEventArgs e) { Invalidate(); }
 
-  IBlittable image;
+  Surface image;
   BorderStyle border;
   Color borderColor=Color.Transparent;
   ContentAlignment imageAlign=ContentAlignment.TopLeft, textAlign=ContentAlignment.TopLeft;
@@ -413,7 +413,7 @@ public class CheckBox : CheckBoxBase
     }
 
     Rectangle box = new Rectangle(rect.X, rect.Y+(rect.Height-boxSize)/2, boxSize, boxSize);
-    if(!Focused) Helpers.DrawBorder(e.Surface, box, BorderStyle, BorderColor, true);
+    Helpers.DrawBorder(e.Surface, box, BorderStyle, BorderColor, true);
     box.Inflate(-borderSize, -borderSize);
     e.Surface.Fill(box, down ? SystemColors.Control : SystemColors.Window);
     if(Checked)

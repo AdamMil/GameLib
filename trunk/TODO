@@ -6,4 +6,5 @@
 + make a generic class (like surface), that supports both sdl and opengl
 * rewrite font code, etc to use the new generic surface
 * check GL constants against *nix versions
-* create patch against libsndfile
+* create patch against libsndfile for easy updating
+* all the TODOs everywhere in the code!

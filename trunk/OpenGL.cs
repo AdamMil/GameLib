@@ -21,6 +21,8 @@ using System.Drawing;
 using GameLib.Interop;
 using GameLib.Interop.OpenGL;
 
+// TODO: support 15-bit color
+
 namespace GameLib.Video
 {
 
@@ -137,7 +139,7 @@ public sealed class OpenGL
 
     Surface temp = new Surface(nwidth+border*2, nheight+border*2, pf, pf.Depth==32 ? SurfaceFlag.SrcAlpha : 0);
     bool oua = surface.UsingAlpha;
-    if(surface.Format.AlphaMask!=0 || surface.Alpha==AlphaLevel.Opaque) surface.UsingAlpha=false;
+    if(surface.Format.AlphaMask!=0 || surface.Alpha==255) surface.UsingAlpha=false;
     surface.Blit(temp, border, border);
     surface.UsingAlpha = oua;
     temp.Lock();

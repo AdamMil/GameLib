@@ -106,24 +106,16 @@ internal sealed class SDL
   { None, Active, KeyDown, KeyUp, MouseMove, MouseDown, MouseUp, JoyAxis, JoyBall, JoyHat, JoyDown, JoyUp,
     Quit, SysWMEvent, VideoResize=16, VideoExposed, UserEvent0=24, NumEvents=32
   }
-  [Flags]
-  public enum FocusType : byte
-  { MouseFocus=1, InputFocus=2, AppActive=4
-  }
+  [Flags] public enum FocusType : byte { MouseFocus=1, InputFocus=2, AppActive=4 }
   [Flags]
   public enum HatPos : byte
   { Centered=0, Up=1, Right=2, Down=4, Left=8,
     UpRight=Up|Right, UpLeft=Up|Left, DownRight=Down|Right, DownLeft=Down|Left
   }
-  public enum TrackType : byte
-  { Audio=0, Data=4
-  }
-  public enum CDStatus : int
-  { TrayEmpty, Stopped, Playing, Paused, Error=-1
-  }
-  public enum SeekType : int
-  { Absolute, Relative, FromEnd
-  }
+  public enum TrackType : byte { Audio=0, Data=4 }
+  public enum CDStatus : int { TrayEmpty, Stopped, Playing, Paused, Error=-1 }
+  public enum SeekType : int { Absolute, Relative, FromEnd }
+  public enum PaletteType { Logical=1, Physical=2 }
 
   [Flags]
   public enum InfoFlag : uint
@@ -131,17 +123,9 @@ internal sealed class SDL
     SH=0x1000, SHKeyed=0x2000, SHAlpha=0x4000, Fills=0x8000
   }
   
-  public enum AudioStatus : int
-  { Stopped, Playing, Paused
-  }
-  
-  public enum JoystickMode : int
-  { Query=-1, Poll=0, Events=1
-  }
-
-  public enum GrabMode : int
-  { Query=-1, Off=0, On=1
-  }
+  public enum AudioStatus : int { Stopped, Playing, Paused }
+  public enum JoystickMode : int { Query=-1, Poll=0, Events=1 }
+  public enum GrabMode : int { Query=-1, Off=0, On=1 }
   #endregion
 
   #region Structs
@@ -151,6 +135,7 @@ internal sealed class SDL
     { X = (short)rect.X; Y = (short)rect.Y; Width = (ushort)rect.Width; Height = (ushort)rect.Height;
     }
     public Rect(int x, int y) { X=(short)x; Y=(short)y; Width=Height=1; }
+    public System.Drawing.Size Size { get { return new System.Drawing.Size(Width, Height); } }
     public System.Drawing.Rectangle ToRectangle() { return new System.Drawing.Rectangle(X, Y, Width, Height); }
     public override string ToString() { return ToRectangle().ToString(); }
     public short  X, Y;
@@ -332,7 +317,7 @@ internal sealed class SDL
   public unsafe struct VideoInfo
   { public InfoFlag flags;
     public uint videoMem;
-    void* format;
+    public PixelFormat* format;
   }
   [StructLayout(LayoutKind.Sequential, Pack=4)]
   public unsafe struct AudioSpec

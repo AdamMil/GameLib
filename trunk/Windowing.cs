@@ -117,7 +117,7 @@ public class PaintEventArgs : EventArgs
       DisplayRect = control.WindowToBacking(windowRect);
       if(!Surface.Bounds.Contains(DisplayRect))
       { DisplayRect.Intersect(Surface.Bounds);
-        WindowRect  = control.BackingToWindow(DisplayRect);
+        WindowRect = control.BackingToWindow(DisplayRect);
       }
     }
   }
@@ -504,7 +504,7 @@ public class Control
   /// <remarks>Setting the background image causes the image to be displayed in the background of the control.
   /// The alignment of the background image can be controlled using the <see cref="BackImageAlign"/> property.
   /// </remarks>
-  public IBlittable BackImage
+  public Surface BackImage
   { get { return backImage; }
     set
     { if(value!=backImage)
@@ -591,7 +591,7 @@ public class Control
   /// cause the mouse cursor to be inherited from the control's parent. Getting this property takes inheritance into
   /// account and returns the effective mouse cursor.
   /// </remarks>
-  public IBlittable Cursor
+  public Surface Cursor
   { get
     { Control c = this;
       while(c!=null) { if(c.cursor!=null) return c.cursor; c=c.parent; }
@@ -897,7 +897,7 @@ public class Control
   /// <remarks>Generally, the <see cref="Cursor"/> property should be used to get the cursor, but if you want
   /// to get it without taking inheritance into account, use this one.
   /// </remarks>
-  public IBlittable RawCursor { get { return cursor; } }
+  public Surface RawCursor { get { return cursor; } }
 
   /// <summary>Gets this control's raw enabled value.</summary>
   /// <remarks>Generally, the <see cref="Enabled"/> property should be used to determine if the control is enabled,
@@ -1958,7 +1958,8 @@ public class Control
   /// <param name="e">A <see cref="PaintEventArgs"/> that contains the event data.</param>
   /// <remarks>When overriding this method in a derived class, be sure to call the base class'
   /// version to ensure that the default processing gets performed. The proper place to do this is at the start
-  /// of the derived version.
+  /// of the derived version. The surface's <see cref="Surface.ClipRect">ClipRect</see> property will be set equal
+  /// to the <see cref="PaintEventArgs.DisplayRect"/> property.
   /// </remarks>
   protected internal virtual void OnPaintBackground(PaintEventArgs e)
   { if(PaintBackground!=null) PaintBackground(this, e);
@@ -1973,7 +1974,8 @@ public class Control
   /// <param name="e">A <see cref="PaintEventArgs"/> that contains the event data.</param>
   /// <remarks>When overriding this method in a derived class, be sure to call the base class'
   /// version to ensure that the default processing gets performed. The proper place to do this is at the start
-  /// of the derived version.
+  /// of the derived version. The surface's <see cref="Surface.ClipRect">ClipRect</see> property will be set equal
+  /// to the <see cref="PaintEventArgs.DisplayRect"/> property.
   /// </remarks>
   protected internal virtual void OnPaint(PaintEventArgs e)
   { if(Paint!=null) Paint(this, e);
@@ -2236,7 +2238,7 @@ public class Control
   Control parent, focused;
   GameLib.Fonts.Font font;
   Color back=Color.Transparent, fore=Color.Transparent;
-  IBlittable backImage, cursor;
+  Surface backImage, cursor;
   string name=string.Empty, text=string.Empty;
   object tag;
   Rectangle bounds = new Rectangle(0, 0, 100, 100), invalid;
@@ -2760,7 +2762,7 @@ public class DesktopControl : ContainerControl, IDisposable
   public bool UpdateDisplay(int x, int y)
   { if(updatedLen>0)
     { if(surface==null) throw new InvalidOperationException("Cannot update the display when Surface is null!");
-      if(surface==Video.Video.DisplaySurface) Video.Video.UpdateRects(updated, updatedLen);
+      if(surface==Video.Video.DisplaySurface) Video.Video.UpdateRects(updated, 0, updatedLen);
       else if(Video.Video.DisplaySurface==null) throw new InvalidOperationException("No video mode has been set!");
       else
       { for(int i=0; i<updatedLen; i++)
@@ -2888,8 +2890,10 @@ public class DesktopControl : ContainerControl, IDisposable
   internal void DoPaint(Control control)
   { if(surface!=null && control.InvalidRect.Width>0)
     { PaintEventArgs pe = new PaintEventArgs(control, control.InvalidRect, surface);
+      pe.Surface.ClipRect = pe.DisplayRect;
       control.OnPaintBackground(pe);
       control.OnPaint(pe);
+      pe.Surface.ClipRect = pe.Surface.Bounds;
 
       if(control.backingSurface!=null || pe.Surface!=surface && !control.Transparent)
       { Point pt = control.WindowToDisplay(pe.WindowRect.Location);

@@ -188,8 +188,8 @@ public abstract class NonFixedFont : Font
 
 #region BitmapFont class
 public class BitmapFont : Font, IDisposable
-{ public BitmapFont(IBlittable font, string charset, int charWidth) : this(font, charset, charWidth, 1, font.Height+2) { }
-  public BitmapFont(IBlittable font, string charset, int charWidth, int xAdd, int lineSkip)
+{ public BitmapFont(Surface font, string charset, int charWidth) : this(font, charset, charWidth, 1, font.Height+2) { }
+  public BitmapFont(Surface font, string charset, int charWidth, int xAdd, int lineSkip)
   { orig   = font;
     width  = charWidth;
     height = lineSkip;
@@ -230,13 +230,13 @@ public class BitmapFont : Font, IDisposable
   }
 
   protected override void DisplayFormatChanged()
-  { IBlittable compatible = orig.CreateCompatible();
+  { Surface compatible = orig.CloneDisplay();
     font = compatible==null ? orig : compatible;
   }
 
   protected void Dispose(bool destructing) { base.Deinit(); }
 
-  IBlittable font, orig;
+  Surface font, orig;
   string charset;
   int    width, height, xAdd;
 }

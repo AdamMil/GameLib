@@ -3,9 +3,9 @@ Legend
 +  Addition
 -  Removal
 *  Alteration/other
-!  Alteration/other that changes an interface
+!  Alteration/Removal/other that breaks backwards compatibility
 
-Changes
+2004.04.11 (beta)
 -------
 * Made Asteroids example use the CD drive better
 * Fixed a bug in which OnControlRemoved/OnControlAdded could be fired before
@@ -33,7 +33,7 @@ Changes
 + Started on a wrapper for a 2D OpenGL texture
 + Added a 2D Rectangle class
 * Fixed some bugs in the Polygon class, added some basic intersection code
-+ Added a 32 and 64 bit fixed-point math classes
++ Added 32 and 64 bit fixed-point math classes
 * Improved some samples (used GLTexture2D in OpenGL and added better
   exception handling to Asteroids)
 * Improved the Vector classes (you can now normalize to a given length)
@@ -46,6 +46,29 @@ Changes
 * Fixed a bug in the rectangle union code
 * Fixed the line-polygon intersection code
 - Removed the code to clip a line to the section outside of a polygon
+  (for now)
+* Used the Surface.ClipRect property to optimize the Windowing drawing code
+* Fixed a bug with the way the Checkbox control draws itself
+* Made the Input example flip the video surface only when there was nothing
+  else to do (using an IdleProcedure)
++ Added a Format property to the VideoInfo class which returns the pixel
+  format of the "best" video mode.
+* A null PixelFormat can now be passed to Video.GetModes
+! Changed Video.GetModes to return an array of Size, rather than Rectangle
+! Added an index parameter to Video.UpdateRects(Rectangle[], int)
+! Removed the PaletteType parameter from the GetPalette calls
+! Removed the Video.GetPalette call
+! Made the Video.SetPalette call always set the physical palette
+! Removed the current usage of IBlittable
+! Changed the name SurfaceFlag.AnyFormat to SurfaceFlag.NoEmulation
++ Added a Surface(Bitmap, SurfaceFlag) constructor
+! Removed the Surface constructor that took all the masks inline
+! Renamed Surface.HasHWPalette to Surface.HasPhysicalPalette
+! Removed the AlphaLevel class (no longer needed now that you've got real
+  documentation!)
+! Removed Surface.Flip
+! Greatly simplified the color key and surface alpha interface
++ Added some more documentation (for Video.cs and Surface.cs).
 
 2004.02.07 (beta)
 -----------------
