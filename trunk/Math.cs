@@ -64,7 +64,7 @@ public struct Vector
 public struct Point
 { public Point(float x, float y) { X=x; Y=y; }
 
-  public bool Valid { get { return !float.IsNaN(X) && !float.IsNaN(Y); } }
+  public bool Valid { get { return !float.IsNaN(X); } }
 
   public float DistanceTo(Point point)
   { float xd=point.X-X, yd=point.Y-Y;
@@ -75,7 +75,7 @@ public struct Point
     return xd*xd+yd*yd;
   }
 
-  public void Offset(int xd, int yd) { X+=xd; Y+=yd; }
+  public void Offset(float xd, float yd) { X+=xd; Y+=yd; }
 
   public override string ToString() { return string.Format("({0:f},{1:f})", X, Y); }
 
@@ -101,7 +101,7 @@ public struct Line
 { public Line(float x, float y, float xd, float yd) { Start=new Point(x, y); Vector=new Vector(xd, yd); }
   public Line(Point start, Vector vector) { Start=start; Vector=vector; }
 
-  public Point End { get { return new Point(Start.X+Vector.X, Start.Y+Vector.Y); } }
+  public Point End { get { return Start+Vector; } }
   public float Length { get { return Vector.Length; } }
   public float LengthSqr { get { return Vector.LengthSqr; } }
 
@@ -144,7 +144,7 @@ public struct Line
 
   public float WhichSide(Point point) { return Vector.CrossVector.DotProduct(point-Start); }
 
-  public override string ToString() { return string.Format("{0} + {1}", Start, Vector); }
+  public override string ToString() { return string.Format("{0}->{1}", Start, Vector); }
 
   public static Line FromPoints(Point start, Point end) { return new Line(start, end-start); }
   public static Line FromPoints(float x1, float y1, float x2, float y2) { return new Line(x1, y1, x2-x1, y2-y1); }
@@ -445,10 +445,6 @@ public sealed class Polygon
 namespace ThreeD
 {
 
-public struct Point
-{ public float X, Y, Z;
-}
-
 #region Vector
 public struct Vector
 { public Vector(float x, float y, float z) { X=x; Y=y; Z=z; }
@@ -482,6 +478,8 @@ public struct Vector
     return new Vector(X*cos-Y*sin, X*sin+Y*cos, Z);
   }
   
+  public override string ToString() { return string.Format("[{0:f},{1:f},{2:f}]", X, Y, Z); }
+
   public static Vector operator-(Vector v) { return new Vector(-v.X, -v.Y, -v.Z); }
   public static Vector operator+(Vector a, Vector b) { return new Vector(a.X+b.X, a.Y+b.Y, a.Z+b.Z); }
   public static Vector operator-(Vector a, Vector b) { return new Vector(a.X-b.X, a.Y-b.Y, a.Z-b.Z); }
@@ -496,18 +494,60 @@ public struct Vector
 }
 #endregion
 
+#region Point
+public struct Point
+{ public Point(float x, float y, float z) { X=x; Y=y; Z=z; }
+
+  public float DistanceTo(Point point)
+  { float xd=point.X-X, yd=point.Y-Y, zd=point.Z-Z;
+    return (float)Math.Sqrt(xd*xd+yd*yd+zd*zd);
+  }
+  public float DistanceSqrTo(Point point)
+  { float xd=point.X-X, yd=point.Y-Y, zd=point.Z-Z;
+    return xd*xd+yd*yd+zd*zd;
+  }
+
+  public void Offset(float xd, float yd, float zd) { X+=xd; Y+=yd; Z+=zd; }
+
+  public override string ToString() { return string.Format("({0:f},{1:f},{2:f})", X, Y, Z); }
+
+  public static Vector operator-(Point lhs, Point rhs)  { return new Vector(lhs.X-rhs.X, lhs.Y-rhs.Y, lhs.Z-rhs.Z); }
+  public static Point  operator-(Point lhs, Vector rhs) { return new Point(lhs.X-rhs.X, lhs.Y-rhs.Y, lhs.Z-rhs.Z); }
+  public static Point  operator+(Point lhs, Vector rhs) { return new Point(lhs.X+rhs.X, lhs.Y+rhs.Y, lhs.Z+rhs.Z); }
+  
+  public float X, Y, Z;
+}
+#endregion
+
+#region Line
+public struct Line
+{ public Line(float x, float y, float z, float xd, float yd, float zd) { Start=new Point(x, y, z); Vector=new Vector(xd, yd, zd); }
+  public Line(Point start, Vector vector) { Start=start; Vector=vector; }
+
+  public Point End { get { return Start+Vector; } }
+  public float Length { get { return Vector.Length; } }
+  public float LengthSqr { get { return Vector.LengthSqr; } }
+
+  public Point GetPoint(int point)
+  { if(point<0 || point>1) throw new ArgumentOutOfRangeException("point", point, "must be 0 or 1");
+    return point==0 ? Start : End;
+  }
+
+  public override string ToString() { return string.Format("{0}->{1}", Start, Vector); }
+
+  public static Line FromPoints(Point start, Point end) { return new Line(start, end-start); }
+  public static Line FromPoints(float x1, float y1, float z1, float x2, float y2, float z2)
+  { return new Line(x1, y1, z1, x2-x1, y2-y1, z2-z1);
+  }
+
+  public Point  Start;
+  public Vector Vector;
+}
+#endregion
+
 public struct Plane
 { public Point  Point;
   public Vector Normal;
-}
-
-public struct Line
-{ public Point Start, End;
-}
-
-public struct ParaLine
-{ public Point Point;
-  public Vector Vector;
 }
 
 public struct Sphere
