@@ -28,7 +28,7 @@ namespace GameLib.Collections
 /// <summary>This class implements a red-black tree and serves as the base for <see cref="Map"/> and
 /// <see cref="BinaryTree"/>.
 /// </summary>
-public class RedBlackBase
+public abstract class RedBlackBase
 { internal RedBlackBase(IComparer comparer) { this.comparer = comparer; }
 
   /// <summary>This class represents a node in a red-black tree.</summary>
