@@ -125,7 +125,7 @@ internal class SDL
     public short  X, Y;
     public ushort Width, Height;
   }
-  [StructLayout(LayoutKind.Explicit)]
+  [StructLayout(LayoutKind.Explicit, Size=4)]
   public struct Color
   { public Color(System.Drawing.Color c) { Value=0; Red=c.R; Green=c.G; Blue=c.B; Alpha=c.A; }
     [FieldOffset(0)] public byte Red;
@@ -166,14 +166,14 @@ internal class SDL
     private uint   FormatVersion;
     private int    RefCount;
   }
-  [StructLayout(LayoutKind.Explicit)] // TODO: do something to make these more compatible with different systems
+  [StructLayout(LayoutKind.Explicit, Size=16)] // TODO: do something to make these more compatible with different systems
   public struct KeySym
   { [FieldOffset(0)]  public byte Scan;
     [FieldOffset(4)]  public int  Sym;
     [FieldOffset(8)]  public uint Mod;
     [FieldOffset(12)] public char Unicode;
   }
-  [StructLayout(LayoutKind.Explicit)]
+  [StructLayout(LayoutKind.Explicit, Size=20)]
   public struct Event
   { [FieldOffset(0)] public EventType        Type;
     [FieldOffset(0)] public ActiveEvent      Active;
@@ -189,20 +189,20 @@ internal class SDL
     [FieldOffset(0)] public QuitEvent        Quit;
     [FieldOffset(0)] public UserEvent        User;
   }
-  [StructLayout(LayoutKind.Explicit)]
+  [StructLayout(LayoutKind.Explicit, Size=3)]
   public struct ActiveEvent
   { [FieldOffset(0)] public EventType Type;
     [FieldOffset(1)] public byte      Focused;
     [FieldOffset(2)] public FocusType State;
   }
-  [StructLayout(LayoutKind.Explicit)]
+  [StructLayout(LayoutKind.Explicit, Size=20)]
   public struct KeyboardEvent
   { [FieldOffset(0)] public EventType Type;
     [FieldOffset(1)] public byte   Device;
     [FieldOffset(2)] public byte   Down;
     [FieldOffset(4)] public KeySym Key;
   }
-  [StructLayout(LayoutKind.Explicit)]
+  [StructLayout(LayoutKind.Explicit, Size=12)]
   public struct MouseMoveEvent
   { [FieldOffset(0)]  public EventType Type;
     [FieldOffset(1)]  public byte   Device;
@@ -212,7 +212,7 @@ internal class SDL
     [FieldOffset(8)]  public short  Xrel;
     [FieldOffset(10)] public short  Yrel;
   }
-  [StructLayout(LayoutKind.Explicit)]
+  [StructLayout(LayoutKind.Explicit, Size=8)]
   public struct MouseButtonEvent
   { [FieldOffset(0)] public EventType Type;
     [FieldOffset(1)] public byte   Device;
@@ -221,14 +221,14 @@ internal class SDL
     [FieldOffset(4)] public ushort X;
     [FieldOffset(6)] public ushort Y;
   }
-  [StructLayout(LayoutKind.Explicit)]
+  [StructLayout(LayoutKind.Explicit, Size=6)]
   public struct JoyAxisEvent
   { [FieldOffset(0)] public EventType Type;
     [FieldOffset(1)] public byte  Device;
     [FieldOffset(2)] public byte  Axis;
     [FieldOffset(4)] public short Value;
   }
-  [StructLayout(LayoutKind.Explicit)]
+  [StructLayout(LayoutKind.Explicit, Size=8)]
   public struct JoyBallEvent
   { [FieldOffset(0)] public EventType Type;
     [FieldOffset(1)] public byte  Device;
@@ -236,21 +236,21 @@ internal class SDL
     [FieldOffset(4)] public short Xrel;
     [FieldOffset(6)] public short Yrel;
   }
-  [StructLayout(LayoutKind.Explicit)]
+  [StructLayout(LayoutKind.Explicit, Size=4)]
   public struct JoyHatEvent
   { [FieldOffset(0)] public EventType Type;
     [FieldOffset(1)] public byte   Device;
     [FieldOffset(2)] public byte   Hat;
     [FieldOffset(3)] public HatPos Position;
   }
-  [StructLayout(LayoutKind.Explicit)]
+  [StructLayout(LayoutKind.Explicit, Size=4)]
   public struct JoyButtonEvent
   { [FieldOffset(0)] public EventType Type;
     [FieldOffset(1)] public byte Device;
     [FieldOffset(2)] public byte Button;
     [FieldOffset(3)] public byte Down;
   }
-  [StructLayout(LayoutKind.Explicit)]
+  [StructLayout(LayoutKind.Explicit, Size=12)]
   public struct ResizeEvent
   { [FieldOffset(0)] public EventType Type;
     [FieldOffset(4)] public int Width;
@@ -574,15 +574,10 @@ internal class SDL
 }
 
 #region StreamRWOps class
-internal class StreamRWOps
+internal class StreamRWOps : StreamCallbackSource
 { public StreamRWOps(Stream stream) : this(stream, true) { }
-  public unsafe StreamRWOps(Stream stream, bool autoClose)
-  { if(stream==null) throw new ArgumentNullException("stream");
-    else if(!stream.CanSeek || !stream.CanRead)
-      throw new ArgumentException("Stream must be seekable and readable", "stream");
-    this.stream    = stream;
-    this.autoClose = autoClose;
-    seek  = new SDL.SeekHandler(OnSeek);
+  public unsafe StreamRWOps(Stream stream, bool autoClose) : base(stream, true)
+  { seek  = new SDL.SeekHandler(OnSeek);
     read  = new SDL.ReadHandler(OnRead);
     write = new SDL.WriteHandler(OnWrite);
     close = new SDL.CloseHandler(OnClose);
@@ -590,68 +585,25 @@ internal class StreamRWOps
     ops.Read  = new DelegateMarshaller(read).ToPointer();
     ops.Write = new DelegateMarshaller(write).ToPointer();
     ops.Close = new DelegateMarshaller(close).ToPointer();
-
-    if(!autoClose) GC.SuppressFinalize(this);
-  }
-  ~StreamRWOps() { if(stream!=null) stream.Close(); }
-
-  unsafe int OnSeek(SDL.RWOps* ops, int offset, SDL.SeekType type)
-  { long pos=-1;
-    switch(type)
-    { case SDL.SeekType.Absolute: pos = stream.Seek(offset, SeekOrigin.Begin); break;
-      case SDL.SeekType.Relative: pos = stream.Seek(offset, SeekOrigin.Current); break;
-      case SDL.SeekType.FromEnd:  pos = stream.Seek(offset, SeekOrigin.End); break;
-    }
-    return (int)pos;
-  }
-  
-  unsafe int OnRead(SDL.RWOps* ops, byte* data, int size, int maxnum)
-  { if(size<=0 || maxnum<=0) return 0;
-
-    byte[] buf = new byte[size];
-    int i=0, read;
-    try
-    { for(; i<maxnum; i++)
-      { read = stream.Read(buf, 0, size);
-        if(read!=size) { return i==0 ? -1 : i; }
-        for(int j=0; j<size; j++) *data++=buf[j];
-      }
-      return i;
-    }
-    catch { return i==0 ? -1 : i; }
   }
 
-  unsafe int OnWrite(SDL.RWOps* ops, byte* data, int size, int num)
-  { if(!stream.CanWrite) return -1;
-    if(size<=0 || num<=0) return 0;
-    int total=size*num, len = Math.Min(total, 1024);
-    byte[] buf = new byte[len];
-    try
-    { do
-      { if(total<len) len=total;
-        for(int i=0; i<len; i++) buf[i]=*data++;
-        stream.Write(buf, 0, len);
-        total -= len;
-      } while(total>0);
-      return size;
-    }
-    catch { return -1; }
-  }
-  
-  unsafe int OnClose(SDL.RWOps* ops)
-  { if(autoClose) stream.Close();
-    stream=null;
-    GC.SuppressFinalize(this);
-    return 0;
-  }
+  unsafe int OnSeek(SDL.RWOps* ops, int offset, SDL.SeekType type) { return (int)Seek(offset, (SeekType)type); }
+  unsafe int OnRead(SDL.RWOps* ops, byte* data, int size, int maxnum) { return (int)Read(data, size, maxnum); }
+  unsafe int OnWrite(SDL.RWOps* ops, byte* data, int size, int num) { return (int)Write(data, size, num); }
+  unsafe int OnClose(SDL.RWOps* ops) { MaybeClose(); return 0; }
   
   internal SDL.RWOps ops;
-  Stream stream;
   SDL.SeekHandler  seek;
   SDL.ReadHandler  read;
   SDL.WriteHandler write;
   SDL.CloseHandler close;
-  bool autoClose;
+}
+
+internal class SeekableStreamRWOps : StreamRWOps
+{ public SeekableStreamRWOps(Stream stream) : this(stream, true) { }
+  public SeekableStreamRWOps(Stream stream, bool autoClose) : base(stream, true)
+  { if(!stream.CanSeek) throw new ArgumentException("stream must be seekable", "stream");
+  }
 }
 #endregion
 

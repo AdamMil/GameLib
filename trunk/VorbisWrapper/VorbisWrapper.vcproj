@@ -2,8 +2,8 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="7.10"
-	Name="Mixer"
-	ProjectGUID="{7BD0C93F-4FC4-4BF6-98BD-2D929DB137A5}"
+	Name="VorbisWrapper"
+	ProjectGUID="{3641FCCC-1B65-4A7E-8363-108FFCC8BB44}"
 	Keyword="Win32Proj">
 	<Platforms>
 		<Platform
@@ -19,8 +19,8 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="c:\code\sdl\include"
-				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;MIXER_EXPORTS"
+				AdditionalIncludeDirectories="&quot;C:\code\SDL-1.2.5\include&quot;;C:\code\oggvorbis\include"
+				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;VORBISWRAPPER_EXPORTS"
 				MinimalRebuild="TRUE"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
@@ -33,14 +33,14 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="SDL.lib"
-				OutputFile="$(OutDir)/Mixer.dll"
+				AdditionalDependencies="ogg_static.lib vorbis_static.lib vorbisfile_static.lib"
+				OutputFile="$(OutDir)/VorbisWrapper.dll"
 				LinkIncremental="2"
-				AdditionalLibraryDirectories="c:\code\sdl\lib"
+				AdditionalLibraryDirectories="C:\code\oggvorbis\lib"
 				GenerateDebugInformation="TRUE"
-				ProgramDatabaseFile="$(OutDir)/Mixer.pdb"
+				ProgramDatabaseFile="$(OutDir)/VorbisWrapper.pdb"
 				SubSystem="2"
-				ImportLibrary="$(OutDir)/Mixer.lib"
+				ImportLibrary="$(OutDir)/VorbisWrapper.lib"
 				TargetMachine="1"/>
 			<Tool
 				Name="VCMIDLTool"/>
@@ -72,16 +72,11 @@
 			WholeProgramOptimization="TRUE">
 			<Tool
 				Name="VCCLCompilerTool"
-				Optimization="2"
 				GlobalOptimizations="TRUE"
-				InlineFunctionExpansion="1"
-				OmitFramePointers="TRUE"
-				AdditionalIncludeDirectories="c:\code\sdl\include"
-				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;MIXER_EXPORTS"
-				StringPooling="TRUE"
+				OptimizeForProcessor="2"
+				AdditionalIncludeDirectories="C:\code\sdl\include;C:\code\oggvorbis\include"
+				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;VORBISWRAPPER_EXPORTS"
 				RuntimeLibrary="2"
-				BufferSecurityCheck="FALSE"
-				EnableFunctionLevelLinking="TRUE"
 				ForceConformanceInForLoopScope="TRUE"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
@@ -91,15 +86,15 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="SDL.lib"
-				OutputFile="$(OutDir)/Mixer.dll"
+				AdditionalDependencies="ogg_static.lib vorbis_static.lib vorbisfile_static.lib"
+				OutputFile="$(OutDir)/VorbisWrapper.dll"
 				LinkIncremental="1"
-				AdditionalLibraryDirectories="c:\code\sdl\lib"
+				AdditionalLibraryDirectories="C:\code\oggvorbis\lib"
 				GenerateDebugInformation="FALSE"
 				SubSystem="2"
 				OptimizeReferences="2"
 				EnableCOMDATFolding="2"
-				ImportLibrary="$(OutDir)/Mixer.lib"
+				ImportLibrary="$(OutDir)/VorbisWrapper.lib"
 				TargetMachine="1"/>
 			<Tool
 				Name="VCMIDLTool"/>
@@ -127,10 +122,10 @@
 	</References>
 	<Files>
 		<File
-			RelativePath="Mixer.c">
+			RelativePath=".\VorbisWrapper.c">
 		</File>
 		<File
-			RelativePath="Mixer.h">
+			RelativePath=".\VorbisWrapper.h">
 		</File>
 	</Files>
 	<Globals>

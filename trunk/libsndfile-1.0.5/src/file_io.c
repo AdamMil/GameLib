@@ -17,7 +17,7 @@
 */
 
 #include <stdio.h>
-#include <unistd.h>
+#include "unistd.h"
 #include <string.h>
 #include <fcntl.h>
 #include <errno.h>
@@ -31,9 +31,9 @@
 #include "sndfile.h"
 #include "common.h"
 
-#define CALLCONV __stdcall
-
 #define	SENSIBLE_SIZE	(0x40000000)
+
+#define CALLCONV __stdcall
 
 static void psf_log_syserr (SF_PRIVATE *psf, int error) ;
 

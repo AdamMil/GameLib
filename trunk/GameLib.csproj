@@ -1,8 +1,8 @@
 <VisualStudioProject>
     <CSHARP
         ProjectType = "Local"
-        ProductVersion = "7.0.9466"
-        SchemaVersion = "1.0"
+        ProductVersion = "7.10.3077"
+        SchemaVersion = "2.0"
         ProjectGuid = "{79014105-2BDA-4D27-98AE-2DE3F5254252}"
     >
         <Build>
@@ -16,7 +16,10 @@
                 DefaultTargetSchema = "IE50"
                 DelaySign = "false"
                 OutputType = "Library"
+                PreBuildEvent = ""
+                PostBuildEvent = "rem $(ProjectDir)callconvhack.bat $(ProjectDir) $(ConfigurationName) $(TargetName)"
                 RootNamespace = "GameLib"
+                RunPostBuildEvent = "OnOutputUpdated"
                 StartupObject = ""
             >
                 <Config
@@ -30,6 +33,8 @@
                     DebugSymbols = "true"
                     FileAlignment = "4096"
                     IncrementalBuild = "true"
+                    NoStdLib = "false"
+                    NoWarn = ""
                     Optimize = "false"
                     OutputPath = "bin\Debug\"
                     RegisterForComInterop = "false"
@@ -48,6 +53,8 @@
                     DebugSymbols = "false"
                     FileAlignment = "4096"
                     IncrementalBuild = "false"
+                    NoStdLib = "false"
+                    NoWarn = ""
                     Optimize = "true"
                     OutputPath = "bin\Release\"
                     RegisterForComInterop = "false"
@@ -142,11 +149,6 @@
                     BuildAction = "Compile"
                 />
                 <File
-                    RelPath = "Mixer.cs"
-                    SubType = "Code"
-                    BuildAction = "Compile"
-                />
-                <File
                     RelPath = "OggVorbisInterop.cs"
                     SubType = "Code"
                     BuildAction = "Compile"
@@ -183,11 +185,6 @@
                 />
                 <File
                     RelPath = "SDLInterop.cs"
-                    SubType = "Code"
-                    BuildAction = "Compile"
-                />
-                <File
-                    RelPath = "SDLMixerInterop.cs"
                     SubType = "Code"
                     BuildAction = "Compile"
                 />
