@@ -1063,8 +1063,10 @@ public class Control
     ControlEventArgs ce = new ControlEventArgs(this);
     if(parent!=null)
     { DesktopControl desktop = parent is DesktopControl ? (DesktopControl)parent : parent.Desktop;
-      if(desktop.capturing!=null && ce.Control.IsOrHas(desktop.capturing)) desktop.capturing=null;
-      desktop.UnsetModal(this);
+      if(desktop!=null)
+      { if(desktop.capturing!=null && ce.Control.IsOrHas(desktop.capturing)) desktop.capturing=null;
+        desktop.UnsetModal(this);
+      }
       parent.OnControlRemoved(ce);
     }
     parent = control;

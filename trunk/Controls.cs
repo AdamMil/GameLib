@@ -1429,6 +1429,24 @@ public class MenuItem : MenuItemBase
   { Text=text; HotKey=hotKey; GlobalHotKey=globalHotKey;
   }
 
+  public int HorizontalPadding
+  { get { return horzPadding; }
+    set
+    { if(value<0) throw new ArgumentOutOfRangeException("Padding", value, "must be >=0");
+      horzPadding = value;
+      Invalidate();
+    }
+  }
+
+  public int VerticalPadding
+  { get { return vertPadding; }
+    set
+    { if(value<0) throw new ArgumentOutOfRangeException("Padding", value, "must be >=0");
+      vertPadding = value;
+      Invalidate();
+    }
+  }
+
   public Color RawSelectedBackColor { get { return selBack; } }
   public Color RawSelectedForeColor { get { return selFore; } }
 
@@ -1472,7 +1490,7 @@ public class MenuItem : MenuItemBase
     { GameLib.Fonts.Font f = Font;
       if(f != null)
       { Rectangle rect = DisplayRect;
-        rect.Inflate(-2, -3);
+        rect.Inflate(-horzPadding, -vertPadding);
         f.Color     = mouseOver ? SelectedForeColor : ForeColor;
         f.BackColor = mouseOver ? SelectedBackColor : BackColor;
         f.Render(e.Surface, Text, rect, ContentAlignment.MiddleLeft);
@@ -1490,11 +1508,12 @@ public class MenuItem : MenuItemBase
       size.Width += hotkey.Width + hotKeyPadding;
       if(hotkey.Height>size.Height) size.Height=hotkey.Height;
     }
-    size.Width += 4; size.Height += 6;
+    size.Width += horzPadding*2; size.Height += vertPadding*2;
     return size;
   }
 
   const int hotKeyPadding=20;
+  int horzPadding=2, vertPadding=3;
   Color selFore=Color.Transparent, selBack=Color.Transparent;
   bool mouseOver;
 }
