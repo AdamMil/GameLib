@@ -3,6 +3,7 @@ Legend
 +  Addition
 -  Removal
 *  Alteration/other
+!  Alteration/other that changes an interface
 
 Changes
 -------
@@ -22,6 +23,9 @@ Changes
 + Added a property to the Button control that controlled whether or not it
   can draw pressed even when the mouse was not over the button
 + Added BorderColor properties to the FormBase and LabelBase controls
++ Added low-level support for OpenGL 1.2 and 1.3
+! Removed some overloads of OpenGL functions that are not likely to be used
++ Added some more overloads for OpenGL 1.1 functions
 
 2004.02.07 (beta)
 -----------------
