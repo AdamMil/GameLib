@@ -73,12 +73,10 @@ Documentation         In Progress (this is a TREMENDOUS amount of work!)
 Event handling        Beta
 
 Input                 Beta
-                      The joystick code needs testing (I don't have a
-                      working joystick), and I'd like to do some testing
-                      with one of those mice that has more than 3 buttons,
-                      or a rocker. Since my mouse only has 3 buttons and
-                      a scroll wheel, that's all that I've been able to
-                      test with.
+                      I'd like to do some testing with one of those mice
+                      that has more than 3 buttons, or a rocker. Since my
+                      mouse only has 3 buttons and a scroll wheel, that's
+                      all that I've been able to test with.
 
 Networking            Alpha/Beta/In Progress
                       The parts that are written seem to work pretty well,
