@@ -23,6 +23,7 @@ LATEST (alpha/beta)
 * Lowered the default audio buffer size (latency) from 100 to 50 milliseconds
 * Fixed a bug in RedBlackTree that caused the Count property to be wrong
   after Clear() was called
+* Made Map, BinaryTree, and PriorityQueue serializable
 
 2004.05.02 (alpha/beta)
 -----------------------
