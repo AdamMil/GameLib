@@ -226,8 +226,14 @@ public enum AnchorStyle // TODO: support more than just corners
   BottomLeft=Bottom|Left,
   /// <summary>The control will be anchored to its parent's bottom right corner.</summary>
   BottomRight=Bottom|Right,
+  /// <summary>The control will be anchored to its parent's left and right sides.</summary>
+  LeftRight=Left|Right,
+  /// <summary>The control will be anchored to its parent's top and bottom edges.</summary>
+  TopBottom=Top|Bottom,
   /// <summary>The control will be anchored to all four corners of its parent.</summary>
-  All=TopLeft|BottomRight
+  All=TopLeft|BottomRight,
+  /// <summary>The default anchoring mode (equal to TopLeft).</summary>
+  Default=TopLeft
 }
 
 /// <summary>
@@ -425,7 +431,7 @@ public class Control
   { get { return anchor; }
     set
     { if(anchor!=value)
-      { if(value!=AnchorStyle.TopLeft) dock=DockStyle.None;
+      { if(value!=AnchorStyle.Default) dock=DockStyle.None;
         anchor=value;
         if(parent!=null) UpdateAnchor();
       }
@@ -1177,7 +1183,7 @@ public class Control
   object tag;
   int tabIndex=-1, bottomAnchor, rightAnchor;
   ControlStyle style;
-  AnchorStyle  anchor=AnchorStyle.TopLeft;
+  AnchorStyle  anchor=AnchorStyle.Default;
   DockStyle    dock;
   bool enabled=true, visible=true, mychange, keyPreview;
 }
@@ -1236,7 +1242,8 @@ public class DesktopControl : ContainerControl, IDisposable
         krTimer = null;
       }
       else if(value!=0 && krTimer==null)
-      { krTimer = new System.Threading.Timer(new System.Threading.TimerCallback(RepeatKey), null,
+      { Input.Keyboard.DisableKeyRepeat();
+        krTimer = new System.Threading.Timer(new System.Threading.TimerCallback(RepeatKey), null,
                                              System.Threading.Timeout.Infinite, krRate);
       }
     }
@@ -1256,6 +1263,7 @@ public class DesktopControl : ContainerControl, IDisposable
   public bool ProcessKeys      { get { return keys; } set { keys=value; } }
   public bool ProcessMouseMove { get { return moves; } set { moves=value; } }
   public bool ProcessClicks    { get { return clicks; } set { clicks=value; } }
+
   public Surface Surface
   { get { return surface; }
     set

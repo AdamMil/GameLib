@@ -24,7 +24,7 @@ namespace GameLib.Interop.SDL
 {
 
 [System.Security.SuppressUnmanagedCodeSecurity()]
-internal class SDL
+internal sealed class SDL
 {
 
   [CallConvCdecl] public unsafe delegate int SeekHandler(RWOps* ops, int offset, SeekType type);
@@ -383,7 +383,7 @@ internal class SDL
 
   #region Video
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_VideoModeOK", CallingConvention=CallingConvention.Cdecl)]
-  public static extern int VideoModeOK(int width, int height, uint depth, uint flags);
+  public static extern int VideoModeOK(int width, int height, int depth, uint flags);
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_GetVideoInfo", CallingConvention=CallingConvention.Cdecl)]
   public static extern VideoInfo* GetVideoInfo();
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_SetVideoMode", CallingConvention=CallingConvention.Cdecl)]

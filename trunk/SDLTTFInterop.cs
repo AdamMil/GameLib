@@ -24,7 +24,7 @@ namespace GameLib.Interop.SDLTTF
 {
 
 [System.Security.SuppressUnmanagedCodeSecurity()]
-internal class TTF
+internal sealed class TTF
 {
   #region General
 	[DllImport(Config.SDLTTFImportPath, EntryPoint="TTF_Init", CallingConvention=CallingConvention.Cdecl)]

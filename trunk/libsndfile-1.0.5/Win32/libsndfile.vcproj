@@ -22,7 +22,7 @@
 				AdditionalIncludeDirectories="..\Win32"
 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;LIBSNDFILE_EXPORTS;BUILD_DLL"
 				MinimalRebuild="TRUE"
-				BasicRuntimeChecks="3"
+				BasicRuntimeChecks="1"
 				RuntimeLibrary="3"
 				ForceConformanceInForLoopScope="TRUE"
 				UsePrecompiledHeader="0"

@@ -113,11 +113,12 @@ public sealed class Video
   public static event ModeChangedHandler ModeChanged;
 
   public static bool Initialized { get { return initCount>0; } }
-  public static int         Width  { get { return display.Width; } }
-  public static int         Height { get { return display.Height; } }
+  public static int         Width  { get { AssertModeSet(); return display.Width; } }
+  public static int         Height { get { AssertModeSet(); return display.Height; } }
+  public static int         Depth  { get { AssertModeSet(); return display.Depth; } }
   public static VideoInfo   Info { get { AssertInit(); return info; } }
   public static Surface     DisplaySurface { get { return display; } }
-  public static PixelFormat DisplayFormat { get { return display.Format; } }
+  public static PixelFormat DisplayFormat { get { AssertModeSet(); return display.Format; } }
   public static OpenGL      OpenGL { get { throw new NotImplementedException(); } }
   public static GammaRamp   GammaRamp
   { get
@@ -169,30 +170,30 @@ public sealed class Video
     return ret;
   }
 
-  public static byte IsModeSupported(int width, int height, byte depth, SurfaceFlag flags)
+  public static byte IsModeSupported(int width, int height, int depth, SurfaceFlag flags)
   { AssertInit();
     return (byte)SDL.VideoModeOK(width, height, depth, (uint)flags);
   }
   
-  public static void SetMode(int width, int height, byte depth)
+  public static void SetMode(int width, int height, int depth)
   { SetMode(width, height, depth, SurfaceFlag.None);
   }
-  public static void SetMode(int width, int height, byte depth, SurfaceFlag flags)
+  public static void SetMode(int width, int height, int depth, SurfaceFlag flags)
   { AssertInit();
     flags &= ~SurfaceFlag.OpenGL;
     SetMode(width, height, depth, (uint)flags);
   }
 
-  public static void SetGLMode(int width, int height, byte depth)
+  public static void SetGLMode(int width, int height, int depth)
   { SetGLMode(width, height, depth, SurfaceFlag.None, null);
   }
-  public static void SetGLMode(int width, int height, byte depth, GLOptions opts)
+  public static void SetGLMode(int width, int height, int depth, GLOptions opts)
   { SetGLMode(width, height, depth, SurfaceFlag.None, opts);
   }
-  public static void SetGLMode(int width, int height, byte depth, SurfaceFlag flags)
+  public static void SetGLMode(int width, int height, int depth, SurfaceFlag flags)
   { SetGLMode(width, height, depth, flags, null);
   }
-  public unsafe static void SetGLMode(int width, int height, byte depth, SurfaceFlag flags, GLOptions opts)
+  public unsafe static void SetGLMode(int width, int height, int depth, SurfaceFlag flags, GLOptions opts)
   { if(opts!=null)
     { if(opts.Red  !=-1) SDL.SetAttribute(SDL.Attribute.RedSize,   opts.Red);
       if(opts.Green!=-1) SDL.SetAttribute(SDL.Attribute.GreenSize, opts.Green);
