@@ -979,15 +979,20 @@ public class DesktopControl : ContainerControl, IDisposable
     if(moves && e is MouseMoveEvent)
     { MouseMoveEvent ea = (MouseMoveEvent)e;
       Point at = ea.Point;
+      // if the cursor is not within the desktop area, ignore it (unless dragging or capturing)
       if(dragging==null && capturing==null && !Bounds.Contains(at)) return FilterAction.Continue;
 
       Control p=this, c;
+      // passModal is true if there's no modal window, or this movement is within the modal window
       bool passModal = modal==null;
-      at.X -= bounds.X; at.Y -= bounds.Y;
+      at.X -= bounds.X; at.Y -= bounds.Y; // at is the cursor point local to 'p'
       EventArgs eventArgs=null;
       int ei=0;
       while(p.Enabled && p.Visible)
       { c = p.GetChildAtPoint(at);
+        // enter/leave algorithm:
+        // keep an array of the path down the control tree, from the root down
+        // on mouse move, go down the tree, comparing against the stored path
         if(ei<enteredLen && c!=entered[ei])
         { if(eventArgs==null) eventArgs=new EventArgs();
           for(int i=enteredLen-1; i>=ei; i--)
@@ -1013,13 +1018,16 @@ public class DesktopControl : ContainerControl, IDisposable
         ei++;
         p = c;
       }
+      // at this point, 'p' points to the control that doesn't have a child at 'at'
+      // normally we'd set its FocusedControl to null to indicate this, but if there's a modal window,
+      // we don't unset any focus
       if(focus==AutoFocus.Over && passModal) p.FocusedControl=null;
       
       if(dragging!=null)
       { if(dragStarted)
         { drag.End = p==dragging ? at : dragging.DisplayToWindow(ea.Point);
           dragging.OnDragMove(drag);
-          if(drag.Cancel) { dragging=null; dragStarted=false; }
+          if(drag.Cancel) EndDrag();
         }
         else if(capturing==null || capturing==p)
         { int xd = ea.X-drag.Start.X;
@@ -1031,7 +1039,7 @@ public class DesktopControl : ContainerControl, IDisposable
             drag.Cancel = false;
             dragStarted = true;
             dragging.OnDragStart(drag);
-            if(drag.Cancel) { dragging=null; dragStarted=false; }
+            if(drag.Cancel) EndDrag();
           }
         }
       }
@@ -1082,12 +1090,13 @@ public class DesktopControl : ContainerControl, IDisposable
     else if(clicks && e is MouseClickEvent)
     { ClickEventArgs ea = new ClickEventArgs((MouseClickEvent)e);
       Point  at = ea.CE.Point;
+      // if the click is not within the desktop area, ignore it (unless dragging or capturing)
       if(capturing==null && !dragStarted && !Bounds.Contains(at)) return FilterAction.Continue;
       Control p = this, c;
       uint time = Timing.Msecs;
       bool passModal = modal==null;
       
-      at.X -= bounds.X; at.Y -= bounds.Y;
+      at.X -= bounds.X; at.Y -= bounds.Y; // at is the cursor point local to 'p'
       while(p.Enabled && p.Visible)
       { c = p.GetChildAtPoint(at);
         if(c==null) break;
@@ -1096,30 +1105,33 @@ public class DesktopControl : ContainerControl, IDisposable
         if(focus==AutoFocus.Click && ea.CE.Down && c.CanFocus && passModal) c.Focus();
         p = c;
       }
-      if(p==this)
-      { if(focus==AutoFocus.Click && ea.CE.Down && FocusedControl!=null) FocusedControl = null;
-        if(!dragStarted && capturing==null) goto done;
+      if(p==this) // if p=='this', the desktop was clicked
+      { if(focus==AutoFocus.Click && ea.CE.Down && FocusedControl!=null && passModal) FocusedControl = null; // blur
+        if(!dragStarted && capturing==null) goto done; // if we're not dragging or capturing, then we're done
       }
 
       if(ea.CE.Down)
-      { if(passModal && dragging==null && p.HasStyle(ControlStyle.Draggable))
+      { // only consider a drag if the click occurred within the modal window, and we're not already tracking one
+        if(passModal && dragging==null && p.HasStyle(ControlStyle.Draggable))
         { dragging = p;
           drag.Start = ea.CE.Point;
           drag.SetPressed(ea.CE.Button, true);
         }
       }
+      // button released. if we haven't started dragging (only considering one) or the button was one
+      // involved in the drag, then end the drag/consideration
       else if(!dragStarted || drag.Pressed(ea.CE.Button))
       { bool skipClick = dragStarted;
         if(dragStarted)
         { drag.End = dragging.DisplayToWindow(ea.CE.Point);
           dragging.OnDragEnd(drag);
         }
-        dragging     = null;
-        dragStarted  = false;
-        drag.Buttons = 0;
+        EndDrag();
+        // if we were dragging, or the mouse was released over the desktop and we're not capturing,
+        // then don't trigger any other mouse events (MouseUp or MouseClick). we're done.
         if(skipClick || (p==this && capturing==null)) goto done;
       }
-      else if(p==this && capturing==null) goto done;
+      else if(p==this && capturing==null) goto done; // the mouse was released over the desktop and we're not capturing
 
       clickStatus = ClickStatus.All;
       if(capturing!=null)
@@ -1129,12 +1141,14 @@ public class DesktopControl : ContainerControl, IDisposable
       else if(passModal)
       { ea.CE.Point = at;
         do
-        { DispatchClickEvent(p, ea, time);
+        { if(!DispatchClickEvent(p, ea, time)) break;
           ea.CE.Point = p.WindowToParent(ea.CE.Point);
           p = p.Parent;
         } while(p != this && p.Enabled && p.Visible);
       }
       done:
+      // lastClicked is used to track if the button release occurred over the same control it was pressed over
+      // this allows you to press the mouse on a control, then drag off and release to avoid the MouseClick event
       if(!ea.CE.Down && ea.CE.Button<8) lastClicked[ea.CE.Button] = null;
       return FilterAction.Drop;
     }
@@ -1173,11 +1187,7 @@ public class DesktopControl : ContainerControl, IDisposable
     else
     { modal = control;
       if(capturing!=control) capturing=null;
-      if(dragging!=null && dragging!=control)
-      { dragging=null;
-        dragStarted=false;
-        drag.Buttons=0;
-      }
+      if(dragging!=null && dragging!=control) EndDrag();
       while(control!=this) { control.Focus(); control=control.Parent; }
     }
   }
@@ -1196,11 +1206,11 @@ public class DesktopControl : ContainerControl, IDisposable
   }
 
   bool DispatchClickEvent(Control target, ClickEventArgs e, uint time)
-  { if(e.CE.Down && (clickStatus&ClickStatus.UpDown) != ClickStatus.None)
+  { if(e.CE.Down && (clickStatus&ClickStatus.UpDown) != 0)
     { target.OnMouseDown(e);
       if(e.Handled) { clickStatus ^= ClickStatus.UpDown; e.Handled=false; }
     }
-    if(target.HasStyle(ControlStyle.NormalClick) && (clickStatus&ClickStatus.Click)!=ClickStatus.None && e.CE.Button<8)
+    if(target.HasStyle(ControlStyle.NormalClick) && (clickStatus&ClickStatus.Click)!=0 && e.CE.Button<8)
     { if(e.CE.Down) lastClicked[e.CE.Button] = target;
       else
       { if(lastClicked[e.CE.Button]==target)
@@ -1209,11 +1219,11 @@ public class DesktopControl : ContainerControl, IDisposable
           else target.OnMouseClick(e);
           target.lastClickTime = time;
           if(e.Handled) { clickStatus ^= ClickStatus.Click; e.Handled=false; }
-          lastClicked[e.CE.Button]=target.Parent; // TODO: make sure this is okay with captured/dragged controls
+          lastClicked[e.CE.Button]=target.Parent; // allow the check to be done for the parent, too // TODO: make sure this is okay with captured/dragged controls
         }
       }
     }
-    if(!e.CE.Down && (clickStatus&ClickStatus.UpDown) != ClickStatus.None)
+    if(!e.CE.Down && (clickStatus&ClickStatus.UpDown) != 0)
     { target.OnMouseUp(e);
       if(e.Handled) { clickStatus ^= ClickStatus.UpDown; e.Handled=false; }
     } 
@@ -1240,6 +1250,11 @@ public class DesktopControl : ContainerControl, IDisposable
   { Control fc = this;
     while(fc.FocusedControl!=null) fc=fc.FocusedControl;
     (fc==this ? this : fc.Parent).TabToNextControl(reverse);
+  }
+  void EndDrag()
+  { dragging=null;
+    dragStarted=false;
+    drag.Buttons=0;
   }
 
   [Flags] enum ClickStatus { None=0, UpDown=1, Click=2, All=UpDown|Click };
