@@ -88,18 +88,19 @@ class Complex : INetSerializable
   }
 
   #region INetSerializeable Members
+  // use formatted binary IO (less efficient, but oh-so-simple)
   public int SizeOf() { return IOH.CalculateSize(">d?dp", Array, String); }
 
-  public void SerializeTo(byte[] buf, int index) // use formatted binary IO
+  public void SerializeTo(byte[] buf, int index)
   { IOH.Write(buf, index, ">d?dp", Array.Length, Array, String);
   }
 
   public int DeserializeFrom(byte[] buf, int index)
-  { Array = new int[IOH.ReadBE4(buf, index)]; index += 4;
-    for(int i=0; i<Array.Length; index+=4,i++)
-      Array[i] = IOH.ReadBE4(buf, index);
-    String = Encoding.ASCII.GetString(buf, index+1, buf[index]);
-    return SizeOf();
+  { int length = IOH.ReadBE4(buf, index);
+    object[] data = IOH.Read(buf, index+4, ">"+length+"dp", out length);
+    Array  = (int[])data[0];
+    String = (string)data[1];
+    return length+4;
   }
   #endregion
 
@@ -161,6 +162,7 @@ class App
       server.DefaultFlags = client.DefaultFlags =
         SendFlag.ReliableSequential | SendFlag.NotifySent | SendFlag.NoCopy;
 
+      client.Send(new Complex[] { new Complex("hello!", 1, 2, 3, 4, 5), new Complex("goodbye.", 1, 2, 3)});
       server.Send(null, new byte[] { 1, 2, 3 });
       server.Send(null, new OtherSimple(SimpleEnum.Two, 2, 3.14f,
                                         new Point(2, 2), 'x'));
