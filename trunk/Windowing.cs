@@ -2029,18 +2029,36 @@ public class DesktopControl : ContainerControl, IDisposable
   public void Dispose() { Dispose(false); GC.SuppressFinalize(this); }
 
   #region Properties
+  /// <summary>Gets or sets the auto focusing mode for this desktop.</summary>
+  /// <remarks>See the <see cref="AutoFocus"/> enum for information on the types of auto focusing available.
+  /// The default is <see cref="AutoFocus.None"/>.
+  /// </remarks>
   public AutoFocus AutoFocusing { get { return focus; } set { focus=value; } }
 
+  /// <summary>Gets or sets the double click delay in milliseconds for this desktop.</summary>
+  /// <remarks>The double click delay is the maximum number of milliseconds allowed between mouse clicks for them
+  /// to be recognized as a double click. The default value is 350 milliseconds.
+  /// </remarks>
   public uint DoubleClickDelay  { get { return dcDelay; } set { dcDelay=value; } }
 
+  /// <summary>Gets or sets the default drag threshold for this desktop.</summary>
+  /// <remarks>This property provides a default drag threshold for controls that do not specify one. See
+  /// <see cref="Control.DragThreshold"/> for more information about the drag threshold. The default value is 16.
+  /// </remarks>
   public new int DragThreshold
-  { get { return dragThresh; }
+  { get { return base.DragThreshold; }
     set
     { if(value<1) throw new ArgumentOutOfRangeException("DragThreshold", "must be >=1");
-      dragThresh=value;
+      base.DragThreshold = value;
     }
   }
 
+  /// <summary>Get or sets the delay in milliseconds before a key begins repeating.</summary>
+  /// <remarks>This property holds the number of milliseconds a key must remain depressed before it will begin
+  /// repeating. You can set this to 0 to disable the key repeat. The default is 0.
+  /// This property is incompatible with the <see cref="Input.Keyboard.EnableKeyRepeat"/> method, so
+  /// enabling this property will call <see cref="Input.Keyboard.DisableKeyRepeat"/> first.
+  /// </remarks>
   public uint KeyRepeatDelay
   { get { return krDelay; }
     set
@@ -2068,6 +2086,7 @@ public class DesktopControl : ContainerControl, IDisposable
     }
   }
 
+  /// <summary>Gets the topmost modal control, or null if there are none.</summary>
   public Control ModalWindow { get { return modal.Count==0 ? null : (Control)modal[modal.Count-1]; } }
 
   public bool ProcessKeys      { get { return keys; } set { keys=value; } }
@@ -2200,7 +2219,7 @@ public class DesktopControl : ContainerControl, IDisposable
           else if(capturing==null || capturing==p)
           { int xd = ea.X-drag.Start.X;
             int yd = ea.Y-drag.Start.Y;
-            if(xd*xd+yd*yd >= (p.DragThreshold==-1 ? dragThresh : p.DragThreshold))
+            if(xd*xd+yd*yd >= (p.DragThreshold==-1 ? DragThreshold : p.DragThreshold))
             { drag.Start = p.DisplayToWindow(drag.Start);
               drag.End = ea.Point;
               drag.Buttons = ea.Buttons;
@@ -2502,7 +2521,7 @@ public class DesktopControl : ContainerControl, IDisposable
   ModeChangedHandler modeChanged;
   Input.Key tab=Input.Key.Tab;
   ClickStatus clickStatus;
-  int   dragThresh=16, enteredLen, updatedLen;
+  int   enteredLen, updatedLen;
   uint  dcDelay=350, krDelay, krRate=40;
   bool  keys=true, clicks=true, moves=true, init, dragStarted, trackUpdates=true, keyProcessing;
 }
