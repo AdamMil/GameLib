@@ -15,6 +15,12 @@ DEVELOPMENT (alpha/beta)
   very dark color schemes
 + Added the GameLib.Forms.RectOffset class
 * Various minor drawing optimations for the windowing controls
+- Removed the LayoutBounds concept from the Windowing system
++ Added the concept of a content box and a padding area to the Windowing
+  system
+- Removed HorizontalPadding and VerticalPadding from MenuItem (it's been
+  superceded by Control.Padding)
+
 
 2004.06.28 (alpha/beta)
 -------------------

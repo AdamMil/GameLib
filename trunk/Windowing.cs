@@ -1333,6 +1333,22 @@ public class Control
   /// </returns>
   public bool IsOrHas(Control control) { return this==control || Controls.Contains(control, true); }
 
+  /// <summary>Converts a point from the parent's control coordinates to this control's control coordinates.</summary>
+  /// <param name="windowPoint">The point to convert, in the parent's control coordinates.</param>
+  /// <returns>The converted point, in control coordinates.</returns>
+  /// <remarks>This method can be used even if the control is not attached to a parent.</remarks>
+  public Point ParentToWindow(Point parentPoint)
+  { parentPoint.X-=bounds.X; parentPoint.Y-=bounds.Y; return parentPoint;
+  }
+
+  /// <summary>Converts a rectangle from the parent's control coordinates to this control's control coordinates.</summary>
+  /// <param name="windowRect">The rectangle to convert, in the parent's control coordinates.</param>
+  /// <returns>The converted rectangle, in the control coordinates.</returns>
+  /// <remarks>This method can be used even if the control is not attached to a parent.</remarks>
+  public Rectangle ParentToWindow(Rectangle parentRect)
+  { return new Rectangle(ParentToWindow(parentRect.Location), parentRect.Size);
+  }
+
   /// <summary>Sets the <see cref="Bounds"/> property and performs layout logic.</summary>
   /// <param name="x">The new X coordinate of the left edge of the control.</param>
   /// <param name="y">The new Y coordinate of the top edge of the control.</param>
@@ -1485,14 +1501,16 @@ public class Control
 
   /// <summary>Converts a point from control coordinates to the parent's control coordinates.</summary>
   /// <param name="windowPoint">The point to convert, in control coordinates.</param>
-  /// <returns>The converted point, in the control coordinates this control's parent.</returns>
+  /// <returns>The converted point, in the control coordinates of this control's parent.</returns>
+  /// <remarks>This method can be used even if the control is not attached to a parent.</remarks>
   public Point WindowToParent(Point windowPoint)
   { windowPoint.X+=bounds.X; windowPoint.Y+=bounds.Y; return windowPoint;
   }
 
   /// <summary>Converts a rectangle from control coordinates to the parent's control coordinates.</summary>
   /// <param name="windowRect">The rectangle to convert, in control coordinates.</param>
-  /// <returns>The converted rectangle, in the control coordinates this control's parent.</returns>
+  /// <returns>The converted rectangle, in the control coordinates of this control's parent.</returns>
+  /// <remarks>This method can be used even if the control is not attached to a parent.</remarks>
   public Rectangle WindowToParent(Rectangle windowRect)
   { return new Rectangle(WindowToParent(windowRect.Location), windowRect.Size);
   }
@@ -2235,7 +2253,7 @@ public class Control
 
   /// <summary>Gets the space available for anchoring child controls.</summary>
   /// <remarks>Anchoring is performed after docking, so the available space for anchoring will not be the same as
-  /// the <see cref="Bounds"/> if there are docked child controls. This property gets the space available for
+  /// <see cref="PaddingRect"/> if there are docked child controls. This property gets the space available for
   /// anchoring child controls. This property is normally updated by the <see cref="ContainerControl.OnLayout"/>
   /// method.
   /// </remarks>

@@ -32,7 +32,7 @@ namespace GameLib.Forms
 public class ContainerControl : Control
 { protected void DoLayout() { DoLayout(false); }
   protected void DoLayout(bool recursive)
-  { Rectangle avail = WindowToParent(ContentRect);
+  { Rectangle avail = ContentRect;
 
     foreach(Control c in Controls)
       switch(c.Dock)
@@ -421,6 +421,9 @@ public abstract class ListBase : Control
     public ItemCollection(ListBase list, ICollection items) { parent=list; InnerList.AddRange(items); }
     
     public int Add(object item) { return List.Add(item); }
+    public void AddRange(params object[] items) { for(int i=0; i<items.Length; i++) List.Add(items[i]); }
+    public void AddRange(ICollection items) { foreach(object o in items) List.Add(o); }
+
     public void Remove(object item) { List.Remove(item); }
 
     protected override void OnClearComplete() { parent.Invalidate(parent.ContentRect); }
@@ -1653,24 +1656,6 @@ public class MenuItem : MenuItemBase
   { Text=text; HotKey=hotKey; GlobalHotKey=globalHotKey;
   }
 
-  public int HorizontalPadding
-  { get { return horzPadding; }
-    set
-    { if(value<0) throw new ArgumentOutOfRangeException("Padding", value, "must be >=0");
-      horzPadding = value;
-      Invalidate();
-    }
-  }
-
-  public int VerticalPadding
-  { get { return vertPadding; }
-    set
-    { if(value<0) throw new ArgumentOutOfRangeException("Padding", value, "must be >=0");
-      vertPadding = value;
-      Invalidate();
-    }
-  }
-
   public Color RawSelectedBackColor { get { return selBack; } }
   public Color RawSelectedForeColor { get { return selFore; } }
 
@@ -1710,8 +1695,7 @@ public class MenuItem : MenuItemBase
     if(Text.Length>0)
     { GameLib.Fonts.Font f = Font;
       if(f != null)
-      { Rectangle rect = DrawRect;
-        rect.Inflate(-horzPadding, -vertPadding);
+      { Rectangle rect = ContentDrawRect;
         f.Color     = mouseOver ? SelectedForeColor : ForeColor;
         f.BackColor = mouseOver ? SelectedBackColor : BackColor;
         f.Render(e.Surface, Text, rect, ContentAlignment.MiddleLeft);
@@ -1742,6 +1726,7 @@ public class MenuItem : MenuItemBase
 
 #region Menu
 // TODO: make sure this handles font/text changes, etc
+// TODO: handle menus with lots of items (scrolling?)
 public class Menu : MenuBase
 { public Menu() { BorderStyle=BorderStyle.Fixed3D; }
   public Menu(string text) : this() { Text=text; }
