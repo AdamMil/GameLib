@@ -30,7 +30,8 @@ namespace GameLib.Forms
 
 #region ContainerControl
 public class ContainerControl : Control
-{ protected void DoLayout()
+{ protected void DoLayout() { DoLayout(false); }
+  protected void DoLayout(bool recursive)
   { Rectangle avail = WindowRect;
     avail.Inflate(-LayoutMargin, -LayoutMargin);
 
@@ -55,7 +56,11 @@ public class ContainerControl : Control
       }
 
     AnchorSpace = avail;
-    foreach(Control c in Controls) if(c.Dock==DockStyle.None) c.DoAnchor();
+    LayoutEventArgs e = recursive ? new LayoutEventArgs(true) : null;
+    foreach(Control c in Controls)
+    { if(c.Dock==DockStyle.None) c.DoAnchor();
+      if(recursive) c.OnLayout(e);
+    }
   }
 
   protected internal override void OnPaint(PaintEventArgs e)
@@ -71,9 +76,9 @@ public class ContainerControl : Control
     base.OnPaint(e); // yes, this needs to be at the bottom, not the top!
   }
   
-  protected internal override void OnLayout(EventArgs e)
+  protected internal override void OnLayout(LayoutEventArgs e)
   { base.OnLayout(e);
-    DoLayout();
+    DoLayout(e.Recursive);
   }
 }
 #endregion
@@ -1800,6 +1805,12 @@ public abstract class TitleBarBase : ContainerControl
     base.OnDragEnd(e);
   }
   
+  protected override void OnResize(EventArgs e)
+  { FormBase parent = (FormBase)Parent;
+    if(parent.MinimumHeight<Height) parent.MinimumHeight=Height;
+    base.OnResize(e);
+  }
+
   void DragParent(DragEventArgs e)
   { Point location = Parent.Location;
     location.Offset(e.End.X-e.Start.X, e.End.Y-e.Start.Y);
@@ -1911,12 +1922,83 @@ public class TitleBar : TitleBarBase
 #endregion
 
 #region FormBase
-// TODO: implement resizing using the mouse
 public abstract class FormBase : ContainerControl
 { public FormBase()
-  { Style |= ControlStyle.CanFocus; ForeColor=SystemColors.ControlText; BackColor=SystemColors.Control;
+  { Style |= ControlStyle.CanFocus|ControlStyle.Draggable;
+    ForeColor=SystemColors.ControlText; BackColor=SystemColors.Control;
+    DragThreshold=3;
   }
 
+  public BorderStyle BorderStyle
+  { get { return border; }
+    set
+    { if(border!=value)
+      { border=value;
+        LayoutMargin=Helpers.BorderSize(value);
+        Invalidate();
+      }
+    }
+  }
+  
+  public int MinimumHeight
+  { get { return min.Height; }
+    set
+    { if(value<0) throw new ArgumentOutOfRangeException("MinimumHeight", value, "must not be negative");
+      min.Height = value;
+      if(Height<value) Height = value;
+    }
+  }
+
+  public Size MinimumSize
+  { get { return min; }
+    set
+    { if(value.Width<0 || value.Height<0)
+        throw new ArgumentOutOfRangeException("MinimumSize", value, "must not be negative");
+      min = value;
+      if(Width<value.Width || Height<value.Height)
+        Size = new Size(Math.Max(Width, value.Width), Math.Max(Height, value.Height));
+    }
+  }
+
+  public int MinimumWidth
+  { get { return min.Width; }
+    set
+    { if(value<0) throw new ArgumentOutOfRangeException("MinimumWidth", value, "must not be negative");
+      min.Width = value;
+      if(Width<value) Width = value;
+    }
+  }
+
+  public int MaximumHeight
+  { get { return max.Height; }
+    set
+    { if(value<-1) throw new ArgumentOutOfRangeException("MaximumHeight", value, "must be greater than or equal to -1");
+      max.Height = value;
+      if(value!=-1 && Height>value) Height = value;
+    }
+  }
+  
+  public Size MaximumSize
+  { get { return max; }
+    set
+    { if(value.Width<-1 || value.Height<-1)
+        throw new ArgumentOutOfRangeException("MaximumSize", value, "must be greater than or equal to -1");
+      max = value;
+      if(value.Width!=-1 && Width>value.Width || value.Height!=-1 && Height>value.Height)
+        Size = new Size(value.Width ==-1 ? Width  : Math.Min(Width, value.Width),
+                        value.Height==-1 ? Height : Math.Min(Height, value.Height));
+    }
+  }
+
+  public int MaximumWidth
+  { get { return max.Width; }
+    set
+    { if(value<-1) throw new ArgumentOutOfRangeException("MaximumWidth", value, "must be greater than or equal to -1");
+      max.Width = value;
+      if(value!=-1 && Width>value) Width = value;
+    }
+  }
+  
   public abstract TitleBarBase TitleBar { get; }
 
   public object DialogResult { get { return returnValue; } set { returnValue=value; } }
@@ -1943,10 +2025,43 @@ public abstract class FormBase : ContainerControl
 
   public event System.ComponentModel.CancelEventHandler Closing;
   public event EventHandler Closed;
-  
+
   protected override void OnGotFocus(EventArgs e)
   { BringToFront();
     base.OnGotFocus(e);
+  }
+
+  protected internal override void OnDragStart(DragEventArgs e)
+  { if(border==BorderStyle.Resizeable && e.OnlyPressed(MouseButton.Left))
+    { int bwidth = Helpers.BorderSize(border);
+      drag = DragEdge.None;
+
+      if(e.Start.X>=Width-bwidth) drag |= DragEdge.Right;
+      else if(e.Start.X<bwidth) drag |= DragEdge.Left;
+      if(drag!=DragEdge.None)
+      { if(e.Start.Y<16) drag |= DragEdge.Top;
+        else if(e.Start.Y>=Height-16) drag |= DragEdge.Bottom;
+      }
+      if(e.Start.Y<bwidth || e.Start.Y>=Height-bwidth)
+      { if(e.Start.X<16) drag |= DragEdge.Left;
+        else if(e.Start.X>=Width-16) drag |= DragEdge.Right;
+        if(e.Start.Y>=Height-bwidth) drag |= DragEdge.Bottom;
+        else drag |= DragEdge.Top;
+      }
+      e.Cancel = drag==DragEdge.None;
+    }
+    else e.Cancel=true;
+    base.OnDragStart(e);
+  }
+
+  protected internal override void OnDragMove(DragEventArgs e)
+  { DragResize(e);
+    base.OnDragMove(e);
+  }
+
+  protected internal override void OnDragEnd(DragEventArgs e)
+  { DragResize(e);
+    base.OnDragEnd(e);
   }
 
   protected virtual void OnClosing(System.ComponentModel.CancelEventArgs e)
@@ -1954,35 +2069,61 @@ public abstract class FormBase : ContainerControl
   }
   protected virtual void OnClosed(EventArgs e) { if(Closed!=null) Closed(this, e); }
 
+  [Flags] enum DragEdge { None=0, Left=1, Right=2, Top=4, Bottom=8 };
+  
+  void DragResize(DragEventArgs e)
+  { int xd=e.End.X-e.Start.X, yd=e.End.Y-e.Start.Y;
+    Rectangle bounds = Bounds;
+    if((drag&DragEdge.Right)!=0) { bounds.Width += xd; e.Start.X=e.End.X; }
+    else if((drag&DragEdge.Left)!=0) { bounds.X += xd; bounds.Width -= xd; }
+    if((drag&DragEdge.Bottom)!=0) { bounds.Height += yd; e.Start.Y=e.End.Y; }
+    else if((drag&DragEdge.Top)!=0) { bounds.Y += yd; bounds.Height -= yd; }
+
+    if(bounds.Width<min.Width)
+    { if((drag&DragEdge.Left)!=0) bounds.X += bounds.Width-min.Width;
+      else e.Start.X -= bounds.Width-min.Width;
+      bounds.Width=min.Width;
+    }
+    else if(max.Width!=-1 && bounds.Width>max.Width)
+    { if((drag&DragEdge.Left)!=0) bounds.X += bounds.Width-max.Width;
+      else e.Start.X -= bounds.Width-max.Width;
+      bounds.Width=max.Width;
+    }
+
+    if(bounds.Height<min.Height)
+    { if((drag&DragEdge.Top)!=0) bounds.Y += bounds.Height-min.Height;
+      else e.Start.Y -= bounds.Height-min.Height;
+      bounds.Height=min.Height;
+    }
+    else if(max.Height!=-1 && bounds.Height>max.Height)
+    { if((drag&DragEdge.Top)!=0) bounds.Y += bounds.Height-max.Height;
+      else e.Start.Y -= bounds.Height-max.Height;
+      bounds.Height=max.Height;
+    }
+
+    if(Bounds!=bounds) { TriggerLayout(true); Bounds=bounds; }
+  }
+
   object returnValue;
+  BorderStyle border;
+  DragEdge    drag;
+  Size        min = new Size(100, 24), max = new Size(-1, -1);
 }
 #endregion
 
 #region Form
-// TODO: add caption bar and menu bar
+// TODO: add menu bar?
 public class Form : FormBase
 { public Form() { titleBar = new TitleBar(this); BorderStyle = BorderStyle.FixedThick; }
 
-  public BorderStyle BorderStyle
-  { get { return border; }
-    set
-    { if(border!=value)
-      { border=value;
-        LayoutMargin=Helpers.BorderSize(value);
-        Invalidate();
-      }
-    }
-  }
-  
   public override TitleBarBase TitleBar { get { return titleBar; } }
 
   protected internal override void OnPaintBackground(PaintEventArgs e)
   { base.OnPaintBackground(e);
-    Helpers.DrawBorder(e.Surface, DrawRect, border, BackColor, false);
+    Helpers.DrawBorder(e.Surface, DrawRect, BorderStyle, BackColor, false);
   }
 
-  BorderStyle border;
-  TitleBar    titleBar;
+  TitleBar titleBar;
 }
 #endregion
 

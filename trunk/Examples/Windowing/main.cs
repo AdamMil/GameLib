@@ -48,7 +48,8 @@ class CustomDesktop : DesktopControl
   }
 
   protected override void OnFontChanged(GameLib.ValueChangedEventArgs e)
-  { if(Font!=null) menu.Height = Font.LineSkip*2;
+  { // we want things to adjust to the font size
+    if(Font!=null) menu.Height = Font.LineSkip*3/2;
     base.OnFontChanged(e);
   }
 
@@ -61,22 +62,23 @@ class SampleForm : Form
 { public SampleForm()
   { Style |= ControlStyle.BackingSurface;
     Text = "Sample Form";
-    Size = new Size(256, 192);
+    MinimumSize = Size = new Size(256, 192);
+    BorderStyle = BorderStyle.Resizeable; // allow the form to be resized
 
     #region Add Controls
-    bar.Minimum = 64;
+    bar.Minimum = 64; // allow alpha values from 64-255
     bar.Value   = bar.Maximum = 255;
-    bar.Dock    = DockStyle.Right;
+    bar.Dock    = DockStyle.Right; // dock the bar on the right
     bar.ValueChanged += new GameLib.ValueChangedEventHandler(bar_ValueChanged);
     
     label1.Dock = DockStyle.Top;
     label1.TextAlign = ContentAlignment.MiddleCenter;
     
     btn.Click += new ClickEventHandler(btn_Click);
-
+    // have these controls resize as the form resizes
     edit.Anchor = chk.Anchor = btn.Anchor = AnchorStyle.LeftRight;
 
-    edit.TabIndex = 0;
+    edit.TabIndex = 0; // let the user tab between them
     chk.TabIndex  = 1;
     btn.TabIndex  = 2;
 
@@ -84,7 +86,7 @@ class SampleForm : Form
     #endregion
   }
 
-  void UpdateAlpha()
+  void UpdateAlpha() // called to change the window alpha
   { if(BackingSurface!=null)
     { BackingSurface.SetSurfaceAlpha((byte)bar.Value);
       Invalidate();
@@ -98,6 +100,8 @@ class SampleForm : Form
     base.OnBackingSurfaceChanged(e);
   }
 
+  // make everything scale to the font size. normally not necessary if you
+  // know the font, but want we everything to work properly regardless
   protected override void OnFontChanged(GameLib.ValueChangedEventArgs e)
   { if(Font!=null)
     { int height = Font.LineSkip*3/2;
@@ -112,7 +116,7 @@ class SampleForm : Form
   }
 
   void bar_ValueChanged(object sender, GameLib.ValueChangedEventArgs e)
-  { UpdateAlpha();
+  { UpdateAlpha(); // update the alpha value when the scrollbar changes
   }
   #endregion
 
@@ -145,7 +149,7 @@ class App
 
     #region Setup controls
     { TrueTypeFont font = new TrueTypeFont(dataPath+"mstrr.ttf", 12);
-      font.RenderStyle = RenderStyle.Shaded;
+      font.RenderStyle = RenderStyle.Shaded; // make the font look pretty
       desktop.Font = font; // set the default font
       desktop.KeyRepeatDelay = 350; // 350 ms delay before key repeat
       
@@ -175,8 +179,9 @@ class App
     desktop.Surface = Video.DisplaySurface;
   }
 
-  static bool EventProc(Event e)
-  { if(!desktop.ProcessEvent(e))
+  static bool EventProc(Event e) // fairly standard event handler
+  { if(desktop.ProcessEvent(e)) desktop.UpdateDisplay();
+    else
     { if(e is RepaintEvent) Video.Flip();
       else if(e is ResizeEvent)
       { ResizeEvent re = (ResizeEvent)e;
@@ -185,7 +190,6 @@ class App
       else if(e is ExceptionEvent) throw ((ExceptionEvent)e).Exception;
       else if(e is QuitEvent) return false;
     }
-    else desktop.UpdateDisplay();
     return true;
   }
   
@@ -204,7 +208,7 @@ class App
   }
 
   private static void Form_Click(object sender, EventArgs e)
-  { Random rand = new Random();
+  { Random rand = new Random(); // place it randomly inside the desktop
     SampleForm form = new SampleForm();
     form.Parent = desktop;
     form.SetBounds(new Point(rand.Next(desktop.Width-form.Width),
