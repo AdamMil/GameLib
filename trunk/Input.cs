@@ -231,6 +231,7 @@ public enum KeyMod : uint
 
 public struct KeyCombo
 { public KeyCombo(KeyboardEvent e) { KeyMods=e.KeyMods; Key=e.Key; Char=e.Char; }
+  public KeyCombo(Key key) { KeyMods=KeyMod.None; Key=key; Char=(char)0; }
   public KeyCombo(KeyMod keyMods, Key key) { KeyMods=keyMods; Key=key; Char=(char)0; }
   public KeyCombo(KeyMod keyMods, char character) { KeyMods=keyMods; Key=Key.None; Char=char.ToUpper(character); }
   public KeyCombo(KeyMod keyMods, Key key, char character) { KeyMods=keyMods; Key=key; Char=char.ToUpper(character); }

@@ -17,7 +17,7 @@
                 DelaySign = "false"
                 OutputType = "Library"
                 PreBuildEvent = ""
-                PostBuildEvent = "$(ProjectDir)callconvhack.bat $(ProjectDir) $(ConfigurationName) $(TargetName)"
+                PostBuildEvent = "rem $(ProjectDir)callconvhack.bat $(ProjectDir) $(ConfigurationName) $(TargetName)"
                 RootNamespace = "GameLib"
                 RunPostBuildEvent = "OnOutputUpdated"
                 StartupObject = ""

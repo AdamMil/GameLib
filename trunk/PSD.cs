@@ -94,7 +94,10 @@ public class PSDImage
 
 #region PSDCodec
 public class PSDCodec
-{ public PSDImage FinishReading()
+{ public bool Reading { get { return state!=State.Nothing && reading; } }
+  public bool Writing { get { return state!=State.Nothing && !reading; } }
+
+  public PSDImage FinishReading()
   { AssertReading();
     PSDImage img = image;
 
@@ -132,7 +135,15 @@ public class PSDCodec
 
   public PSDLayer ReadNextLayer()
   { AssertLayerRead();
-    try { ReadLayerData(image.Layers[layer]); return image.Layers[layer++]; }
+    try
+    { PSDLayer layer = image.Layers[this.layer];
+      if(layer.Width==0 || layer.Height==0) SkipLayer(); // SkipLayer increments 'this.layer'
+      else
+      { layer.Surface = ReadImageData(layer.Width, layer.Height, layer.channels, true);
+        this.layer++;
+      }
+      return layer;
+    }
     catch(Exception e) { Abort(); throw e; }
   }
 
@@ -154,7 +165,11 @@ public class PSDCodec
 
   public void SkipLayer()
   { AssertLayerRead();
-    try { IOH.Skip(stream, image.Layers[layer++].dataLength); }
+    try
+    { image.Layers[layer].Surface=null;
+      IOH.Skip(stream, image.Layers[layer].dataLength);
+      layer++;
+    }
     catch(Exception e) { Abort(); throw e; }
   }
 
@@ -437,13 +452,8 @@ public class PSDCodec
       throw new InvalidOperationException("A read or write operation is currently in progress");
   }
   
-  void AssertReading()
-  { if(state==State.Nothing || !reading) throw new InvalidOperationException("A read operation is not in progress.");
-  }
-  
-  void AssertWriting()
-  { if(state==State.Nothing || reading) throw new InvalidOperationException("A write operation is not in progress.");
-  }
+  void AssertReading() { if(!Reading) throw new InvalidOperationException("A read operation is not in progress."); }
+  void AssertWriting() { if(!Writing) throw new InvalidOperationException("A write operation is not in progress."); }
   
   Surface ReadImageData()
   { PSDChannel[] channels = new PSDChannel[image.Channels];
@@ -543,11 +553,6 @@ public class PSDCodec
     }
     finally { surface.Unlock(); }
     return surface;
-  }
-
-  Surface ReadLayerData(PSDLayer layer)
-  { return layer.Surface = layer.Width==0 || layer.Height==0 ? null
-            : ReadImageData(layer.Width, layer.Height, layer.channels, true);
   }
 
   int WriteChannelData(Surface surface, int channel)
