@@ -39,6 +39,7 @@ namespace GameLib.Collections
 /// slower than simple array operations.
 /// </para>
 /// </remarks>
+[Serializable]
 public sealed class PriorityQueue : ICollection
 { 
   /// <summary>Initializes a new, empty instance of the <see cref="PriorityQueue"/> class, with a default capacity and

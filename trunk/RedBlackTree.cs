@@ -18,6 +18,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 using System;
 using System.Collections;
+using System.Runtime.Serialization;
 
 // TODO: use generics when they become available
 
@@ -28,8 +29,18 @@ namespace GameLib.Collections
 /// <summary>This class implements a red-black tree and serves as the base for <see cref="Map"/> and
 /// <see cref="BinaryTree"/>.
 /// </summary>
-public abstract class RedBlackBase
+public abstract class RedBlackBase : ISerializable
 { internal RedBlackBase(IComparer comparer) { this.comparer = comparer; }
+
+  protected RedBlackBase(SerializationInfo info, StreamingContext context)
+  { comparer = (IComparer)info.GetValue("Comparer", typeof(IComparer));
+    count    = info.GetInt32("Count");
+  }
+
+  public virtual void GetObjectData(SerializationInfo info, StreamingContext context)
+  { info.AddValue("Comparer", comparer);
+    info.AddValue("Count", count);
+  }
 
   /// <summary>This class represents a node in a red-black tree.</summary>
   protected internal class Node
@@ -299,6 +310,7 @@ public abstract class RedBlackBase
 /// implementation for your keys and don't need items maintained in sorted order.
 /// </para>
 /// </remarks>
+[Serializable]
 public sealed class Map : RedBlackBase, IDictionary
 { 
   /// <summary>Initializes a new, empty instance of the <see cref="Map"/> class, using <see cref="Comparer.Default"/>
@@ -319,6 +331,27 @@ public sealed class Map : RedBlackBase, IDictionary
   public Map(IDictionary dict, IComparer comparer)
     : base(comparer==Comparer.Default ? EntryComparer.Default : new EntryComparer(comparer))
   { foreach(DictionaryEntry de in dict) Add(de.Key, de.Value);
+  }
+
+  public Map(SerializationInfo info, StreamingContext context) : base(info, context)
+  { string p;
+    int count = this.Count;
+    Clear();
+    for(int i=0; i<count; i++)
+    { p = i.ToString();
+      Add(info.GetValue(p+'k', typeof(object)), info.GetValue(p+'v', typeof(object)));
+    }
+  }
+
+  public override void GetObjectData(SerializationInfo info, StreamingContext context)
+  { base.GetObjectData(info, context);
+    string p;
+    int i=0;
+    foreach(DictionaryEntry e in this)
+    { p = (i++).ToString();
+      info.AddValue(p+'k', e.Key);
+      info.AddValue(p+'v', e.Value);
+    }
   }
 
   #region IDictionary
@@ -564,6 +597,7 @@ public sealed class Map : RedBlackBase, IDictionary
     public object Key, Value;
   }
 
+  [Serializable]
   sealed class EntryComparer : IComparer
   { public EntryComparer(IComparer comparer) { cmp=comparer; }
     public int Compare(object x, object y) { return cmp.Compare(((Entry)x).Key, ((Entry)y).Key); }
@@ -628,6 +662,7 @@ public sealed class Map : RedBlackBase, IDictionary
 /// </para>
 /// <seealso cref="Map"/> <seealso cref="PriorityQueue"/>
 /// </remarks>
+[Serializable]
 public sealed class BinaryTree : RedBlackBase, ICollection
 { 
   /// <summary>Initializes a new, empty instance of the <see cref="BinaryTree"/> class, using
@@ -646,6 +681,17 @@ public sealed class BinaryTree : RedBlackBase, ICollection
   /// <see cref="ICollection"/> and using the specified <see cref="IComparer"/> to compare values.
   /// </summary>
   public BinaryTree(ICollection items, IComparer comparer) : base(comparer) { foreach(object o in items) Add(o); }
+  public BinaryTree(SerializationInfo info, StreamingContext context) : base(info, context)
+  { int count=this.Count;
+    Clear();
+    for(int i=0; i<count; i++) Add(info.GetValue(i.ToString(), typeof(object)));
+  }
+
+  public override void GetObjectData(SerializationInfo info, StreamingContext context)
+  { base.GetObjectData(info, context);
+    int i=0;
+    foreach(object o in this) info.AddValue((i++).ToString(), o);
+  }
 
   #region ICollection
   // Count() implemented in RedBlackBase
