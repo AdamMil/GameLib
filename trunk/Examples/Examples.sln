@@ -31,6 +31,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Networking", "Networking\Ne
 	ProjectSection(ProjectDependencies) = postProject
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BasicVideo", "BasicVideo\BasicVideo.csproj", "{FA2D8B87-D3DB-4EB0-80B7-48ED9E40B6EE}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfiguration) = preSolution
 		Debug = Debug
@@ -69,6 +73,10 @@ Global
 		{930C6481-E6EB-42AF-88E8-88862A0F9B06}.Debug.Build.0 = Debug|.NET
 		{930C6481-E6EB-42AF-88E8-88862A0F9B06}.Release.ActiveCfg = Release|.NET
 		{930C6481-E6EB-42AF-88E8-88862A0F9B06}.Release.Build.0 = Release|.NET
+		{FA2D8B87-D3DB-4EB0-80B7-48ED9E40B6EE}.Debug.ActiveCfg = Debug|.NET
+		{FA2D8B87-D3DB-4EB0-80B7-48ED9E40B6EE}.Debug.Build.0 = Debug|.NET
+		{FA2D8B87-D3DB-4EB0-80B7-48ED9E40B6EE}.Release.ActiveCfg = Release|.NET
+		{FA2D8B87-D3DB-4EB0-80B7-48ED9E40B6EE}.Release.Build.0 = Release|.NET
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 	EndGlobalSection
