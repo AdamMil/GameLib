@@ -19,6 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "../Utility.h"
 #include <windows.h>
 #include <wchar.h>
+#include <conio.h>
 
 static LARGE_INTEGER hrFreq, hrStart;
 static DWORD  msStart;
@@ -36,13 +37,8 @@ int GLU_Init()
   return 0;
 }
 
-void GLU_Quit()
-{ if(initCount>0) initCount--;
-}
-
-char* GLU_GetError()
-{ return NULL;
-}
+void GLU_Quit() { if(initCount>0) initCount--; }
+char* GLU_GetError() { return NULL; }
 
 Uint32 GLU_GetMilliseconds()
 { if(hiRes)
@@ -53,9 +49,7 @@ Uint32 GLU_GetMilliseconds()
   else return GetTickCount()-msStart;
 }
 
-Uint64 GLU_GetTimerFrequency()
-{ return hiRes ? hrFreq.QuadPart : 1000;
-}
+Uint64 GLU_GetTimerFrequency() { return hiRes ? hrFreq.QuadPart : 1000; }
 
 Uint64 GLU_GetTimerCounter()
 { if(hiRes)
@@ -80,10 +74,6 @@ void GLU_ResetTimer()
   else msStart = GetTickCount();
 }
 
-wchar_t GLU_Getch()
-{ return _getwch();
-}
-
-wchar_t GLU_Getche()
-{ return _getwche();
-}
+wchar_t GLU_Getch() { return _getwch(); }
+wchar_t GLU_Getche() { return _getwche(); }
+Uint8 GLU_KbHit() { return _kbhit(); }

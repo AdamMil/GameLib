@@ -5,8 +5,15 @@ Legend
 *  Alteration/other
 !  Alteration/Removal/other that breaks backwards compatibility
 
-LATEST (alpha/beta)
+DEVELOPMENT (alpha/beta)
++ Added IOH.KbHit, which returns true if console input is waiting
+
+2004.06.28 (alpha/beta)
 -------------------
+Release notes:
+There aren't many changes this time, since I've been busy with work, school,
+and other stuff. But I figured I should at least release these.
+
 + Added PriorityQueue.Dequeue, which does the same thing as
   PriorityQueue.DequeueMaximum
 * Fixed a bug in Fixed64*Fixed64 or Fixed64*double multiplication
@@ -15,7 +22,7 @@ LATEST (alpha/beta)
   rectangles to be cleared when the array was grown
 * Fixed a similar bug in the audio code that caused the channels array to
   be cleared when the array was resized
-* Added dead zones and saturation zones to the joystick code (with the
++ Added dead zones and saturation zones to the joystick code (with the
   ability to set them on a per-axis basis).
 * Altered the Input sample to use dead zones and saturation zones to
   eliminate jitter. Also added more joystick output to the input sample
@@ -23,7 +30,7 @@ LATEST (alpha/beta)
 * Lowered the default audio buffer size (latency) from 100 to 50 milliseconds
 * Fixed a bug in RedBlackTree that caused the Count property to be wrong
   after Clear() was called
-* Made Map, BinaryTree, and PriorityQueue serializable
++ Made Map, BinaryTree, and PriorityQueue serializable
 
 2004.05.02 (alpha/beta)
 -----------------------

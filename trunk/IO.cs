@@ -245,7 +245,9 @@ public class StreamStream : Stream, IDisposable
 public sealed class IOH
 { private IOH() {}
 
-  #region Unbuffered input
+  #region Console input
+  /// <summary>Returns true if console input is waiting to be read.</summary>
+  public static bool KbHit { get { return GameLib.Interop.GLUtility.Utility.KbHit(); } }
   /// <summary>Reads a character from standard input without using line buffering.</summary>
   /// <returns>The next character from standard input.</returns>
   /// <remarks>The standard <see cref="Console.Read"/> method uses line buffering, which means that it will not return
