@@ -16,7 +16,7 @@ Legend
 * The audio quality in the Audio example was set to low. Made it use the
   default instead.
 + Added a property to FormBase that gets which button was clicked on a form
-+ Added a simple color picker dialog
++ Started a simple color picker dialog
 * Made Button control only depress when clicked with the left mouse button
 + Added a property to the ButtonBase control that controlled whether or not
   it would automatically update the Pressed property
