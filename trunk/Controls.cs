@@ -14,14 +14,14 @@ namespace GameLib.Forms
 public enum BorderStyle { None, FixedFlat, Fixed3D, FixedThick, Resizeable };
 
 #region Helper
-class Helper
-{ private Helper() { }
+public class Helpers
+{ private Helpers() { }
 
   public static void DrawBorder(Surface surface, Rectangle rect, BorderStyle border, bool depressed)
   { switch(border)
     { case BorderStyle.FixedFlat: DrawBorder(surface, rect, border, Color.Black, depressed); break;
       case BorderStyle.Fixed3D: case BorderStyle.FixedThick: case BorderStyle.Resizeable:
-        DrawBorder(surface, rect, border, Color.FromArgb(96, 96, 96), depressed);
+        DrawBorder(surface, rect, border, Color.FromArgb(212, 208, 200), depressed);
         break;
     }
   }
@@ -883,8 +883,44 @@ public class TextBoxBase : Control
 #endregion
 
 #region TextBox
+// TODO: optimize this
 public class TextBox : TextBoxBase
-{ 
+{ public TextBox() { BackColor=Color.White; ForeColor=Color.Black; }
+
+  public Color BorderColor { get { return border; } set { border=value; } }
+
+  protected internal override void OnPaintBackground(PaintEventArgs e)
+  { base.OnPaintBackground(e);
+    Helpers.DrawBorder(e.Surface, DisplayRect, BorderStyle.FixedThick, border, true);
+  }
+  
+  protected internal override void OnPaint(PaintEventArgs e)
+  { base.OnPaint(e);
+    GameLib.Fonts.Font font = Font;
+    if(font!=null)
+    { Rectangle rect = DisplayRect;
+      rect.Inflate(-2, 0);
+
+      font.Color = ForeColor;
+      font.BackColor = BackColor;
+      font.Render(e.Surface, Text, rect, ContentAlignment.MiddleLeft);
+    }
+  }
+
+  protected override void OnCaretPositionChanged(ValueChangedEventArgs e)
+  { Invalidate();
+  }
+  
+  protected override void OnTextChanged(ValueChangedEventArgs e)
+  { Invalidate();
+    base.OnTextChanged(e);
+  }
+
+  protected override void OnCaretFlash()
+  { 
+  }
+  
+  Color border = Color.FromArgb(212, 208, 200);
 }
 #endregion
 
@@ -939,7 +975,8 @@ public class MenuBase : ContainerControl
     { char c = char.ToUpper(e.KE.Char);
       foreach(MenuItemBase item in Controls)
         if(c==item.HotKey)
-        { Click(item);
+        { PostClickEvent(item);
+          Close();
           e.Handled=true;
           break;
         }
@@ -1092,7 +1129,7 @@ public class Menu : MenuBase
   
   protected internal override void OnPaintBackground(PaintEventArgs e)
   { base.OnPaintBackground(e);
-    Helper.DrawBorder(e.Surface, DisplayRect, BorderStyle.Fixed3D, BackColor, false);
+    Helpers.DrawBorder(e.Surface, DisplayRect, BorderStyle.Fixed3D, BackColor, false);
   }
 
   Color selFore=Color.Transparent, selBack=Color.Transparent;
@@ -1102,7 +1139,9 @@ public class Menu : MenuBase
 #region FormBase
 // TODO: implement resizing
 public class FormBase : ContainerControl
-{ public object DialogResult { get { return returnValue; } set { returnValue=value; } }
+{ public FormBase() { Style |= ControlStyle.CanFocus; }
+
+  public object DialogResult { get { return returnValue; } set { returnValue=value; } }
 
   public void Close()
   { if(Parent==null) return;
@@ -1120,6 +1159,7 @@ public class FormBase : ContainerControl
     Parent  = desktop;
     BringToFront();
     Modal = true;
+    Focus();
     while(Events.Events.PumpEvent() && Parent!=null);
     return returnValue;
   }
@@ -1152,7 +1192,7 @@ public class Form : FormBase
 
   protected internal override void OnPaintBackground(PaintEventArgs e)
   { base.OnPaintBackground(e);
-    Helper.DrawBorder(e.Surface, DisplayRect, border, BackColor, false);
+    Helpers.DrawBorder(e.Surface, DisplayRect, border, BackColor, false);
   }
 
   BorderStyle border=BorderStyle.FixedThick;

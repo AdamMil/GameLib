@@ -24,6 +24,7 @@ public abstract class Font
   public abstract Color BackColor { get; set; }
 
   public abstract Size CalculateSize(string text);
+  public abstract int  HowManyFit(string text, int pixels);
 
   public int Render(Surface dest, string text, Point pt) { return Render(dest, text, pt.X, pt.Y); }
   public abstract int Render(Surface dest, string text, int x, int y);
@@ -188,6 +189,14 @@ public class BitmapFont : Font, IDisposable
     if(text.Length==1) return new Size(Height, width);
     return new Size(Height, (text.Length-1)*(width+xAdd)+width);
   }
+  
+  public override int HowManyFit(string text, int pixels)
+  { int chars = text.Length;
+    if(chars==0) return 0;
+    pixels -= width; chars--;
+    if(pixels<0) return 0;
+    return pixels/(width+xAdd)+1;
+  }
 
   public override int Render(Surface dest, string text, int x, int y)
   { int start=x;
@@ -287,6 +296,17 @@ public class TrueTypeFont : NonFixedFont, IDisposable
     TTF.SizeUNICODE(font, text, out width, out height);
     return new Size(width, height);
   }
+
+  public override int HowManyFit(string text, int pixels)
+  { int width=0;
+    for(int i=0; i<text.Length; i++)
+    { CachedChar c = GetChar(text[i]);
+      width += (width>0 ? c.Advance : 0) + c.OffsetX + c.Surface.Width;
+      if(width>pixels) return i;
+    }
+    return text.Length;
+  }
+
   public override int Render(Surface dest, string text, int x, int y)
   { int start = x;
     for(int i=0; i<text.Length; i++)
