@@ -50,7 +50,8 @@ internal class Ogg
   { private void* dataSource;
     public  int   Seekable;
     private long  offset, end;
-    private int   seekState;
+    private long  dummy1, dummy2, dummy3;
+    private int   dummy4;
     public  int   NumLinks;
     private void* offsets, dataOffsets, serialNos, pcmLengths;
     public VorbisInfo* Info;
@@ -67,7 +68,7 @@ internal class Ogg
   [DllImport(Config.VorbisImportPath, EntryPoint="VW_PcmTell", CallingConvention=CallingConvention.Cdecl)]
   public static extern int PcmTell(ref VorbisFile vf);
   [DllImport(Config.VorbisImportPath, EntryPoint="VW_PcmSeek", CallingConvention=CallingConvention.Cdecl)]
-  public static extern int PcmSeek(ref VorbisFile vf, int samples);
+  public static extern int PcmSeek(ref VorbisFile vf, int frames);
   [DllImport(Config.VorbisImportPath, EntryPoint="VW_TimeLength", CallingConvention=CallingConvention.Cdecl)]
   public static extern double TimeLength(ref VorbisFile vf, int section);
   [DllImport(Config.VorbisImportPath, EntryPoint="VW_TimeTell", CallingConvention=CallingConvention.Cdecl)]

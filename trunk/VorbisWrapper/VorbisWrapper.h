@@ -24,7 +24,7 @@ extern DECLSPEC void SDLCALL VW_Close(OggVorbis_File *vf);
 
 extern DECLSPEC Sint32 SDLCALL VW_PcmLength(OggVorbis_File *vf, int section);
 extern DECLSPEC Sint32 SDLCALL VW_PcmTell(OggVorbis_File *vf);
-extern DECLSPEC Sint32 SDLCALL VW_PcmSeek(OggVorbis_File *vf, Sint32 samples);
+extern DECLSPEC Sint32 SDLCALL VW_PcmSeek(OggVorbis_File *vf, Sint32 frames);
 extern DECLSPEC double SDLCALL VW_TimeLength(OggVorbis_File *vf, int section);
 extern DECLSPEC double SDLCALL VW_TimeTell(OggVorbis_File *vf);
 extern DECLSPEC Sint32 SDLCALL VW_TimeSeek(OggVorbis_File *vf, double seconds);

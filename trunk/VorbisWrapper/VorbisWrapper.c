@@ -28,11 +28,11 @@ void VW_Close(OggVorbis_File *vf) { ov_clear(vf); }
 
 Sint32 VW_PcmLength(OggVorbis_File *vf, int section) { return (Sint32)ov_pcm_total(vf, section); }
 Sint32 VW_PcmTell(OggVorbis_File *vf) { return (Sint32)ov_pcm_tell(vf); }
-Sint32 VM_PcmSeek(OggVorbis_File *vf, Sint32 samples) { return (Sint32)ov_pcm_seek(vf, samples); }
+Sint32 VW_PcmSeek(OggVorbis_File *vf, Sint32 frames) { return (Sint32)ov_pcm_seek(vf, frames); }
 
 double VW_TimeLength(OggVorbis_File *vf, int section) { return ov_time_total(vf, section); }
 double VW_TimeTell(OggVorbis_File *vf);
-Sint32 VM_TimeSeek(OggVorbis_File *vf, double seconds) { return ov_time_seek(vf, seconds); }
+Sint32 VW_TimeSeek(OggVorbis_File *vf, double seconds) { return ov_time_seek(vf, seconds); }
 
 Sint32 VW_Read(OggVorbis_File *vf, Uint8 *buf, Sint32 length, int bigEndian, int word, int sgned, int *section)
 { return ov_read(vf, (char*)buf, length, bigEndian, word, sgned, section);
