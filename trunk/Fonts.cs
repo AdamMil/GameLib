@@ -100,7 +100,7 @@ public abstract class Font
     ArrayList list = new ArrayList();
     int x=rect.X+startx, start=0, end=0, pend, length=0, plen=0, height=LineSkip;
     int rwidth=rect.Width-startx, rheight=rect.Height-starty;
-    if(height>=rheight) return new int[0];
+    if(height>rheight) return new int[0];
 
     while(true)
     { for(pend=end; end<text.Length; end++)

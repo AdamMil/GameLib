@@ -122,11 +122,13 @@ public class Control
     { this[index].SetParent(null);
       List.RemoveAt(index);
     }
-    public bool Contains(Control control) { return List.Contains(control); }
-    public bool Contains(Control child, bool deepSearch)
-    { if(Contains(child)) return true;
-      if(deepSearch) foreach(Control c in this) if(c.Controls.Contains(child)) return true;
-      return false;
+    public bool Contains(Control control) { return control.parent==parent; }
+    public bool Contains(Control control, bool deepSearch)
+    { if(deepSearch)
+      { while(control!=null) { if(control==parent) return true; control=control.parent; }
+        return false;
+      }
+      else return control.parent==parent;
     }
     public bool Contains(string name) { return Find(name, false)!=null; }
     public bool Contains(string name, bool deepSearch) { return Find(name, deepSearch)!=null; }
@@ -243,12 +245,9 @@ public class Control
   
   public DesktopControl Desktop
   { get
-    { if(parent!=null)
-      { Control c=TopLevelControl;
-        return c==null ? null : (DesktopControl)c.parent;
-      }
-      else if(this is DesktopControl) return (DesktopControl)this;
-      else return null;
+    { Control p = this;
+      while(p.parent!=null) p=p.parent;
+      return p as DesktopControl;
     }
   }
 
@@ -442,15 +441,6 @@ public class Control
     }
   }
 
-  public Control TopLevelControl
-  { get
-    { Control p=parent, c=this;
-      if(p==null) return null;
-      while(p.parent!=null) { c=p; p=p.parent; }
-      return c;
-    }
-  }
-
   public bool Visible
   { get
     { Control c = this;
@@ -494,6 +484,7 @@ public class Control
     if(list[list.Count-1]!=this)
     { list.Remove(this);
       list.Insert(list.Count-1, this);
+      Invalidate();
     }
   }
 
@@ -546,6 +537,8 @@ public class Control
       }
     }
   }
+
+  public bool IsOrHas(Control control) { return this==control || Controls.Contains(control); }
 
   public void Update()
   { DesktopControl desktop = Desktop;
@@ -613,6 +606,7 @@ public class Control
     if(list[0]!=this)
     { list.Remove(this);
       list.Insert(0, this);
+      parent.Invalidate(bounds);
     }
   }
 
@@ -682,6 +676,7 @@ public class Control
     if(parent!=null)
     { UpdateAnchor();
       UpdateDock();
+      Invalidate();
     }
   }
 
@@ -738,7 +733,7 @@ public class Control
   protected virtual void OnMove(EventArgs e)   { if(Move!=null) Move(this, e); }
   protected virtual void OnResize(EventArgs e) { if(Resize!=null) Resize(this, e); }
 
-  protected virtual void OnControlAdded(ControlEventArgs e)   { if(ControlAdded!=null) ControlAdded(this, e); }
+  protected virtual void OnControlAdded(ControlEventArgs e) { if(ControlAdded!=null) ControlAdded(this, e); }
   protected virtual void OnControlRemoved(ControlEventArgs e)
   { if(focused==e.Control) { focused.OnLostFocus(e); focused=null; }
     if(e.Control.Visible) Invalidate(e.Control.Bounds);
@@ -795,8 +790,8 @@ public class Control
     ControlEventArgs ce = new ControlEventArgs(this);
     if(parent!=null)
     { DesktopControl desktop = parent is DesktopControl ? (DesktopControl)parent : parent.Desktop;
-      if(desktop.capturing==ce.Control) desktop.capturing=null;
-      if(desktop.modal==ce.Control) desktop.SetModal(null);
+      if(desktop.capturing!=null && ce.Control.IsOrHas(desktop.capturing)) desktop.capturing=null;
+      if(desktop.modal!=null && ce.Control.IsOrHas(desktop.modal)) desktop.SetModal(null);
       parent.OnControlRemoved(ce);
     }
     parent = control;
