@@ -213,9 +213,6 @@
 				RelativePath=".\src\htk.c">
 			</File>
 			<File
-				RelativePath=".\src\htk.c.rej">
-			</File>
-			<File
 				RelativePath=".\src\ima_adpcm.c">
 			</File>
 			<File
@@ -285,28 +282,16 @@
 				RelativePath=".\src\svx.c">
 			</File>
 			<File
-				RelativePath=".\src\svx.c.rej">
-			</File>
-			<File
 				RelativePath=".\src\Gsm610\table.c">
 			</File>
 			<File
 				RelativePath=".\src\txw.c">
 			</File>
 			<File
-				RelativePath=".\src\txw.c.rej">
-			</File>
-			<File
 				RelativePath=".\src\ulaw.c">
 			</File>
 			<File
-				RelativePath=".\src\ulaw.c.rej">
-			</File>
-			<File
 				RelativePath=".\src\voc.c">
-			</File>
-			<File
-				RelativePath=".\src\voc.c.rej">
 			</File>
 			<File
 				RelativePath=".\src\vox_adpcm.c">
@@ -315,13 +300,7 @@
 				RelativePath=".\src\w64.c">
 			</File>
 			<File
-				RelativePath=".\src\w64.c.rej">
-			</File>
-			<File
 				RelativePath=".\src\wav.c">
-			</File>
-			<File
-				RelativePath=".\src\wav.c.rej">
 			</File>
 			<File
 				RelativePath=".\src\wav_w64.c">

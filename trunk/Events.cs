@@ -1,7 +1,7 @@
 /*
 GameLib is a library for developing games and other multimedia applications.
 http://www.adammil.net/
-Copyright (C) 2002-2004 Adam Milazzo
+Copyright (C) 2002-2005 Adam Milazzo
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License

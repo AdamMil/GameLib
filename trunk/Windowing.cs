@@ -1,7 +1,7 @@
 /*
 GameLib is a library for developing games and other multimedia applications.
 http://www.adammil.net/
-Copyright (C) 2002-2004 Adam Milazzo
+Copyright (C) 2002-2005 Adam Milazzo
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -18,9 +18,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 // TODO: implement mouse cursor
 // TODO: add 'other control' to focus events?
-// TODO: do something so that slow painting/updating doesn't lag the entire windowing system
 // TODO: implement overlapping window support
 // TODO: unify terminology referring to coordinates (eg, control coordinates vs client coordinates, etc)
+
 using System;
 using System.Collections;
 using System.Drawing;

@@ -604,6 +604,179 @@ byte[] output = IOH.Write("dfp?d", parms);
   </Vector>
  </Mathematics>
 
+ <Network>
+  <Common>
+    <Connected>
+      <summary>Returns true if the connection is open.</summary>
+      <remarks>Note that this property may return true even if the connection has been broken. This method simply
+      returns the connection state that existed when the most recent I/O operation was performed.
+      </remarks>
+    </Connected>
+    <DefaultFlags>
+      <summary>Gets or sets the default flags that will be used for sending messages.</summary>
+      <remarks>If an overload of <see cref="Send"/> is called that does not have a flags parameter, the value of
+      this property will be used. This property defaults to <see cref="SendFlag.ReliableSequential"/>.
+      </remarks>
+    </DefaultFlags>
+    <GetQueueStatus>
+      <summary>Gets information about the status of the receive and/or send queues.</summary>
+      <param name="flags">A set of <see cref="QueueStat"/> flags that determine what data will be returned.</param>
+      <returns>A <see cref="QueueStatus"/> structure containing the number and total size of messages waiting in
+      the queues specified by <paramref name="flags"/>.
+      </returns>
+    </GetQueueStatus>
+    <LagAverage>
+      <summary>Gets or sets the average amount of lag in milliseconds.</summary>
+      <remarks>This property can be used to help simulate unfavorable network conditions.</remarks>
+    </LagAverage>
+    <LagVariance>
+      <summary>Gets or sets the amount that the lag varies from <see cref="LagAverage"/>, in milliseconds.</summary>
+      <remarks>This property can be used to help simulate unfavorable network conditions.</remarks>
+    </LagVariance>
+    <RegisterTypes>
+      <summary>Registers a list of types for automatic serialization/deserialization.</summary>
+      <param name="types">An array of <see cref="System.Type"/> objects that will be registered.</param>
+      <remarks>Registering a type allows it to be automatically serialized and deserialized. The types must be
+      registered in the same order on both the server and client, or else bad things will happen. Types cannot be
+      registered while a connection is open.
+      <seealso cref="MessageConverter.RegisterTypes"/>
+      </remarks>
+    </RegisterTypes>
+    <RegisterType>
+      <summary>Registers a type for automatic serialization/deserialization.</summary>
+      <param name="type">A <see cref="System.Type"/> that will be registered.</param>
+      <remarks>Registering a type allows it to be automatically serialized and deserialized. The types must be
+      registered in the same order on both the server and client, or else bad things will happen. Types cannot be
+      registered while a connection is open.
+      <seealso cref="MessageConverter.RegisterType"/>
+      </remarks>
+    </RegisterType>
+    <UnregisterTypes>
+      <summary>Unregisters a list of types.</summary>
+      <param name="types">An array of <see cref="System.Type"/> to unregister.</param>
+      <remarks>Registering a type allows it to be automatically serialized and deserialized. The types must be
+      registered in the same order on both the server and client, or else bad things will happen. Types cannot be
+      unregistered while a connection is open. <seealso cref="MessageConverter.UnregisterTypes"/>
+      </remarks>
+    </UnregisterTypes>
+    <UnregisterType>
+      <summary>Unregisters a type.</summary>
+      <param name="type">A <see cref="System.Type"/> to unregister.</param>
+      <remarks>Registering a type allows it to be automatically serialized and deserialized. The types must be
+      registered in the same order on both the server and client, or else bad things will happen. Types cannot be
+      unregistered while a connection is open. <seealso cref="MessageConverter.UnregisterType"/>
+      </remarks>
+    </UnregisterType>
+    <ClearTypes>
+      <summary>Unregisters all types.</summary>
+      <remarks>Registering a type allows it to be automatically serialized and deserialized. The types must be
+      registered in the same order on both the server and client, or else bad things will happen. Types cannot be
+      unregistered while a connection is open. <seealso cref="MessageConverter.ClearTypes"/>
+      </remarks>
+    </ClearTypes>
+  </Common>
+  
+  <Client>
+    <Send>
+      <Common>
+        <summary>Queues a message for sending.</summary>
+      </Common>
+      <byteData><param name="data">An array of <see cref="System.Byte"/> containing the message data.</param></byteData>
+      <Length><param name="length">The length of the message data.</param></Length>
+      <Index>
+        <param name="index">The index into <paramref name="data"/> at which the message data begins.</param>
+      </Index>
+      <Flags>
+        <param name="flags">A set of <see cref="SendFlag"/> values that will be used to control how the message is sent.</param>
+      </Flags>
+      <objData>
+        <param name="data">An object representing the message data. It will be automatically serialized, so its type
+        must have been registered using <see cref="RegisterTypes"/>.
+        </param>
+      </objData>
+      <Timeout>
+        <param name="timeoutMs">A timeout value, in milliseconds, indicating when the message will expire. If the
+        message hasn't been sent over the network before the timeout expires, the message will be dropped. A timeout
+        value of zero indicates that the message will not expire.
+        </param>
+      </Timeout>
+    </Send>
+  </Client>
+
+  <NetLink>
+    <Send>
+      <Common>
+        <summary>Queues a message for sending.</summary>
+        <param name="data">An array of <see cref="System.Byte"/> containing the message data.</param>
+      </Common>
+      <Length><param name="length">The length of the message data.</param></Length>
+      <Index><param name="index">The index into <paramref name="data"/> at which the message data begins.</param></Index>
+      <Flags>
+        <param name="flags">A set of <see cref="SendFlag"/> values that will be used to control how the message is sent.</param>
+      </Flags>
+      <Timeout>
+        <param name="timeoutMs">A timeout value, in milliseconds, indicating when the message will expire. If the
+        message hasn't been sent over the network before the timeout expires, the message will be dropped. A timeout
+        value of zero indicates that the message will not expire. <see cref="NoTimeout"/> cannot be used with this
+        parameter.
+        </param>
+      </Timeout>
+      <Tag>
+        <param name="tag">A value that will be associated with the message. The tag value can be retrieved using the
+        <see cref="LinkMessage.Tag"/> property.
+        </param>
+      </Tag>
+    </Send>
+  </NetLink>
+  
+  <Server>
+    <Send>
+      <Common>
+        <summary>Queues a message for sending.</summary>
+        <param name="toWho">The addressee of the message. This value may be one of the following:
+        <list type="table">
+          <listheader><term>Type</term></listheader>
+          <item><term>null or <see cref="Players"/></term>
+            <description>The message will be sent to all players that are not currently being dropped. If any
+              exceptions occur due to a connection being broken, they will be ignored.
+            </description>
+          </item>
+          <item><term><see cref="IEnumerable"/></term>
+            <description>The message will be sent to all players in the list. If a player is currently being dropped,
+              an exception will be raised. If any exceptions occur due to a connection being broken, they will be
+              ignored.
+            </description>
+          </item>
+          <item><term><see cref="ServerPlayer"/></term>
+            <description>The message will be sent to the given player. No exceptions will be ignored.
+            </description>
+          </item>
+        </list>
+        </param>
+      </Common>
+      <byteData><param name="data">An array of <see cref="System.Byte"/> containing the message data.</param></byteData>
+      <Length><param name="length">The length of the message data.</param></Length>
+      <Index>
+        <param name="index">The index into <paramref name="data"/> at which the message data begins.</param>
+      </Index>
+      <Flags>
+        <param name="flags">A set of <see cref="SendFlag"/> values that will be used to control how the message is sent.</param>
+      </Flags>
+      <objData>
+        <param name="data">An object representing the message data. It will be automatically serialized, so its type
+        must have been registered using <see cref="RegisterTypes"/>.
+        </param>
+      </objData>
+      <Timeout>
+        <param name="timeoutMs">A timeout value, in milliseconds, indicating when the message will expire. If the
+        message hasn't been sent over the network before the timeout expires, the message will be dropped. A timeout
+        value of zero indicates that the message will not expire.
+        </param>
+      </Timeout>
+    </Send>
+  </Server>
+ </Network>
+
  <Video>
   <OpenGL>
    <TexImage2D>
