@@ -5,8 +5,14 @@ Legend
 *  Alteration/other
 !  Alteration/Removal/other that breaks backwards compatibility
 
-2004.04.11 (alpha/beta)
+2004.05.02 (alpha/beta)
 -----------------------
+Release stats (only counts code written by me):
+Code:  20484 lines,  833493 bytes (60.81%), avg. 41 BPL
+Docs:   7359 lines,  537105 bytes (39.19%), avg. 73 BPL
+Total: 27843 lines, 1370598 bytes, avg. 49 BPL
+
+Release notes:
 This release has a lot more interface changes than I'd have liked, but the
 process of documenting the source code reveals problems with the design that
 may not have been evident at earlier stages.
@@ -176,4 +182,10 @@ may not have been evident at earlier stages.
 
 2004.02.07 (alpha/beta)
 -----------------------
+Release stats (only counts code written by me):
+Code:  18456 lines,  756053 bytes (88.84%), avg. 41 BPL
+Docs:   1247 lines,   94974 bytes (11.16%), avg. 76 BPL
+Total: 19703 lines,  851027 bytes, avg. 43 BPL
+
+Release notes:
 * First public release
