@@ -13,8 +13,8 @@ Legend
   almost never a real problem, but it could cause an exception if multiple
   modal windows were opened simultaneously.
 * Added the Control.DrawSurface property
-* Whoops -- the audio quality in the Audio example was set to low. Changed
-  it back to the default.
+* The audio quality in the Audio example was set to low. Made it use the
+  default instead.
 + Added a property to FormBase that gets which button was clicked on a form
 + Added a simple color picker dialog
 * Made Button control only depress when clicked with the left mouse button
@@ -67,7 +67,7 @@ Legend
 ! Removed the AlphaLevel class (no longer needed now that you've got real
   documentation!)
 ! Removed Surface.Flip
-! Greatly simplified the color key and surface alpha interface
+! Greatly simplified the color key and surface alpha interface/implementation
 + Added code to convert seconds to CD frames and to return the number of
   frames per second
 + Added code to allow playing CDs with real time offsets rather than just
@@ -85,6 +85,11 @@ Legend
   used in user code)
 ! Removed the Events.UpdateQueue method and the Events.SyncRoot property.
   They were basically unnecessary.
++ Added a Size property to the ResizeEvent class
+! Changed the ExceptionEvent class (new constructor, field name change, ...)
+! Changed Events.QueueSize to Events.Count
+* Made Events make proper use of multicast delegates for EventProcedure and
+  IdleProcedure
 ! Removed the Font.CenterOff methods
 + Reworked BitmapFont so it can handle variable-width fonts too
 ! Renamed NonFixedFont to StyledFont, which is a much better name for it
