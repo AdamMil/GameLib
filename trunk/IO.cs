@@ -1,3 +1,21 @@
+/*
+GameLib is a library for developing games and other multimedia applications.
+http://www.adammil.net/
+Copyright (C) 2002-2004 Adam Milazzo
+
+This program is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License
+as published by the Free Software Foundation; either version 2
+of the License, or (at your option) any later version.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+*/
+
 using System;
 using System.IO;
 
@@ -5,9 +23,23 @@ namespace GameLib.IO
 {
 
 // TODO: add unsigned writing
+// TODO: add nifty high-level IO
 
 public class IOH
 { private IOH() {}
+
+  public static int CopyStream(Stream source, Stream dest) { return CopyStream(source, dest, false); }
+  public static int CopyStream(Stream source, Stream dest, bool rewindSource)
+  { if(rewindSource) source.Position=0;
+    byte[] buf = new byte[1024];
+    int read, total=0;
+    while(true)
+    { read = source.Read(buf, 0, 1024);
+      total += read;
+      if(read==0) return total;
+      dest.Write(buf, 0, read);
+    }
+  }
 
   public static byte[] Read(Stream stream, int length)
   { byte[] buf = new byte[length];
@@ -17,8 +49,12 @@ public class IOH
   public static int Read(Stream stream, byte[] buf) { return Read(stream, buf, 0, buf.Length); }
   public static int Read(Stream stream, byte[] buf, int length) { return Read(stream, buf, 0, length); }
   public static int Read(Stream stream, byte[] buf, int offset, int length)
-  { if(stream.Read(buf, offset, length)!=length) throw new EndOfStreamException();
-    return length;
+  { int read=0;
+    while(true)
+    { read += stream.Read(buf, offset+read, length-read);
+      if(read==length) return length;
+      if(read==0) throw new EndOfStreamException();
+    }
   }
 
   public static string ReadString(Stream stream, int length)

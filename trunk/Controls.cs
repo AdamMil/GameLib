@@ -1,3 +1,21 @@
+/*
+GameLib is a library for developing games and other multimedia applications.
+http://www.adammil.net/
+Copyright (C) 2002-2004 Adam Milazzo
+
+This program is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License
+as published by the Free Software Foundation; either version 2
+of the License, or (at your option) any later version.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+*/
+
 // TODO: implement more controls (checkbox, listbox, dropdown)
 // TODO: have controls display differently when disabled
 // TODO: implement a menubar control
@@ -726,6 +744,8 @@ public abstract class TextBoxBase : Control
   
   public int SelectionStart { get { return selectLen<0 ? caret+selectLen : caret; } }
 
+  public bool SelectOnFocus { get { return selectOnFocus; } set { selectOnFocus=value; } }
+
   public override string Text
   { set
     { if(caret>value.Length)
@@ -748,8 +768,16 @@ public abstract class TextBoxBase : Control
   protected virtual void OnCaretPositionChanged(ValueChangedEventArgs e) { }
   protected virtual void OnCaretFlash() { }
   
-  protected override void OnGotFocus (EventArgs e) { WithCaret=this; base.OnGotFocus(e); }
-  protected override void OnLostFocus(EventArgs e) { WithCaret=null; base.OnLostFocus(e); }
+  protected override void OnGotFocus (EventArgs e)
+  { if(selectOnFocus) { SelectAll(); Invalidate(); }
+    WithCaret=this;
+    base.OnGotFocus(e);
+  }
+  protected override void OnLostFocus(EventArgs e)
+  { if(hideSelection) Invalidate();
+    WithCaret=null;
+    base.OnLostFocus(e);
+  }
 
   protected internal override void OnKeyPress(KeyEventArgs e)
   { if(e.KE.Char>=32)
@@ -911,7 +939,7 @@ public abstract class TextBoxBase : Control
   bool IsPunctuation(char c) { return char.IsPunctuation(c) || char.IsSymbol(c); }
   
   int  caret, selectLen, maxLength=-1;
-  bool hideSelection, modified, wordWrap;
+  bool hideSelection=true, modified, wordWrap, selectOnFocus=true;
 
   #region Statics
   public static int CaretFlashRate
@@ -939,8 +967,9 @@ public abstract class TextBoxBase : Control
   { get { return withCaret; }
     set
     { if(withCaret!=value)
-      { if(withCaret!=null) { bool on=caretOn; caretOn=false; withCaret.OnCaretFlash(); caretOn=on; }
+      { if(withCaret!=null) { caretOn=false; withCaret.OnCaretFlash(); }
         withCaret=value;
+        if(withCaret!=null) { caretOn=true; withCaret.OnCaretFlash(); }
       }
     }
   }
@@ -985,7 +1014,7 @@ public class TextBox : TextBoxBase
         else break;
       }
 
-      if(SelectionLength!=0)
+      if((!HideSelection || Focused) && SelectionLength!=0)
       { text = Text.Substring(start, end-start);
         int x = rect.X+padding, width;
         if(SelectionStart>start) x += font.CalculateSize(text.Substring(0, SelectionStart-start)).Width;
@@ -1012,7 +1041,7 @@ public class TextBox : TextBoxBase
 
       font.Color = ForeColor;
       font.BackColor = BackColor;
-      if(SelectionLength==0) font.Render(e.Surface, text, location);
+      if((HideSelection && !Focused) || SelectionLength==0) font.Render(e.Surface, text, location);
       else
       { if(SelectionStart>start)
           location.X += font.Render(e.Surface, text.Substring(0, SelectionStart-start), location);
