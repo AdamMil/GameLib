@@ -17,12 +17,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 using System;
+using System.Drawing;
 using GameLib.Interop;
 using GameLib.Interop.OpenGL;
 
 namespace GameLib.Video
 {
 
+#region OpenGL class
 // TODO: add more methods
 public sealed class OpenGL
 { private OpenGL() { }
@@ -39,17 +41,20 @@ public sealed class OpenGL
   }
 
   #region TexImage2D
-  public static void TexImage2D(Surface surface) { TexImage2D(0, GL.GL_TEXTURE_2D, 0, 0, surface); }
-  public static void TexImage2D(uint internalFormat, Surface surface)
-  { TexImage2D(internalFormat, GL.GL_TEXTURE_2D, 0, 0, surface);
+  public static void TexImage2D(Surface surface, out Size texSize)
+  { TexImage2D(0, GL.GL_TEXTURE_2D, 0, 0, surface, out texSize);
   }
-  public static void TexImage2D(uint internalFormat, uint target, Surface surface)
-  { TexImage2D(internalFormat, target, 0, 0, surface);
+  public static void TexImage2D(uint internalFormat, Surface surface, out Size texSize)
+  { TexImage2D(internalFormat, GL.GL_TEXTURE_2D, 0, 0, surface, out texSize);
   }
-  public static void TexImage2D(uint internalFormat, uint target, int level, Surface surface)
-  { TexImage2D(internalFormat, target, level, 0, surface);
+  public static void TexImage2D(uint internalFormat, uint target, Surface surface, out Size texSize)
+  { TexImage2D(internalFormat, target, 0, 0, surface, out texSize);
   }
-  public static void TexImage2D(uint internalFormat, uint target, int level, int border, Surface surface)
+  public static void TexImage2D(uint internalFormat, uint target, int level, Surface surface, out Size texSize)
+  { TexImage2D(internalFormat, target, level, 0, surface, out texSize);
+  }
+  public static void TexImage2D(uint internalFormat, uint target, int level, int border, Surface surface,
+                                out Size texSize)
   { PixelFormat pf = surface.Format;
     uint format=0;
     int nwidth, nheight, awidth=surface.Width-border*2, aheight=surface.Height-border*2;
@@ -59,6 +64,7 @@ public sealed class OpenGL
       while(nwidth<awidth) nwidth<<=1;
       while(nheight<aheight) nheight<<=1;
     }
+    texSize = new Size(nwidth, nheight);
 
     if(awidth==nwidth && aheight==nheight && surface.Pitch==surface.Width*surface.Depth/8)
     { if(surface.Depth==24)
@@ -150,5 +156,91 @@ public sealed class OpenGL
   static System.Collections.Hashtable extensions;
   static bool useNPOT=true;
 }
+#endregion
+
+#region GLTexture2D
+public class GLTexture : IDisposable
+{ 
+  public GLTexture(Surface surface) : this(0, 0, 0, surface) { }
+  public GLTexture(uint internalFormat, Surface surface) : this(internalFormat, 0, 0, surface) { }
+  public GLTexture(uint internalFormat, int level, Surface surface) : this(internalFormat, level, 0, surface) { }
+  public GLTexture(uint internalFormat, int level, int border, Surface surface)
+  { if(!Load(internalFormat, level, border, surface))
+    {
+    }
+  }
+
+  /*public GLTexture(int width, int height) : this(0, 0, 0, width, height) { }
+  public GLTexture(uint internalFormat, int width, int height) : this(internalFormat, 0, 0, width, height) { }
+  public GLTexture(uint internalFormat, int level, int width, int height)
+    : this(internalFormat, level, 0, width, height) { }
+  public GLTexture(uint internalFormat, int level, int border, int width, int height)
+  { if(!Create(internalFormat, level, border, width, height))
+    {
+    }
+  }*/
+
+  public void Dispose() { Dispose(false); GC.SuppressFinalize(this); }
+
+  public int ImgHeight
+  { get { return imgSize.Height; }
+    set
+    { if(value<0) throw new ArgumentOutOfRangeException("ImgHeight", value, "must not be negative");
+      imgSize.Height = value;
+    }
+  }
+
+  public Size ImgSize
+  { get { return imgSize; }
+    set
+    { if(value.Width<0 || value.Height<0)
+        throw new ArgumentOutOfRangeException("ImgSize", value, "coordinates must not be negative");
+      imgSize = value;
+    }
+  }
+
+  public int ImgWidth
+  { get { return imgSize.Width; }
+    set
+    { if(value<0) throw new ArgumentOutOfRangeException("ImgWidth", value, "must not be negative");
+      imgSize.Width = value;
+    }
+  }
+  
+  public bool Initialized { get { return texture!=0; } }
+
+  public uint TextureID { get { return texture; } }
+
+  public int TexHeight { get { return size.Height; } }
+  public Size TexSize { get { return size; } }
+  public int TexWidth { get { return size.Width; } }
+  
+  public void Bind() { AssertInit(); GL.glBindTexture(GL.GL_TEXTURE_2D, texture); }
+  
+  public bool Load(uint internalFormat, int level, int border, Surface surface)
+  { Unload();
+    uint tex;
+    GL.glGenTexture(out tex);
+    GL.glBindTexture(GL.GL_TEXTURE_2D, texture);
+    OpenGL.TexImage2D(internalFormat, GL.GL_TEXTURE_2D, level, border, surface, out size);
+    imgSize = surface.Size; texture = tex;
+  }
+
+  public void Unload()
+  { if(texture!=0)
+    { GL.glDeleteTexture(texture);
+      texture = 0;
+    }
+  }
+
+  void AssertInit() { if(texture==0) throw new InvalidOperationException("Texture has not been initialized yet"); }
+  void Dispose(bool destructing)
+  { Unload();
+  }
+
+  Size imgSize, size;
+  uint texture;
+}
+#endregion
 
 } // namespace GameLib.Video
