@@ -38,6 +38,11 @@ class App
     Input.Initialize(true);
     Video.Initialize();
     
+    foreach(Joystick joy in Input.Joysticks)
+      for(int i=0; i<joy.Axes.Length; i++)
+        if(i==2) joy.SetSaturationZone(i, 9); // assuming throttle is axis 2
+        else joy.SetDeadZone(i, 15); // other axes
+
     Video.SetMode(640, 480, 32);
     WM.WindowTitle = "Input Test";
 
@@ -61,9 +66,28 @@ class App
                                 Mouse.Point, Mouse.Z, Mouse.Buttons),
                   0, ypos);
       foreach(Joystick joy in Input.Joysticks)
-        font.Render(Video.DisplaySurface,
+      { font.Render(Video.DisplaySurface,
                     string.Format("Joystick {0}: {1}", joy.Number, joy.Name),
                     0, ypos += font.LineSkip);
+        string s = "Axes:";
+        foreach(int i in joy.Axes) s += " "+i;
+        s += ", Buttons: ";
+        foreach(bool b in joy.Buttons) s += b ? '1' : '0';
+        font.Render(Video.DisplaySurface, s, 0, ypos += font.LineSkip);
+        if(joy.Hats.Length>0 || joy.Balls.Length>0)
+        { if(joy.Hats.Length>0)
+          { s = "Hats:";
+            foreach(HatPosition p in joy.Hats) s += " "+p;
+          }
+          else s = "";
+          if(joy.Balls.Length>0)
+          { s += ", Balls:";
+            foreach(Joystick.Ball b in joy.Balls) s += " "+b.Point;
+          }
+          font.Render(Video.DisplaySurface, s, 0, ypos += font.LineSkip);
+        }
+      }
+ 
       string text = string.Empty;
       switch(e.Type)
       { case EventType.Keyboard:
