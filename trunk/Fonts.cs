@@ -69,6 +69,7 @@ public abstract class Font
                                            : new Point(-1, -1);
   }
   
+  // TODO: remove these?
   public void Center(Surface dest, string text) { CenterOff(dest, text, 0, 0); }
   public void Center(Surface dest, string text, int y)
   { int width = CalculateSize(text).Width;
