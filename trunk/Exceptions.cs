@@ -42,6 +42,11 @@ public class ConnectionLostException : NetworkException
 { public ConnectionLostException() : base("The connection has been lost.") { }
   public ConnectionLostException(string message) : base(message) { }
 }
+
+public class HandshakeException : NetworkException
+{ public HandshakeException() : base("An error occurred during handshaking. Connection aborted") { }
+  public HandshakeException(string message) : base(message) { }
+}
 #endregion
 
 #region Input
