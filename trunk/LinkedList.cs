@@ -142,7 +142,7 @@ public class LinkedList : ICollection, IEnumerable
     count--;
     if(ListChanged!=null) ListChanged();
   }
-  public void Clear() { head=tail=null; }
+  public void Clear() { head=tail=null; count=0; }
   
   protected IComparer cmp;
   protected Node head, tail;

@@ -16,8 +16,7 @@ public enum BorderStyle { None, Flat, ThreeDimensional };
 #region ContainerControl
 public class ContainerControl : Control
 { protected internal override void OnPaint(PaintEventArgs e)
-  { for(int i=Controls.Count-1; i>=0; i--) // we count backwards because the first element is on top
-    { Control c = Controls[i];
+  { foreach(Control c in Controls)
       if(c.Visible)
       { Rectangle paint = Rectangle.Intersect(c.ParentRect, e.WindowRect);
         if(paint.Width>0)
@@ -26,8 +25,17 @@ public class ContainerControl : Control
           c.Update();
         }
       }
-    }
     base.OnPaint(e);
+  }
+  
+  protected internal override void OnLayout(EventArgs e)
+  { base.OnLayout(e);
+    foreach(Control c in Controls)
+      if(c.Dock==DockStyle.None && c.Anchor!=AnchorStyle.TopLeft)
+      { int x=(c.Anchor&AnchorStyle.Right )==0 ? c.Left : Right-c.RightAnchorOffset-c.Width;
+        int y=(c.Anchor&AnchorStyle.Bottom)==0 ? c.Top  : Bottom-c.BottomAnchorOffset-c.Height;
+        c.Location = new Point(x, y);
+      }
   }
 }
 #endregion
@@ -239,12 +247,14 @@ public class CheckBoxBase : ButtonBase
 #endregion
 
 #region ScrollBarBase
-public class ScrollBarBase : Control
+public class ScrollBarBase : Control, IDisposable
 { public ScrollBarBase()
   { Style = ControlStyle.Clickable|ControlStyle.Draggable|ControlStyle.CanFocus;
     ClickRepeatDelay = 300;
     dragThreshold    = 4;
   }
+  ~ScrollBarBase() { Dispose(true); }
+  public void Dispose() { Dispose(false); GC.SuppressFinalize(this); }
 
   public class ThumbEventArgs : EventArgs
   { public int Start;
@@ -448,6 +458,13 @@ public class ScrollBarBase : Control
   }
   #endregion
   
+  protected void Dispose(bool destructor)
+  { if(crTimer!=null)
+    { crTimer.Dispose();
+      crTimer=null;
+    }
+  }
+
   protected int ThumbToValue(int position)
   { if(position<0) position=0;
     if(horizontal)
@@ -800,14 +817,220 @@ public class TextBox : TextBoxBase
 }
 #endregion
 
-#region FormBase
-/*
-public class FormBase : ContainerControl
-{ public bool Modal { get; set; }
+#region MenuItemBase
+public class MenuItemBase : Control
+{ public char HotKey   { get { return hotKey; } set { hotKey=char.ToUpper(value); } }
+  public MenuBase Menu { get { return (MenuBase)Parent; } }
+
+  public event EventHandler Click;
+
+  public virtual Size MeasureItem() { return Size; }
+
+  protected internal virtual void OnClick(EventArgs e) { if(Click!=null) Click(this, e); }
+
+  char hotKey;
+}
+#endregion
+
+#region MenuBase
+// TODO: add arrow key support
+public class MenuBase : ContainerControl
+{ public MenuBase() { Style |= ControlStyle.Clickable|ControlStyle.CanFocus; }
+
+  public Control SourceControl { get { return source; } }
+
+  public event EventHandler Popup;
+
+  public MenuItemBase Add(MenuItemBase item) { Controls.Add(item); return item; }
+  public void Clear() { Controls.Clear(); }
+
+  public void Show(Control source, Point position) { Show(source, position, true); }
+  public void Show(Control source, Point position, bool wait)
+  { if(source==null) throw new ArgumentNullException("source");
+    DesktopControl desktop = source.Desktop;
+    if(desktop==null) throw new InvalidOperationException("The source control is not part of a desktop");
+    this.source = source;
+    Location = source.WindowToAncestor(position, desktop);
+    Visible = false;
+    Parent  = desktop;
+    OnPopup(new EventArgs());
+    BringToFront();
+    Visible = true;
+    Modal   = true;
+    Capture = true;
+    if(wait) while(Events.Events.PumpEvent() && source!=null);
+  }
   
+  protected virtual void OnPopup(EventArgs e) { if(Popup!=null) Popup(this, e); }
+
+  protected internal override void OnKeyPress(KeyEventArgs e)
+  { if(!e.Handled)
+    { char c = char.ToUpper(e.KE.Char);
+      foreach(MenuItemBase item in Controls)
+        if(c==item.HotKey)
+        { Click(item);
+          e.Handled=true;
+          break;
+        }
+    }
+    base.OnKeyPress(e);
+  }
+  
+  protected internal override void OnKeyDown(KeyEventArgs e)
+  { if(!e.Handled && e.KE.Down && e.KE.Key==Key.Escape && e.KE.KeyMods==KeyMod.None)
+    { Close();
+      e.Handled=true;
+    }
+  }
+
+  protected internal override void OnMouseClick(ClickEventArgs e)
+  { if(!e.Handled)
+    { foreach(MenuItemBase item in Controls)
+        if(item.Bounds.Contains(e.CE.Point)) { Click(item); break; }
+      Close();
+      e.Handled=true;
+    }
+    base.OnMouseClick(e);
+  }
+
+  void Click(MenuItemBase item)
+  { item.OnClick(new EventArgs());
+    Close();
+  }
+  
+  void Close()
+  { if(source!=null)
+    { Parent=null;
+      source=null;
+    }
+  }
+
+  Control source;
+}
+#endregion
+
+#region MenuItem
+public class MenuItem : MenuItemBase
+{ public MenuItem() { TextAlign = ContentAlignment.MiddleLeft; }
+  public MenuItem(string text) { Text=text; TextAlign = ContentAlignment.MiddleLeft; }
+  public MenuItem(string text, char hotKey) { Text=text; HotKey=hotKey; TextAlign = ContentAlignment.MiddleLeft; }
+
+  public Color RawSelectedBackColor { get { return selBack; } }
+  public Color RawSelectedForeColor { get { return selFore; } }
+
+  public Color SelectedBackColor
+  { get
+    { if(selBack!=Color.Transparent) return selBack;
+      Menu menu = (Menu)Parent;
+      return menu==null || menu.SelectedBackColor==Color.Transparent ? ForeColor : menu.SelectedBackColor;
+    }
+    set { selBack=value; if(mouseOver) Invalidate(); }
+  }
+
+  public Color SelectedForeColor
+  { get
+    { if(selFore!=Color.Transparent) return selFore;
+      Menu menu = (Menu)Parent;
+      return menu==null || menu.SelectedForeColor==Color.Transparent ? BackColor : menu.SelectedForeColor;
+    }
+    set { selFore=value; if(mouseOver) Invalidate(); }
+  }
+
+  public ContentAlignment TextAlign
+  { get { return textAlign; }
+    set
+    { if(textAlign != value)
+      { textAlign = value;
+        Invalidate();
+      }
+    }
+  }
+
+  protected internal override void OnMouseEnter(EventArgs e) { mouseOver=true;  Invalidate(); base.OnMouseEnter(e); }
+  protected internal override void OnMouseLeave(EventArgs e) { mouseOver=false; Invalidate(); base.OnMouseLeave(e); }
+
+  protected override void OnBackColorChanged(ValueChangedEventArgs e) { Invalidate(); base.OnBackColorChanged(e); }
+  protected override void OnForeColorChanged(ValueChangedEventArgs e) { Invalidate(); base.OnForeColorChanged(e); }
+
+  protected internal override void OnPaintBackground(PaintEventArgs e)
+  { if(mouseOver)
+    { Color c = RawBackColor;
+      BackColor = SelectedBackColor;
+      base.OnPaintBackground(e);
+      BackColor = c;
+    }
+    else base.OnPaintBackground(e);
+  }
+
+  protected internal override void OnPaint(PaintEventArgs e)
+  { base.OnPaint(e);
+    if(Text.Length>0)
+    { GameLib.Fonts.Font f = Font;
+      if(f != null)
+      { f.Color     = mouseOver ? SelectedForeColor : ForeColor;
+        f.BackColor = mouseOver ? SelectedBackColor : BackColor;
+        f.Render(e.Surface, Text, DisplayRect, TextAlign);
+      }
+    }
+  }
+
+  public override Size MeasureItem()
+  { GameLib.Fonts.Font f = Font;
+    if(f==null) return base.MeasureItem();
+    Size size = f.CalculateSize(Text);
+    size.Width += 4; size.Height += 6;
+    return size;
+  }
+
+  ContentAlignment textAlign=ContentAlignment.TopLeft;
+  Color selFore=Color.Transparent, selBack=Color.Transparent;
+  bool mouseOver;
+}
+#endregion
+
+#region Menu
+public class Menu : MenuBase
+{ public Color SelectedBackColor { get { return selBack; } set { selBack=value; } }
+  public Color SelectedForeColor { get { return selFore; } set { selFore=value; } }
+
+  protected override void OnPopup(EventArgs e)
+  { base.OnPopup(e);
+
+    int width=0, height=0;
+    foreach(MenuItemBase item in Controls)
+    { item.Size = item.MeasureItem();
+      if(item.Width>width) width=item.Width;
+      item.Location = new Point(2, height+2);
+      height += item.Height;
+    }
+    foreach(MenuItemBase item in Controls) item.Width=width;
+    Size = new Size(width+4, height+4);
+  }
+  
+  protected internal override void OnPaintBackground(PaintEventArgs e)
+  { base.OnPaintBackground(e);
+
+    Rectangle rect = DisplayRect;
+    Color bright, dark, back=BackColor, fore=ForeColor;
+    bright = Color.FromArgb(back.R+(255-back.R)/2, back.G+(255-back.G)/2, back.B+(255-back.B)/2);
+    dark   = Color.FromArgb(back.R*2/3, back.G*2/3, back.B*2/3);
+    Primitives.Line(e.Surface, rect.X, rect.Y, rect.Right-1, rect.Y, bright);
+    Primitives.Line(e.Surface, rect.X, rect.Y, rect.X, rect.Bottom-1, bright);
+    Primitives.Line(e.Surface, rect.X, rect.Bottom-1, rect.Right-1, rect.Bottom-1, dark);
+    Primitives.Line(e.Surface, rect.Right-1, rect.Y, rect.Right-1, rect.Bottom-1, dark);
+  }
+
+  Color selFore=Color.Transparent, selBack=Color.Transparent;
+}
+#endregion
+
+#region FormBase
+public class FormBase : ContainerControl
+{ public object ReturnValue { get { return returnValue; } set { returnValue=value; } }
+
   public void Close()
   { if(Parent!=null) return;
-    System.ComponentModel.CancelEventArgs e;
+    System.ComponentModel.CancelEventArgs e = new System.ComponentModel.CancelEventArgs();
     OnClosing(e);
     if(!e.Cancel)
     { OnClosed(new EventArgs());
@@ -815,81 +1038,68 @@ public class FormBase : ContainerControl
     }
   }
 
-  #region Events
+  public object ShowDialog(Control parent)
+  { if(parent==null) throw new ArgumentNullException("parent");
+    Parent = parent;
+    BringToFront();
+    Modal = true;
+    while(Events.Events.PumpEvent() && Parent!=null);
+    return returnValue;
+  }
+
   public event System.ComponentModel.CancelEventHandler Closing;
   public event EventHandler Closed;
   
-  protected virtual void OnClosing(System.ComponentModel.CancelEventHandler e)
+  protected virtual void OnClosing(System.ComponentModel.CancelEventArgs e)
   { if(Closing!=null) Closing(this, e);
   }
-  protected virtual void OnClosed(EventArgs e) { if(Closed) Closed(this, e); }
-
-  protected virtual void OnNcMouseDown(ClickEventArgs e) { }
-  protected virtual void OnNcMouseUp(ClickEventArgs e) { }
-  protected virtual void OnNcMouseClick(ClickEventArgs e) { }
+  protected virtual void OnClosed(EventArgs e) { if(Closed!=null) Closed(this, e); }
   
-  protected virtual void OnNcDragStart(DragEventArgs e) { }
-  protected virtual void OnNcDragMove(DragEventArgs e) { }
-  protected virtual void OnNcDragEnd(DragEventArgs e) { }
-  
-  protected virtual void OnNcPaint(PaintEventArgs e) { }
-  
-  protected internal virtual void OnMouseDown(ClickEventArgs e)
-  { if(NonClientRect.Contains(e.CE.Point)) OnNcMouseDown(e);
-    e.Handled = true;
-    base.OnMouseDown(e);
-  }
-  
-  protected internal virtual void OnMouseUp(ClickEventArgs e)
-  { if(NonClientRect.Contains(e.CE.Point)) OnNcMouseUp(e);
-    e.Handled = true;
-    base.OnMouseUp(e);
-  }
-  
-  protected internal virtual void OnMouseClick(ClickEventArgs e)
-  { if(NonClientRect.Contains(e.CE.Point)) OnNcMouseClick(e);
-    e.Handled = true;
-    base.OnMouseClick(e);
-  }
-  
-  protected internal virtual void OnDragStart(DragEventArgs e)
-  { if(NonClientRect.Contains(e.Start)) OnNcDragStart(e);
-    base.OnDragStart(e);
-  }
-  
-  protected internal virtual void OnDragMove(DragEventArgs e)
-  { if(NonClientRect.Contains(e.End)) OnNcDragMove(e);
-    base.OnDragMove(e);
-  }
-
-  protected internal virtual void OnDragEnd(DragEventArgs e)
-  { if(NonClientRect.Contains(e.End)) OnNcDragEnd(e);
-    base.OnDragEnd(e);
-  }
-  
-  protected internal virtual void OnPaint(PaintEventArgs e);
-  { base.OnPaint(e);
-
-    //Rectangle displayRect = e.DisplayRect, windowRect = e.WindowRect;
-    //e.DisplayRect.Intersect(ncRect);
-    //if(e.DisplayRect.Width>0)
-    //{ e.WindowRect = RectToWindow(e.DisplayRect);
-    //  OnNcPaint(e);
-    //}
-  }
-  #endregion
-  
-  protected Rectangle NonClientRect { get { return ncRect; } set { ncRect=value; } }
-  
-  protected Point WindowToNonClient(Point windowPoint);
-  protected Point NonClientToWindow(Point ncPoint);
-
-  protected Rectangle WindowToNonClient(Rectangle windowRect);
-  protected Rectangle NonClientToWindow(Rectangle ncRect);
-
-  Rectangle ncRect;
+  object returnValue;
 }
-*/
+#endregion
+
+#region Form
+public class Form : FormBase
+{
+}
+#endregion
+
+#region MessageBox
+public enum MessageBoxButtons { Ok, OkCancel, YesNo }
+public class MessageBox : Form
+{ internal MessageBox(string text, string[] buttons) { message=text; buttonText=buttons; }
+
+  string[] buttonText;
+  string   message;
+
+  public static MessageBox Create(string caption, string text) { return Create(caption, text, MessageBoxButtons.Ok); }
+  public static MessageBox Create(string caption, string text, MessageBoxButtons buttons)
+  { switch(buttons)
+    { case MessageBoxButtons.Ok: return Create(caption, text, ok);
+      case MessageBoxButtons.OkCancel: return Create(caption, text, okCancel);
+      case MessageBoxButtons.YesNo: return Create(caption, text, yesNo);
+      default: throw new ArgumentException("Unknown MessageBoxButtons value");
+    }
+  }
+  public static MessageBox Create(string caption, string text, string[] buttonText)
+  { MessageBox box = new MessageBox(text, buttonText);
+    box.Text = caption;
+    return box;
+  }
+
+  public static void Show(Control parent, string caption, string text) { Create(caption, text).ShowDialog(parent); }
+  public static int Show(Control parent, string caption, string text, MessageBoxButtons buttons)
+  { return (int)Create(caption, text, buttons).ShowDialog(parent);
+  }
+  public static int Show(Control parent, string caption, string text, string[] buttonText)
+  { return (int)Create(caption, text, buttonText).ShowDialog(parent);
+  }
+
+  static string[] ok = new string[] { "Ok" };
+  static string[] okCancel = new string[] { "Ok", "Cancel" };
+  static string[] yesNo = new string[] { "Yes", "No" };
+}
 #endregion
 
 } // namespace GameLib.Forms

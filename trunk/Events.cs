@@ -11,8 +11,6 @@ public enum EventType
   Resize, Repaint, Exception, Window, UserDefined
 }
 
-public enum FilterAction { Continue, Drop, Queue }
-
 public enum FocusType
 { Mouse=SDL.FocusType.MouseFocus, Input=SDL.FocusType.InputFocus, Application=SDL.FocusType.AppActive
 };
@@ -21,8 +19,6 @@ public enum HatPosition : byte
 { Center=SDL.HatPos.Centered, Up=SDL.HatPos.Up, Down=SDL.HatPos.Down, Left=SDL.HatPos.Left, Right=SDL.HatPos.Right,
   UpLeft=SDL.HatPos.UpLeft, UpRight=SDL.HatPos.UpRight, DownLeft=SDL.HatPos.DownLeft, DownRight=SDL.HatPos.DownRight
 }
-
-public delegate FilterAction EventFilter(Event evt);
 
 public abstract class Event
 { protected Event(EventType type) { this.type=type; }
@@ -193,12 +189,17 @@ public class ExceptionEvent : Event
 #endregion
 
 #region Events class
+public enum FilterAction { Continue, Drop, Queue }
+public delegate FilterAction EventFilter(Event evt);
+public delegate bool EventProcedure(Event evt);
+
 public sealed class Events
 { private Events() { }
   
   public const int Infinite=-1;
 
   public static event EventFilter EventFilter;
+  public static event EventProcedure EventProcedure;
 
   public static bool Initialized { get { return initCount>0; } }
   public static int  MaxQueueSize
@@ -210,6 +211,8 @@ public sealed class Events
     }
   }
   public static object SyncRoot { get { return queue; } }
+
+  public static bool QuitFlag { get { return quit; } set { quit=value; } }
 
   public static void Initialize()
   { if(initCount++==0)
@@ -229,7 +232,7 @@ public sealed class Events
       }
   }
 
-  public static bool PumpEvents()
+  public static bool UpdateQueue()
   { lock(queue)
     { AssertInit();
       Event evt;
@@ -298,7 +301,24 @@ public sealed class Events
 
     return true;
   }
+  
+  public static bool PumpEvent()
+  { if(EventProcedure==null) throw new InvalidOperationException("No event procedure has been registered");
+    if(quit) return false;
+    quit=!EventProcedure(NextEvent());
+    return !quit;
+  }
 
+  public static void PumpEvents() { PumpEvents(null); }
+
+  public static void PumpEvents(EventProcedure proc)
+  { if(proc!=null) EventProcedure += proc;
+    else if(EventProcedure==null) throw new InvalidOperationException("No event procedure has been registered");
+    if(quit) return;
+    while(EventProcedure(NextEvent()));
+    quit=true;
+  }
+  
   static unsafe Event PeekSDLEvent()
   { Event ret=null;
     SDL.Event evt = new SDL.Event();
@@ -369,6 +389,7 @@ public sealed class Events
   static UserEvent userEvent = new UserEvent();
   static uint initCount, waiting;
   static int  max=512;
+  static bool quit;
 }
 #endregion
 
