@@ -108,10 +108,10 @@ class SampleForm : Form
   { if(Font!=null)
     { int height = Font.LineSkip*3/2;
       label1.Height = height;
-      edit.Bounds = new Rectangle(5, 0, LayoutWidth-10, height);
+      edit.Bounds = new Rectangle(5, 0, ContentWidth-10, height);
       chk.Bounds = new Rectangle(5, edit.Bottom, edit.Width, height);
       int wid = Font.CalculateSize(btn.Text).Width*2;
-      btn.Bounds = new Rectangle((LayoutWidth-wid)/2, chk.Bottom, wid, height);
+      btn.Bounds = new Rectangle((ContentWidth-wid)/2, chk.Bottom, wid, height);
       Height = Math.Max(192, height*7);
     }
     base.OnFontChanged(e);
