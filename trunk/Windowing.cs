@@ -19,6 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // TODO: implement mouse cursor
 // TODO: add 'other control' to focus events?
 // TODO: examine Layout further (implemented properly?)
+// TODO: do something so that slow painting/updating doesn't lag the entire windowing system
 using System;
 using System.Collections;
 using System.Drawing;
@@ -206,7 +207,9 @@ public enum ControlStyle
   Anyclick=NormalClick|Draggable,
   /// <summary>Instead of drawing to the desktop directly, the control will have a backing surface to which all
   /// drawing will be done. This is especially useful if it's difficult for the control to keep its drawing within
-  /// its window. Transparent background colors for controls with backing surfaces are not supported.
+  /// its window. Another possible use is to do special effects such as using the
+  /// <see cref="Surface.SetSurfaceAlpha"/> method of the backing surface to make a control partially transparent.
+  /// Transparent background colors for controls with backing surfaces are not supported.
   /// </summary>
   BackingSurface=16
 }
@@ -1296,6 +1299,11 @@ public class Control
   public event ValueChangedEventHandler BackImageChanged;
   /// <summary>Occurs when the value of the <see cref="BackImageAlign"/> property changes.</summary>
   public event ValueChangedEventHandler BackImageAlignChanged;
+  /// <summary>Occurs when the value of the <see cref="BackingSurface"/> property for this control changes.</summary>
+  /// <remarks>This can be overridden to do special effects such as using the <see cref="Surface.SetSurfaceAlpha"/>
+  /// method to make a control partially transparent.
+  /// </remarks>
+  public event EventHandler BackingSurfaceChanged;
   /// <summary>Occurs when the value of the <see cref="Enabled"/> property changes.</summary>
   public event ValueChangedEventHandler EnabledChanged;
   /// <summary>Occurs when the value of the <see cref="Font"/> property changes.</summary>
@@ -1465,6 +1473,17 @@ public class Control
     if(backImage!=null) Invalidate();
   }
 
+  /// <summary>Raises the <see cref="BackingSurfaceChanged"/> event.</summary>
+  /// <param name="e">An <see cref="EventArgs"/> that contains the event data.</param>
+  /// <remarks>This can be overridden to do special effects such as using the <see cref="Surface.SetSurfaceAlpha"/>
+  /// method to make a control partially transparent.
+  /// When overriding this method in a derived class, be sure to call the base class'
+  /// version to ensure that the default processing gets performed.
+  /// </remarks>
+  protected virtual void OnBackingSurfaceChanged(EventArgs e)
+  { if(BackingSurfaceChanged!=null) BackingSurfaceChanged(this, e);
+  }
+  
   /// <summary>Raises the <see cref="EnabledChanged"/> event and performs default handing.</summary>
   /// <param name="e">A <see cref="ValueChangedEventArgs"/> that contains the event data.</param>
   /// <remarks>This method raises the <see cref="EnabledChanged"/> event, and invalidates and possibly blurs the
@@ -1934,6 +1953,7 @@ public class Control
     { if(hasStyle && desktop!=null && desktop.Surface!=null)
         backingSurface = desktop.Surface.CreateCompatible(Width, Height, SurfaceFlag.None);
       else backingSurface = null;
+      OnBackingSurfaceChanged(new EventArgs());
     }
   }
 
@@ -2054,7 +2074,7 @@ public class DesktopControl : ContainerControl, IDisposable
   }
 
   /// <summary>Get or sets the delay in milliseconds before a key begins repeating.</summary>
-  /// <remarks>This property holds the number of milliseconds a key must remain depressed before it will begin
+  /// <remarks>This property controls the number of milliseconds a key must remain depressed before it will begin
   /// repeating. You can set this to 0 to disable the key repeat. The default is 0.
   /// This property is incompatible with the <see cref="Input.Keyboard.EnableKeyRepeat"/> method, so
   /// enabling this property will call <see cref="Input.Keyboard.DisableKeyRepeat"/> first.
@@ -2077,10 +2097,17 @@ public class DesktopControl : ContainerControl, IDisposable
     }
   }
 
+  /// <summary>Gets ore sets the delay in milliseconds between key repeats.</summary>
+  /// <remarks>This property controls the number of milliseconds between key repeats. Note that this should not be
+  /// relied upon to be precise. Key repeats may be dropped if key processing code takes too long. The default
+  /// value is 40 millseconds.
+  /// </remarks>
+  /// <exception cref="ArgumentOutOfRangeException">Thrown if value is less than 1.</exception>
   public uint KeyRepeatRate
   { get { return krRate; }
     set
-    { if(value==krRate) return;
+    { if(value<1) throw new ArgumentOutOfRangeException("KeyRepeatRate", value, "must be greater then or equal to 1");
+      if(value==krRate) return;
       krRate=value;
       if(krTimer!=null) krTimer.Change(krRate, krRate);
     }
@@ -2089,23 +2116,54 @@ public class DesktopControl : ContainerControl, IDisposable
   /// <summary>Gets the topmost modal control, or null if there are none.</summary>
   public Control ModalWindow { get { return modal.Count==0 ? null : (Control)modal[modal.Count-1]; } }
 
-  public bool ProcessKeys      { get { return keys; } set { keys=value; } }
-  public bool ProcessMouseMove { get { return moves; } set { moves=value; } }
-  public bool ProcessClicks    { get { return clicks; } set { clicks=value; } }
+  /// <summary>Gets or sets whether this desktop will process keyboard events.</summary>
+  /// <remarks>If false, <see cref="ProcessEvent"/> will ignore events related to the keyboard.
+  /// The default value is true.
+  /// </remarks>
+  public bool ProcessKeys { get { return keys; } set { keys=value; } }
 
+  /// <summary>Gets or sets whether this desktop will process mouse movement events.</summary>
+  /// <remarks>If false, <see cref="ProcessEvent"/> will ignore events related to mouse movement.
+  /// The default value is true.
+  /// </remarks>
+  public bool ProcessMouseMove { get { return moves; } set { moves=value; } }
+
+  /// <summary>Gets or sets whether this desktop will process mouse click events.</summary>
+  /// <remarks>If false, <see cref="ProcessEvent"/> will ignore events related to mouse clicks.
+  /// The default value is true.
+  /// </remarks>
+  public bool ProcessClicks { get { return clicks; } set { clicks=value; } }
+
+  /// <summary>Gets or sets the display surface associated with this desktop.</summary>
+  /// <remarks>This property controls the surface onto which this desktop will draw. The area of the surface into
+  /// which the desktop will draw is controlled by <see cref="Control.Bounds"/> and related properties.
+  /// This surface is called the display surface or the associated surface.
+  /// </remarks>
   public Surface Surface
   { get { return surface; }
     set
     { if(value!=surface)
       { surface = value;
-        if(surface!=null) Invalidate();
+        updatedLen = 0;
         UpdateBackingSurfaces();
+        if(surface!=null) Invalidate();
       }
     }
   }
 
+  /// <summary>Gets or sets the key used to tab between controls.</summary>
+  /// <remarks>If this property is set to a value other than <see cref="Input.Key.None"/>, that key will be used
+  /// to move input focus between controls. When that key is pressed, the desktop will call
+  /// <see cref="Control.TabToNextControl"/> on the control that currently has input focus.
+  /// </remarks>
   public Input.Key TabCharacter { get { return tab; } set { tab=value; } }
 
+  /// <summary>Gets or sets whether the desktop tracks the areas of the desktop that have been changed.</summary>
+  /// <remarks>If set to true, the desktop will keep track of what parts of the associated surface have been
+  /// updated. This can be used to efficiently update the screen. The default value is true.
+  /// The <see cref="UpdateDisplay"/> method provides an easy helper for updating the display.
+  /// <seealso cref="Updated"/> <seealso cref="GetUpdatedAreas"/> <seealso cref="UpdateDisplay"/>
+  /// </remarks>
   public bool TrackUpdates
   { get { return trackUpdates; }
     set
@@ -2113,33 +2171,30 @@ public class DesktopControl : ContainerControl, IDisposable
       if(!value) updatedLen=0;
     }
   }
+
+  /// <summary>Gets or sets whether any area of the associated surface has been changed.</summary>
+  /// <remarks>If true, then an area of the associated surface has been updated and should be copied to the
+  /// screen. After updating the screen, this property should be set to false so that future updates can be
+  /// detected. The <see cref="UpdateDisplay"/> method provides an easy helper for updating the display.
+  /// <seealso cref="TrackUpdates"/> <seealso cref="GetUpdatedAreas"/> <seealso cref="UpdateDisplay"/>
+  /// </remarks>
   public bool Updated
   { get { return updatedLen>0; }
     set { if(value) Invalidate(); else updatedLen=0; }
   }
-  public int NumUpdatedAreas { get { return updatedLen; } }
-  public Rectangle[] UpdatedAreas { get { return updated; } }
   #endregion
 
-  public void DoPaint() { DoPaint(this); }
-  public void DoPaint(Control child)
-  { if(surface!=null && child.InvalidRect.Width>0)
-    { PaintEventArgs pe = new PaintEventArgs(child, child.InvalidRect, surface);
-      child.OnPaintBackground(pe);
-      child.OnPaint(pe);
-      if(pe.Surface==child.backingSurface)
-      { Point pt = new Point(pe.DisplayRect.X+child.Left, pe.DisplayRect.Y+child.Top);
-        pe.Surface.Blit(surface, pe.DisplayRect, pt);
-        pe.DisplayRect.Location = pt;
-      }
-
-      // TODO: combine rectangles more efficiently
-      if(trackUpdates) AddUpdatedArea(pe.DisplayRect);
-    }
-  }
-
+  /// <summary>Adds a rectangle to the list of updated rectangles.</summary>
+  /// <param name="area">The area to add, relative to the associated surface.</param>
+  /// <remarks>This method combines the specified rectangle with the list of updated areas. It attempts to
+  /// intelligently combine the rectangle with the existing list of updated rectangles, so the new list of
+  /// updated areas may not actually contain the exact rectangle given.
+  /// <seealso cref="TrackUpdates"/> <seealso cref="Updated"/> <seealso cref="GetUpdatedAreas"/>
+  /// <seealso cref="UpdateDisplay"/>
+  /// </remarks>
   public void AddUpdatedArea(Rectangle area)
-  { int i;
+  { // TODO: combine rectangles more efficiently so there's no overlap
+    int i;
     for(i=0; i<updatedLen; i++)
     { if(updated[i].Contains(area)) return;
       retest:
@@ -2158,10 +2213,50 @@ public class DesktopControl : ContainerControl, IDisposable
     }
   }
 
+  /// <summary>Returns a list of updated rectangles, relative to the associated surface.</summary>
+  /// <returns>A list of updated rectangles, relative to the associated surface.</returns>
+  public Rectangle[] GetUpdatedAreas()
+  { if(updatedLen==updated.Length) return updated;
+    else
+    { Rectangle[] ret = new Rectangle[updatedLen];
+      Array.Copy(updated, ret, updatedLen);
+      return ret;
+    }
+  }
+
   #region ProcessEvent
-  public bool ProcessEvent(Event e)
-  { if(Input.Input.ProcessEvent(e))
-    {
+  /// <summary>Processes the specified event.</summary>
+  /// <param name="e">The <see cref="Event"/> to process.</param>
+  /// <returns>Returns true if the event was handled by the desktop, and false otherwise. See
+  /// <see cref="ProcessEvent(Event,bool)"/> for more information about the return value.
+  /// </returns>
+  /// <remarks>Calling this method is equivalent to calling <see cref="ProcessEvent(Event,bool)"/> and passing
+  /// true to allow it to update the <see cref="Input.Input"/> class. This method should be used with care.
+  /// See <see cref="ProcessEvent(Event,bool)"/> for information about proper usage of this method.
+  /// </remarks>
+  public bool ProcessEvent(Event e) { return ProcessEvent(e, true); }
+
+  /// <summary>Processes the specified event.</summary>
+  /// <param name="e">The <see cref="Event"/> to process.</param>
+  /// <param name="passToInput">If true, the event is first passed to <see cref="Input.Input.ProcessEvent"/>.</param>
+  /// <returns>Returns true if the event was handled by the desktop, and false otherwise. A return value of true
+  /// does not necessarily mean that the event had an effect on this desktop, only that it might have had an effect.
+  /// Thus, the event should still be passed to all other desktops.
+  /// </returns>
+  /// <remarks>The main event handler should pass events to this method in the order they are received. The desktop
+  /// will use them to handle
+  /// all user interaction with the desktop and its descendants. If <paramrem name="passToInput"/> is true,
+  /// the event will first be passed to <see cref="Input.Input.ProcessEvent"/>. This is an important step, but
+  /// should not be done more than once to avoid confusing the <see cref="Input.Input"/> class. Thus, if you have
+  /// multiple desktops or want to update the <see cref="Input.Input"/> class yourself, you should manually pass
+  /// the event to <see cref="Input.Input.ProcessEvent"/> and then call this method for each desktop, passing false
+  /// for <paramrem name="passToInput"/>. If you have only a single desktop, you can safely pass true for
+  /// <paramref name="passToInput"/>, assuming you don't call <see cref="Input.Input.ProcessEvent"/> yourself.
+  /// <seealso cref="Events.Events"/> <seealso cref="Input.Input.ProcessEvent"/>
+  /// </remarks>
+  public bool ProcessEvent(Event e, bool passToInput)
+  { if(!passToInput || Input.Input.ProcessEvent(e))
+    { 
       #region Mouse moves
       if(moves && e is MouseMoveEvent)
       { MouseMoveEvent ea = (MouseMoveEvent)e;
@@ -2370,6 +2465,10 @@ public class DesktopControl : ContainerControl, IDisposable
   }
   #endregion
   
+  /// <summary>Stop the current key from repeating.</summary>
+  /// <remarks>Often, key repeat is unwanted. This method can be called to stop the current key from repeating.
+  /// It is safe to call this method even if no key is currently repeating.
+  /// </remarks>
   public void StopKeyRepeat()
   { if(krTimer!=null)
     { krTimer.Change(System.Threading.Timeout.Infinite, System.Threading.Timeout.Infinite);
@@ -2377,6 +2476,72 @@ public class DesktopControl : ContainerControl, IDisposable
     }
   }
 
+  /// <summary>Update the video display with changes made to this desktop.</summary>
+  /// <returns>Returns true if an update was performed.</returns>
+  /// <remarks>Calling this method is equilavent to calling <see cref="UpdateDisplay(int,int)"/> and passing zero
+  /// for both coordinates. See <see cref="UpdateDisplay(int,int)"/> for more information about this method.
+  /// </remarks>
+  /// <exception cref="InvalidOperationException">
+  /// <para><see cref="Surface"/> is null.</para>
+  /// <para>-or-</para>
+  /// <para>No video mode has been set (<see cref="Video.Video.DisplaySurface"/> is null).</para>
+  /// </exception>
+  public bool UpdateDisplay() { return UpdateDisplay(0, 0); }
+
+  /// <summary>Update the video display with changes made to this desktop.</summary>
+  /// <param name="dest">The point on the screen at which to draw the associated surface. Ignored if
+  /// the associated surface is the screen surface.
+  /// </param>
+  /// <returns>Returns true if an update was performed.</returns>
+  /// <remarks>Calling this method is equilavent to calling <see cref="UpdateDisplay(int,int)"/> and passing the
+  /// coordinates of <paramref name="dest"/>. See <see cref="UpdateDisplay(int,int)"/> for more information about
+  /// this method.
+  /// </remarks>
+  /// <exception cref="InvalidOperationException">
+  /// <para><see cref="Surface"/> is null.</para>
+  /// <para>-or-</para>
+  /// <para>No video mode has been set (<see cref="Video.Video.DisplaySurface"/> is null).</para>
+  /// </exception>
+  public bool UpdateDisplay(Point dest) { return UpdateDisplay(dest.X, dest.Y); }
+
+  /// <summary>Update the video display with changes made to this desktop.</summary>
+  /// <param name="x">The x coordinate on the screen at which to draw the associated surface. Ignored if
+  /// the associated surface is the screen surface.
+  /// </param>
+  /// <param name="y">The y coordinate on the screen at which to draw the associated surface. Ignored if
+  /// the associated surface is the screen surface.
+  /// </param>
+  /// <returns>Returns true if an update was performed.</returns>
+  /// <remarks>This method updates the video display surface (<see cref="Video.Video.DisplaySurface"/>) with
+  /// changes made to this desktop. If the associated surface is the same as the video display surface, then
+  /// <see cref="Video.Video.UpdateRects"/> is used to update the screen and <paramref name="x"/> and
+  /// <paramref name="y"/> are ignored. Otherwise, the updated areas of the associated surface are blitted to
+  /// the <see cref="Video.Video.DisplaySurface"/>, offset by <paramref name="x"/> and <paramref name="y"/>.
+  /// After the screen is updated, the list of updated rectangles is cleared.
+  /// </remarks>
+  /// <exception cref="InvalidOperationException">
+  /// <para><see cref="Surface"/> is null.</para>
+  /// <para>-or-</para>
+  /// <para>No video mode has been set (<see cref="Video.Video.DisplaySurface"/> is null).</para>
+  /// </exception>
+  public bool UpdateDisplay(int x, int y)
+  { if(updatedLen>0)
+    { if(surface==null) throw new InvalidOperationException("Cannot update the display when Surface is null!");
+      if(surface==Video.Video.DisplaySurface) Video.Video.UpdateRects(updated, updatedLen);
+      else if(Video.Video.DisplaySurface==null) throw new InvalidOperationException("No video mode has been set!");
+      else
+      { for(int i=0; i<updatedLen; i++)
+          surface.Blit(Video.Video.DisplaySurface, updated[i], updated[i].X+x, updated[i].Y+y);
+        Video.Video.Flip();
+      }
+      updatedLen=0;
+      return true;
+    }
+    else return false;
+  }
+
+  /// <summary>Frees resources used by this class.</summary>
+  /// <param name="destructing">Should be true if this method is called from a destructor and false otherwise.</param>
   protected void Dispose(bool destructing)
   { if(init)
     { Video.Video.ModeChanged -= modeChanged;
@@ -2391,10 +2556,18 @@ public class DesktopControl : ContainerControl, IDisposable
     }
   }
 
+  /// <summary>Called when the parent of this control changes. Throws an exception if a parent is set.</summary>
+  /// <param name="e">A <see cref="ValueChangedEventArgs"/> that contains the event data.</param>
+  /// <remarks>This override is used to prevent the desktop from being added as the child of another control.
+  /// An exception will be thrown if that is attempted.
+  /// </remarks>
+  /// <exception cref="NotSupportedException">Thrown if an attempt is made to set the parent of the desktop to
+  /// anything besides null.
+  /// </exception>
   protected override void OnParentChanged(ValueChangedEventArgs e)
   { if(Parent!=null)
     { Parent=null;
-      throw new InvalidOperationException("A desktop cannot be the child of another control!");
+      throw new NotSupportedException("A desktop cannot be the child of another control!");
     }
     base.OnParentChanged(e);
   }
@@ -2479,6 +2652,21 @@ public class DesktopControl : ContainerControl, IDisposable
   }
   #endregion
 
+  internal void DoPaint(Control control)
+  { if(surface!=null && control.InvalidRect.Width>0)
+    { PaintEventArgs pe = new PaintEventArgs(control, control.InvalidRect, surface);
+      control.OnPaintBackground(pe);
+      control.OnPaint(pe);
+      if(pe.Surface==control.backingSurface)
+      { Point pt = new Point(pe.DisplayRect.X+control.Left, pe.DisplayRect.Y+control.Top);
+        pe.Surface.Blit(surface, pe.DisplayRect, pt);
+        pe.DisplayRect.Location = pt;
+      }
+
+      if(trackUpdates) AddUpdatedArea(pe.DisplayRect);
+    }
+  }
+
   void EndDrag()
   { dragging=null;
     dragStarted=false;
@@ -2486,7 +2674,8 @@ public class DesktopControl : ContainerControl, IDisposable
   }
 
   void Init()
-  { Events.Events.Initialize();
+  { BackColor = Color.Black; ForeColor = Color.White;
+    Events.Events.Initialize();
     Input.Input.Initialize(false);
     Input.Keyboard.DisableKeyRepeat();
     init = true;
@@ -2528,36 +2717,86 @@ public class DesktopControl : ContainerControl, IDisposable
 #endregion
 
 #region Helpers
-public enum BorderStyle { None, FixedFlat, Fixed3D, FixedThick, Resizeable };
+/// <summary>Common border styles.</summary>
+public enum BorderStyle
+{
+  /// <summary>No border.</summary>
+  None,
+  /// <summary>A solid-color border.</summary>
+  FixedFlat,
+  /// <summary>A border composed of two colors, used to give the appearance of light hitting a 3D object at an angle.
+  /// </summary>
+  Fixed3D,
+  /// <summary>A thick border with a 3D appearance.</summary>
+  FixedThick,
+  /// <summary>A border that signifies that the control can be resized by dragging its edges.</summary>
+  Resizeable
+};
 
 public class Helpers
 { private Helpers() { }
 
+  /// <summary>Returns true if <paramref name="align"/> specifies left alignment.</summary>
+  /// <param name="align">The alignment value to check.</param>
+  /// <returns>True if <paramref name="align"/> specifies left alignment, false otherwise.</returns>
   public static bool AlignedLeft(ContentAlignment align)
   { return align==ContentAlignment.TopLeft || align==ContentAlignment.MiddleLeft ||
            align==ContentAlignment.BottomLeft;
   }
+  /// <summary>Returns true if <paramref name="align"/> specifies horizontally centered alignment.</summary>
+  /// <param name="align">The alignment value to check.</param>
+  /// <returns>True if <paramref name="align"/> specifies horizontally centered alignment, false otherwise.</returns>
   public static bool AlignedCenter(ContentAlignment align)
   { return align==ContentAlignment.MiddleCenter || align==ContentAlignment.TopCenter ||
            align==ContentAlignment.BottomCenter;
   }
+  /// <summary>Returns true if <paramref name="align"/> specifies right alignment.</summary>
+  /// <param name="align">The alignment value to check.</param>
+  /// <returns>True if <paramref name="align"/> specifies right alignment, false otherwise.</returns>
   public static bool AlignedRight(ContentAlignment align)
   { return align==ContentAlignment.TopRight || align==ContentAlignment.MiddleRight ||
            align==ContentAlignment.BottomRight;
   }
+  /// <summary>Returns true if <paramref name="align"/> specifies top alignment.</summary>
+  /// <param name="align">The alignment value to check.</param>
+  /// <returns>True if <paramref name="align"/> specifies top alignment, false otherwise.</returns>
   public static bool AlignedTop(ContentAlignment align)
   { return align==ContentAlignment.TopLeft || align==ContentAlignment.TopCenter ||
            align==ContentAlignment.TopRight;
   }
+  /// <summary>Returns true if <paramref name="align"/> specifies vertically centered alignment.</summary>
+  /// <param name="align">The alignment value to check.</param>
+  /// <returns>True if <paramref name="align"/> specifies vertically centered alignment, false otherwise.</returns>
   public static bool AlignedMiddle(ContentAlignment align)
   { return align==ContentAlignment.MiddleCenter || align==ContentAlignment.MiddleLeft ||
            align==ContentAlignment.MiddleRight;
   }
+  /// <summary>Returns true if <paramref name="align"/> specifies bottom alignment.</summary>
+  /// <param name="align">The alignment value to check.</param>
+  /// <returns>True if <paramref name="align"/> specifies bottom alignment, false otherwise.</returns>
   public static bool AlignedBottom(ContentAlignment align)
   { return align==ContentAlignment.BottomLeft || align==ContentAlignment.BottomCenter ||
            align==ContentAlignment.BottomRight;
   }
+  
+  /// <summary>Returns the thickness of a border, in pixels.</summary>
+  /// <param name="border">The border style thats thickness will be returned.</param>
+  /// <returns>The thickness of the specified border, in pixels.</returns>
+  public static int BorderSize(BorderStyle border)
+  { switch(border)
+    { case BorderStyle.FixedFlat: case BorderStyle.Fixed3D: return 1;
+      case BorderStyle.FixedThick: case BorderStyle.Resizeable: return 2;
+      default: return 0;
+    }
+  }
 
+  /// <summary>Calculate the point at which an object should be drawn.</summary>
+  /// <param name="container">The container in which the object will be drawn.</param>
+  /// <param name="item">The size of the object to draw.</param>
+  /// <param name="align">The alignment of the object within the container.</param>
+  /// <returns>The point at which the object should be drawn. Note that this point may be outside the container
+  /// if the object is too large.
+  /// </returns>
   public static Point CalculateAlignment(Rectangle container, Size item, ContentAlignment align)
   { Point ret = new Point();
     if(AlignedLeft(align)) ret.X = container.X;
@@ -2570,26 +2809,57 @@ public class Helpers
     return ret;
   }
   
+  /// <summary>Draws a border using default colors.</summary>
+  /// <param name="surface">The <see cref="Surface"/> into which the border will be drawn.</param>
+  /// <param name="rect">The bounds of the border.</param>
+  /// <param name="border">The border style to use.</param>
+  /// <param name="depressed">True if the border should be shaded for a depressed object and false for a raised
+  /// object.
+  /// </param>
+  /// <remarks>This method simply calls <see cref="DrawBorder(Surface,Rectangle,BorderStyle,Color,bool)"/> with
+  /// default color values.
+  /// <seealso cref="DrawBorder(Surface,Rectangle,BorderStyle,Color,Color,bool)"/>
+  /// </remarks>
   public static void DrawBorder(Surface surface, Rectangle rect, BorderStyle border, bool depressed)
   { switch(border)
-    { case BorderStyle.FixedFlat: DrawBorder(surface, rect, border, Color.Black, depressed); break;
+    { case BorderStyle.FixedFlat: DrawBorder(surface, rect, border, SystemColors.ControlDarkDark, depressed); break;
       case BorderStyle.Fixed3D: case BorderStyle.FixedThick: case BorderStyle.Resizeable:
-        DrawBorder(surface, rect, border, Color.FromArgb(212, 208, 200), depressed);
+        DrawBorder(surface, rect, border, SystemColors.ControlLight, SystemColors.ControlDark, depressed);
         break;
     }
   }
 
+  /// <summary>Draws a border using the specified base color.</summary>
+  /// <param name="surface">The <see cref="Surface"/> into which the border will be drawn.</param>
+  /// <param name="rect">The bounds of the border.</param>
+  /// <param name="border">The border style to use.</param>
+  /// <param name="color">The base color of the border.</param>
+  /// <param name="depressed">True if the border should be shaded for a depressed object and false for a raised
+  /// object.
+  /// </param>
+  /// <remarks>This method calls <see cref="DrawBorder(Surface,Rectangle,BorderStyle,Color,Color,bool)"/> with
+  /// appropriate color values calculated from the base color.
+  /// <seealso cref="DrawBorder(Surface,Rectangle,BorderStyle,Color,Color,bool)"/>
+  /// </remarks>
   public static void DrawBorder(Surface surface, Rectangle rect, BorderStyle border, Color color, bool depressed)
   { switch(border)
     { case BorderStyle.FixedFlat: DrawBorder(surface, rect, border, color, color, depressed); break;
       case BorderStyle.Fixed3D: case BorderStyle.FixedThick: case BorderStyle.Resizeable:
-        DrawBorder(surface, rect, border,
-                   Color.FromArgb(color.R+(255-color.R)/2, color.G+(255-color.G)/2, color.B+(255-color.B)/2),
-                   Color.FromArgb(color.R*2/3, color.G*2/3, color.B*2/3), depressed);
+        DrawBorder(surface, rect, border, GetLightColor(color), GetDarkColor(color), depressed);
         break;
     }
   }
 
+  /// <summary>Draws a border using the specified colors.</summary>
+  /// <param name="surface">The <see cref="Surface"/> into which the border will be drawn.</param>
+  /// <param name="rect">The bounds of the border.</param>
+  /// <param name="border">The border style to use.</param>
+  /// <param name="c1">The first color value. For 3D surfaces, this should be the lighter of the two colors.</param>
+  /// <param name="c2">The second color value. For 3D surfaces, this should be the darker of the two colors.</param>
+  /// <param name="depressed">True if the border should be shaded for a depressed object and false for a raised
+  /// object.
+  /// </param>
+  /// <remarks>Borders with a thickness greater than one pixel are drawn inside the bounding rectangle.</remarks>
   public static void DrawBorder(Surface surface, Rectangle rect, BorderStyle border, Color c1, Color c2, bool depressed)
   { switch(border)
     { case BorderStyle.FixedFlat: Primitives.Box(surface, rect, c1); break;
@@ -2602,8 +2872,8 @@ public class Helpers
         break;
       case BorderStyle.FixedThick: case BorderStyle.Resizeable:
         Color c3, c4;
-        if(depressed) { c3=c2; c4=Color.White; c2=c1; c1=Color.Black; }
-        else { c4=c2; c2=Color.Black; c3=Color.White; }
+        if(depressed) { c3=c2; c4=SystemColors.ControlLightLight; c2=c1; c1=SystemColors.ControlDarkDark; }
+        else { c4=c2; c2=SystemColors.ControlDarkDark; c3=SystemColors.ControlLightLight; }
         Primitives.Line(surface, rect.X, rect.Y, rect.Right-1, rect.Y, c1);
         Primitives.Line(surface, rect.X, rect.Y, rect.X, rect.Bottom-1, c1);
         Primitives.Line(surface, rect.X, rect.Bottom-1, rect.Right-1, rect.Bottom-1, c2);
@@ -2615,6 +2885,21 @@ public class Helpers
         Primitives.Line(surface, rect.Right-1, rect.Y, rect.Right-1, rect.Bottom-1, c4);
         break;
     }
+  }
+  
+  /// <summary>Given a base color, returns a dark color for use in 3D shading.</summary>
+  /// <param name="baseColor">The base color used to calculate the dark color.</param>
+  /// <returns>A new color that is equal to or darker than <paramref name="baseColor"/>.</returns>
+  public static Color GetDarkColor(Color baseColor)
+  { return Color.FromArgb(baseColor.R/2, baseColor.G/2, baseColor.B/2);
+  }
+
+  /// <summary>Given a base color, returns a light color for use in 3D shading.</summary>
+  /// <param name="baseColor">The base color used to calculate the light color.</param>
+  /// <returns>A new color that is equal to or lighter than <paramref name="baseColor"/>.</returns>
+  public static Color GetLightColor(Color baseColor)
+  { return Color.FromArgb(baseColor.R+(255-baseColor.R)*2/3, baseColor.G+(255-baseColor.G)*2/3,
+                          baseColor.B+(255-baseColor.B)*2/3);
   }
 }
 #endregion

@@ -20,6 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // TODO: have controls display differently when disabled
 // TODO: implement a menubar control
 // TODO: implement docking
+// TODO: make sure everything uses Helpers.BorderSize()
 using System;
 using System.Collections;
 using System.Drawing;
@@ -91,7 +92,17 @@ public class Line : Control
 
 #region LabelBase
 public abstract class LabelBase : Control
-{ public IBlittable Image
+{ public BorderStyle BorderStyle
+  { get { return border; }
+    set
+    { if(border!=value)
+      { border=value;
+        Invalidate();
+      }
+    }
+  }
+  
+  public IBlittable Image
   { get { return image; }
     set
     { if(image != value)
@@ -127,6 +138,7 @@ public abstract class LabelBase : Control
   }
 
   IBlittable image;
+  BorderStyle border; 
   ContentAlignment imageAlign=ContentAlignment.TopLeft, textAlign=ContentAlignment.TopLeft;
 }
 #endregion
@@ -147,17 +159,25 @@ public class Label : LabelBase
     }
   }
 
+  protected internal override void OnPaintBackground(PaintEventArgs e)
+  { base.OnPaintBackground(e);
+    Helpers.DrawBorder(e.Surface, e.DisplayRect, BorderStyle, BackColor, true);
+  }
+
   protected internal override void OnPaint(PaintEventArgs e)
   { base.OnPaint(e);
+    Rectangle rect = DisplayRect;
+    int bsize = Helpers.BorderSize(BorderStyle);
+    rect.Inflate(-bsize, -bsize);
+
     if(Image!=null)
-    { Point at = Helpers.CalculateAlignment(DisplayRect, new Size(Image.Width, Image.Height), ImageAlign);
+    { Point at = Helpers.CalculateAlignment(rect, new Size(Image.Width, Image.Height), ImageAlign);
       Image.Blit(e.Surface, at.X, at.Y);
     }
     if(Text.Length>0)
     { GameLib.Fonts.Font f = Font;
       if(f != null)
-      { Rectangle rect = DisplayRect;
-        rect.Inflate(-padding, -padding);
+      { rect.Inflate(-padding, -padding);
         f.Color     = ForeColor;
         f.BackColor = BackColor;
         f.Render(e.Surface, Text, rect, TextAlign);
@@ -171,7 +191,7 @@ public class Label : LabelBase
 
 #region ButtonBase
 public abstract class ButtonBase : LabelBase
-{ public ButtonBase() { Style|=ControlStyle.Clickable|ControlStyle.CanFocus; }
+{ public ButtonBase() { BorderStyle=BorderStyle.FixedThick; Style|=ControlStyle.Clickable|ControlStyle.CanFocus; }
 
   public event ClickEventHandler Click;
   public event EventHandler PressedChanged;
@@ -230,11 +250,18 @@ public class Button : ButtonBase
 { public Button() { ImageAlign=TextAlign=ContentAlignment.MiddleCenter; }
   public Button(string text) { ImageAlign=TextAlign=ContentAlignment.MiddleCenter; Text=text; }
 
+  protected internal override void OnPaintBackground(PaintEventArgs e)
+  { base.OnPaintBackground(e);
+    Helpers.DrawBorder(e.Surface, e.DisplayRect, BorderStyle, Focused ? ForeColor : BackColor, Pressed && over);
+  }
+
   protected internal override void OnPaint(PaintEventArgs e)
   { base.OnPaint(e);
 
     Rectangle rect = DisplayRect;
+    int bsize = Helpers.BorderSize(BorderStyle);
     bool pressed = Pressed && over;
+    rect.Inflate(-bsize, -bsize);
 
     if(Image!=null)
     { Point at = Helpers.CalculateAlignment(rect, new Size(Image.Width, Image.Height), ImageAlign);
@@ -245,23 +272,12 @@ public class Button : ButtonBase
     { GameLib.Fonts.Font f = Font;
       if(f!=null)
       { Rectangle box = rect;
-        box.Inflate(-1, -1);
         if(pressed) box.Offset(1, 1);
         f.Color     = ForeColor;
         f.BackColor = BackColor;
         f.Render(e.Surface, Text, box, TextAlign);
       }
     }
-    
-    Color bright, dark, back=BackColor;
-    bright = Color.FromArgb(back.R+(255-back.R)*3/5, back.G+(255-back.G)*3/5, back.B+(255-back.B)*3/5);
-    dark   = Color.FromArgb(back.R/2, back.G/2, back.B/2);
-    if(pressed) { Color t=bright; bright=dark; dark=t; }
-    else if(Selected) bright=dark=Color.Black;
-    Primitives.Line(e.Surface, rect.X, rect.Y, rect.Right-1, rect.Y, bright);
-    Primitives.Line(e.Surface, rect.X, rect.Y, rect.X, rect.Bottom-1, bright);
-    Primitives.Line(e.Surface, rect.X, rect.Bottom-1, rect.Right-1, rect.Bottom-1, dark);
-    Primitives.Line(e.Surface, rect.Right-1, rect.Y, rect.Right-1, rect.Bottom-1, dark);
   }
   
   protected internal override void OnMouseEnter(EventArgs e)
@@ -285,7 +301,9 @@ public class Button : ButtonBase
 
 #region CheckBoxBase
 public abstract class CheckBoxBase : ButtonBase
-{ public bool Checked
+{ public CheckBoxBase() { BorderStyle=BorderStyle.FixedThick; }
+
+  public bool Checked
   { get { return value; }
     set
     { if(value!=this.value)
@@ -341,11 +359,12 @@ public class CheckBox : CheckBoxBase
     rect.Inflate(-1, -1);
 
     bool right = Helpers.AlignedRight(align);
-    int boxSize=13, x=right ? rect.X : rect.Right-boxSize, y=rect.Y+(Height-boxSize)/2;
+    int borderSize=Helpers.BorderSize(BorderStyle), boxSize=11+borderSize;
+    int x=right ? rect.X : rect.Right-boxSize, y=rect.Y+(Height-boxSize)/2;
     Rectangle box = new Rectangle(x, y, boxSize, boxSize);
 
-    Helpers.DrawBorder(e.Surface, box, BorderStyle.FixedThick, border, true);
-    box.Inflate(-2, -2);
+    Helpers.DrawBorder(e.Surface, box, BorderStyle, border, true);
+    box.Inflate(-borderSize, -borderSize);
     e.Surface.Fill(box, down ? border : Color.White);
 
     if(Checked)
@@ -362,8 +381,6 @@ public class CheckBox : CheckBoxBase
       font.Color = ForeColor;
       font.Render(e.Surface, Text, rect, align);
     }
-
-    Color.FromArgb(212, 208, 200);
   }
   
   protected internal override void OnMouseDown(ClickEventArgs e) { down=true; Invalidate(); base.OnMouseDown(e); }
@@ -639,7 +656,7 @@ public abstract class ScrollBarBase : Control, IDisposable
 #endregion
 
 #region ScrollBar
-public class ScrollBar : ScrollBarBase // TODO: replace with image-based scrollbar
+public class ScrollBar : ScrollBarBase // TODO: replace with nicer scrollbar
 { public ScrollBar() { BackColor=Color.LightGray; ForeColor=Color.Gray; }
   
   protected override void OnValueChanged(ValueChangedEventArgs e)
@@ -671,9 +688,12 @@ public class ScrollBar : ScrollBarBase // TODO: replace with image-based scrollb
 #endregion
 
 #region TextBoxBase
-// TODO: support multi-line edit controls
+// TODO: support multi-line editing
 public abstract class TextBoxBase : Control
-{ public TextBoxBase() { Style=ControlStyle.CanFocus; }
+{ public TextBoxBase()
+  { Style=ControlStyle.CanFocus;
+    BackColor=SystemColors.Window; ForeColor=SystemColors.WindowText;
+  }
   static TextBoxBase() { CaretFlashRate=600; }
 
   #region Properties
@@ -1020,7 +1040,7 @@ public abstract class TextBoxBase : Control
 // TODO: optimize this
 public class TextBox : TextBoxBase
 { public TextBox()
-  { BackColor=Color.White; ForeColor=Color.Black; Style|=ControlStyle.Clickable|ControlStyle.Draggable;
+  { Style|=ControlStyle.Clickable|ControlStyle.Draggable;
   }
 
   public Color BorderColor { get { return border; } set { border=value; } }
@@ -1154,7 +1174,9 @@ public class TextBox : TextBoxBase
 
 #region MenuItemBase
 public abstract class MenuItemBase : Control
-{ public bool AllowKeyRepeat { get { return keyRepeat; } set { keyRepeat=value; } }
+{ public MenuItemBase() { BackColor = SystemColors.Menu; ForeColor = SystemColors.MenuText; }
+  
+  public bool AllowKeyRepeat { get { return keyRepeat; } set { keyRepeat=value; } }
   public KeyCombo GlobalHotKey { get { return globalHotKey; } set { globalHotKey=value; } }
   public char HotKey { get { return hotKey; } set { hotKey=char.ToUpper(value); } }
   public MenuBase Menu { get { return (MenuBase)Parent; } }
@@ -1174,7 +1196,11 @@ public abstract class MenuItemBase : Control
 #region MenuBase
 // TODO: add arrow key support
 public abstract class MenuBase : ContainerControl
-{ public MenuBase() { Style |= ControlStyle.Clickable|ControlStyle.CanFocus; }
+{ public MenuBase()
+  { Style |= ControlStyle.Clickable|ControlStyle.CanFocus;
+    BackColor = SystemColors.Menu;
+    ForeColor = SystemColors.MenuText;
+  }
 
   public KeyCombo GlobalHotKey { get { return globalHotKey; } set { globalHotKey=value; } }
 
@@ -1306,7 +1332,12 @@ public abstract class MenuBase : ContainerControl
 
 #region MenuBarBase
 public abstract class MenuBarBase : Control
-{ public MenuBarBase() { Style |= ControlStyle.Clickable; menus=new MenuCollection(this); }
+{ public MenuBarBase()
+  { Style |= ControlStyle.Clickable;
+    BackColor = SystemColors.Menu;
+    ForeColor = SystemColors.MenuText;
+    menus=new MenuCollection(this);
+  }
 
   #region MenuCollection
   /// <summary>This class provides a strongly-typed collection of <see cref="Control"/> objects.</summary>
@@ -1605,7 +1636,7 @@ public class MenuItem : MenuItemBase
 
   const int hotKeyPadding=20;
   int horzPadding=2, vertPadding=3;
-  Color selFore=Color.Transparent, selBack=Color.Transparent;
+  Color selFore=SystemColors.HighlightText, selBack=SystemColors.Highlight;
   bool mouseOver;
 }
 #endregion
@@ -1677,6 +1708,8 @@ public class MenuBar : MenuBarBase
   { base.OnPaint(e);
     GameLib.Fonts.Font font = Font;
     if(font==null) return;
+    font.Color = ForeColor;
+    font.BackColor = BackColor;
     foreach(MenuButton button in Buttons)
     { if(button.Area.IntersectsWith(e.WindowRect))
         font.Render(e.Surface, button.Menu.Text, WindowToDisplay(button.Area), ContentAlignment.MiddleCenter);
@@ -1696,7 +1729,9 @@ public class MenuBar : MenuBarBase
 #region FormBase
 // TODO: implement resizing using the mouse
 public abstract class FormBase : ContainerControl
-{ public FormBase() { Style |= ControlStyle.CanFocus; }
+{ public FormBase()
+  { Style |= ControlStyle.CanFocus; ForeColor=SystemColors.ControlText; BackColor=SystemColors.Control;
+  }
 
   public object DialogResult { get { return returnValue; } set { returnValue=value; } }
 
@@ -1735,9 +1770,7 @@ public abstract class FormBase : ContainerControl
 #region Form
 // TODO: add caption bar and menu bar
 public class Form : FormBase
-{ public Form() { ForeColor=Color.Black; BackColor=Color.FromArgb(212, 208, 200); }
-
-  public BorderStyle BorderStyle
+{ public BorderStyle BorderStyle
   { get { return border; }
     set
     { if(border!=value)
