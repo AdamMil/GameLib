@@ -54,7 +54,7 @@ public sealed class Config
   /// <summary>The <see cref="DllImportAttribute"/> path to the GLU library.</summary>
   public const string GLUImportPath      = "glu";
   #endif
-  
+
   #if WIN32
   /// <summary>The system constant for the EWOULDBLOCK error.</summary>
   public const int EWOULDBLOCK  = 10035;

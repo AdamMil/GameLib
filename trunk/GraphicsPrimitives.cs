@@ -113,7 +113,7 @@ public unsafe class Primitives
   public static void VLine(Surface dest, int x, int y1, int y2, Color color, byte alpha)
   { Check(GFX.vlineRGBA(dest.surface, (short)x, (short)y1, (short)y2, color.R, color.G, color.B, alpha));
   }
-  
+
   /// <summary>Draws a line, with optional alpha blending.</summary>
   /// <param name="dest">The surface onto which the line will be drawn.</param>
   /// <param name="p1">The starting point of the line.</param>
@@ -160,7 +160,7 @@ public unsafe class Primitives
   public static void Line(Surface dest, int x1, int y1, int x2, int y2, Color color, byte alpha)
   { Check(GFX.lineRGBA(dest.surface, (short)x1, (short)y1, (short)x2, (short)y2, color.R, color.G, color.B, alpha));
   }
-  
+
   /// <summary>Draws an antialiased line, with optional alpha blending.</summary>
   /// <param name="dest">The surface onto which the line will be drawn.</param>
   /// <param name="p1">The starting point of the line.</param>
@@ -346,7 +346,7 @@ public unsafe class Primitives
   { Check(GFX.boxRGBA(dest.surface, (short)x1, (short)y1, (short)x2, (short)y2, color.R, color.G, color.B, alpha));
   }
   #endregion
-  
+
   #region Circles
   /// <summary>Draws a hollow circle, with optional alpha blending.</summary>
   /// <param name="dest">The surface onto which the circle will be drawn.</param>
@@ -487,7 +487,7 @@ public unsafe class Primitives
   { Check(GFX.filledCircleRGBA(dest.surface, (short)x, (short)y, (short)radius, color.R, color.G, color.B, alpha));
   }
   #endregion
-  
+
   #region Ellipses
   /// <summary>Draws a hollow ellipse, with optional alpha blending.</summary>
   /// <param name="dest">The surface onto which the ellipse will be drawn.</param>
@@ -646,7 +646,7 @@ public unsafe class Primitives
                                 color.R, color.G, color.B, alpha));
   }
   #endregion
-  
+
   #region Pies
   /// <summary>Draws a filled pie, with optional alpha blending.</summary>
   /// <param name="dest">The surface into which the pie will be drawn.</param>
@@ -878,7 +878,7 @@ public unsafe class Primitives
                                color.R, color.G, color.B, alpha));
   }
   #endregion  
-  
+
   #region Polygons
   /// <summary>Draws a hollow polygon, with optional alpha blending.</summary>
   /// <param name="dest">The surface onto which the polygon will be drawn.</param>
@@ -934,7 +934,7 @@ public unsafe class Primitives
   public static void Polygon(Surface dest, Point[] points, int index, int length, Color color, byte alpha)
   { Polygon(dest, points, index, length, Color.FromArgb(alpha, color));
   }
-  
+
   /// <summary>Draws an antialiased hollow polygon, with optional alpha blending.</summary>
   /// <param name="dest">The surface onto which the polygon will be drawn.</param>
   /// <param name="points">An array of points defining the polygon.</param>
@@ -995,7 +995,7 @@ public unsafe class Primitives
   public static void PolygonAA(Surface dest, Point[] points, int index, int length, Color color, byte alpha)
   { PolygonAA(dest, points, index, length, Color.FromArgb(alpha, color));
   }
-  
+
   /// <summary>Draws a filled polygon, with optional alpha blending.</summary>
   /// <param name="dest">The surface onto which the polygon will be drawn.</param>
   /// <param name="points">An array of points defining the polygon.</param>
@@ -1051,7 +1051,7 @@ public unsafe class Primitives
   { FilledPolygon(dest, points, index, length, Color.FromArgb(alpha, color));
   }
   #endregion
-  
+
   #region Curves
   /// <summary>Draws a bezier curve, with optional alpha blending.</summary>
   /// <param name="dest">The surface onto which the curve will be drawn.</param>

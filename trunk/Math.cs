@@ -352,7 +352,7 @@ public struct Fixed32 : IFormattable, IComparable, IConvertible
   public static bool operator==(double lhs, Fixed32 rhs) { return lhs==rhs.ToDouble(); }
   public static bool operator!=(double lhs, Fixed32 rhs) { return lhs!=rhs.ToDouble(); }
   #endregion
-  
+
   /// <summary>Implicitly converts an integer to a <see cref="Fixed32"/>.</summary>
   /// <param name="i">An integer.</param>
   /// <returns>A <see cref="Fixed32"/> representing the given integer.</returns>
@@ -701,11 +701,11 @@ public struct Fixed64 : IFormattable, IComparable, IConvertible
         bits--;
       }
       while(rem<rhs.val);
-      
+
       ls.Long = lhs.val;
       rem >>= 1;
       bits++;
-      
+
       do
       { rem = (rem<<1) | (byte)((ls.Uint&0x80000000)>>31);
         t.Long = rem - rhs.val;
@@ -715,7 +715,7 @@ public struct Fixed64 : IFormattable, IComparable, IConvertible
         ls.Long <<= 1;
       } while(--bits>0);
     }
-    
+
     return new Fixed64(neg==0 ? quot : -quot);
   }
   #endregion
@@ -756,7 +756,7 @@ public struct Fixed64 : IFormattable, IComparable, IConvertible
   public static bool operator==(double lhs, Fixed64 rhs) { return lhs==rhs.ToDouble(); }
   public static bool operator!=(double lhs, Fixed64 rhs) { return lhs!=rhs.ToDouble(); }
   #endregion
-  
+
   /// <summary>Implicitly converts an integer to a <see cref="Fixed64"/>.</summary>
   /// <param name="i">An integer.</param>
   /// <returns>A <see cref="Fixed64"/> representing the given integer.</returns>
@@ -909,7 +909,7 @@ public struct Fixed64 : IFormattable, IComparable, IConvertible
     return wholePart.ToString() + '/' + ((uint)val).ToString();
   }
   #endregion
-  
+
   #region Union
   [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Explicit)]
   struct Union
@@ -923,7 +923,7 @@ public struct Fixed64 : IFormattable, IComparable, IConvertible
     #endif
   }
   #endregion
-  
+
   #if BIGENDIAN
   [System.Runtime.InteropServices.FieldOffset(0)] internal long val;
   [System.Runtime.InteropServices.FieldOffset(0)] int wholePart;
@@ -1681,7 +1681,7 @@ public struct Rectangle
       Height -= oy2-y2;
     }
     else if(Y<rect.Y) goto abort;
-    
+
     return;
     abort:
     X=Y=Width=Height=0;
@@ -2200,7 +2200,7 @@ public struct Vector
   /// X, Y, and Z magnitudes of the vector.
   /// </param>
   public Vector(Point pt) { X=pt.X; Y=pt.Y; Z=pt.Z; }
-  
+
   /// <include file="documentation.xml" path="//Mathematics/Vector/Length/*"/>
   public double Length
   { get { return System.Math.Sqrt(X*X+Y*Y+Z*Z); }
@@ -2233,7 +2233,7 @@ public struct Vector
   /// <param name="vector">The axis to rotate around. This should be a normalized vector.</param>
   /// <param name="angle">The angle to rotate by, in radians.</param>
   public void Rotate(Vector vector, double angle) { Assign(Rotated(vector, angle)); }
-  
+
   /// <summary>Returns a copy of this vector, rotated around the X axis.</summary>
   /// <param name="angle">The angle to rotate by, in radians.</param>
   /// <returns>A copy of this vector, rotated around the X axis.</returns>
@@ -2293,14 +2293,14 @@ public struct Vector
   public static Vector operator/(Vector v, double f)   { return new Vector(v.X/f, v.Y/f, v.Z/f); }
   public static bool   operator==(Vector a, Vector b) { return a.X==b.X && a.Y==b.Y && a.Z==b.Z; }
   public static bool   operator!=(Vector a, Vector b) { return a.X!=b.X || a.Y!=b.Y || a.Z!=b.Z; }
-  
+
   /// <summary>The magnitude of this vector along the X axis.</summary>
   public double X;
   /// <summary>The magnitude of this vector along the Y axis.</summary>
   public double Y;
   /// <summary>The magnitude of this vector along the Z axis.</summary>
   public double Z;
-  
+
   struct Quaternion // perhaps i'll expand on this some day
   { public Quaternion(Vector v) { W=0; V=v; }
     public Quaternion(double w, Vector v) { W=w; V=v; }
@@ -2318,7 +2318,7 @@ public struct Vector
     public double W;
     public Vector V;
   }
-  
+
   void Assign(Vector v) { X=v.X; Y=v.Y; Z=v.Z; }
 }
 #endregion
@@ -2371,7 +2371,7 @@ public struct Point
   public static Point  operator+(Point lhs, Vector rhs) { return new Point(lhs.X+rhs.X, lhs.Y+rhs.Y, lhs.Z+rhs.Z); }
   public static bool   operator==(Point lhs, Point rhs) { return lhs.X==rhs.X && lhs.Y==rhs.Y && lhs.Z==rhs.Z; }
   public static bool   operator!=(Point lhs, Point rhs) { return lhs.X!=rhs.X || lhs.Y!=rhs.Y || lhs.Z!=rhs.Z; }
-  
+
   /// <summary>This point's X coordinate.</summary>
   public double X;
   /// <summary>This point's Y coordinate.</summary>

@@ -35,23 +35,23 @@ internal sealed class Ogg
   public enum SeekType : int
   { Absolute, Relative, FromEnd
   }
-  
+
   public enum Status : int
   { NotOpen, PartlyOpen, Opened, StreamSet, InitSet
   };
-  
+
   public enum OggError
   { False=-1, Eof=-2, Hole=-3, Read=-128, Fault=-129, NotImpl=-130, Invalid=-131, NotVorbis=-132, BadHeader=-133,
     BadVersion=-134, NotAudio=-135, BadPacket=-136, BadLink=-137, NoSeek=-138
   }
   #endregion
-  
+
   #region Structs
   [StructLayout(LayoutKind.Sequential, Pack=4, Size=16)]
   public unsafe struct Callbacks
   { public void* Read, Seek, Tell, Close;
   }
-  
+
   [StructLayout(LayoutKind.Sequential, Pack=4)]
   public unsafe struct VorbisInfo
   { public int Version;
@@ -98,7 +98,7 @@ internal sealed class Ogg
   [DllImport(Config.VorbisImportPath, EntryPoint="VW_Info", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern VorbisInfo* GetInfo(VorbisFile* vf, int section);
   #endregion
-  
+
   public static void Check(int result)
   { if(result>-128) return;
     string message;

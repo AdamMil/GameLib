@@ -38,7 +38,7 @@ public sealed class GLMixer
     #else
     U8Sys=U8, U16Sys=U16, S8Sys=S8, S16Sys=S16,
     #endif
-    
+
     MixerFormat=32
   }
 
@@ -81,7 +81,7 @@ public sealed class GLMixer
   internal unsafe static extern int ConvertMix(int* dest, void* src, uint samples, ushort srcFormat, ushort leftVolume, ushort rightVolume);
   [DllImport(Config.GLMixerImportPath, EntryPoint="GLM_DivideAccumulator", CallingConvention=CallingConvention.Cdecl)]
   internal static extern int DivideAccumulator(int divisor);
-  
+
   public static void Check(int result) { if(result<0) SDL.SDL.RaiseError(); } // TODO: do something more appropriate
 }
 

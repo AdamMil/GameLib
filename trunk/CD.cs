@@ -54,7 +54,7 @@ public struct Track
     start  = track->Offset;
     type   = (TrackType)track->Type;
   }
-  
+
   /// <summary>Gets the track number of this track.</summary>
   /// <value>The track number. The first track is track 0.</value>
   public int Number { get { return number; } }
@@ -69,7 +69,7 @@ public struct Track
   /// <summary>The type of this track.</summary>
   /// <value>The <see cref="TrackType"/> of this track.</value>
   public TrackType Type { get { return type; } }
-  
+
   int number, length, start;
   TrackType type;
 }
@@ -182,7 +182,7 @@ public unsafe sealed class Drive
   public void PlayTracks(int startTrack, double startOffset, int numTracks, double endOffset)
   { PlayTracks(startTrack, (int)Math.Floor(startOffset*CD.FramesPerSecond), numTracks, CD.SecondsToFrames(endOffset));
   }
-  
+
   /// <summary>Pauses playback on this CD-ROM drive.</summary>
   /// <remarks>This is only valid if a CD is loaded in the drive.</remarks>
   public void Pause() { SDL.Check(SDL.CDPause(cd)); }
@@ -195,7 +195,7 @@ public unsafe sealed class Drive
 
   /// <summary>Ejects the CD-ROM from the drive.</summary>
   public void Eject() { SDL.Check(SDL.CDEject(cd)); }
-  
+
   internal void Dispose() { Dispose(false); GC.SuppressFinalize(this); }
 
   void Update(bool updateTracks)
@@ -229,7 +229,7 @@ public unsafe sealed class Drive
 /// </remarks>
 public sealed class CD
 { private CD() { }
-  
+
   /// <summary>Returns the number of frames in one second of CD audio.</summary>
   /// <value>The number of frames in one second of CD audio.</value>
   /// <remarks>A frame is about 1/75th of a second.</remarks>
@@ -239,7 +239,7 @@ public sealed class CD
   /// <value>A <see cref="Drive"/> array holding the available drives.</value>
   /// <remarks>This property is invalid if <see cref="Initialize"/> has not been called.</remarks>
   public static Drive[] Drives { get { return drives; } }
-  
+
   /// <summary>Initializes the CD-ROM subsystem.</summary>
   /// <remarks>This method can be called multiple times. The <see cref="Deinitialize"/> method should be called the
   /// same number of times to finally deinitialize the system.
@@ -251,7 +251,7 @@ public sealed class CD
       for(int i=0; i<drives.Length; i++) drives[i] = new Drive(i);
     }
   }
-  
+
   /// <summary>Deinitializes the CD-ROM subsystem.</summary>
   /// <remarks>This method should be called the same number of times that <see cref="Initialize"/> has been called
   /// in order to deinitialize the CD-ROM subsystem. This does not necessarily stop CDs that are playing.
@@ -264,7 +264,7 @@ public sealed class CD
       SDL.Deinitialize(SDL.InitFlag.CDRom);
     }
   }
-  
+
   /// <summary>Converts a number of frames into the equivalent number of seconds.</summary>
   /// <param name="frames">The number of frames.</param>
   /// <returns>The equivalent number of seconds.</returns>

@@ -11,6 +11,10 @@ LATEST (alpha/beta)
   PriorityQueue.DequeueMaximum
 * Fixed a bug in Fixed64*Fixed64 or Fixed64*double multiplication
   with negative numbers, and also improved its speed
+* Fixed a bug in the windowing code that caused the list of updated window
+  rectangles to be cleared when the array was grown
+* Fixed a similar bug in the audio code that caused the channels array to
+  be cleared when the array was resized
 
 2004.05.02 (alpha/beta)
 -----------------------

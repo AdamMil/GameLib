@@ -43,7 +43,7 @@ public enum MouseButton : byte
 /// <summary>This enum contains virtual key values for the operating system's virtual keyboard.</summary>
 public enum Key : int
 { Unknown         =SDL.Key.Unknown, None=Unknown,
-  
+
   /* These are mapped to ascii -- BEGIN ASCII MAPPED SECTION */
   Backspace       =SDL.Key.Backspace,
   Tab             =SDL.Key.Tab,
@@ -118,7 +118,7 @@ public enum Key : int
   Caret           =SDL.Key.Caret,
   Underscore      =SDL.Key.Underscore,
   Backquote       =SDL.Key.Backquote,
-  
+
   Delete          =SDL.Key.Delete,
   /* END ASCII MAPPED SECTION */
 
@@ -229,7 +229,7 @@ public enum Key : int
   Euro            =SDL.Key.Euro,
   /// <summary>Some keyboards have an undo key.</summary>
   Undo            =SDL.Key.Undo,
-  
+
   NumKeys
 }
 #endregion
@@ -420,7 +420,7 @@ public struct KeyCombo
   /// this field will take precedence and <see cref="Key"/> will be ignored.
   /// </remarks>
   public char Char;
-  
+
   static KeyMod[] masks = new KeyMod[] { KeyMod.Shift, KeyMod.Ctrl, KeyMod.Alt, KeyMod.Meta };
 }
 
@@ -459,7 +459,7 @@ public delegate void JoyButtonHandler(Joystick js, JoyButtonEvent e);
 /// <remarks>This class is updated by the <see cref="Input.ProcessEvent"/> method.</remarks>
 public sealed class Keyboard
 { private Keyboard() { }
-  
+
   /// <summary>Occurs when a keyboard key is pressed or released.</summary>
   /// <remarks>This event is raised by the <see cref="Input.ProcessEvent"/> method.</remarks>
   public static KeyEventHandler KeyEvent;
@@ -551,7 +551,7 @@ public sealed class Keyboard
   }
   /// <summary>Disables key repeat.</summary>
   public static void DisableKeyRepeat() { EnableKeyRepeat(0, 0); }
-  
+
   internal static void Initialize()
   { unsafe
     { int   i=0, num;
@@ -578,7 +578,7 @@ public sealed class Keyboard
 /// <remarks>This class is updated by the <see cref="Input.ProcessEvent"/> method.</remarks>
 public sealed class Mouse
 { private Mouse() { }
-  
+
   /// <summary>Occurs when the mouse is moved.</summary>
   /// <remarks>This event is raised by the <see cref="Input.ProcessEvent"/> method.</remarks>
   public static event MouseMoveHandler  MouseMove;
@@ -620,7 +620,7 @@ public sealed class Mouse
   /// <summary>Gets/sets the current Z coordinate of the mouse, which represents the position of the mouse wheel.</summary>
   /// <remarks>This property is updated by <see cref="Input.ProcessEvent"/>.</remarks>
   public static int Z { get { return z; } set { z=value; } }
-  
+
   /// <summary>Determines whether the system mouse cursor is visible.</summary>
   /// <remarks>If false, you will have to draw your own mouse cursor.</remarks>
   public static bool SystemCursorVisible
@@ -782,12 +782,12 @@ public sealed class Joystick : IDisposable
   { balls[e.Ball].X += e.Xrel; balls[e.Ball].Y += e.Yrel;
     if(JoyBall!=null) JoyBall(this, e);
   }
-  
+
   internal void OnJoyHat(JoyHatEvent e)
   { hats[e.Hat]=e.Position;
     if(JoyHat!=null) JoyHat(this, e);
   }
-  
+
   internal void OnJoyButton(JoyButtonEvent e)
   { buttons[e.Button]=e.Down;
     if(JoyButton!=null) JoyButton(this, e);
@@ -832,7 +832,7 @@ public sealed class Input
   /// <see cref="UseJoysticks"/> or <see cref="Initialize(bool)"/>).
   /// </remarks>
   public static Joystick[] Joysticks { get { return joysticks; } }
-  
+
   /// <summary>Enables or disables joystick support.</summary>
   /// <remarks>Joysticks cannot be used unless joystick support is enabled. The input system must be initialized
   /// before this property can be used. Due to some small overhead associated with joystick handling, you should not
@@ -896,7 +896,7 @@ public sealed class Input
     }
     initCount--;
   }
-  
+
   /// <summary>Processes input events and updates the <see cref="Keyboard"/>, <see cref="Mouse"/>, and
   /// <see cref="Joystick"/> classes as necessary.
   /// </summary>

@@ -120,7 +120,7 @@ internal abstract class StreamCallbackSource : IDisposable
     }
     return pos;
   }
-  
+
   protected long Tell() { return stream.CanSeek ? stream.Position : -1; }
 
   protected unsafe int Read(byte* data, int size, int maxnum)
@@ -178,13 +178,13 @@ internal abstract class StreamCallbackSource : IDisposable
     }
     catch { return -1; }
   }
-  
+
   protected int Truncate(long len)
   { if(stream==null) return -1;
     try { stream.SetLength(len); } catch { return -1; }
     return 0;
   }
-  
+
   protected void MaybeClose()
   { if(stream==null) return;
     Dispose();

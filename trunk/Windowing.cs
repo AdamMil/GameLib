@@ -427,9 +427,9 @@ public class Control
     /// named control cannot be found here. If false, the search stops after searching the immediate children.
     /// </param>
     public bool Contains(string name, bool deepSearch) { return Find(name, deepSearch)!=null; }
-    
+
     internal ArrayList Array { get { return InnerList; } }
-    
+
     protected override void OnClear()
     { foreach(Control c in this) c.SetParent(null);
       base.OnClear();
@@ -585,7 +585,7 @@ public class Control
 
   /// <summary>Gets the <see cref="ControlCollection"/> containing this control's children.</summary>
   public ControlCollection Controls { get { return controls; } }
-  
+
   /// <summary>Gets or sets the effective mouse cursor associated with this control.</summary>
   /// <remarks>Setting this property sets the <see cref="RawCursor"/> property. Setting this property to null will
   /// cause the mouse cursor to be inherited from the control's parent. Getting this property takes inheritance into
@@ -599,7 +599,7 @@ public class Control
     }
     set { cursor=value; }
   }
-  
+
   /// <summary>Gets the desktop with which this control is associated.</summary>
   /// <remarks>Controls are associated with other controls through their <see cref="Parent"/> and
   /// <see cref="Controls"/> properties. If an ancestor of a control is derived from <see cref="DesktopControl"/>,
@@ -633,7 +633,7 @@ public class Control
     { return BackingSurface==null ? WindowToDisplay(WindowRect) : WindowToBacking(WindowRect);
     }
   }
-  
+
   /// <summary>Gets the that surface that can be used for drawing.</summary>
   /// <remarks>This property returns either the <see cref="Desktop"/>'s associated surface or
   /// the <see cref="BackingSurface"/> depending on whether the control has a backing surface or not.
@@ -772,13 +772,13 @@ public class Control
       Invalidate(value);
     }
   }
-  
+
   /// <summary>Gets or sets whether this control receives keyboard events before its children.</summary>
   /// <remarks>If a control has key preview, it will receive keyboard events before its children, and have
   /// a chance to process and/or cancel them.
   /// </remarks>
   public bool KeyPreview { get { return keyPreview; } set { keyPreview=value; } }
-  
+
   /// <summary>Gets the control's layout height.</summary>
   /// <remarks>The control's layout height is the <see cref="Height"/> minus the area taken up by the
   /// <see cref="LayoutMargin"/>.
@@ -947,7 +947,7 @@ public class Control
   { get { return parent==null ? false : parent.focused==this; }
     set { if(value) Focus(); else Blur(); }
   }
-  
+
   /// <summary>Gets or sets the size of this control.</summary>
   /// <remarks>Changing this control will resize the control.</remarks>
   public Size Size
@@ -991,7 +991,7 @@ public class Control
   /// similarly, but with some restrictions.
   /// </remarks>
   public object Tag { get { return tag; } set { tag=value; } }
-  
+
   /// <summary>Gets or sets this control's text.</summary>
   /// <remarks>Different types of controls use this property differently. For <see cref="Form"/>, it's the window
   /// caption. For <see cref="ButtonBase"/>, it's the text displayed along with the button. For
@@ -1076,7 +1076,7 @@ public class Control
   /// </remarks>
   public Rectangle WindowRect { get { return new Rectangle(0, 0, bounds.Width, bounds.Height); } }
   #endregion
-  
+
   #region Public methods
   /// <summary>Marks a region of the control as invalid, without triggering a repaint event.</summary>
   /// <param name="rect">The rectangle, in control coordinates, to mark as invalid.</param>
@@ -1260,7 +1260,7 @@ public class Control
   public void SetBounds(Point location, Size size, BoundsType mode)
   { SetBounds(new Rectangle(location, size), mode);
   }
-  
+
   /// <summary>Sets the <see cref="Bounds"/> property and performs layout logic.</summary>
   /// <param name="newBounds">The new control boundaries.</param>
   /// <param name="mode">A <see cref="BoundsType"/> that determines how <paramref name="newBounds"/> will be treated.
@@ -1319,7 +1319,7 @@ public class Control
   { DesktopControl desktop = Desktop;
     if(desktop!=null) desktop.DoPaint(this);
   }
-  
+
   /// <summary>Converts a point from control coordinates to an ancestor's control coordinates.</summary>
   /// <param name="windowPoint">The point to convert, in control coordinates.</param>
   /// <param name="ancestor">The ancestor whose control coordinates the point will be converted to.</param>
@@ -1441,7 +1441,7 @@ public class Control
   /// <param name="reverse">If true, selects the previous control. Otherwise, selects the next control.</param>
   public void TabToNextControl(bool reverse) { FocusedControl = GetNextControl(reverse); }
   #endregion
-  
+
   #region Events
   /// <summary>Occurs when the value of the <see cref="BackColor"/> property changes.</summary>
   public event ValueChangedEventHandler BackColorChanged;
@@ -1630,7 +1630,7 @@ public class Control
   { if(BackingSurfaceChanged!=null) BackingSurfaceChanged(this, e);
     foreach(Control c in controls) c.OnParentBackingSurfaceChanged(e);
   }
-  
+
   /// <summary>Raises the <see cref="EnabledChanged"/> event and performs default handing.</summary>
   /// <param name="e">A <see cref="ValueChangedEventArgs"/> that contains the event data.</param>
   /// <remarks>This method raises the <see cref="EnabledChanged"/> event, and invalidates and possibly blurs the
@@ -1982,7 +1982,7 @@ public class Control
     invalid.Width = 0;
     pendingPaint  = false;
   }
-  
+
   /// <summary>Called when the parent's <see cref="BackColor"/> property changes.</summary>
   /// <param name="e">A <see cref="ValueChangedEventArgs"/> that contains the event data.</param>
   /// <remarks>This method will call <see cref="OnBackColorChanged"/> if necessary.
@@ -2043,7 +2043,7 @@ public class Control
   /// default processing gets performed.
   /// </remarks>
   protected virtual void OnParentVisibleChanged(ValueChangedEventArgs e) { if(visible) OnVisibleChanged(e); }
-  
+
   /// <summary>Called when the control receives a custom window event.</summary>
   /// <param name="e">A <see cref="WindowEvent"/> that contains the event.</param>
   /// <remarks>When overriding this method in a derived class, be sure to call the base class' version to
@@ -2051,7 +2051,7 @@ public class Control
   /// </remarks>
   protected internal virtual void OnCustomEvent(WindowEvent e) { }
   #endregion
-  
+
   /// <summary>Gets the <see cref="Surface"/> used as the backing surface for this control.</summary>
   /// <remarks>This property will return null if there is no backing surface being used.</remarks>
   protected internal Surface BackingSurface
@@ -2439,7 +2439,7 @@ public class DesktopControl : ContainerControl, IDisposable
     if(i>=updatedLen)
     { if(updatedLen==updated.Length)
       { Rectangle[] narr = new Rectangle[updated.Length*2];
-        Array.Copy(narr, updated, updated.Length);
+        Array.Copy(updated, narr, updated.Length);
         updated = narr;
       }
       updated[updatedLen++] = area;
@@ -2537,7 +2537,7 @@ public class DesktopControl : ContainerControl, IDisposable
         // normally we'd set its FocusedControl to null to indicate this, but if there's a modal window,
         // we don't unset any focus
         if(focus==AutoFocus.Over && passModal) p.FocusedControl=null;
-        
+
         if(dragging!=null)
         { if(dragStarted)
           { drag.End = p==dragging ? at : dragging.DisplayToWindow(ea.Point);
@@ -2611,7 +2611,7 @@ public class DesktopControl : ContainerControl, IDisposable
         Control p = this, c;
         uint time = Timing.Msecs;
         bool passModal = modal.Count==0;
-        
+
         at.X -= Bounds.X; at.Y -= Bounds.Y; // at is the cursor point local to 'p'
         while(p.Enabled && p.Visible)
         { c = p.GetChildAtPoint(at);
@@ -2699,7 +2699,7 @@ public class DesktopControl : ContainerControl, IDisposable
     return false;
   }
   #endregion
-  
+
   /// <summary>Stop the current key from repeating.</summary>
   /// <remarks>Often, key repeat is unwanted. This method can be called to stop the current key from repeating.
   /// It is safe to call this method even if no key is currently repeating.
@@ -2806,7 +2806,7 @@ public class DesktopControl : ContainerControl, IDisposable
     }
     base.OnParentChanged(e);
   }
-  
+
   internal void SetModal(Control control)
   { if(control.Desktop!=this) throw new InvalidOperationException("The control is not associated with this desktop!");
     if(modal.Contains(control)) UnsetModal(control);
@@ -2976,7 +2976,7 @@ public sealed class Helpers
 
   /// <summary>The direction an arrow points.<seealso cref="DrawArrow"/></summary>
   public enum Arrow { Up, Down, Left, Right }
-  
+
   /// <summary>Returns true if <paramref name="align"/> specifies left alignment.</summary>
   /// <param name="align">The alignment value to check.</param>
   /// <returns>True if <paramref name="align"/> specifies left alignment, false otherwise.</returns>
@@ -3019,7 +3019,7 @@ public sealed class Helpers
   { return align==ContentAlignment.BottomLeft || align==ContentAlignment.BottomCenter ||
            align==ContentAlignment.BottomRight;
   }
-  
+
   /// <summary>Returns the thickness of a border, in pixels.</summary>
   /// <param name="border">The border style thats thickness will be returned.</param>
   /// <returns>The thickness of the specified border, in pixels.</returns>
@@ -3043,13 +3043,13 @@ public sealed class Helpers
     if(AlignedLeft(align)) ret.X = container.X;
     else if(AlignedCenter(align)) ret.X = container.X + (container.Width - item.Width)/2;
     else ret.X = container.Right - item.Width;
-    
+
     if(AlignedTop(align)) ret.Y = container.Y;
     else if(AlignedMiddle(align)) ret.Y = container.Y + (container.Height - item.Height)/2;
     else ret.Y = container.Bottom - item.Height;
     return ret;
   }
-  
+
   public static void DrawArrow(Surface surface, Rectangle rect, Arrow arrow, int size, Color color)
   { int x, y, s, si;
     switch(arrow)
@@ -3145,7 +3145,7 @@ public sealed class Helpers
         break;
     }
   }
-  
+
   /// <summary>Given a base color, returns a dark color for use in 3D shading.</summary>
   /// <param name="baseColor">The base color used to calculate the dark color.</param>
   /// <returns>A new color that is equal to or darker than <paramref name="baseColor"/>.</returns>

@@ -178,7 +178,7 @@ public abstract class Font : IDisposable
     if(!Forms.Helpers.AlignedTop(align)) y = -1;
     return new Point(x, y);
   }
-  
+
   /// <summary>Renders text centered within a surface.</summary>
   /// <param name="dest">The surface to render into.</param>
   /// <param name="text">The text to render.</param>
@@ -384,7 +384,7 @@ public class BitmapFont : Font
     this.charset  = charset;
     Init();
   }
-  
+
   /// <summary>Gets the height of the font, in pixels.</summary>
   public override int Height { get { return font.Height; } }
   /// <summary>Gets the vertical offset that should be added to move the draw position to the next line. This is
@@ -472,7 +472,7 @@ public class BitmapFont : Font
 
   /// <summary>See <see cref="Font.OnDisplayFormatChanged"/> for more details regarding this method.</summary>
   protected override void OnDisplayFormatChanged() { font = orig.IsCompatible() ? orig : orig.CloneDisplay(); }
-  
+
   /// <summary>See <see cref="Font.Dispose(bool)"/> for more details regarding this method.</summary>
   protected override void Dispose(bool finalizing)
   { font.Dispose();
@@ -725,7 +725,7 @@ public class TrueTypeFont : StyledFont
       cacheMax = value;
     }
   }
-  
+
   /// <summary>Calculates the size of a string of text.</summary>
   /// <param name="text">The text to use for the calculation.</param>
   /// <returns>A <see cref="Size"/> that contains the amount of space required to render the given text with this
@@ -791,7 +791,7 @@ public class TrueTypeFont : StyledFont
     public CachedChar(char c) { Char=c; }
     ~CachedChar() { Dispose(true); }
     public void Dispose() { Dispose(false); GC.SuppressFinalize(this); }
-    
+
     public Surface Surface;
     public int     OffsetX, OffsetY, Width, Advance;
     public char    Char;
@@ -799,7 +799,7 @@ public class TrueTypeFont : StyledFont
     internal CacheIndex Index;
     void Dispose(bool finalizing) { Surface.Dispose(); }
   }
-  
+
   protected CachedChar GetChar(char c)
   { Color shade = shadeColor!=Color.Transparent ? shadeColor : bgColor!=Color.Transparent ? bgColor : Color.Black;
     CacheIndex ind = new CacheIndex(c, color, shade, fstyle, rstyle);
@@ -876,7 +876,7 @@ public class TrueTypeFont : StyledFont
     }
     base.Dispose(finalizing);
   }
-  
+
   internal struct CacheIndex : IComparable
   { public CacheIndex(char c, Color color, Color shadeColor, FontStyle fstyle, RenderStyle rstyle)
     { Char=c; Color=color; ShadeColor=shadeColor; FontStyle=fstyle; RenderStyle=rstyle;

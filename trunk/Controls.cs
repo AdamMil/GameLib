@@ -92,12 +92,12 @@ public class Line : Control
   { get { return ttb; }
     set { if(ttb!=value) { ttb=value; Invalidate(); } }
   }
-  
+
   public bool AntiAliased
   { get { return aa; }
     set { if(aa!=value) { aa=value; Invalidate(); } }
   }
-  
+
   protected internal override void OnPaint(PaintEventArgs e)
   { base.OnPaint(e);
     Color c = ForeColor;
@@ -124,7 +124,7 @@ public abstract class LabelBase : Control
       if(value != old) Invalidate();
     }
   }
-  
+
   public BorderStyle BorderStyle
   { get { return border; }
     set
@@ -134,7 +134,7 @@ public abstract class LabelBase : Control
       }
     }
   }
-  
+
   public Surface Image
   { get { return image; }
     set
@@ -329,7 +329,7 @@ public class Button : ButtonBase
       }
     }
   }
-  
+
   protected internal override void OnMouseEnter(EventArgs e)
   { over=true;
     if(Pressed) Invalidate();
@@ -344,7 +344,7 @@ public class Button : ButtonBase
   protected override void OnGotFocus(EventArgs e)  { Invalidate(); base.OnGotFocus(e); }
 
   protected override void OnPressedChanged(EventArgs e) { Invalidate(); base.OnPressedChanged(e); }
-  
+
   bool over, alwaysUse;
 }
 #endregion
@@ -362,13 +362,13 @@ public abstract class CheckBoxBase : ButtonBase
       }
     }
   }
-  
+
   public event EventHandler CheckedChanged;
-  
+
   protected virtual void OnCheckedChanged(EventArgs e)
   { if(CheckedChanged!=null) CheckedChanged(this, new EventArgs());
   }
-  
+
   protected override void OnClick(ClickEventArgs e)
   { if(e.CE.Button==MouseButton.Left && !e.Handled)
     { Checked   = !value;
@@ -376,7 +376,7 @@ public abstract class CheckBoxBase : ButtonBase
     }
     base.OnClick(e);
   }
-  
+
   bool value;
 }
 #endregion
@@ -395,7 +395,7 @@ public class CheckBox : CheckBoxBase
 
   protected internal override void OnPaint(PaintEventArgs e)
   { base.OnPaint(e);
-    
+
     Rectangle rect = DrawRect;
     rect.Inflate(-1, -1);
 
@@ -404,7 +404,7 @@ public class CheckBox : CheckBoxBase
     ContentAlignment align = Helpers.AlignedTop(TextAlign)    ? ContentAlignment.TopLeft    :
                              Helpers.AlignedMiddle(TextAlign) ? ContentAlignment.MiddleLeft :
                              ContentAlignment.BottomLeft;
-    
+
     GameLib.Fonts.Font font = Font;
     if(font!=null)
     { font.BackColor = BackColor;
@@ -427,7 +427,7 @@ public class CheckBox : CheckBoxBase
       font.Render(e.Surface, Text, rect, align);
     }
   }
-  
+
   protected internal override void OnMouseDown(ClickEventArgs e) { down=true; Invalidate(); base.OnMouseDown(e); }
   protected internal override void OnMouseUp(ClickEventArgs e) { down=false; Invalidate(); base.OnMouseUp(e); }
   protected override void OnGotFocus(EventArgs e) { Invalidate(); base.OnGotFocus(e); }
@@ -647,7 +647,7 @@ public abstract class ScrollBarBase : Control, IDisposable
     if(ThumbDragEnd!=null) ThumbDragEnd(this, e);
   }
   #endregion
-  
+
   protected void Dispose(bool finalizing)
   { if(crTimer!=null)
     { crTimer.Dispose();
@@ -678,7 +678,7 @@ public abstract class ScrollBarBase : Control, IDisposable
     else if(position>Height) position=Height-1;
     return (position-endSize)*(max-min)/Space+min;
   }
-    
+
   protected int ValueToThumb(int value) { return (value-min)*Space/(max-min)+endSize; }
 
   class ClickRepeat : GameLib.Events.WindowEvent
@@ -709,7 +709,7 @@ public class ScrollBar : ScrollBarBase
   { Refresh();
     base.OnValueChanged(e);
   }
-  
+
   protected internal override void OnPaint(PaintEventArgs e)
   { base.OnPaint(e);
     Rectangle rect = DrawRect;
@@ -841,7 +841,7 @@ public abstract class TextBoxBase : Control
       }
     }
   }
-  
+
   public int SelectionStart { get { return selectLen<0 ? caret+selectLen : caret; } }
 
   public bool SelectOnFocus { get { return selectOnFocus; } set { selectOnFocus=value; } }
@@ -861,13 +861,13 @@ public abstract class TextBoxBase : Control
 
   public bool WordWrap { get { return wordWrap; } set { wordWrap=value; } }
   #endregion
-  
+
   #region Events
   public event EventHandler ModifiedChanged;
   protected virtual void OnModifiedChanged(EventArgs e) { if(ModifiedChanged!=null) ModifiedChanged(this, e); }
   protected virtual void OnCaretPositionChanged(ValueChangedEventArgs e) { }
   protected virtual void OnCaretFlash() { }
-  
+
   protected override void OnGotFocus (EventArgs e)
   { if(selectOnFocus) { SelectAll(); Invalidate(); }
     WithCaret=this;
@@ -886,7 +886,7 @@ public abstract class TextBoxBase : Control
     }
     base.OnKeyPress(e);
   }
-  
+
   protected internal override void OnKeyDown(KeyEventArgs e)
   { char c=e.KE.Char;
     if(e.KE.Key==Key.Left)
@@ -1023,7 +1023,7 @@ public abstract class TextBoxBase : Control
   public void Select(int start, int length) { CaretPosition=start; SelectionLength=length; }
   public void SelectAll() { CaretPosition=Text.Length; SelectionLength=-Text.Length; }
   #endregion
-  
+
   protected bool HasCaret { get { return withCaret==this && Focused; } }
 
   class CaretFlashEvent : Events.WindowEvent { public CaretFlashEvent(TextBoxBase tb) : base(tb) { } }
@@ -1042,9 +1042,9 @@ public abstract class TextBoxBase : Control
       if(IsPunctuation(text[i]) || char.IsWhiteSpace(text[i])) { if(dir<0) i++; break; }
     return i<0 ? 0 : i;
   }
-  
+
   bool IsPunctuation(char c) { return char.IsPunctuation(c) || char.IsSymbol(c); }
-  
+
   int  caret, selectLen, maxLength=-1;
   bool hideSelection=true, modified, wordWrap, selectOnFocus=true;
 
@@ -1086,9 +1086,9 @@ public abstract class TextBoxBase : Control
     TextBoxBase tb = withCaret;
     if(tb!=null && tb.HasCaret) DoFlash(tb);
   }
-  
+
   static void DoFlash(TextBoxBase tb) { Events.Events.PushEvent(new CaretFlashEvent(tb)); }
-  
+
   static System.Threading.Timer caretTimer;
   static TextBoxBase withCaret;
   static string clipboard = string.Empty;
@@ -1136,7 +1136,7 @@ public class TextBox : TextBoxBase
 
     Helpers.DrawBorder(e.Surface, rect, BorderStyle.FixedThick, border, true);
   }
-  
+
   protected internal override void OnPaint(PaintEventArgs e)
   { base.OnPaint(e);
     GameLib.Fonts.Font font = Font;
@@ -1177,7 +1177,7 @@ public class TextBox : TextBoxBase
       e.Handled = true;
     }
   }
-  
+
   protected internal override void OnDragStart(DragEventArgs e)
   { if(e.Pressed(0) && !e.Cancel) Select(PointToPos(e.Start.X), 0);
     else e.Cancel=true;
@@ -1197,7 +1197,7 @@ public class TextBox : TextBoxBase
   }
 
   protected override void OnCaretPositionChanged(ValueChangedEventArgs e) { Invalidate(); }
-  
+
   protected override void OnTextChanged(ValueChangedEventArgs e)
   { Invalidate();
     base.OnTextChanged(e);
@@ -1229,7 +1229,7 @@ public class TextBox : TextBoxBase
       return font==null ? 0 : start + font.HowManyFit(Text.Substring(start, end-start), x-rect.X);
     }
   }
-  
+
   const int padding=2;
 
   Color border = Color.FromArgb(212, 208, 200);
@@ -1240,7 +1240,7 @@ public class TextBox : TextBoxBase
 #region MenuItemBase
 public abstract class MenuItemBase : Control
 { public MenuItemBase() { BackColor = SystemColors.Menu; ForeColor = SystemColors.MenuText; }
-  
+
   public bool AllowKeyRepeat { get { return keyRepeat; } set { keyRepeat=value; } }
   public KeyCombo GlobalHotKey { get { return globalHotKey; } set { globalHotKey=value; } }
   public char HotKey { get { return hotKey; } set { hotKey=char.ToUpper(value); } }
@@ -1315,7 +1315,7 @@ public abstract class MenuBase : ContainerControl
     Capture = true;
     if(wait) while(Events.Events.PumpEvent() && this.source!=null);
   }
-  
+
   protected virtual void OnPopup(EventArgs e) { if(Popup!=null) Popup(this, e); }
 
   protected internal override void OnKeyPress(KeyEventArgs e)
@@ -1331,7 +1331,7 @@ public abstract class MenuBase : ContainerControl
     }
     base.OnKeyPress(e);
   }
-  
+
   protected internal override void OnKeyDown(KeyEventArgs e)
   { if(!e.Handled && e.KE.Down && e.KE.Key==Key.Escape && e.KE.KeyMods==KeyMod.None)
     { Close();
@@ -1368,7 +1368,7 @@ public abstract class MenuBase : ContainerControl
   { if(e is ItemClickedEvent) Click(((ItemClickedEvent)e).Item);
     base.OnCustomEvent(e);
   }
-  
+
   protected override void OnTextChanged(ValueChangedEventArgs e)
   { MenuBarBase bar = Parent as MenuBarBase;
     if(bar!=null) bar.Relayout();
@@ -1451,7 +1451,7 @@ public abstract class MenuBarBase : Control
     MenuBarBase parent;
   }
   #endregion
-  
+
   public MenuCollection Menus { get { return menus; } }
 
   public int Spacing
@@ -1596,7 +1596,7 @@ public abstract class MenuBarBase : Control
     Capture = pullDown;
     Invalidate(buttons[menu].Area);
   }
-  
+
   void Close(int menu)
   { buttons[menu].State = ButtonState.Normal;
     buttons[menu].Menu.Close();
@@ -1731,7 +1731,7 @@ public class Menu : MenuBase
     foreach(MenuItemBase item in Controls) item.Width=width;
     Size = new Size(width+4, height+4);
   }
-  
+
   protected internal override void OnPaintBackground(PaintEventArgs e)
   { base.OnPaintBackground(e);
     Helpers.DrawBorder(e.Surface, DrawRect, BorderStyle.Fixed3D, BackColor, false);
@@ -1815,12 +1815,12 @@ public abstract class TitleBarBase : ContainerControl
   { DragParent(e);
     base.OnDragMove(e);
   }
-  
+
   protected internal override void OnDragEnd(DragEventArgs e)
   { DragParent(e);
     base.OnDragEnd(e);
   }
-  
+
   protected override void OnResize(EventArgs e)
   { FormBase parent = (FormBase)Parent;
     if(parent.MinimumHeight<Height) parent.MinimumHeight=Height;
@@ -1883,7 +1883,7 @@ public class TitleBar : TitleBarBase
   { UpdateSize();
     base.OnVisibleChanged(e);
   }
-  
+
   void UpdateSize()
   { if(!Visible) Height=0;
     else
@@ -1891,7 +1891,7 @@ public class TitleBar : TitleBarBase
       if(font!=null) Height = font.LineSkip*4/3;
     }
   }
-  
+
   #region CloseButton
   class CloseButton : Button
   { public CloseButton() { BackColor = SystemColors.Control; ForeColor = SystemColors.ControlText; }
@@ -1905,12 +1905,12 @@ public class TitleBar : TitleBarBase
       }
       base.OnResize(e);
     }
-    
+
     protected override void OnClick(ClickEventArgs e)
     { ((FormBase)Parent.Parent).Close();
       base.OnClick(e);
     }
-    
+
     protected internal override void OnPaint(PaintEventArgs e)
     { Rectangle rect = DrawRect;
       int bwidth = Helpers.BorderSize(BorderStyle);
@@ -1965,7 +1965,7 @@ public abstract class FormBase : ContainerControl
       }
     }
   }
-  
+
   public ButtonClicked Button { get { return button; } set { button=value; }  }
 
   public int MinimumHeight
@@ -2005,7 +2005,7 @@ public abstract class FormBase : ContainerControl
       if(value!=-1 && Height>value) Height = value;
     }
   }
-  
+
   public Size MaximumSize
   { get { return max; }
     set
@@ -2026,7 +2026,7 @@ public abstract class FormBase : ContainerControl
       if(value!=-1 && Width>value) Width = value;
     }
   }
-  
+
   public abstract TitleBarBase TitleBar { get; }
 
   public object DialogResult { get { return returnValue; } set { returnValue=value; } }
@@ -2098,7 +2098,7 @@ public abstract class FormBase : ContainerControl
   protected virtual void OnClosed(EventArgs e) { if(Closed!=null) Closed(this, e); }
 
   [Flags] enum DragEdge { None=0, Left=1, Right=2, Top=4, Bottom=8 };
-  
+
   void DragResize(DragEventArgs e)
   { int xd=e.End.X-e.Start.X, yd=e.End.Y-e.Start.Y;
     Rectangle bounds = Bounds;
@@ -2184,7 +2184,7 @@ public sealed class MessageBox : Form
           btnWidth += sizes[i];
         }
         btnWidth += (buttonTexts.Length-1) * btnSpace; // space between buttons
-        
+
         Label label  = new Label(message);
         int textWidth = desktop.Width/2-font.LineSkip*2, textHeight;
         if(btnWidth>textWidth) textWidth = btnWidth;
@@ -2200,7 +2200,7 @@ public sealed class MessageBox : Form
 
         label.Bounds = new Rectangle((LayoutWidth-textWidth)/2, font.LineSkip, textWidth, textHeight);
         label.TextAlign = ContentAlignment.TopCenter;
-        
+
         int x = (LayoutWidth-btnWidth)/2, y = LayoutHeight-font.LineSkip-btnHeight-TitleBar.Height;
         for(int i=0; i<buttonTexts.Length; i++)
         { Button btn = new Button(buttonTexts[i]);

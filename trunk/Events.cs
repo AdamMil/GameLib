@@ -133,7 +133,7 @@ public abstract class Event
   /// <summary>Initializes this event.</summary>
   /// <param name="type">The <see cref="EventType"/> of this event.</param>
   protected Event(EventType type) { this.type=type; }
-  
+
   /// <summary>Gets the type of this event.</summary>
   /// <value>The <see cref="EventType"/> of this event.</value>
   public EventType Type { get { return type; } }
@@ -153,7 +153,7 @@ public class FocusEvent : Event
   internal FocusEvent(ref SDL.ActiveEvent evt) : base(EventType.Focus)
   { FocusType=(FocusType)evt.State; Focused=(evt.Focused!=0);
   }
-  
+
   /// <summary>The type of focus event.</summary>
   /// <value>The <see cref="FocusType"/> of this event.</value>
   public FocusType FocusType;
@@ -651,7 +651,7 @@ public delegate bool IdleProcedure();
 /// </remarks>
 public sealed class Events
 { private Events() { }
-  
+
   /// <summary>A value representing an infinite amount of time.</summary>
   /// <remarks>This value can be passed to <see cref="NextEvent"/> and <see cref="PeekEvent"/> to request that
   /// they block until an event becomes available.
@@ -691,7 +691,7 @@ public sealed class Events
       }
     }
   }
-  
+
   /// <summary>Gets an object that can be locked to synchronize access to the event queue.</summary>
   /// <remarks>While it's strongly recommended that only one thread read events from the queue, it should be
   /// possible to have multiple threads reading the queue if each thread locks this property with a
@@ -842,7 +842,7 @@ public sealed class Events
 
     return true;
   }
-  
+
   /// <summary>Handles the next event.</summary>
   /// <returns>Returns true if the application should continue working or false if it should quit.</returns>
   /// <remarks>
@@ -949,7 +949,7 @@ public sealed class Events
     done:
     quit=true;
   }
-  
+
   sealed class UserEventPushed : UserEvent { }
 
   static unsafe Event PeekSDLEvent()
@@ -979,7 +979,7 @@ public sealed class Events
       }
     }
   }
-  
+
   static void AssertInit() { if(initCount==0) throw new InvalidOperationException("Events not initialized yet"); }
   static bool FilterEvent(Event evt)
   { if(evt==null) return false;
@@ -993,7 +993,7 @@ public sealed class Events
     }
     return true;
   }
-  
+
   static unsafe Event ConvertEvent(ref SDL.Event evt)
   { switch(evt.Type)
     { case SDL.EventType.Active:
@@ -1041,7 +1041,7 @@ public sealed class Events
       default: return null;
     }
   }
-  
+
   static void QueueEvent(Event evt)
   { if(queue.Count>=max) queue.Dequeue();
     queue.Enqueue(evt);

@@ -57,7 +57,7 @@ internal sealed class SF
   public enum SeekType : int
   { Absolute, Relative, FromEnd
   }
-  
+
   [Flags]
   public enum OpenMode : int
   { Read=0x10, Write=0x20, ReadWrite=Read|Write
@@ -119,7 +119,7 @@ internal sealed class SF
     EndMask      = 0x30000000
   }
   #endregion
-  
+
   #region Functions
   [DllImport(Config.SndFileImportPath, EntryPoint="sf_open", CallingConvention=CallingConvention.Cdecl)]
   public static extern IntPtr Open(string path, OpenMode mode, ref Info sfinfo);
@@ -140,7 +140,7 @@ internal sealed class SF
   [DllImport(Config.SndFileImportPath, EntryPoint="sf_strerror", CallingConvention=CallingConvention.Cdecl)]
   public static extern string GetError(IntPtr sndfile);
   #endregion
-  
+
   public static void RaiseError(IntPtr sndfile)
   { string error = GetError(sndfile);
     if(error==null) throw new GameLibException("GameLib sez: Something bad happened, but SF disagrees");
@@ -170,7 +170,7 @@ internal class StreamIOCalls : StreamCallbackSource
     calls.Truncate = new DelegateMarshaller(trunc).ToPointer();
     calls.Close    = new DelegateMarshaller(close).ToPointer();
   }
-  
+
   long OnSeek(IntPtr context, long offset, SF.SeekType type) { return Seek(offset, (SeekType)type); }
   unsafe long OnRead(IntPtr context, byte* data, long size, long maxnum) { return Read(data, (int)size, (int)maxnum); }
   unsafe long OnWrite(IntPtr context, byte* data, long size, long num) { return Write(data, (int)size, (int)num); }
@@ -190,7 +190,7 @@ internal class StreamIOCalls : StreamCallbackSource
   long OnLength(IntPtr context) { return stream.Length; }
   int OnTruncate(IntPtr context, long len) { return Truncate(len); }
   int OnClose(IntPtr context) { MaybeClose(); return 0; }
-  
+
   internal SF.IOCalls calls;
   SF.SeekHandler     seek;
   SF.ReadHandler     read;

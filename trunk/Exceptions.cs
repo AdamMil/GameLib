@@ -54,7 +54,7 @@ public class DataTooLargeException : GameLibException
   /// <summary>Gets the maximum size allowed.</summary>
   /// <value>The maximum size allowed, or -1 if the maximum size was not given.</value>
   public int MaxSize { get { return maxSize; } }
-  
+
   /// <summary>The maximum size allowed.</summary>
   /// <value>The maximum size allowed, or -1 if the maximum size was not given.</value>
   protected int maxSize;
@@ -219,7 +219,7 @@ public class OggVorbisException : AudioException
   /// stream.
   /// </value>
   public OggError Code { get { return code; } }
-  
+
   /// <summary>The reason the decoder could not properly decode the stream.</summary>
   protected OggError code;
 }

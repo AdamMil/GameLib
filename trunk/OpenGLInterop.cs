@@ -2366,7 +2366,7 @@ public sealed class GL
   public static extern void glViewport(int x, int y, int width, int height);
   #endregion
   #endregion
-  
+
   #region OpenGL 1.2
   #region Flags, Enums, Defines, etc
   public const int GL_CONSTANT_COLOR    = 0x8001;
@@ -2671,7 +2671,7 @@ public sealed class GL
   public unsafe static extern void glGetSeparableFilter(uint target, uint format, uint type, void* row, byte[] column, byte[] span);
   #endregion
   #endregion
-  
+
   #region OpenGL 1.3
   #region Flags, Enums, Defines, etc
   public const int GL_TEXTURE0 = 0x84C0;
