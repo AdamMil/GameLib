@@ -16,6 +16,8 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
+ // TODO: implement remote received notification
+ 
 using System;
 using System.Collections;
 using System.Net;
@@ -54,7 +56,7 @@ public enum SendFlag
   AllStats=SendStats|ReceiveQueue
 }
 
-internal class MessageConverter
+public sealed class MessageConverter
 { public int NumTypes { get { return typeIDs.Count; } }
 
   public void Clear()
@@ -167,59 +169,63 @@ internal class MessageConverter
   ArrayList types   = new ArrayList();
   Hashtable typeIDs = new Hashtable();
 }
-
-internal struct DualTag
-{ public DualTag(object tag1, object tag2) { Tag1=tag1; Tag2=tag2; }
-  public object Tag1, Tag2;
-}
 #endregion
 
 #region NetLink class and supporting types
-internal delegate void NetLinkHandler(NetLink link);
-internal delegate bool LinkMessageHandler(NetLink link, LinkMessage msg);
+public delegate void NetLinkHandler(NetLink link);
+public delegate void LinkMessageHandler(NetLink link, LinkMessage msg);
+public delegate bool LinkMessageRecvHandler(NetLink link, LinkMessage msg);
 
-internal class LinkMessage
-{ public LinkMessage() { }
-  public LinkMessage(byte[] data, int index, int length, SendFlag flags, uint timeout, object tag)
-  { Data=data; Index=index; Length=length; Flags=flags; Tag=tag;
-    if(timeout!=0) Deadline = Timing.Msecs+timeout;
+public class LinkMessage
+{ internal LinkMessage() { }
+  internal LinkMessage(byte[] data, int index, int length, SendFlag flags, uint timeout, object tag)
+  { this.data=data; this.index=index; this.length=length; this.flags=flags; this.tag=tag;
+    if(timeout!=0) this.deadline = Timing.Msecs+timeout;
   }
-  public int      Index, Length, Sent;
-  public uint     Deadline, Lag;
-  public byte[]   Data;
-  public object   Tag;
-  public SendFlag Flags;
+  public byte[] Data { get { return data; } }
+  public object Tag { get { return tag; } }
+  public int Index { get { return index; } }
+  public int Length { get { return length; } }
+  public SendFlag Flags { get { return flags; } }
+
+  internal byte[]   data;
+  internal object   tag;
+  internal int      index, length, sent;
+  internal uint     deadline, lag;
+  internal SendFlag flags;
 }
 
-internal class NetLink
+public sealed class NetLink
 { public NetLink() { }
-  public NetLink(IPEndPoint remote) { OpenClient(remote); }
-  public NetLink(Socket tcp) { OpenServer(tcp); }
+  public NetLink(IPEndPoint remote) { Open(remote); }
+  public NetLink(Socket tcp) { Open(tcp); }
 
   public const uint NoTimeout=0;
 
-  public event LinkMessageHandler MessageReceived, RemoteReceived, MessageSent;
+  // FIXNOW: either make MessageReceived a property instead of an event or iterate through the handlers manually
+  public event LinkMessageRecvHandler MessageReceived;
+  public event LinkMessageHandler RemoteReceived, MessageSent;
   public event NetLinkHandler     Disconnected;
 
   public bool Connected        { get { if(tcp!=null) Poll(); return connected; } }
   public int  Available        { get { ReceivePoll(); lock(recv) return recv.Count; } }
   public SendFlag DefaultFlags { get { return defFlags; } set { defFlags=value; } }
   
-  public uint LagCenter   { get { return lagCenter;   } set { lagCenter  =value; } }
+  public uint LagAverage  { get { return lagAverage;  } set { lagAverage =value; } }
   public uint LagVariance { get { return lagVariance; } set { lagVariance=value; } }
 
   public IPEndPoint RemoteEndPoint
   { get { return tcp==null ? udp==null ? null : (IPEndPoint)udp.RemoteEndPoint : (IPEndPoint)tcp.RemoteEndPoint; }
   }
 
-  public void OpenClient(IPEndPoint remote)
+  public void Open(IPEndPoint remote)
   { Socket sock = null;
     sock = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
     sock.Connect(remote);
-    OpenServer(sock);
+    Open(sock);
   }
   
-  public void OpenServer(Socket tcp)
+  public void Open(Socket tcp)
   { if(tcp==null) throw new ArgumentNullException("tcp");
     if(!tcp.Connected) throw new ArgumentException("If TCP is being used, the socket must be connected already!");
     
@@ -232,7 +238,7 @@ internal class NetLink
 
       byte[] buf = new byte[2];                       // send the udp's endpoint to the other side
       IOH.WriteLE2(buf, 0, (short)localUdp.Port);     // the other side should be doing the same thing
-      tcp.Send(buf);                                  // PS. i know it's obsolete, but new IPAddress(byte[]) fails
+      tcp.Send(buf);                                  // PS. i know it's obsolete, but 'new IPAddress(byte[])' fails
 
       if(!tcp.Poll(2000000, SelectMode.SelectRead) || tcp.Receive(buf)!=2)
       { tcp.Close();
@@ -315,9 +321,9 @@ internal class NetLink
     Array.Copy(data, index, buf, HeaderSize, length);
 
     LinkMessage m = new LinkMessage(buf, 0, buf.Length, flags, timeoutMs, tag);
-    if(lagCenter>0 || lagVariance>0)
-    { int lag = Global.Rand.Next((int)lagVariance*2)+(int)lagCenter-(int)lagVariance;
-      if(lag>0) { m.Lag = Timing.Msecs+(uint)lag; m.Deadline += m.Lag; }
+    if(lagAverage>0 || lagVariance>0)
+    { int lag = Global.Rand.Next((int)lagVariance*2)+(int)lagAverage-(int)lagVariance;
+      if(lag>0) { m.lag = Timing.Msecs+(uint)lag; m.deadline += m.lag; }
     }
 
     lock(queue) queue.Enqueue(m);
@@ -373,10 +379,10 @@ internal class NetLink
                   else continue;
 
                 LinkMessage m = new LinkMessage();
-                m.Index  = 0;
-                m.Length = nextIndex;
-                m.Data   = new byte[m.Length];
-                m.Flags  = recvFlags;
+                m.index  = 0;
+                m.length = nextIndex;
+                m.data   = new byte[m.Length];
+                m.flags  = recvFlags;
                 Array.Copy(recvBuf, m.Data, m.Length);
                 if(MessageReceived==null || MessageReceived(this, m)) lock(recv) recv.Enqueue(m);
               }
@@ -393,10 +399,10 @@ internal class NetLink
           SizeBuffer(avail);
           int read = udp.Receive(recvBuf, 0, avail, SocketFlags.None);
           LinkMessage m = new LinkMessage();
-          m.Index  = 0;      
-          m.Length = read-HeaderSize; // first part is the header (same format as tcp header)
-          m.Data   = new byte[m.Length];
-          m.Flags  = (SendFlag)(recvBuf[0]&~(byte)HeadFlag.Mask);
+          m.index  = 0;      
+          m.length = read-HeaderSize; // first part is the header (same format as tcp header)
+          m.data   = new byte[m.Length];
+          m.flags  = (SendFlag)(recvBuf[0]&~(byte)HeadFlag.Mask);
           Array.Copy(recvBuf, HeaderSize, m.Data, 0, m.Length);
           if(MessageReceived==null || MessageReceived(this, m)) lock(recv) recv.Enqueue(m);
         }
@@ -464,20 +470,20 @@ internal class NetLink
     lock(queue)
     { while(queue.Count>0)
       { LinkMessage msg = (LinkMessage)queue.Peek();
-        if(Timing.Msecs<msg.Lag) return true;
-        if(msg.Deadline!=0 && Timing.Msecs>msg.Deadline) goto Remove;
+        if(Timing.Msecs<msg.lag) return true;
+        if(msg.deadline!=0 && Timing.Msecs>msg.deadline) goto Remove;
         if(!trySend) return false;
 
         bool useTcp;
         int  sent;
 
-        if((msg.Flags&SendFlag.Reliable)==0 && msg.Length<=udpMax && udp!=null) useTcp=false;
+        if((msg.Flags&SendFlag.Reliable)!=0 && msg.Length<=udpMax && udp!=null) useTcp=false;
         else if(tcp==null || !connected) goto Remove;
         else useTcp=true;
         
         Retry:
         try
-        { sent = (useTcp?tcp:udp).Send(msg.Data, msg.Index+msg.Sent, msg.Length-msg.Sent, SocketFlags.None);
+        { sent = (useTcp?tcp:udp).Send(msg.Data, msg.Index+msg.sent, msg.Length-msg.sent, SocketFlags.None);
         }
         catch(SocketException e)
         { if(e.ErrorCode==Config.EMSGSIZE)
@@ -495,8 +501,8 @@ internal class NetLink
           }
         }
         
-        msg.Sent += sent;
-        if(msg.Sent!=msg.Length && useTcp) return false;
+        msg.sent += sent;
+        if(msg.sent!=msg.Length && useTcp) return false;
         if(!useTcp && sent>udpMax) udpMax=sent;
         if((msg.Flags&SendFlag.NotifySent)!=0 && MessageSent!=null) MessageSent(this, msg);
 
@@ -514,12 +520,12 @@ internal class NetLink
     if(Disconnected!=null) Disconnected(this);
   }
 
-  SendFlag   defFlags = SendFlag.None;
+  SendFlag   defFlags;
   Socket     tcp, udp;
   Queue      low, norm, high, recv;
   byte[]     recvBuf;
   int        nextSize, nextIndex, udpMax;
-  uint       lagCenter, lagVariance, sendQueue;
+  uint       lagAverage, lagVariance, sendQueue;
   ushort     sendSeq, recvSeq, nextSeq;
   SendFlag   recvFlags;
   bool       connected;
@@ -528,10 +534,11 @@ internal class NetLink
 
 #region Server class and supporting types
 public class ServerPlayer
-{ internal ServerPlayer(IPEndPoint ep, NetLink link, uint id) { EndPoint=ep; Link=link; ID=id; }
+{ internal ServerPlayer(NetLink link, uint id) { Link=link; ID=id; }
   
   public object     Data;
-  public IPEndPoint EndPoint;
+  public IPEndPoint EndPoint { get { return Link.RemoteEndPoint; } }
+
   internal uint     ID, DropTime;
   internal NetLink  Link;
   internal bool     DelayedDrop;
@@ -560,14 +567,15 @@ public class Server
     remove { lock(this) eMessageSent -= value; }
   }
 
+  public SendFlag DefaultFlags { get { return defFlags; } set { defFlags=value; } }
   public IPEndPoint LocalEndPoint { get { return listening ? (IPEndPoint)server.LocalEndpoint : null; } }
   public PlayerCollection Players { get { return players; } }
 
-  public uint LagCenter
-  { get { return lagCenter; }
+  public uint LagAverage
+  { get { return lagAverage; }
     set
-    { lock(this) foreach(ServerPlayer p in players) p.Link.LagCenter=value;
-      lagCenter=value;
+    { lock(this) foreach(ServerPlayer p in players) p.Link.LagAverage=value;
+      lagAverage=value;
     }
   }
   public uint LagVariance
@@ -648,6 +656,13 @@ public class Server
     p.DelayedDrop = true;
   }
 
+  public void Send(object toWho, byte[] data) { Send(toWho, data, 0, data.Length, defFlags); }
+  public void Send(object toWho, byte[] data, int length) { Send(toWho, data, 0, length, defFlags); }
+  public void Send(object toWho, byte[] data, int index, int length)
+  { DoSend(toWho, cvt.FromObject(data, index, length), defFlags, 0, data);
+  }
+  public void Send(object toWho, object data) { DoSend(toWho, cvt.FromObject(data), defFlags, 0, data); }
+
   public void Send(object toWho, byte[] data, SendFlag flags) { Send(toWho, data, 0, data.Length, flags); }
   public void Send(object toWho, byte[] data, int length, SendFlag flags) { Send(toWho, data, 0, length, flags); }
   public void Send(object toWho, byte[] data, int index, int length, SendFlag flags)
@@ -662,6 +677,11 @@ public class Server
   }
   public void Send(object toWho, object data, SendFlag flags, uint timeoutMs)
   { DoSend(toWho, cvt.FromObject(data), flags, timeoutMs, data);
+  }
+
+  struct DualTag
+  { public DualTag(object tag1, object tag2) { Tag1=tag1; Tag2=tag2; }
+    public object Tag1, Tag2;
   }
 
   void DoSend(object toWho, byte[] data, SendFlag flags, uint timeoutMs, object orig)
@@ -684,9 +704,9 @@ public class Server
       while(listening && server.Pending())
       { Socket sock = server.AcceptSocket();
         try
-        { ServerPlayer p = new ServerPlayer((IPEndPoint)sock.RemoteEndPoint, new NetLink(sock), nextID++);
+        { ServerPlayer p = new ServerPlayer(new NetLink(sock), nextID++);
           if(!quit && (PlayerConnecting==null || PlayerConnecting(this, p)))
-          { p.Link.LagCenter       = lagCenter;
+          { p.Link.LagAverage      = lagAverage;
             p.Link.LagVariance     = lagVariance;
             p.Link.MessageSent    += new LinkMessageHandler(OnMessageSent);
             p.Link.RemoteReceived += new LinkMessageHandler(OnRemoteReceived);
@@ -737,20 +757,18 @@ public class Server
     }
   }
 
-  bool OnMessageSent(NetLink link, LinkMessage msg)
+  void OnMessageSent(NetLink link, LinkMessage msg)
   { if(eMessageSent!=null)
     { DualTag tag = (DualTag)msg.Tag;
       eMessageSent(this, (ServerPlayer)tag.Tag1, tag.Tag2);
     }
-    return true;
   }
 
-  bool OnRemoteReceived(NetLink link, LinkMessage msg)
+  void OnRemoteReceived(NetLink link, LinkMessage msg)
   { if(RemoteReceived==null)
     { DualTag tag = (DualTag)msg.Tag;
       RemoteReceived(this, (ServerPlayer)tag.Tag1, tag.Tag2);
     }
-    return true;
   }
 
   void CheckOpen()    { if(thread==null) throw new InvalidOperationException("Server not open yet"); }
@@ -762,7 +780,8 @@ public class Server
   TcpListener       server;
   Thread            thread;
   ServerSentHandler eMessageSent;
-  uint              nextID, lagCenter, lagVariance;
+  SendFlag          defFlags;
+  uint              nextID, lagAverage, lagVariance;
   bool              quit, listening;
 }
 #endregion
@@ -784,16 +803,19 @@ public class Client
     remove { lock(this) eMessageSent -= value; }
   }
 
-  public IPEndPoint RemoteEndPoint { get { AssertLink(); return link.RemoteEndPoint; } }
-  public bool       Connected      { get { return link==null ? false : link.Connected; } }
+  public bool Connected { get { return link==null ? false : link.Connected; } }
 
-  public uint LagCenter { get { AssertLink(); return link.LagCenter; } set { AssertLink(); link.LagCenter=value; } }
+  public SendFlag DefaultFlags { get { return defFlags; } set { defFlags=value; } }
+
+  public uint LagAverage { get { AssertLink(); return link.LagAverage; } set { AssertLink(); link.LagAverage=value; } }
   public uint LagVariance { get { AssertLink(); return link.LagVariance; } set { AssertLink(); link.LagVariance=value; } }
+
+  public IPEndPoint RemoteEndPoint { get { AssertLink(); return link.RemoteEndPoint; } }
 
   public void Connect(IPEndPoint remote)
   { Disconnect();
-    quit   = delayedDrop = false;
-    link   = new NetLink(remote);
+    quit = delayedDrop = false;
+    link = new NetLink(remote);
     link.MessageSent    += new LinkMessageHandler(OnMessageSent);
     link.RemoteReceived += new LinkMessageHandler(OnRemoteReceived);
     thread = new Thread(new ThreadStart(ThreadFunc));
@@ -822,6 +844,17 @@ public class Client
   public void ClearTypes() { AssertClosed(); cvt.Clear(); }
 
   public QueueStats GetQueueStats(SendFlag flags) { AssertLink(); return link.GetQueueStats(flags); }
+
+  public void Send(byte[] data) { Send(data, 0, data.Length, defFlags); }
+  public void Send(byte[] data, int length) { Send(data, 0, length, defFlags); }
+  public void Send(byte[] data, int index, int length)
+  { AssertLink();
+    DoSend(cvt.FromObject(data, index, length), defFlags, 0, data);
+  }
+  public void Send(object data)
+  { AssertLink();
+    DoSend(cvt.FromObject(data), defFlags, 0, data);
+  }
 
   public void Send(byte[] data, SendFlag flags) { Send(data, 0, data.Length, flags); }
   public void Send(byte[] data, int length, SendFlag flags) { Send(data, 0, length, flags); }
@@ -879,24 +912,16 @@ public class Client
     }
   }
 
-  bool OnMessageSent(NetLink link, LinkMessage msg)
-  { lock(this)
-    { if(eMessageSent!=null) eMessageSent(this, msg.Tag);
-      return true;
-    }
-  }
-
-  bool OnRemoteReceived(NetLink link, LinkMessage msg)
-  { if(RemoteReceived==null) RemoteReceived(this, msg.Tag);
-    return true;
-  }
+  void OnMessageSent(NetLink link, LinkMessage msg) { lock(this) if(eMessageSent!=null) eMessageSent(this, msg.Tag); }
+  void OnRemoteReceived(NetLink link, LinkMessage msg) { if(RemoteReceived==null) RemoteReceived(this, msg.Tag); }
   
   MessageConverter  cvt = new MessageConverter();
   ClientSentHandler eMessageSent;
-  NetLink link;
-  Thread  thread;
-  uint    dropTime;
-  bool    quit, delayedDrop;
+  NetLink  link;
+  Thread   thread;
+  uint     dropTime;
+  SendFlag defFlags;
+  bool     quit, delayedDrop;
 }
 #endregion
 

@@ -114,12 +114,76 @@ public class StreamStream : Stream, IDisposable
 }
 #endregion
 
-// TODO: add nifty high-level IO
 public class IOH
 { private IOH() {}
 
-  public static char Getch() { return GameLib.Interop.GLUtility.Utility.Getch(); }
+  public static char Getch()  { return GameLib.Interop.GLUtility.Utility.Getch(); }
   public static char Getche() { return GameLib.Interop.GLUtility.Utility.Getche(); }
+
+  public static int CalculateSize(string format, params object[] parms)
+  { int  length=0;
+    char c;
+    bool unicode=false;
+
+    for(int i=0,j=0,flen=format.Length,prefix; i<flen; i++)
+    { c = format[i];
+      if(char.IsDigit(c))
+      { prefix = c-'0';
+        while(++i<flen && char.IsDigit(c=format[i])) prefix = prefix*10 + c-'0';
+        if(i==flen) throw new ArgumentException("Missing operator at "+i.ToString(), "format");
+      }
+      else if(c=='?')
+      { if(j==parms.Length)
+          throw new ArgumentException(string.Format("Not enough arguments (expecting array near {0})!", i));
+        Array arr = parms[j] as Array;
+        if(arr==null)
+          throw new ArgumentException(string.Format("Argument {0} is not an array! (It's {1})", j,
+                                                    parms[j]==null ? "null" : parms[j].GetType().ToString()));
+        j++; prefix=arr.Length;
+        if(++i==flen) throw new ArgumentException("Expected something after '?' at "+i.ToString(), "format");
+        c = format[i];
+      }
+      else prefix=(c=='s' || c=='p' ? -1 : 1);
+
+      switch(c)
+      { case 'b': case 'B': case 'x': length += prefix; break;
+        case 'w': case 'W': length += prefix*2; break;
+        case 'd': case 'D': case 'f': length += prefix*4; break;
+        case 'q': case 'Q': case 'F': length += prefix*8; break;
+        case 'c': length += unicode ? prefix*2 : prefix; break;
+        case 's':
+          if(prefix==-1)
+          { if(j==parms.Length)
+              throw new ArgumentException(string.Format("Not enough arguments (expecting string near {0})!", i));
+            string str = parms[j] as string;
+            if(str==null)
+              throw new ArgumentException(string.Format("Argument {0} is not a string! (It's {1})", j,
+                                                        parms[j]==null ? "null" : parms[j].GetType().ToString()));
+            j++; prefix=str.Length;
+          }
+          length += unicode ? prefix*2 : prefix;
+          break;
+        case 'p':
+          if(prefix==-1)
+          { if(j==parms.Length)
+              throw new ArgumentException(string.Format("Not enough arguments (expecting string near {0})!", i));
+            string str = parms[j] as string;
+            if(str==null)
+              throw new ArgumentException(string.Format("Argument {0} is not a string! (It's {1})", j,
+                                                        parms[j]==null ? "null" : parms[j].GetType().ToString()));
+            j++; prefix=str.Length;
+          }
+          prefix = Math.Min(prefix, 255);
+          length += (unicode ? prefix*2 : prefix) + 1;
+          break;
+        case 'A': unicode=false; break;
+        case 'U': unicode=true; break;
+        case '<': case '>': case '=': break;
+        default: throw new ArgumentException(string.Format("Unknown character '{0}' at {1}", c, i), "format");
+      }
+    }
+    return length;
+  }
 
   public static int CopyStream(Stream source, Stream dest) { return CopyStream(source, dest, false); }
   public static int CopyStream(Stream source, Stream dest, bool rewindSource)
@@ -302,6 +366,440 @@ public class IOH
       }
     }
   }
+
+  #region Formatted binary write
+  public static int Write(byte[] buf, string format, params object[] parms) { return Write(buf, 0, format, parms); }
+  public static int Write(byte[] buf, int index, string format, params object[] parms)
+  { char c;
+    #if BIGENDIAN
+    bool bigendian=true,unicode=false;
+    #else
+    bool bigendian=false,unicode=false;
+    #endif
+
+    int i=0, j=0, origIndex=index;
+    try
+    { for(int flen=format.Length,prefix; i<flen; i++)
+      { c = format[i];
+        if(char.IsDigit(c))
+        { prefix = c-'0';
+          while(++i<flen && char.IsDigit(c=format[i])) prefix = prefix*10 + c-'0';
+          if(i==flen) throw new ArgumentException("Missing operator at "+i.ToString(), "format");
+        }
+        else if(c=='?') { prefix=((Array)parms[j]).Length; c=format[++i]; }
+        else prefix=(c=='s' || c=='p' ? -1 : 1);
+        if(prefix==0) continue;
+        switch(c)
+        { case 'x': Array.Clear(buf, index, prefix); index += prefix; break;
+          case 'b':
+            { sbyte[] arr = parms[j] as sbyte[];
+              if(arr==null) do buf[index++] = (byte)Convert.ToSByte(parms[j++]); while(--prefix!=0);
+              else for(int k=0; k<prefix; k++) buf[index++] = (byte)arr[k];
+            }
+            break;
+          case 'B':
+            { byte[] arr = parms[j] as byte[];
+              if(arr==null) do buf[index++] = Convert.ToByte(parms[j++]); while(--prefix!=0);
+              else { Array.Copy(arr, 0, buf, index, prefix); j++; }
+              index += prefix;
+            }
+            break;
+          // WHERE ARE MY C-STYLE MACROS?!
+          case 'w':
+            { short[] arr = parms[j] as short[];
+              if(arr!=null)
+              { if(bigendian) for(int k=0; k<prefix; index+=2,k++) WriteBE2(buf, index, arr[k]);
+                else for(int k=0; k<prefix; index+=2,k++) WriteLE2(buf, index, arr[k]);
+                j++;
+              }
+              else if(bigendian)
+                do { WriteBE2(buf, index, Convert.ToInt16(parms[j++])); index+=2; } while(--prefix!=0);
+              else
+                do { WriteLE2(buf, index, Convert.ToInt16(parms[j++])); index+=2; } while(--prefix!=0);
+            }
+            break;
+          case 'W':
+            { ushort[] arr = parms[j] as ushort[];
+              if(arr!=null)
+              { if(bigendian) for(int k=0; k<prefix; index+=2,k++) WriteBE2U(buf, index, arr[k]);
+                else for(int k=0; k<prefix; index+=2,k++) WriteLE2U(buf, index, arr[k]);
+                j++;
+              }
+              else if(bigendian)
+                do { WriteBE2U(buf, index, Convert.ToUInt16(parms[j++])); index+=2; } while(--prefix!=0);
+              else
+                do { WriteLE2U(buf, index, Convert.ToUInt16(parms[j++])); index+=2; } while(--prefix!=0);
+            }
+            break;
+          case 'd':
+            { int[] arr = parms[j] as int[];
+              if(arr!=null)
+              { if(bigendian) for(int k=0; k<prefix; index+=4,k++) WriteBE4(buf, index, arr[k]);
+                else for(int k=0; k<prefix; index+=4,k++) WriteLE4(buf, index, arr[k]);
+                j++;
+              }
+              else if(bigendian)
+                do { WriteBE4(buf, index, Convert.ToInt32(parms[j++])); index+=4; } while(--prefix!=0);
+              else
+                do { WriteLE4(buf, index, Convert.ToInt32(parms[j++])); index+=4; } while(--prefix!=0);
+            }
+            break;
+          case 'D':
+            { uint[] arr = parms[j] as uint[];
+              if(arr!=null)
+              { if(bigendian) for(int k=0; k<prefix; index+=4,k++) WriteBE4U(buf, index, arr[k]);
+                else for(int k=0; k<prefix; index+=4,k++) WriteLE4U(buf, index, arr[k]);
+                j++;
+              }
+              else if(bigendian)
+                do { WriteBE4U(buf, index, Convert.ToUInt32(parms[j++])); index+=4; } while(--prefix!=0);
+              else
+                do { WriteLE4U(buf, index, Convert.ToUInt32(parms[j++])); index+=4; } while(--prefix!=0);
+            }
+            break;
+          case 'f':
+            { float[] arr = parms[j] as float[];
+              if(arr!=null)
+              { if(bigendian) for(int k=0; k<prefix; index+=4,k++) WriteFloat(buf, index, arr[k]);
+                else for(int k=0; k<prefix; index+=4,k++) WriteFloat(buf, index, arr[k]);
+                j++;
+              }
+              else if(bigendian)
+                do { WriteFloat(buf, index, Convert.ToSingle(parms[j++])); index+=4; } while(--prefix!=0);
+              else
+                do { WriteFloat(buf, index, Convert.ToSingle(parms[j++])); index+=4; } while(--prefix!=0);
+            }
+            break;
+          case 'F':
+            { double[] arr = parms[j] as double[];
+              if(arr!=null)
+              { if(bigendian) for(int k=0; k<prefix; index+=8,k++) WriteDouble(buf, index, arr[k]);
+                else for(int k=0; k<prefix; index+=8,k++) WriteDouble(buf, index, arr[k]);
+                j++;
+              }
+              else if(bigendian)
+                do { WriteDouble(buf, index, Convert.ToDouble(parms[j++])); index+=8; } while(--prefix!=0);
+              else
+                do { WriteDouble(buf, index, Convert.ToDouble(parms[j++])); index+=8; } while(--prefix!=0);
+            }
+            break;
+          case 'q':
+            { long[] arr = parms[j] as long[];
+              if(arr!=null)
+              { if(bigendian) for(int k=0; k<prefix; index+=8,k++) WriteBE8(buf, index, arr[k]);
+                else for(int k=0; k<prefix; index+=8,k++) WriteLE8(buf, index, arr[k]);
+                j++;
+              }
+              else if(bigendian)
+                do { WriteBE8(buf, index, Convert.ToInt64(parms[j++])); index+=8; } while(--prefix!=0);
+              else
+                do { WriteLE8(buf, index, Convert.ToInt64(parms[j++])); index+=8; } while(--prefix!=0);
+            }
+            break;
+          case 'Q':
+            { ulong[] arr = parms[j] as ulong[];
+              if(arr!=null)
+              { if(bigendian) for(int k=0; k<prefix; index+=8,k++) WriteBE8U(buf, index, arr[k]);
+                else for(int k=0; k<prefix; index+=8,k++) WriteLE8U(buf, index, arr[k]);
+                j++;
+              }
+              else if(bigendian)
+                do { WriteBE8U(buf, index, Convert.ToUInt64(parms[j++])); index+=8; } while(--prefix!=0);
+              else
+                do { WriteLE8U(buf, index, Convert.ToUInt64(parms[j++])); index+=8; } while(--prefix!=0);
+            }
+            break;
+          case 'c':
+            { char[] arr = parms[j] as char[];
+              if(arr!=null)
+              { if(unicode)
+                { if(bigendian)
+                    for(int k=0; k<prefix; index+=2,k++) WriteBE2U(buf, index, (ushort)arr[k]);
+                  else
+                    for(int k=0; k<prefix; index+=2,k++) WriteLE2U(buf, index, (ushort)arr[k]);
+                }
+                else
+                { byte[] bytes = System.Text.Encoding.ASCII.GetBytes(arr);
+                  Array.Copy(bytes, 0, buf, index, bytes.Length);
+                  index += bytes.Length;
+                }
+                j++;
+              }
+              else if(unicode)
+              { if(bigendian)
+                  do { WriteBE2U(buf, index, (ushort)Convert.ToChar(parms[j++])); index+=2; } while(--prefix!=0);
+                else
+                  do { WriteLE2U(buf, index, (ushort)Convert.ToChar(parms[j++])); index+=2; } while(--prefix!=0);
+              }
+              else
+              { arr = new char[prefix];
+                for(int k=0; k<prefix; k++) arr[k]=Convert.ToChar(parms[j++]);
+                byte[] bytes = System.Text.Encoding.ASCII.GetBytes(arr);
+                Array.Copy(bytes, 0, buf, index, bytes.Length);
+                index += bytes.Length;
+              }
+            }
+            break;
+          case 's':
+            { string str = (string)parms[j++];
+              if(prefix==-1) prefix=str.Length;
+              int slen = Math.Min(prefix, str.Length);
+              prefix -= slen;
+              if(unicode)
+              { if(bigendian) for(int k=0; k<slen; index+=2,k++) WriteBE2U(buf, index, (ushort)str[k]);
+                else for(int k=0; k<slen; index+=2,k++) WriteLE2U(buf, index, (ushort)str[k]);
+                Array.Clear(buf, index, prefix); index += prefix*2;
+              }
+              else
+              { byte[] bytes = new byte[slen];
+                System.Text.Encoding.ASCII.GetBytes(str, 0, slen, bytes, 0);
+                Array.Copy(bytes, 0, buf, index, slen);
+                index += slen;
+                Array.Clear(buf, index, prefix); index += prefix;
+              }
+            }
+            break;
+          case 'p':
+            { string str = (string)parms[j++];
+              if(prefix==-1) prefix=Math.Min(str.Length, 255);
+              else if(prefix>255) throw new ArgumentException("Prefix for 'p' cannot be >255");
+              buf[index++] = (byte)prefix;
+              int slen = Math.Min(prefix, str.Length);
+              prefix -= slen;
+              if(unicode)
+              { if(bigendian) for(int k=0; k<slen; index+=2,k++) WriteBE2U(buf, index, (ushort)str[k]);
+                else for(int k=0; k<slen; index+=2,k++) WriteLE2U(buf, index, (ushort)str[k]);
+                Array.Clear(buf, index, prefix); index += prefix*2;
+              }
+              else
+              { byte[] bytes = new byte[slen];
+                System.Text.Encoding.ASCII.GetBytes(str, 0, slen, bytes, 0);
+                Array.Copy(bytes, 0, buf, index, slen);
+                index += slen;
+                Array.Clear(buf, index, prefix); index += prefix;
+              }
+            }
+            break;
+          case 'A': unicode=false; break;
+          case 'U': unicode=true; break;
+          case '<': bigendian=false; break;
+          case '>': bigendian=true; break;
+          #if BIGENDIAN
+          case '=': bigendian=true; break;
+          #else
+          case '=': bigendian=false; break;
+          #endif
+          default: throw new ArgumentException(string.Format("Unknown character '{0}'", c, i), "format");
+        }
+      }
+    }
+    catch(Exception e)
+    { throw new ArgumentException(string.Format("Error near char {0}, near parameter {1} -- {2}", e.Message), e);
+    }
+    return index-origIndex;
+  }
+
+  public static int Write(Stream stream, string format, params object[] parms)
+  { char c;
+    #if BIGENDIAN
+    bool bigendian=true,unicode=false;
+    #else
+    bool bigendian=false,unicode=false;
+    #endif
+
+    int i=0, j=0, origPos=(int)stream.Position;
+    try
+    { for(int flen=format.Length,prefix; i<flen; i++)
+      { c = format[i];
+        if(char.IsDigit(c))
+        { prefix = c-'0';
+          while(++i<flen && char.IsDigit(c=format[i])) prefix = prefix*10 + c-'0';
+          if(i==flen) throw new ArgumentException("Missing operator at "+i.ToString(), "format");
+        }
+        else if(c=='?') { prefix=((Array)parms[j]).Length; c=format[++i]; }
+        else prefix=(c=='s' || c=='p' ? -1 : 1);
+        if(prefix==0) continue;
+        switch(c)
+        { case 'x': do stream.WriteByte(0); while(--prefix!=0); break;
+          case 'b':
+            { sbyte[] arr = parms[j] as sbyte[];
+              if(arr==null) do stream.WriteByte((byte)Convert.ToSByte(parms[j++])); while(--prefix!=0);
+              else for(int k=0; k<prefix; k++) stream.WriteByte((byte)arr[k]);
+            }
+            break;
+          case 'B':
+            { byte[] arr = parms[j] as byte[];
+              if(arr==null) do stream.WriteByte((byte)Convert.ToSByte(parms[j++])); while(--prefix!=0);
+              else IOH.Write(stream, arr);
+            }
+            break;
+          // WHERE ARE MY C-STYLE MACROS?!
+          case 'w':
+            { short[] arr = parms[j] as short[];
+              if(arr!=null)
+              { if(bigendian) for(int k=0; k<prefix; k++) WriteBE2(stream, arr[k]);
+                else for(int k=0; k<prefix; k++) WriteLE2(stream, arr[k]);
+                j++;
+              }
+              else if(bigendian) do WriteBE2(stream, Convert.ToInt16(parms[j++])); while(--prefix!=0);
+              else do WriteLE2(stream, Convert.ToInt16(parms[j++])); while(--prefix!=0);
+            }
+            break;
+          case 'W':
+            { ushort[] arr = parms[j] as ushort[];
+              if(arr!=null)
+              { if(bigendian) for(int k=0; k<prefix; k++) WriteBE2U(stream, arr[k]);
+                else for(int k=0; k<prefix; k++) WriteLE2U(stream, arr[k]);
+                j++;
+              }
+              else if(bigendian) do WriteBE2U(stream, Convert.ToUInt16(parms[j++])); while(--prefix!=0);
+              else do WriteLE2U(stream, Convert.ToUInt16(parms[j++])); while(--prefix!=0);
+            }
+            break;
+          case 'd':
+            { int[] arr = parms[j] as int[];
+              if(arr!=null)
+              { if(bigendian) for(int k=0; k<prefix; k++) WriteBE4(stream, arr[k]);
+                else for(int k=0; k<prefix; k++) WriteLE4(stream, arr[k]);
+                j++;
+              }
+              else if(bigendian) do WriteBE4(stream, Convert.ToInt32(parms[j++])); while(--prefix!=0);
+              else do WriteLE4(stream, Convert.ToInt32(parms[j++])); while(--prefix!=0);
+            }
+            break;
+          case 'D':
+            { uint[] arr = parms[j] as uint[];
+              if(arr!=null)
+              { if(bigendian) for(int k=0; k<prefix; k++) WriteBE4U(stream, arr[k]);
+                else for(int k=0; k<prefix; k++) WriteLE4U(stream, arr[k]);
+                j++;
+              }
+              else if(bigendian) do WriteBE4U(stream, Convert.ToUInt32(parms[j++])); while(--prefix!=0);
+              else do WriteLE4U(stream, Convert.ToUInt32(parms[j++])); while(--prefix!=0);
+            }
+            break;
+          case 'f':
+            { float[] arr = parms[j] as float[];
+              if(arr!=null)
+              { if(bigendian) for(int k=0; k<prefix; k++) WriteFloat(stream, arr[k]);
+                else for(int k=0; k<prefix; k++) WriteFloat(stream, arr[k]);
+                j++;
+              }
+              else if(bigendian) do WriteFloat(stream, Convert.ToSingle(parms[j++])); while(--prefix!=0);
+              else do WriteFloat(stream, Convert.ToSingle(parms[j++])); while(--prefix!=0);
+            }
+            break;
+          case 'F':
+            { double[] arr = parms[j] as double[];
+              if(arr!=null)
+              { if(bigendian) for(int k=0; k<prefix; k++) WriteDouble(stream, arr[k]);
+                else for(int k=0; k<prefix; k++) WriteDouble(stream, arr[k]);
+                j++;
+              }
+              else if(bigendian) do WriteDouble(stream, Convert.ToDouble(parms[j++])); while(--prefix!=0);
+              else do WriteDouble(stream, Convert.ToDouble(parms[j++])); while(--prefix!=0);
+            }
+            break;
+          case 'q':
+            { long[] arr = parms[j] as long[];
+              if(arr!=null)
+              { if(bigendian) for(int k=0; k<prefix; k++) WriteBE8(stream, arr[k]);
+                else for(int k=0; k<prefix; k++) WriteLE8(stream, arr[k]);
+                j++;
+              }
+              else if(bigendian) do WriteBE8(stream, Convert.ToInt64(parms[j++])); while(--prefix!=0);
+              else do WriteLE8(stream, Convert.ToInt64(parms[j++])); while(--prefix!=0);
+            }
+            break;
+          case 'Q':
+            { ulong[] arr = parms[j] as ulong[];
+              if(arr!=null)
+              { if(bigendian) for(int k=0; k<prefix; k++) WriteBE8U(stream, arr[k]);
+                else for(int k=0; k<prefix; k++) WriteLE8U(stream, arr[k]);
+                j++;
+              }
+              else if(bigendian) do WriteBE8U(stream, Convert.ToUInt64(parms[j++])); while(--prefix!=0);
+              else do WriteLE8U(stream, Convert.ToUInt64(parms[j++])); while(--prefix!=0);
+            }
+            break;
+          case 'c':
+            { char[] arr = parms[j] as char[];
+              if(arr!=null)
+              { if(unicode)
+                { if(bigendian) for(int k=0; k<prefix; k++) WriteBE2U(stream, (ushort)arr[k]);
+                  else for(int k=0; k<prefix; k++) WriteLE2U(stream, (ushort)arr[k]);
+                }
+                else Write(stream, System.Text.Encoding.ASCII.GetBytes(arr));
+                j++;
+              }
+              else if(unicode)
+              { if(bigendian) do WriteBE2U(stream, (ushort)Convert.ToChar(parms[j++])); while(--prefix!=0);
+                else do WriteLE2U(stream, (ushort)Convert.ToChar(parms[j++])); while(--prefix!=0);
+              }
+              else
+              { arr = new char[prefix];
+                for(int k=0; k<prefix; k++) arr[k]=Convert.ToChar(parms[j++]);
+                Write(stream, System.Text.Encoding.ASCII.GetBytes(arr));
+              }
+            }
+            break;
+          case 's':
+            { string str = (string)parms[j++];
+              if(prefix==-1) prefix=str.Length;
+              int slen = Math.Min(prefix, str.Length);
+              prefix -= slen;
+              if(unicode)
+              { if(bigendian) for(int k=0; k<slen; k++) WriteBE2U(stream, (ushort)str[k]);
+                else for(int k=0; k<slen; k++) WriteLE2U(stream, (ushort)str[k]);
+                while(prefix--!=0) stream.WriteByte(0);
+              }
+              else
+              { byte[] bytes = new byte[slen];
+                System.Text.Encoding.ASCII.GetBytes(str, 0, slen, bytes, 0);
+                Write(stream, bytes);
+                while(prefix--!=0) stream.WriteByte(0);
+              }
+            }
+            break;
+          case 'p':
+            { string str = (string)parms[j++];
+              if(prefix==-1) prefix=Math.Min(str.Length, 255);
+              else if(prefix>255) throw new ArgumentException("Prefix for 'p' cannot be >255");
+              stream.WriteByte((byte)prefix);
+              int slen = Math.Min(prefix, str.Length);
+              prefix -= slen;
+              if(unicode)
+              { if(bigendian) for(int k=0; k<slen; k++) WriteBE2U(stream, (ushort)str[k]);
+                else for(int k=0; k<slen; k++) WriteLE2U(stream, (ushort)str[k]);
+                while(prefix--!=0) stream.WriteByte(0);
+              }
+              else
+              { byte[] bytes = new byte[slen];
+                System.Text.Encoding.ASCII.GetBytes(str, 0, slen, bytes, 0);
+                Write(stream, bytes);
+                while(prefix--!=0) stream.WriteByte(0);
+              }
+            }
+            break;
+          case 'A': unicode=false; break;
+          case 'U': unicode=true; break;
+          case '<': bigendian=false; break;
+          case '>': bigendian=true; break;
+          #if BIGENDIAN
+          case '=': bigendian=true; break;
+          #else
+          case '=': bigendian=false; break;
+          #endif
+          default: throw new ArgumentException(string.Format("Unknown character '{0}'", c, i), "format");
+        }
+      }
+    }
+    catch(Exception e)
+    { throw new ArgumentException(string.Format("Error near char {0}, near parameter {1} -- {2}", e.Message), e);
+    }
+    return (int)stream.Position-origPos;
+  }
+  #endregion
 
   public static void Write(Stream stream, byte[] data) { stream.Write(data, 0, data.Length); }
 
