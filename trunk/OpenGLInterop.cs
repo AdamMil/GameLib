@@ -16,6 +16,8 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
+// TODO: add nice wrappers for setting parameters with single values
+
 using System;
 using System.Runtime.InteropServices;
 
@@ -1538,6 +1540,7 @@ public sealed class GL
   public static extern void glGetBooleanv(uint pname, byte[] parms);
   [DllImport(Config.OpenGLImportPath, CallingConvention=CallingConvention.Winapi)]
   public static extern void glGetBooleanv(uint pname, out byte parm);
+  public static byte glGetBooleanv(uint pname) { unsafe { byte v; glGetBooleanv(pname, &v); return v; } }
   [DllImport(Config.OpenGLImportPath, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glGetClipPlane(uint plane, double *equation);
   [DllImport(Config.OpenGLImportPath, CallingConvention=CallingConvention.Winapi)]
@@ -1548,6 +1551,7 @@ public sealed class GL
   public static extern void glGetDoublev(uint pname, double[] parms);
   [DllImport(Config.OpenGLImportPath, CallingConvention=CallingConvention.Winapi)]
   public static extern void glGetDoublev(uint pname, out double parm);
+  public static double glGetDoublev(uint pname) { unsafe { double v; glGetDoublev(pname, &v); return v; } }
   [DllImport(Config.OpenGLImportPath, CallingConvention=CallingConvention.Winapi)]
   public static extern uint glGetError();
   [DllImport(Config.OpenGLImportPath, CallingConvention=CallingConvention.Winapi)]
@@ -1556,66 +1560,90 @@ public sealed class GL
   public static extern void glGetFloatv(uint pname, float[] parms);
   [DllImport(Config.OpenGLImportPath, CallingConvention=CallingConvention.Winapi)]
   public static extern void glGetFloatv(uint pname, out float parm);
+  public static float glGetFloatv(uint pname) { unsafe { float v; glGetFloatv(pname, &v); return v; } }
   [DllImport(Config.OpenGLImportPath, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glGetIntegerv(uint pname, int *parms);
   [DllImport(Config.OpenGLImportPath, CallingConvention=CallingConvention.Winapi)]
   public static extern void glGetIntegerv(uint pname, int[] parms);
   [DllImport(Config.OpenGLImportPath, CallingConvention=CallingConvention.Winapi)]
   public static extern void glGetIntegerv(uint pname, out int parm);
+  public static int glGetIntegerv(uint pname) { unsafe { int v; glGetIntegerv(pname, &v); return v; } }
   [DllImport(Config.OpenGLImportPath, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glGetLightfv(uint light, uint pname, float *parms);
   [DllImport(Config.OpenGLImportPath, CallingConvention=CallingConvention.Winapi)]
   public static extern void glGetLightfv(uint light, uint pname, float[] parms);
   [DllImport(Config.OpenGLImportPath, CallingConvention=CallingConvention.Winapi)]
   public static extern void glGetLightfv(uint light, uint pname, out float parm);
+  public static float glGetLightfv(uint light, uint pname) { unsafe { float v; glGetLightfv(light, pname, &v); return v; } }
   [DllImport(Config.OpenGLImportPath, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glGetLightiv(uint light, uint pname, int *parms);
   [DllImport(Config.OpenGLImportPath, CallingConvention=CallingConvention.Winapi)]
   public static extern void glGetLightiv(uint light, uint pname, int[] parms);
   [DllImport(Config.OpenGLImportPath, CallingConvention=CallingConvention.Winapi)]
   public static extern void glGetLightiv(uint light, uint pname, out int parm);
+  public static int glGetLightiv(uint light, uint pname)
+  { unsafe { int v; glGetLightiv(light, pname, &v); return v; }
+  }
   [DllImport(Config.OpenGLImportPath, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glGetMapdv(uint target, uint query, double *v);
   [DllImport(Config.OpenGLImportPath, CallingConvention=CallingConvention.Winapi)]
   public static extern void glGetMapdv(uint target, uint query, double[] v);
+  public static double glGetMapdv(uint target, uint query)
+  { unsafe { double v; glGetMapdv(target, query, &v); return v; }
+  }
   [DllImport(Config.OpenGLImportPath, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glGetMapfv(uint target, uint query, float *v);
   [DllImport(Config.OpenGLImportPath, CallingConvention=CallingConvention.Winapi)]
   public static extern void glGetMapfv(uint target, uint query, float[] v);
+  public static float glGetMapfv(uint target, uint query, uint pname)
+  { unsafe { float v; glGetMapfv(target, query, &v); return v; }
+  }
   [DllImport(Config.OpenGLImportPath, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glGetMapiv(uint target, uint query, int *v);
   [DllImport(Config.OpenGLImportPath, CallingConvention=CallingConvention.Winapi)]
   public static extern void glGetMapiv(uint target, uint query, int[] v);
+  public static int glGetMapiv(uint target, uint query)
+  { unsafe { int v; glGetMapiv(target, query, &v); return v; }
+  }
   [DllImport(Config.OpenGLImportPath, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glGetMaterialfv(uint face, uint pname, float *parms);
   [DllImport(Config.OpenGLImportPath, CallingConvention=CallingConvention.Winapi)]
   public static extern void glGetMaterialfv(uint face, uint pname, float[] parms);
   [DllImport(Config.OpenGLImportPath, CallingConvention=CallingConvention.Winapi)]
   public static extern void glGetMaterialfv(uint face, uint pname, out float parm);
+  public static float glGetMaterialfv(uint face, uint pname)
+  { unsafe { float v; glGetMaterialfv(face, pname, &v); return v; } }
   [DllImport(Config.OpenGLImportPath, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glGetMaterialiv(uint face, uint pname, int *parms);
   [DllImport(Config.OpenGLImportPath, CallingConvention=CallingConvention.Winapi)]
   public static extern void glGetMaterialiv(uint face, uint pname, int[] parms);
   [DllImport(Config.OpenGLImportPath, CallingConvention=CallingConvention.Winapi)]
   public static extern void glGetMaterialiv(uint face, uint pname, out int parm);
+  public static int glGetMaterialiv(uint face, uint pname)
+  { unsafe { int v; glGetMaterialiv(face, pname, &v); return v; }
+  }
   [DllImport(Config.OpenGLImportPath, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glGetPixelMapfv(uint map, float *values);
   [DllImport(Config.OpenGLImportPath, CallingConvention=CallingConvention.Winapi)]
   public static extern void glGetPixelMapfv(uint map, float[] values);
+  public static float glGetPixelMapfv(uint map) { unsafe { float v; glGetPixelMapfv(map, &v); return v; } }
   [DllImport(Config.OpenGLImportPath, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glGetPixelMapuiv(uint map, uint *values);
   [DllImport(Config.OpenGLImportPath, CallingConvention=CallingConvention.Winapi)]
   public static extern void glGetPixelMapuiv(uint map, uint[] values);
+  public static uint glGetPixelMapuiv(uint map) { unsafe { uint v; glGetPixelMapuiv(map, &v); return v; } }
   [DllImport(Config.OpenGLImportPath, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glGetPixelMapusv(uint map, ushort *values);
   [DllImport(Config.OpenGLImportPath, CallingConvention=CallingConvention.Winapi)]
   public static extern void glGetPixelMapusv(uint map, ushort[] values);
+  public static uint glGetPixelMapusv(uint map) { unsafe { ushort v; glGetPixelMapusv(map, &v); return v; } }
   [DllImport(Config.OpenGLImportPath, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glGetPointerv(uint pname, void** parms);
   [DllImport(Config.OpenGLImportPath, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glGetPointerv(uint pname, void*[] parms);
   [DllImport(Config.OpenGLImportPath, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glGetPointerv(uint pname, out void* parms);
+  public static void* glGetPointerv(uint pname) { unsafe { void* v; glGetPointerv(pname, &v); return v; } }
   [DllImport(Config.OpenGLImportPath, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glGetPolygonStipple(byte *mask);
   [DllImport(Config.OpenGLImportPath, CallingConvention=CallingConvention.Winapi)]
