@@ -208,7 +208,8 @@ public class RedBlackTree : IDictionary, ICollection, IEnumerable
     }
 
     public void Reset()
-    { states = new Stack();
+    { AssertNotChanged();
+      states = new Stack();
       reset  = true;
     }
 

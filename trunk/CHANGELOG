@@ -125,9 +125,12 @@ Legend
   underlying stream in one circumstance
 + Added versions of IOH.Read that do not throw an exception when not all data
   could be read
-+ Added a lot more documentation (for CD.cs, Events.cs, Fonts.cs,
-  GraphicsPrimitives.cs, Input.cs, Interop.cs, IO.cs, OpenGL.cs,
-  OpenGLInterop.cs, Surface.cs, and Video.cs).
+! Reimplemented the PriorityQueue using a heap instead of a binary search
+  tree, and made the interface more standard for a priority queue
++ Added a lot more documentation (for CD.cs, Config.cs, Events.cs,
+  Exceptions.cs, Fonts.cs, GraphicsPrimitives.cs, Input.cs, Interop.cs,
+  IO.cs, LinkedList.cs, OpenGL.cs, OpenGLInterop.cs, PriorityQueue.cs,
+  Surface.cs, and Video.cs).
 * A couple bugfixes I forgot to add to the changelog
 
 2004.02.07 (alpha/beta)
