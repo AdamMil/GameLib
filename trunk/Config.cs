@@ -36,14 +36,14 @@ public sealed class Config
   public const string SndFileImportPath   = "libsndfile";
   /// <summary>The <see cref="DllImportAttribute"/> path to the GameLib VorbisWrapper library.</summary>
   public const string VorbisImportPath    = "VorbisWrapper";
-  /// <summary>The <see cref="DllImportAttribute"/> path to the GameLib Utility library.</summary>
-  public const string GLUtilityImportPath = "Utility";
 
   #if WIN32
   /// <summary>The <see cref="DllImportAttribute"/> path to the SDL library.</summary>
   public const string SDLImportPath       = "SDL";
   /// <summary>The <see cref="DllImportAttribute"/> path to the SDL_ttf library.</summary>
   public const string SDLTTFImportPath    = "SDL_ttf";
+  /// <summary>The <see cref="DllImportAttribute"/> path to the GameLib Utility library.</summary>
+  public const string GLUtilityImportPath = "Utility";
   /// <summary>The <see cref="DllImportAttribute"/> path to the OpenGL library.</summary>
   public const string OpenGLImportPath   = "opengl32";
   /// <summary>The <see cref="DllImportAttribute"/> path to the GLU library.</summary>
@@ -53,6 +53,8 @@ public sealed class Config
   public const string SDLImportPath       = "libSDL-1.2.so.0";
   /// <summary>The <see cref="DllImportAttribute"/> path to the SDL_ttf library.</summary>
   public const string SDLTTFImportPath    = "libSDL_ttf-2.0.so.0";
+  /// <summary>The <see cref="DllImportAttribute"/> path to the GameLib Utility library.</summary>
+  public const string GLUtilityImportPath = "libGameLibUtility.so";
   /// <summary>The <see cref="DllImportAttribute"/> path to the OpenGL library.</summary>
   public const string OpenGLImportPath   = "opengl";
   /// <summary>The <see cref="DllImportAttribute"/> path to the GLU library.</summary>
