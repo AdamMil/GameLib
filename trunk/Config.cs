@@ -32,8 +32,6 @@ public sealed class Config
   public const string SDLGFXImportPath    = "sdlgfx";
   /// <summary>The <see cref="DllImportAttribute"/> path to the libsndfile library.</summary>
   public const string SndFileImportPath   = "libsndfile";
-  /// <summary>The <see cref="DllImportAttribute"/> path to the GameLib VorbisWrapper library.</summary>
-  public const string VorbisImportPath    = "VorbisWrapper";
 
   #if WIN32
   /// <summary>The <see cref="DllImportAttribute"/> path to the SDL library.</summary>
@@ -44,6 +42,8 @@ public sealed class Config
   public const string GLMixerImportPath   = "Mixer";
   /// <summary>The <see cref="DllImportAttribute"/> path to the GameLib Utility library.</summary>
   public const string GLUtilityImportPath = "Utility";
+  /// <summary>The <see cref="DllImportAttribute"/> path to the GameLib VorbisWrapper library.</summary>
+  public const string VorbisImportPath    = "VorbisWrapper";
   /// <summary>The <see cref="DllImportAttribute"/> path to the OpenGL library.</summary>
   public const string OpenGLImportPath   = "opengl32";
   /// <summary>The <see cref="DllImportAttribute"/> path to the GLU library.</summary>
@@ -57,6 +57,8 @@ public sealed class Config
   public const string GLMixerImportPath   = "libGameLibMixer.so";
   /// <summary>The <see cref="DllImportAttribute"/> path to the GameLib Utility library.</summary>
   public const string GLUtilityImportPath = "libGameLibUtility.so";
+  /// <summary>The <see cref="DllImportAttribute"/> path to the GameLib VorbisWrapper library.</summary>
+  public const string VorbisImportPath    = "libGameLibVorbisWrapper.so";
   /// <summary>The <see cref="DllImportAttribute"/> path to the OpenGL library.</summary>
   public const string OpenGLImportPath   = "opengl";
   /// <summary>The <see cref="DllImportAttribute"/> path to the GLU library.</summary>
