@@ -1,6 +1,6 @@
 // TODO: implement mouse cursor
 // TODO: add way to cancel key repeat?
-
+// TODO: add 'other control' to focus events?
 using System;
 using System.Collections;
 using System.Drawing;
@@ -30,10 +30,10 @@ public delegate void DragEventHandler(object sender, DragEventArgs e);
 
 public class PaintEventArgs : EventArgs
 { public PaintEventArgs(Control control, Rectangle rect, Surface surface)
-  { Surface=surface; ClientRect=rect; DisplayRect=control.RectToDisplay(rect);
+  { Surface=surface; WindowRect=rect; DisplayRect=control.WindowToDisplay(rect);
   }
   public Surface   Surface;
-  public Rectangle ClientRect, DisplayRect;
+  public Rectangle WindowRect, DisplayRect;
 }
 public delegate void PaintEventHandler(object sender, PaintEventArgs e);
 
@@ -128,7 +128,11 @@ public class Control
   public bool AcceptsTab { get { return acceptsTab; } set { acceptsTab=value; } }
 
   public Color BackColor
-  { get { return back; }
+  { get
+    { Control c = this;
+      while(c!=null) { if(c.back!=Color.Transparent) return c.back; c=c.parent; }
+      return Color.Transparent;
+    }
     set
     { if(value!=back)
       { ValueChangedEventArgs e = new ValueChangedEventArgs(back);
@@ -184,7 +188,7 @@ public class Control
     }
   }
 
-  public Rectangle ClientRect { get { return new Rectangle(0, 0, bounds.Width, bounds.Height); } }
+  public Rectangle WindowRect { get { return new Rectangle(0, 0, bounds.Width, bounds.Height); } }
 
   public ControlCollection Controls { get { return controls; } }
   
@@ -197,9 +201,18 @@ public class Control
     set { cursor=value; }
   }
   
-  public DesktopControl Desktop { get { Control c=TopLevelControl; return c==null ? null : (DesktopControl)c.parent; } }
+  public DesktopControl Desktop
+  { get
+    { if(parent!=null)
+      { Control c=TopLevelControl;
+        return c==null ? null : (DesktopControl)c.parent;
+      }
+      else if(this is DesktopControl) return (DesktopControl)this;
+      else return null;
+    }
+  }
 
-  public Rectangle DisplayRect { get { return RectToDisplay(ClientRect); } }
+  public Rectangle DisplayRect { get { return WindowToDisplay(WindowRect); } }
 
   public bool Enabled
   { get
@@ -319,8 +332,9 @@ public class Control
     }
   }
 
-  public Rectangle ParentRect { get { return RectToParent(ClientRect); } }
+  public Rectangle ParentRect { get { return WindowToParent(WindowRect); } }
 
+  public Color RawBackColor   { get { return back; } }
   public IBlittable RawCursor { get { return cursor; } }
   public bool RawEnabled      { get { return enabled; } }
   public GameLib.Fonts.Font RawFont { get { return font; } }
@@ -359,7 +373,7 @@ public class Control
 
   public object Tag { get { return tag; } set { tag=value; } }
   
-  public string Text
+  public virtual string Text
   { get { return text; }
     set
     { if(value!=text)
@@ -417,6 +431,13 @@ public class Control
   #endregion
   
   #region Public methods
+  public void AddInvalidRect(Rectangle rect)
+  { rect.Intersect(WindowRect);
+    if(rect.Width==0) return;
+    if(invalid.Width==0) invalid = rect;
+    else invalid = Rectangle.Union(rect, invalid);
+  }
+
   public void BringToFront()
   { AssertParent();
     IList list = parent.controls.Array;
@@ -461,14 +482,11 @@ public class Control
     return next==null ? ext : next;
   }
 
-  public void Invalidate() { Invalidate(ClientRect); }
+  public void Invalidate() { Invalidate(WindowRect); }
   public void Invalidate(Rectangle area)
-  { area.Intersect(ClientRect);
-    if(area.Width==0) return;
-    if(BackColor==Color.Transparent && parent!=null) parent.Invalidate(RectToParent(area));
+  { if(back==Color.Transparent && parent!=null) parent.Invalidate(WindowToParent(area));
     else
-    { if(invalid.Width==0) invalid = area;
-      else invalid = Rectangle.Union(area, invalid); 
+    { AddInvalidRect(area);
       if(!pendingPaint && (parent!=null || this is DesktopControl) && Events.Events.Initialized)
       { pendingPaint=true;
         Events.Events.PushEvent(new WindowPaintEvent(this));
@@ -476,44 +494,54 @@ public class Control
     }
   }
 
-  public Point PointToClient(Point screenPoint)
-  { Control c = this;
-    while(c!=null) { screenPoint.X-=c.bounds.X; screenPoint.Y-=c.bounds.Y; c=c.parent; }
-    return screenPoint;
-  }
-  public Point PointToChild(Point point, Control child)
-  { point.X -= child.bounds.X; point.Y -= child.bounds.Y;
-    return point;
-  }
-  public Point PointToParent(Point point) { point.X+=bounds.X; point.Y+=bounds.Y; return point; }
-  public Point PointToDisplay(Point point) { return PointToAncestor(point, null); }
-  public Point PointToAncestor(Point point, Control ancestor)
-  { Control c = this;
-    do { point.X+=c.bounds.X; point.Y+=c.bounds.Y; c=c.parent; } while(c!=ancestor);
-    return point;
-  }
-
-  public Rectangle RectToClient(Rectangle rect)
-  { return new Rectangle(PointToClient(rect.Location), rect.Size);
-  }
-  public Rectangle RectToChild(Rectangle rect, Control child)
-  { rect.X -= child.bounds.X; rect.Y -= child.bounds.Y;
-    return rect;
-  }
-  public Rectangle RectToParent(Rectangle rect) { return new Rectangle(PointToParent(rect.Location), rect.Size); }
-  public Rectangle RectToDisplay(Rectangle rect)
-  { return new Rectangle(PointToAncestor(rect.Location, null), rect.Size);
-  }
-  public Rectangle RectToAncestor(Rectangle rect, Control ancestor)
-  { return new Rectangle(PointToAncestor(rect.Location, ancestor), rect.Size);
-  }
-
-  public void Refresh() { Refresh(ClientRect); }
-  public void Refresh(Rectangle area)
-  { if(invalid.Width==0) invalid = area;
-    else invalid = Rectangle.Union(area, invalid); 
-    DesktopControl desktop = Desktop;
+  public void Update()
+  { DesktopControl desktop = Desktop;
     if(desktop!=null) desktop.DoPaint(this);
+  }
+  
+  public Point DisplayToWindow(Point displayPoint)
+  { Control c = this;
+    while(c!=null) { displayPoint.X-=c.bounds.X; displayPoint.Y-=c.bounds.Y; c=c.parent; }
+    return displayPoint;
+  }
+  public Point WindowToChild(Point windowPoint, Control child)
+  { windowPoint.X -= child.bounds.X; windowPoint.Y -= child.bounds.Y;
+    return windowPoint;
+  }
+  public Point WindowToParent(Point windowPoint)
+  { windowPoint.X+=bounds.X; windowPoint.Y+=bounds.Y; return windowPoint;
+  }
+  public Point WindowToDisplay(Point windowPoint) { return WindowToAncestor(windowPoint, null); }
+  public Point WindowToAncestor(Point windowPoint, Control ancestor)
+  { Control c = this;
+    do { windowPoint.X+=c.bounds.X; windowPoint.Y+=c.bounds.Y; c=c.parent; } while(c!=ancestor);
+    return windowPoint;
+  }
+
+  public Rectangle DisplayToWindow(Rectangle displayRect)
+  { return new Rectangle(DisplayToWindow(displayRect.Location), displayRect.Size);
+  }
+  public Rectangle WindowToChild(Rectangle windowRect, Control child)
+  { windowRect.X -= child.bounds.X; windowRect.Y -= child.bounds.Y;
+    return windowRect;
+  }
+  public Rectangle WindowToParent(Rectangle windowRect)
+  { return new Rectangle(WindowToParent(windowRect.Location), windowRect.Size);
+  }
+  public Rectangle WindowToDisplay(Rectangle windowRect)
+  { return new Rectangle(WindowToAncestor(windowRect.Location, null), windowRect.Size);
+  }
+  public Rectangle WindowToAncestor(Rectangle windowRect, Control ancestor)
+  { return new Rectangle(WindowToAncestor(windowRect.Location, ancestor), windowRect.Size);
+  }
+
+  public void Refresh() { Refresh(WindowRect); }
+  public void Refresh(Rectangle area)
+  { if(back==Color.Transparent && parent!=null) parent.Refresh(WindowToParent(area));
+    else
+    { AddInvalidRect(area);
+      Update();
+    }
   }
 
   public void ResumeLayout() { ResumeLayout(true); }
@@ -590,7 +618,7 @@ public class Control
     DesktopControl desktop = Desktop;
     if(desktop!=null)
     { Rectangle old = new Rectangle((Point)e.OldValue, bounds.Size);
-      desktop.Invalidate(parent==desktop ? old : RectToAncestor(old, desktop));
+      desktop.Invalidate(parent==desktop ? old : WindowToAncestor(old, desktop));
       Invalidate();
     }
     if(Move!=null) Move(this, new EventArgs());
@@ -611,11 +639,11 @@ public class Control
     Size old = (Size)e.OldValue;
     if(parent!=null && (bounds.Width<old.Width || bounds.Height<old.Height))
     { if(bounds.Width<old.Width && bounds.Height<old.Height) // invalidate the smallest rectangle necessary
-        parent.Invalidate(new Rectangle(PointToAncestor(bounds.Location, parent), old));
+        parent.Invalidate(new Rectangle(WindowToAncestor(bounds.Location, parent), old));
       if(bounds.Width<old.Width)
-        parent.Invalidate(new Rectangle(PointToAncestor(new Point(bounds.Width, 0), parent),
+        parent.Invalidate(new Rectangle(WindowToAncestor(new Point(bounds.Width, 0), parent),
                                         new Size(old.Width-bounds.Width, old.Height)));
-      else parent.Invalidate(new Rectangle(PointToAncestor(new Point(0, bounds.Height), parent),
+      else parent.Invalidate(new Rectangle(WindowToAncestor(new Point(0, bounds.Height), parent),
                                            new Size(old.Width, old.Height-bounds.Height)));
     }
     if(bounds.Width>old.Width || bounds.Height>old.Height) Invalidate();
@@ -650,7 +678,7 @@ public class Control
 
   protected virtual void OnControlAdded(ControlEventArgs e)   { if(ControlAdded!=null) ControlAdded(this, e); }
   protected virtual void OnControlRemoved(ControlEventArgs e)
-  { if(focused==e.Control) focused=null;
+  { if(focused==e.Control) { focused.OnLostFocus(e); focused=null; }
     Invalidate(e.Control.Bounds);
     if(ControlRemoved!=null) ControlRemoved(this, e);
   }
@@ -672,7 +700,7 @@ public class Control
 
   protected internal virtual void OnPaintBackground(PaintEventArgs e)
   { if(back!=Color.Transparent) e.Surface.Fill(e.DisplayRect, back);
-    if(backimg!=null) backimg.Blit(e.Surface, e.ClientRect, e.DisplayRect.X, e.DisplayRect.Y);
+    if(backimg!=null) backimg.Blit(e.Surface, e.WindowRect, e.DisplayRect.X, e.DisplayRect.Y);
     if(PaintBackground!=null) PaintBackground(this, e);
   }
   protected internal virtual void OnPaint(PaintEventArgs e)
@@ -718,7 +746,7 @@ public class Control
     { if(value!=focused)
       { if(value != null && !controls.Contains(value))
           throw new ArgumentException("Not a child of this control", "FocusedControl");
-        // FIXME: make sure controls can call .Focus() inside OnLostFocus()
+        // TODO: make sure controls can call .Focus() inside OnLostFocus()
         if(focused!=null) focused.OnLostFocus(new EventArgs());
         focused = value;
         if(value!=null) value.OnGotFocus(new EventArgs());
@@ -735,6 +763,7 @@ public class Control
   protected void AssertParent()
   { if(parent==null) throw new InvalidOperationException("This control has no parent");
   }
+
   protected Rectangle bounds = new Rectangle(0, 0, 100, 100), invalid;
   protected bool pendingPaint, pendingLayout, layoutSuspended;
 
@@ -826,7 +855,7 @@ public class DesktopControl : ContainerControl
   { get { return updatedLen>0; }
     set { if(value) Invalidate(); else updatedLen=0; }
   }
-  public int UpdatedLength { get { return updatedLen; } }
+  public int NumUpdatedAreas { get { return updatedLen; } }
   public Rectangle[] UpdatedAreas { get { return updated; } }
   #endregion
 
@@ -894,7 +923,7 @@ public class DesktopControl : ContainerControl
           entered[enteredLen++] = c;
           c.OnMouseEnter(eventArgs);
         }
-        at = p.PointToChild(at, c);
+        at = p.WindowToChild(at, c);
         if((focus==AutoFocus.OverSticky || focus==AutoFocus.Over) && c.CanFocus) c.Focus();
         ei++;
         p = c;
@@ -903,7 +932,7 @@ public class DesktopControl : ContainerControl
       
       if(dragging!=null)
       { if(dragStarted)
-        { drag.End = p==dragging ? at : dragging.PointToClient(ea.Point);
+        { drag.End = p==dragging ? at : dragging.DisplayToWindow(ea.Point);
           dragging.OnDragMove(drag);
           if(drag.Cancel) { dragging=null; dragStarted=false; }
         }
@@ -911,7 +940,7 @@ public class DesktopControl : ContainerControl
         { int xd = ea.X-drag.Start.X;
           int yd = ea.Y-drag.Start.Y;
           if(xd*xd+yd*yd >= (p.dragThreshold==-1 ? dragThresh : p.dragThreshold))
-          { drag.Start = p.PointToClient(drag.Start);
+          { drag.Start = p.DisplayToWindow(drag.Start);
             drag.End = ea.Point;
             drag.Buttons = ea.Buttons;
             drag.Cancel = false;
@@ -976,7 +1005,7 @@ public class DesktopControl : ContainerControl
       while(p.Enabled && p.Visible)
       { c = p.GetChildAtPoint(at);
         if(c==null) break;
-        at = p.PointToChild(at, c);
+        at = p.WindowToChild(at, c);
         if(focus==AutoFocus.Click && ea.CE.Down && c.CanFocus) c.Focus();
         p = c;
       }
@@ -995,7 +1024,7 @@ public class DesktopControl : ContainerControl
       else if(!dragStarted || drag.Pressed(ea.CE.Button))
       { bool skipClick = dragStarted;
         if(dragStarted)
-        { drag.End = dragging.PointToClient(ea.CE.Point);
+        { drag.End = dragging.DisplayToWindow(ea.CE.Point);
           dragging.OnDragEnd(drag);
         }
         dragging     = null;
@@ -1007,14 +1036,14 @@ public class DesktopControl : ContainerControl
 
       clickStatus = ClickStatus.All;
       if(capturing!=null)
-      { ea.CE.Point = capturing.PointToClient(ea.CE.Point);
+      { ea.CE.Point = capturing.DisplayToWindow(ea.CE.Point);
         DispatchClickEvent(capturing, ea, time);
       }
       else
       { ea.CE.Point = at;
         do
         { DispatchClickEvent(p, ea, time);
-          ea.CE.Point = p.PointToParent(ea.CE.Point);
+          ea.CE.Point = p.WindowToParent(ea.CE.Point);
           p = p.Parent;
         } while(p != this && p.Enabled && p.Visible);
       }
