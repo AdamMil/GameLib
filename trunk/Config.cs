@@ -14,18 +14,27 @@ public class Config
   public const string GLMixerImportPath  = "Mixer";
   public const string SndFileImportPath  = "libsndfile";
   public const string VorbisImportPath   = "VorbisWrapper";
+
   #if WIN32
   public const string OpenGLImportPath   = "opengl32";
   public const string GLUImportPath      = "glu32";
-  #else
+  #elif LINUX
   public const string OpenGLImportPath   = "opengl";
   public const string GLUImportPath      = "glu";
   #endif
+  
+  #if WIN32
+  public const int EWOULDBLOCK  = 10035;
+  public const int EMSGSIZE     = 10040;
+  #elif LINUX
+  public const int EWOULDBLOCK  = 11
+  public const int EMSGSIZE     = 90;
+  #endif
 
   #if BIGENDIAN
-  public const bool CompiledBigEndian = true;
+  public const bool BigEndian = true;
   #else
-  public const bool CompiledBigEndian = false;
+  public const bool BigEndian = false;
   #endif
 }
 

@@ -24,6 +24,12 @@ public sealed class Unsafe
     for(i=0; i<len; src+=4,dest+=4,i++) *((int*)dest) = *((int*)src);
     for(i=0,len=length&3; i<len; i++) *dest++ = *src++;
   }
+  public static unsafe void Fill(byte* dest, byte value, int length)
+  { if(dest==null) throw new ArgumentNullException();
+    int i, len=length/4, iv = value|(value<<8)|(value<<16)|(value<<24);
+    for(i=0; i<len; dest+=4,i++) *((int*)dest) = iv;
+    for(i=0,len=length&3; i<len; i++) *dest++ = value;
+  }
 }
 
 internal abstract class StreamCallbackSource

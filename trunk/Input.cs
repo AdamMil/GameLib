@@ -228,13 +228,17 @@ public sealed class Keyboard
 
   public static string KeyName(Key key) { return Enum.GetName(typeof(Key), key); }
 
-  public static bool Pressed(Key key) { return state[(int)key]; }
+  public static bool Pressed(Key key)          { return state[(int)key]; }
+  public static bool PressedRel(Key key)       { bool ret=Pressed(key); if(ret) Release(key); return ret; }
+  public static void Press(Key key)            { state[(int)key]=true; }
+  public static void Release(Key key)          { state[(int)key]=false; }
+  public static void Press(Key key, bool down) { state[(int)key]=down; }
 
-  public void EnableKeyRepeat() { EnableKeyRepeat(500, 30); }
-  public void EnableKeyRepeat(int delayMs, int intervalMs)
+  public static void EnableKeyRepeat() { EnableKeyRepeat(500, 30); }
+  public static void EnableKeyRepeat(int delayMs, int intervalMs)
   { if(SDL.EnableKeyRepeat(delayMs, intervalMs)!=0) SDL.RaiseError();
   }
-  public void DisableKeyRepeat() { EnableKeyRepeat(0, 0); }
+  public static void DisableKeyRepeat() { EnableKeyRepeat(0, 0); }
   
   internal static void Initialize()
   { mods = (KeyMod)SDL.GetModState();
