@@ -37,7 +37,8 @@ public abstract class Font : IDisposable
 { 
   /// <summary>Initializes the font.</summary>
   public Font()
-  { handler = new Video.ModeChangedHandler(OnDisplayFormatChanged);
+  { Video.Video.Initialize();
+    handler = new Video.ModeChangedHandler(OnDisplayFormatChanged);
     Video.Video.ModeChanged += handler;
   }
   /// <summary>This destructor calls <see cref="Dispose()"/> to release system resources used by the font.</summary>
@@ -298,6 +299,7 @@ public abstract class Font : IDisposable
   protected virtual void Dispose(bool finalizing)
   { if(handler!=null)
     { Video.Video.ModeChanged -= handler;
+      Video.Video.Deinitialize();
       handler=null;
     }
   }
@@ -650,6 +652,18 @@ public class TrueTypeFont : StyledFont
       else if(bgColor!=value) { bgColor=value; sdlBgColor=new SDL.Color(value); }
     }
   }
+  /// <summary>Determines whether the alpha channel will be copied to the destination surface.</summary>
+  /// <value>If true, the alpha channel of the glyphs will be copied to the destination surface. If false (the
+  /// default), the alpha channel will be used to alpha blend the glyphs onto the destination surface.
+  /// </value>
+  /// <remarks>This property provides as a way to render the font into a surface, keeping the alpha channel of the
+  /// font intact. This property only has an effect when <see cref="RenderStyle"/> is set to
+  /// <see cref="GameLib.Fonts.RenderStyle.Blended"/>, because the other render styles do not use alpha blending.
+  /// </remarks>
+  public bool CopyAlpha
+  { get { return copyAlpha; }
+    set { copyAlpha=value; }
+  }
   /// <summary>Gets/sets the color used to shade the font when <see cref="RenderStyle"/> is set to
   /// <see cref="GameLib.Fonts.RenderStyle.Shaded"/>.
   /// </summary>
@@ -848,6 +862,7 @@ public class TrueTypeFont : StyledFont
         cc.Compatible = true;
       }
     }
+    cc.Surface.UsingAlpha = cc.Surface.Format.AlphaMask!=0 && !copyAlpha;
     return cc;
   }
 
@@ -922,7 +937,7 @@ public class TrueTypeFont : StyledFont
   RenderStyle  rstyle;
   SDL.Color sdlColor, sdlBgColor, sdlShadeColor;
   IntPtr    font;
-  bool      shadeCloak;
+  bool      shadeCloak, copyAlpha;
 }
 #endregion
 

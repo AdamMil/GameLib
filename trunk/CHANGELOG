@@ -147,6 +147,8 @@ Legend
 * Fixed some fixed-point mathematical constants (whoops!)
 * Further optimized many fixed-point math functions
 * Changed math classes to use double instead of float
++ Added TrueTypeFont.CopyAlpha, which causes the font to store alpha
+  information instead of blending
 + Added a lot more documentation (for CD.cs, Config.cs, Events.cs,
   Exceptions.cs, Fonts.cs, GraphicsPrimitives.cs, Input.cs, Interop.cs,
   IO.cs, LinkedList.cs, OpenGL.cs, OpenGLInterop.cs, PriorityQueue.cs,

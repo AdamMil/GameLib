@@ -1,5 +1,107 @@
 <?xml version="1.0" encoding="utf-8" ?> 
 <GameLib>
+ <IComparable>
+  <CompareTo>
+   <summary>Compares the current instance with another object of the same type.</summary>
+   <param name="obj">An object to compare with this instance.</param>
+   <returns>An integer that indicates the relative order of the comparands. The return value has these meanings:
+   <list type="table">
+   <listheader><term>Value</term><description>Meaning</description></listheader>
+   <item><term>Less than zero</term><description>This instance is less than <paramref name="obj"/>.</description></item>
+   <item><term>Zero</term><description>This instance is equal to <paramref name="obj"/>.</description></item>
+   <item><term>Greater than zero</term><description>This instance is greater than <paramref name="obj"/>.</description></item>
+   </list>
+   </returns>
+  </CompareTo>
+ </IComparable>
+ <IConvertible>
+  <ToUInt64>
+   <summary>Converts this value to a <see cref="UInt64"/>.</summary>
+   <param name="provider">An <see cref="IFormatProvider"/> used to control formatting, or null to use the default.</param>
+   <returns>A <see cref="UInt64"/> representing this value.</returns>
+   <exception cref="OverflowException">Thrown if the value cannot be represented by the return type.</exception>
+  </ToUInt64>
+  <ToSByte>
+   <summary>Converts this value to an <see cref="SByte"/>.</summary>
+   <param name="provider">An <see cref="IFormatProvider"/> used to control formatting, or null to use the default.</param>
+   <returns>An <see cref="SByte"/> representing this value.</returns>
+   <exception cref="OverflowException">Thrown if the value cannot be represented by the return type.</exception>
+  </ToSByte>
+  <ToDouble>
+   <summary>Converts this value to a <see cref="Double"/>.</summary>
+   <param name="provider">An <see cref="IFormatProvider"/> used to control formatting, or null to use the default.</param>
+   <returns>The <see cref="Double"/> closest to this value.</returns>
+   <exception cref="OverflowException">Thrown if the value cannot be represented by the return type.</exception>
+  </ToDouble>
+  <ToSingle>
+   <summary>Converts this value to a <see cref="Single"/>.</summary>
+   <param name="provider">An <see cref="IFormatProvider"/> used to control formatting, or null to use the default.</param>
+   <returns>The <see cref="Single"/> closest to this value.</returns>
+   <exception cref="OverflowException">Thrown if the value cannot be represented by the return type.</exception>
+  </ToSingle>
+  <ToInt32>
+   <summary>Converts this value to an <see cref="Int32"/>.</summary>
+   <param name="provider">An <see cref="IFormatProvider"/> used to control formatting, or null to use the default.</param>
+   <returns>An <see cref="Int32"/> representing this value.</returns>
+   <exception cref="OverflowException">Thrown if the value cannot be represented by the return type.</exception>
+  </ToInt32>
+  <ToUInt16>
+   <summary>Converts this value to a <see cref="UInt16"/>.</summary>
+   <param name="provider">An <see cref="IFormatProvider"/> used to control formatting, or null to use the default.</param>
+   <returns>A <see cref="UInt16"/> representing this value.</returns>
+   <exception cref="OverflowException">Thrown if the value cannot be represented by the return type.</exception>
+  </ToUInt16>
+  <ToInt16>
+   <summary>Converts this value to an <see cref="Int16"/>.</summary>
+   <param name="provider">An <see cref="IFormatProvider"/> used to control formatting, or null to use the default.</param>
+   <returns>An <see cref="Int16"/> representing this value.</returns>
+   <exception cref="OverflowException">Thrown if the value cannot be represented by the return type.</exception>
+  </ToInt16>
+  <ToString>
+   <summary>Converts this value to a string.</summary>
+   <param name="provider">An <see cref="IFormatProvider"/> used to control formatting, or null to use the default.</param>
+   <returns>An string representing this value.</returns>
+   <exception cref="OverflowException">Thrown if the value cannot be represented by the return type.</exception>
+  </ToString>
+  <ToByte>
+   <summary>Converts this value to a <see cref="Byte"/>.</summary>
+   <param name="provider">An <see cref="IFormatProvider"/> used to control formatting, or null to use the default.</param>
+   <returns>An <see cref="Byte"/> representing this value.</returns>
+   <exception cref="OverflowException">Thrown if the value cannot be represented by the return type.</exception>
+  </ToByte>
+  <ToChar>
+   <summary>Converts this value to a <see cref="Char"/>.</summary>
+   <param name="provider">An <see cref="IFormatProvider"/> used to control formatting, or null to use the default.</param>
+   <returns>An <see cref="Char"/> representing this value.</returns>
+   <exception cref="OverflowException">Thrown if the value cannot be represented by the return type.</exception>
+  </ToChar>
+  <ToInt64>
+   <summary>Converts this value to an <see cref="Int64"/>.</summary>
+   <param name="provider">An <see cref="IFormatProvider"/> used to control formatting, or null to use the default.</param>
+   <returns>An <see cref="Int64"/> representing this value.</returns>
+   <exception cref="OverflowException">Thrown if the value cannot be represented by the return type.</exception>
+  </ToInt64>
+  <ToDecimal>
+   <summary>Converts this value to a <see cref="Decimal"/>.</summary>
+   <param name="provider">An <see cref="IFormatProvider"/> used to control formatting, or null to use the default.</param>
+   <returns>A <see cref="Decimal"/> representing this value.</returns>
+  </ToDecimal>
+  <ToType>
+   <summary>Converts the value to the given type.</summary>
+   <param name="conversionType">The type to which this value should be converted.</param>
+   <param name="provider">An <see cref="IFormatProvider"/> used to control formatting, or null to use the default.</param>
+   <returns>An object containing this value converted to the given type.</returns>
+   <exception cref="OverflowException">Thrown if the value cannot be represented by the return type.</exception>
+   <exception cref="InvalidCastException">Thrown if no conversion to the destination type exists.</exception>
+  </ToType>
+  <ToUInt32>
+   <summary>Converts this value to a <see cref="UInt32"/>.</summary>
+   <param name="provider">An <see cref="IFormatProvider"/> used to control formatting, or null to use the default.</param>
+   <returns>A <see cref="UInt32"/> representing this value.</returns>
+   <exception cref="OverflowException">Thrown if the value cannot be represented by the return type.</exception>
+  </ToUInt32>
+ </IConvertible>
+
  <IO>
   <StreamStream> <!-- StreamStream class -->
    <StreamStream>
@@ -153,6 +255,34 @@ byte[] output = IOH.Write("dfp?d", parms);
     </returns>
    </AngleBetween>
   </GLMath>
+  <Fixed>
+   <ToDateTime>
+    <summary>Throws <see cref="InvalidCastException"/> because there's no sensible conversion to
+    <see cref="DateTime"/>
+    </summary>
+    <param name="provider">An <see cref="IFormatProvider"/> used to control formatting, or null to use the default.</param>
+    <returns>Doesn't return.</returns>
+    <exception cref="InvalidCastException">Always thrown.</exception>
+   </ToDateTime>
+   <ToBoolean>
+    <summary>Converts this value to a <see cref="Boolean"/>.</summary>
+    <param name="provider">An <see cref="IFormatProvider"/> used to control formatting, or null to use the default.</param>
+    <returns>A <see cref="Boolean"/> that will be false if the value is zero and true otherwise.</returns>
+   </ToBoolean>
+   <ToString1>
+    <summary>Converts this fixed-point number into a string.</summary>
+    <param name="format">A format code which controls the conversion to string.</param>
+    <returns>A string representing this fixed-point number.</returns>
+    <remarks>See <see cref="Double.ToString(string)"/> for information on the available formatting codes.</remarks>
+   </ToString1>
+   <ToString2>
+    <summary>Converts this fixed-point number into a string.</summary>
+    <param name="format">A format code which controls the conversion to string.</param>
+    <param name="provider">An <see cref="IFormatProvider"/> used to control formatting, or null to use the default.</param>
+    <returns>A string representing this fixed-point number.</returns>
+    <remarks>See <see cref="Double.ToString(string)"/> for information on the available formatting codes.</remarks>
+   </ToString2>
+  </Fixed>
  </Mathematics>
  <Video>
   <PSDCodec>

@@ -90,17 +90,60 @@ public sealed class MathConst
   /// <returns>A new <see cref="Fixed32"/> containing the value truncated towards zero.</returns>
   public static Fixed32 Truncate(Fixed32 val) { return val.Truncated; }
 
+  /// <summary>Returns the absolute value of a <see cref="Fixed64"/>.</summary>
+  /// <param name="val">A <see cref="Fixed64"/> value.</param>
+  /// <returns>A new <see cref="Fixed64"/> containing the absolute value.</returns>
   public static Fixed64 Abs(Fixed64 val) { return val.val<0 ? new Fixed64(-val.val) : val; }
+  /// <summary>Returns the arc-cosine of a <see cref="Fixed64"/>.</summary>
+  /// <param name="val">A <see cref="Fixed64"/> value.</param>
+  /// <returns>A new <see cref="Fixed64"/> containing the arc-cosine.</returns>
   public static Fixed64 Acos(Fixed64 val) { return new Fixed64(Math.Acos(val.ToDouble())); }
+  /// <summary>Returns the arc-sine of a <see cref="Fixed64"/>.</summary>
+  /// <param name="val">A <see cref="Fixed64"/> value.</param>
+  /// <returns>A new <see cref="Fixed64"/> containing the arc-sine.</returns>
   public static Fixed64 Asin(Fixed64 val) { return new Fixed64(Math.Asin(val.ToDouble())); }
+  /// <summary>Returns the arc-tangent of a <see cref="Fixed64"/>.</summary>
+  /// <param name="val">A <see cref="Fixed64"/> value.</param>
+  /// <returns>A new <see cref="Fixed64"/> containing the arc-tangent.</returns>
   public static Fixed64 Atan(Fixed64 val) { return new Fixed64(Math.Atan(val.ToDouble())); }
+  /// <summary>Returns the ceiling of a <see cref="Fixed64"/>.</summary>
+  /// <param name="val">A <see cref="Fixed64"/> value.</param>
+  /// <returns>A new <see cref="Fixed64"/> containing the smallest whole number greater than or equal to the given
+  /// number.
+  /// </returns>
   public static Fixed64 Ceiling(Fixed64 val) { return val.Ceiling; }
+  /// <summary>Returns the cosine of a <see cref="Fixed64"/>.</summary>
+  /// <param name="val">A <see cref="Fixed64"/> value.</param>
+  /// <returns>A new <see cref="Fixed64"/> containing the cosine.</returns>
   public static Fixed64 Cos(Fixed64 val) { return new Fixed64(Math.Cos(val.ToDouble())); }
+  /// <summary>Returns the floor of a <see cref="Fixed64"/>.</summary>
+  /// <param name="val">A <see cref="Fixed64"/> value.</param>
+  /// <returns>A new <see cref="Fixed64"/> containing the largest whole number less than or equal to the given
+  /// number.
+  /// </returns>
   public static Fixed64 Floor(Fixed64 val) { return val.Floor; }
+  /// <summary>Returns the rounded value of a <see cref="Fixed64"/>.</summary>
+  /// <param name="val">A <see cref="Fixed64"/> value.</param>
+  /// <returns>A new <see cref="Fixed64"/> containing the rounded value.</returns>
+  /// <remarks>This method performs banker's rounding, so values with a fractional part of exactly 0.5 will be
+  /// rounded towards the nearest even number, or towards zero.
+  /// </remarks>
   public static Fixed64 Round(Fixed64 val) { return val.Rounded; }
+  /// <summary>Returns the sine of a <see cref="Fixed64"/>.</summary>
+  /// <param name="val">A <see cref="Fixed64"/> value.</param>
+  /// <returns>A new <see cref="Fixed64"/> containing the sine.</returns>
   public static Fixed64 Sin(Fixed64 val) { return new Fixed64(Math.Sin(val.ToDouble())); }
+  /// <summary>Returns the square root of a <see cref="Fixed64"/>.</summary>
+  /// <param name="val">A <see cref="Fixed64"/> value.</param>
+  /// <returns>A new <see cref="Fixed64"/> containing the square root.</returns>
   public static Fixed64 Sqrt(Fixed64 val) { return new Fixed64(Math.Sqrt(val.ToDouble())); }
+  /// <summary>Returns the tangent of a <see cref="Fixed64"/>.</summary>
+  /// <param name="val">A <see cref="Fixed64"/> value.</param>
+  /// <returns>A new <see cref="Fixed64"/> containing the tangent.</returns>
   public static Fixed64 Tan(Fixed64 val) { return new Fixed64(Math.Tan(val.ToDouble())); }
+  /// <summary>Returns the truncated value of a <see cref="Fixed64"/>.</summary>
+  /// <param name="val">A <see cref="Fixed64"/> value.</param>
+  /// <returns>A new <see cref="Fixed64"/> containing the value truncated towards zero.</returns>
   public static Fixed64 Truncate(Fixed64 val) { return val.Truncated; }
 }
 
@@ -143,7 +186,7 @@ public struct Fixed32 : IFormattable, IComparable, IConvertible
   /// <summary>Initializes this fixed-point class from a floating point number.</summary>
   /// <param name="value">A floating point number from which the fixed-point number will be initialized.</param>
   /// <remarks>Due to the greater range and potential precision of a 64-bit double, the value passed may not be
-  /// accurately represented.
+  /// able to be accurately represented.
   /// </remarks>
   public Fixed32(double value) { val=FromDouble(value); }
   /// <summary>Initializes this fixed-point class from an integer.</summary>
@@ -155,15 +198,12 @@ public struct Fixed32 : IFormattable, IComparable, IConvertible
   /// <summary>Gets this number's absolute value.</summary>
   /// <value>A new fixed-point number containing the absolute value of this number.</value>
   public Fixed32 Abs { get { return val<0 ? new Fixed32((uint)-val) : this; } }
-
   /// <summary>Gets this number's ceiling.</summary>
   /// <value>A new fixed-point number containing the smallest whole number greater than or equal to the current value.</value>
   public Fixed32 Ceiling { get { return new Fixed32((uint)((val+(OneVal-1)) & Trunc)); } }
-
   /// <summary>Gets this number's ceiling.</summary>
   /// <value>A new fixed-point number containing the largest whole number less than or equal to the current value.</value>
   public Fixed32 Floor { get { return new Fixed32((uint)(val&Trunc)); } }
-
   /// <summary>Gets this number's value, rounded.</summary>
   /// <remarks>This method performs banker's rounding, so values with a fractional part of exactly 0.5 will be
   /// rounded towards the nearest even number, or towards zero.
@@ -176,14 +216,11 @@ public struct Fixed32 : IFormattable, IComparable, IConvertible
       else return new Fixed32((uint)(val&Trunc));
     }
   }
-
   /// <summary>Gets this number's square root.</summary>
   /// <value>A new fixed-point number containing the square root of the current value.</value>
   public Fixed32 Sqrt { get { return new Fixed32(Math.Sqrt(ToDouble())); } }
-
   /// <summary>Gets this number's value, truncated towards zero.</summary>
   public Fixed32 Truncated { get { return new Fixed32((uint)((val<0 ? val+(OneVal-1) : val)&Trunc)); } }
-
   /// <summary>Returns true if this object is equal to the given object.</summary>
   /// <param name="obj">The object to compare against.</param>
   /// <returns>True if <paramref name="obj"/> is a <see cref="Fixed32"/> and has the same value as this one.</returns>
@@ -191,19 +228,15 @@ public struct Fixed32 : IFormattable, IComparable, IConvertible
   { if(!(obj is Fixed32)) return false;
     return val == ((Fixed32)obj).val;
   }
-  
   /// <summary>Returns a hash code for this value.</summary>
   /// <returns>A hash code for this value.</returns>
   public override int GetHashCode() { return val; }
-  
   /// <summary>Converts this <see cref="Fixed32"/> to a <see cref="Fixed64"/>.</summary>
   /// <returns>A <see cref="Fixed64"/> containing the same value.</returns>
   public Fixed64 ToFixed64() { return new Fixed64(((long)(val&Trunc)<<16) | (uint)((ushort)val<<16)); }
-
   /// <summary>Converts this fixed-point number to a floating-point number.</summary>
   /// <returns>The double value closest to this fixed-point number.</returns>
   public double ToDouble() { return (val>>16) + (ushort)val*0.0000152587890625; } // 1 / (1<<16)
-
   /// <summary>Returns the integer portion of the fixed-point number.</summary>
   /// <returns>The integer portion of the fixed-point number.</returns>
   public int ToInt()
@@ -211,16 +244,11 @@ public struct Fixed32 : IFormattable, IComparable, IConvertible
     if(ret<0 && (ushort)val!=0) ret++;
     return ret;
   }
-
   /// <summary>Converts this fixed-point number into a string.</summary>
   /// <returns>A string representing this fixed-point number.</returns>
   public override string ToString() { return ToString(null, null); }
-  /// <summary>Converts this fixed-point number into a string.</summary>
-  /// <param name="format">A format code which controls the conversion to string.</param>
-  /// <returns>A string representing this fixed-point number.</returns>
-  /// <remarks>See <see cref="Double.ToString(string)"/> for information on the available formatting codes.</remarks>
+  /// <include file="documentation.xml" path="//Mathematics/Fixed/ToString1/*"/>
   public string ToString(string format) { return ToString(format, null); }
-
   /// <summary>Converts a string into a fixed-point value.</summary>
   /// <param name="s">The string to convert.</param>
   /// <returns>A <see cref="Fixed32"/> containing the closest value.</returns>
@@ -234,8 +262,14 @@ public struct Fixed32 : IFormattable, IComparable, IConvertible
         else return new Fixed32((uint)((int.Parse(s.Substring(0, pos))<<16) + int.Parse(s.Substring(pos+1)))); // raw
       }
       else // number with fractional part
-      { int val = pos==0 ? 0 : (short.Parse(s.Substring(0, pos))<<16);
-        return new Fixed32((uint)(val + (int)(double.Parse(s.Substring(pos))*65536.0+0.5)));
+      { int val, frac;
+        if(pos==0) val=0;
+        else
+        { string ws = s.Substring(0, pos);
+          val = ws.Length==0 ? 0 : short.Parse(ws)<<16;
+        }
+        frac = (int)(double.Parse(s.Substring(pos))*65536.0+0.5);
+        return new Fixed32((uint)(val<0 ? val-frac : val+frac));
       }
     }
     else return new Fixed32(double.Parse(s)); // scientific notation
@@ -285,12 +319,12 @@ public struct Fixed32 : IFormattable, IComparable, IConvertible
   public static bool operator==(Fixed32 lhs, int rhs) { return lhs.val==(rhs<<16); }
   public static bool operator!=(Fixed32 lhs, int rhs) { return lhs.val!=(rhs<<16); }
 
-  public static bool operator<(Fixed32 lhs, double rhs) { return lhs.val<FromDouble(rhs); }
-  public static bool operator<=(Fixed32 lhs, double rhs) { return lhs.val<=FromDouble(rhs); }
-  public static bool operator>(Fixed32 lhs, double rhs) { return lhs.val>FromDouble(rhs); }
-  public static bool operator>=(Fixed32 lhs, double rhs) { return lhs.val>=FromDouble(rhs); }
-  public static bool operator==(Fixed32 lhs, double rhs) { return lhs.val==FromDouble(rhs); }
-  public static bool operator!=(Fixed32 lhs, double rhs) { return lhs.val!=FromDouble(rhs); }
+  public static bool operator<(Fixed32 lhs, double rhs) { return lhs.ToDouble()<rhs; }
+  public static bool operator<=(Fixed32 lhs, double rhs) { return lhs.ToDouble()<=rhs; }
+  public static bool operator>(Fixed32 lhs, double rhs) { return lhs.ToDouble()>rhs; }
+  public static bool operator>=(Fixed32 lhs, double rhs) { return lhs.ToDouble()>=rhs; }
+  public static bool operator==(Fixed32 lhs, double rhs) { return lhs.ToDouble()==rhs; }
+  public static bool operator!=(Fixed32 lhs, double rhs) { return lhs.ToDouble()!=rhs; }
 
   public static bool operator<(int lhs, Fixed32 rhs) { return (lhs<<16)<rhs.val; }
   public static bool operator<=(int lhs, Fixed32 rhs) { return (lhs<<16)<=rhs.val; }
@@ -299,15 +333,21 @@ public struct Fixed32 : IFormattable, IComparable, IConvertible
   public static bool operator==(int lhs, Fixed32 rhs) { return (lhs<<16)==rhs.val; }
   public static bool operator!=(int lhs, Fixed32 rhs) { return (lhs<<16)!=rhs.val; }
 
-  public static bool operator<(double lhs, Fixed32 rhs) { return FromDouble(lhs)<rhs.val; }
-  public static bool operator<=(double lhs, Fixed32 rhs) { return FromDouble(lhs)<=rhs.val; }
-  public static bool operator>(double lhs, Fixed32 rhs) { return FromDouble(lhs)>rhs.val; }
-  public static bool operator>=(double lhs, Fixed32 rhs) { return FromDouble(lhs)>=rhs.val; }
-  public static bool operator==(double lhs, Fixed32 rhs) { return FromDouble(lhs)==rhs.val; }
-  public static bool operator!=(double lhs, Fixed32 rhs) { return FromDouble(lhs)!=rhs.val; }
+  public static bool operator<(double lhs, Fixed32 rhs) { return lhs<rhs.ToDouble(); }
+  public static bool operator<=(double lhs, Fixed32 rhs) { return lhs<=rhs.ToDouble(); }
+  public static bool operator>(double lhs, Fixed32 rhs) { return lhs>rhs.ToDouble(); }
+  public static bool operator>=(double lhs, Fixed32 rhs) { return lhs>=rhs.ToDouble(); }
+  public static bool operator==(double lhs, Fixed32 rhs) { return lhs==rhs.ToDouble(); }
+  public static bool operator!=(double lhs, Fixed32 rhs) { return lhs!=rhs.ToDouble(); }
   #endregion
   
+  /// <summary>Implicitly converts an integer to a <see cref="Fixed32"/>.</summary>
+  /// <param name="i">An integer.</param>
+  /// <returns>A <see cref="Fixed32"/> representing the given integer.</returns>
   public static implicit operator Fixed32(int i) { return new Fixed32((uint)(i<<16)); }
+  /// <summary>Implicitly converts a double to a <see cref="Fixed32"/>.</summary>
+  /// <param name="d">A double value.</param>
+  /// <returns>A <see cref="Fixed32"/> representing the given double.</returns>
   public static implicit operator Fixed32(double d) { return new Fixed32((uint)FromDouble(d)); }
 
   #region Useful constants
@@ -325,7 +365,7 @@ public struct Fixed32 : IFormattable, IComparable, IConvertible
   public static readonly Fixed32 One = new Fixed32((uint)OneVal);
   /// <summary>PI, approximately 3.141593.</summary>
   public static readonly Fixed32 PI = new Fixed32((uint)(196608 + 9279));
-  /// <summary>PI/2, approximately 3.570796.</summary>
+  /// <summary>PI/2, approximately 1.570796.</summary>
   public static readonly Fixed32 PIover2 = new Fixed32((uint)(65536 + 37408));
   /// <summary>PI/2, approximately 6.283185.</summary>
   public static readonly Fixed32 TwoPI = new Fixed32((uint)(393216 + 18559));
@@ -334,6 +374,7 @@ public struct Fixed32 : IFormattable, IComparable, IConvertible
   #endregion
 
   #region IComparable Members
+  /// <include file="documentation.xml" path="//IComparable/CompareTo/*"/>
   public int CompareTo(object obj)
   { if(obj==null) return 1;
     if(obj is Fixed32) { return val-((Fixed32)obj).val; }
@@ -343,113 +384,66 @@ public struct Fixed32 : IFormattable, IComparable, IConvertible
 
   #region IConvertible Members
   // FIXME: these should probably do rounding
-  /// <summary>Converts this value to a <see cref="UInt64"/>.</summary>
-  /// <param name="provider">An <see cref="IFormatProvider"/> used to control formatting, or null to use the default.</param>
-  /// <returns>A <see cref="UInt64"/> representing the fixed-point value.</returns>
-  /// <exception cref="OverflowException">Thrown if the value cannot be represented by the return type.</exception>
+  /// <include file="documentation.xml" path="//IConvertible/ToUInt64/*"/>
   public ulong ToUInt64(IFormatProvider provider)
   { int n = ToInt();
     if(n<0) throw new OverflowException();
     return (ulong)n;
   }
-  /// <summary>Converts this value to an <see cref="SByte"/>.</summary>
-  /// <param name="provider">An <see cref="IFormatProvider"/> used to control formatting, or null to use the default.</param>
-  /// <returns>An <see cref="SByte"/> representing the fixed-point value.</returns>
-  /// <exception cref="OverflowException">Thrown if the value cannot be represented by the return type.</exception>
+  /// <include file="documentation.xml" path="//IConvertible/ToSByte/*"/>
   public sbyte ToSByte(IFormatProvider provider)
   { int n = ToInt();
     if(n<sbyte.MinValue || n>sbyte.MaxValue) throw new OverflowException();
     return (sbyte)n;
   }
-  /// <summary>Converts this value to a <see cref="Double"/>.</summary>
-  /// <param name="provider">An <see cref="IFormatProvider"/> used to control formatting, or null to use the default.</param>
-  /// <returns>The <see cref="Double"/> closest to this fixed-point value.</returns>
-  /// <exception cref="OverflowException">Thrown if the value cannot be represented by the return type.</exception>
+  /// <include file="documentation.xml" path="//IConvertible/ToDouble/*"/>
   public double ToDouble(IFormatProvider provider) { return ToDouble(); }
-  /// <summary>Throws <see cref="InvalidCastException"/> because there's no sensible conversion to
-  /// <see cref="DateTime"/>
-  /// </summary>
-  /// <param name="provider">An <see cref="IFormatProvider"/> used to control formatting, or null to use the default.</param>
-  /// <returns>Doesn't return.</returns>
-  /// <exception cref="InvalidCastException">Always thrown.</exception>
+  /// <include file="documentation.xml" path="//Mathematics/Fixed/ToDateTime/*"/>
   public DateTime ToDateTime(IFormatProvider provider) { throw new InvalidCastException(); }
-  /// <summary>Converts this value to a <see cref="Single"/>.</summary>
-  /// <param name="provider">An <see cref="IFormatProvider"/> used to control formatting, or null to use the default.</param>
-  /// <returns>The <see cref="Single"/> closest to this fixed-point value.</returns>
-  /// <exception cref="OverflowException">Thrown if the value cannot be represented by the return type.</exception>
+  /// <include file="documentation.xml" path="//IConvertible/ToSingle/*"/>
   public float ToSingle(IFormatProvider provider)
   { double d = ToDouble();
     if(d<float.MinValue || d>float.MaxValue) throw new OverflowException();
     return (float)d;
   }
-  /// <summary>Converts this value to a <see cref="Boolean"/>.</summary>
-  /// <param name="provider">An <see cref="IFormatProvider"/> used to control formatting, or null to use the default.</param>
-  /// <returns>A <see cref="Boolean"/> that will be false if the value is zero and true otherwise.</returns>
+  /// <include file="documentation.xml" path="//Mathematics/Fixed/ToBoolean/*"/>
   public bool ToBoolean(IFormatProvider provider) { return val==0; }
-  /// <summary>Converts this value to an <see cref="Int32"/>.</summary>
-  /// <param name="provider">An <see cref="IFormatProvider"/> used to control formatting, or null to use the default.</param>
-  /// <returns>An <see cref="Int32"/> representing the fixed-point value.</returns>
-  /// <exception cref="OverflowException">Thrown if the value cannot be represented by the return type.</exception>
+  /// <include file="documentation.xml" path="//IConvertible/ToInt32/*"/>
   public int ToInt32(IFormatProvider provider) { return ToInt(); }
-  /// <summary>Converts this value to a <see cref="UInt16"/>.</summary>
-  /// <param name="provider">An <see cref="IFormatProvider"/> used to control formatting, or null to use the default.</param>
-  /// <returns>A <see cref="UInt16"/> representing the fixed-point value.</returns>
-  /// <exception cref="OverflowException">Thrown if the value cannot be represented by the return type.</exception>
+  /// <include file="documentation.xml" path="//IConvertible/ToUInt16/*"/>
   public ushort ToUInt16(IFormatProvider provider)
   { int n = ToInt();
     if(n<ushort.MinValue || n>ushort.MaxValue) throw new OverflowException();
     return (ushort)n;
   }
-  /// <summary>Converts this value to an <see cref="Int16"/>.</summary>
-  /// <param name="provider">An <see cref="IFormatProvider"/> used to control formatting, or null to use the default.</param>
-  /// <returns>An <see cref="Int16"/> representing the fixed-point value.</returns>
-  /// <exception cref="OverflowException">Thrown if the value cannot be represented by the return type.</exception>
+  /// <include file="documentation.xml" path="//IConvertible/ToInt16/*"/>
   public short ToInt16(IFormatProvider provider)
   { int n = ToInt();
     if(n<short.MinValue || n>short.MaxValue) throw new OverflowException();
     return (short)n;
   }
-  /// <summary>Converts this value to a string.</summary>
-  /// <param name="provider">An <see cref="IFormatProvider"/> used to control formatting, or null to use the default.</param>
-  /// <returns>An string representing this fixed-point value.</returns>
-  /// <exception cref="OverflowException">Thrown if the value cannot be represented by the return type.</exception>
+  /// <include file="documentation.xml" path="//IConvertible/ToString/*"/>
   public string ToString(IFormatProvider provider) { return ToString(null, provider); }
-  /// <summary>Converts this value to a <see cref="Byte"/>.</summary>
-  /// <param name="provider">An <see cref="IFormatProvider"/> used to control formatting, or null to use the default.</param>
-  /// <returns>An <see cref="Byte"/> representing the fixed-point value.</returns>
-  /// <exception cref="OverflowException">Thrown if the value cannot be represented by the return type.</exception>
+  /// <include file="documentation.xml" path="//IConvertible/ToByte/*"/>
   public byte ToByte(IFormatProvider provider)
   { int n = ToInt();
     if(n<byte.MinValue || n>byte.MaxValue) throw new OverflowException();
     return (byte)n;
   }
-  /// <summary>Converts this value to a <see cref="Char"/>.</summary>
-  /// <param name="provider">An <see cref="IFormatProvider"/> used to control formatting, or null to use the default.</param>
-  /// <returns>An <see cref="Char"/> representing the fixed-point value.</returns>
-  /// <exception cref="OverflowException">Thrown if the value cannot be represented by the return type.</exception>
+  /// <include file="documentation.xml" path="//IConvertible/ToChar/*"/>
   public char ToChar(IFormatProvider provider)
   { int n = ToInt();
     if(n<ushort.MinValue || n>ushort.MaxValue) throw new OverflowException();
     return (char)n;
   }
-  /// <summary>Converts this value to an <see cref="Int64"/>.</summary>
-  /// <param name="provider">An <see cref="IFormatProvider"/> used to control formatting, or null to use the default.</param>
-  /// <returns>An <see cref="Int64"/> representing the fixed-point value.</returns>
-  /// <exception cref="OverflowException">Thrown if the value cannot be represented by the return type.</exception>
+  /// <include file="documentation.xml" path="//IConvertible/ToInt64/*"/>
   public long ToInt64(IFormatProvider provider) { return ToInt(); }
   /// <summary>Returns the <see cref="TypeCode"/> for the <see cref="Fixed32"/> type.</summary>
   /// <returns>Returns <see cref="TypeCode.Object"/>.</returns>
   public TypeCode GetTypeCode() { return TypeCode.Object; }
-  /// <summary>Converts this value to a <see cref="Decimal"/>.</summary>
-  /// <param name="provider">An <see cref="IFormatProvider"/> used to control formatting, or null to use the default.</param>
-  /// <returns>A <see cref="Decimal"/> representing the fixed-point value.</returns>
+  /// <include file="documentation.xml" path="//IConvertible/ToDecimal/*"/>
   public decimal ToDecimal(IFormatProvider provider) { return new decimal(ToDouble()); }
-  /// <summary>Converts the value to the given type.</summary>
-  /// <param name="conversionType">The type to which the fixed-point value should be converted.</param>
-  /// <param name="provider">An <see cref="IFormatProvider"/> used to control formatting, or null to use the default.</param>
-  /// <returns>An object containing the fixed-point value converted to the given type.</returns>
-  /// <exception cref="OverflowException">Thrown if the value cannot be represented by the return type.</exception>
-  /// <exception cref="InvalidCastException">Thrown if no conversion to the destination type exists.</exception>
+  /// <include file="documentation.xml" path="//IConvertible/ToType/*"/>
   public object ToType(Type conversionType, IFormatProvider provider)
   { if(conversionType==typeof(int)) return ToInt32(provider);
     if(conversionType==typeof(double)) return ToDouble();
@@ -470,10 +464,7 @@ public struct Fixed32 : IFormattable, IComparable, IConvertible
     if(conversionType==typeof(Fixed64)) return ToFixed64();
     throw new InvalidCastException();
   }
-  /// <summary>Converts this value to a <see cref="UInt32"/>.</summary>
-  /// <param name="provider">An <see cref="IFormatProvider"/> used to control formatting, or null to use the default.</param>
-  /// <returns>A <see cref="UInt32"/> representing the fixed-point value.</returns>
-  /// <exception cref="OverflowException">Thrown if the value cannot be represented by the return type.</exception>
+  /// <include file="documentation.xml" path="//IConvertible/ToUInt32/*"/>
   public uint ToUInt32(IFormatProvider provider)
   { int n = ToInt();
     if(n<0) throw new OverflowException();
@@ -482,7 +473,8 @@ public struct Fixed32 : IFormattable, IComparable, IConvertible
   #endregion
 
   #region IFormattable Members
-  public string ToString(string format, IFormatProvider formatProvider)
+  /// <include file="documentation.xml" path="//Mathematics/Fixed/ToString2/*"/>
+  public string ToString(string format, IFormatProvider provider)
   { if(format==null) return ToDouble().ToString();
     if(format.Length==0 || char.ToUpper(format[0])!='R') return ToDouble().ToString(format);
     return (val>>16).ToString() + '/' + ((ushort)val).ToString();
@@ -517,17 +509,31 @@ public struct Fixed32 : IFormattable, IComparable, IConvertible
 /// </remarks>
 [Serializable, System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Explicit, Size=8)]
 public struct Fixed64 : IFormattable, IComparable, IConvertible
-{ public Fixed64(double value) { wholePart=0; val=FromDouble(value); } // damn C# requires all fields to be set
+{ 
+  /// <summary>Initializes this fixed-point class from a floating point number.</summary>
+  /// <param name="value">A floating point number from which the fixed-point number will be initialized.</param>
+  /// <remarks>Due to the greater range of a 64-bit double, the value passed may not be able to be accurately
+  /// represented.
+  /// </remarks>
+  public Fixed64(double value) { wholePart=0; val=FromDouble(value); } // damn C# requires all fields to be set
+  /// <summary>Initializes this fixed-point class from an integer.</summary>
+  /// <param name="value">An integer from which the fixed-point number will be initialized.</param>
   public Fixed64(int value) { val=0; wholePart=value; }
   internal Fixed64(long value) { wholePart=0; val=value; }
   internal Fixed64(int whole, uint frac) { val=frac; wholePart=whole; }
-
+  /// <summary>Gets this number's absolute value.</summary>
+  /// <value>A new fixed-point number containing the absolute value of this number.</value>
   public Fixed64 Abs { get { return val<0 ? new Fixed64(-val) : this; } }
-
+  /// <summary>Gets this number's ceiling.</summary>
+  /// <value>A new fixed-point number containing the smallest whole number greater than or equal to the current value.</value>
   public Fixed64 Ceiling { get { return new Fixed64((val+(OneVal-1)) & Trunc); } }
-
+  /// <summary>Gets this number's ceiling.</summary>
+  /// <value>A new fixed-point number containing the largest whole number less than or equal to the current value.</value>
   public Fixed64 Floor { get { return new Fixed64(val&Trunc); } }
-
+  /// <summary>Gets this number's value, rounded.</summary>
+  /// <remarks>This method performs banker's rounding, so values with a fractional part of exactly 0.5 will be
+  /// rounded towards the nearest even number, or towards zero.
+  /// </remarks>
   public Fixed64 Rounded
   { get
     { uint fp = (uint)val;
@@ -536,31 +542,49 @@ public struct Fixed64 : IFormattable, IComparable, IConvertible
       else return new Fixed64(val&Trunc);
     }
   }
-  
+  /// <summary>Gets this number's square root.</summary>
+  /// <value>A new fixed-point number containing the square root of the current value.</value>
   public Fixed64 Sqrt { get { return new Fixed64(Math.Sqrt(ToDouble())); } }
-
+  /// <summary>Gets this number's value, truncated towards zero.</summary>
   public Fixed64 Truncated { get { return new Fixed64((val<0 ? val+(OneVal-1) : val)&Trunc); } }
-  
+  /// <summary>Returns true if this object is equal to the given object.</summary>
+  /// <param name="obj">The object to compare against.</param>
+  /// <returns>True if <paramref name="obj"/> is a <see cref="Fixed64"/> and has the same value as this one.</returns>
   public override bool Equals(object obj)
   { if(!(obj is Fixed64)) return false;
     return val == ((Fixed64)obj).val;
   }
-  
+  /// <summary>Returns a hash code for this value.</summary>
+  /// <returns>A hash code for this value.</returns>
   public override int GetHashCode() { return wholePart ^ (int)(uint)val; }
-  
-  public Fixed32 ToFixed32() { return new Fixed32((uint)((short)wholePart<<16) | ((uint)val>>16)); }
-
+  /// <summary>Converts this <see cref="Fixed64"/> to a <see cref="Fixed32"/>.</summary>
+  /// <returns>A <see cref="Fixed32"/> containing the approximately the same value.</returns>
+  /// <remarks>Due to the greater precision of the <see cref="Fixed64"/> class, the fractional part of the resulting
+  /// value may not be exactly the same.
+  /// </remarks>
+  /// <exception cref="OverflowException">Thrown if the value is outside the range of a <see cref="Fixed32"/>.</exception>
+  public Fixed32 ToFixed32()
+  { if(wholePart<short.MinValue || wholePart>short.MaxValue) throw new OverflowException();
+    return new Fixed32((uint)((short)wholePart<<16) | ((uint)val>>16));
+  }
+  /// <summary>Converts this fixed-point number to a floating-point number.</summary>
+  /// <returns>The double value closest to this fixed-point number.</returns>
   public double ToDouble() { return wholePart + (uint)val*0.00000000023283064365386962890625; } // 1 / (1<<32)
-
+  /// <summary>Returns the integer portion of the fixed-point number.</summary>
+  /// <returns>The integer portion of the fixed-point number.</returns>
   public int ToInt()
   { int ret = wholePart;
     if(ret<0 && (uint)val!=0) ret++;
     return ret;
   }
-
+  /// <summary>Converts this fixed-point number into a string.</summary>
+  /// <returns>A string representing this fixed-point number.</returns>
   public override string ToString() { return ToString(null, null); }
+  /// <include file="documentation.xml" path="//Mathematics/Fixed/ToString1/*"/>
   public string ToString(string format) { return ToString(format, null); }
-
+  /// <summary>Converts a string into a fixed-point value.</summary>
+  /// <param name="s">The string to convert.</param>
+  /// <returns>A <see cref="Fixed64"/> containing the closest value.</returns>
   public static Fixed64 Parse(string s)
   { int pos = s.IndexOf('e');
     if(pos==-1)
@@ -571,13 +595,21 @@ public struct Fixed64 : IFormattable, IComparable, IConvertible
         else return new Fixed64(int.Parse(s.Substring(0, pos)), uint.Parse(s.Substring(pos+1))); // raw
       }
       else // number with fractional part
-        return new Fixed64(pos==0 ? 0 : int.Parse(s.Substring(0, pos)),
-                           (uint)(double.Parse(s.Substring(pos))*4294967296.0+0.5));
+      { int val;
+        uint frac;
+        if(pos==0) val=0;
+        else
+        { string ws = s.Substring(0, pos);
+          val = ws.Length==0 ? 0 : int.Parse(ws);
+        }
+        frac = (uint)(double.Parse(s.Substring(pos))*4294967296.0+0.5);
+        return new Fixed64(val<0 ? ((long)val<<32)-frac : ((long)val<<32)+frac);
+      }
     }
     else return new Fixed64(double.Parse(s)); // scientific notation
   }
 
-  #region Math operators
+  #region Arithmetic operators
   public static Fixed64 operator-(Fixed64 val) { return new Fixed64(-val.val); }
 
   public static Fixed64 operator+(Fixed64 lhs, int rhs) { return new Fixed64(lhs.val+((long)rhs<<32)); }
@@ -684,12 +716,12 @@ public struct Fixed64 : IFormattable, IComparable, IConvertible
   public static bool operator==(Fixed64 lhs, int rhs) { return lhs.val==((long)rhs<<32); }
   public static bool operator!=(Fixed64 lhs, int rhs) { return lhs.val!=((long)rhs<<32); }
 
-  public static bool operator<(Fixed64 lhs, double rhs) { return lhs.val<FromDouble(rhs); }
-  public static bool operator<=(Fixed64 lhs, double rhs) { return lhs.val<=FromDouble(rhs); }
-  public static bool operator>(Fixed64 lhs, double rhs) { return lhs.val>FromDouble(rhs); }
-  public static bool operator>=(Fixed64 lhs, double rhs) { return lhs.val>=FromDouble(rhs); }
-  public static bool operator==(Fixed64 lhs, double rhs) { return lhs.val==FromDouble(rhs); }
-  public static bool operator!=(Fixed64 lhs, double rhs) { return lhs.val!=FromDouble(rhs); }
+  public static bool operator<(Fixed64 lhs, double rhs) { return lhs.ToDouble()<rhs; }
+  public static bool operator<=(Fixed64 lhs, double rhs) { return lhs.ToDouble()<=rhs; }
+  public static bool operator>(Fixed64 lhs, double rhs) { return lhs.ToDouble()>rhs; }
+  public static bool operator>=(Fixed64 lhs, double rhs) { return lhs.ToDouble()>=rhs; }
+  public static bool operator==(Fixed64 lhs, double rhs) { return lhs.ToDouble()==rhs; }
+  public static bool operator!=(Fixed64 lhs, double rhs) { return lhs.ToDouble()!=rhs; }
 
   public static bool operator<(int lhs, Fixed64 rhs) { return ((long)lhs<<32)<rhs.val; }
   public static bool operator<=(int lhs, Fixed64 rhs) { return ((long)lhs<<32)<=rhs.val; }
@@ -698,28 +730,44 @@ public struct Fixed64 : IFormattable, IComparable, IConvertible
   public static bool operator==(int lhs, Fixed64 rhs) { return ((long)lhs<<32)==rhs.val; }
   public static bool operator!=(int lhs, Fixed64 rhs) { return ((long)lhs<<32)!=rhs.val; }
 
-  public static bool operator<(double lhs, Fixed64 rhs) { return FromDouble(lhs)<rhs.val; }
-  public static bool operator<=(double lhs, Fixed64 rhs) { return FromDouble(lhs)<=rhs.val; }
-  public static bool operator>(double lhs, Fixed64 rhs) { return FromDouble(lhs)>rhs.val; }
-  public static bool operator>=(double lhs, Fixed64 rhs) { return FromDouble(lhs)>=rhs.val; }
-  public static bool operator==(double lhs, Fixed64 rhs) { return FromDouble(lhs)==rhs.val; }
-  public static bool operator!=(double lhs, Fixed64 rhs) { return FromDouble(lhs)!=rhs.val; }
+  public static bool operator<(double lhs, Fixed64 rhs) { return lhs<rhs.ToDouble(); }
+  public static bool operator<=(double lhs, Fixed64 rhs) { return lhs<=rhs.ToDouble(); }
+  public static bool operator>(double lhs, Fixed64 rhs) { return lhs>rhs.ToDouble(); }
+  public static bool operator>=(double lhs, Fixed64 rhs) { return lhs>=rhs.ToDouble(); }
+  public static bool operator==(double lhs, Fixed64 rhs) { return lhs==rhs.ToDouble(); }
+  public static bool operator!=(double lhs, Fixed64 rhs) { return lhs!=rhs.ToDouble(); }
   #endregion
   
+  /// <summary>Implicitly converts an integer to a <see cref="Fixed64"/>.</summary>
+  /// <param name="i">An integer.</param>
+  /// <returns>A <see cref="Fixed64"/> representing the given integer.</returns>
   public static implicit operator Fixed64(int i) { return new Fixed64((long)i<<32); }
+  /// <summary>Implicitly converts a double to a <see cref="Fixed64"/>.</summary>
+  /// <param name="d">A double value.</param>
+  /// <returns>A <see cref="Fixed64"/> representing the given double.</returns>
   public static implicit operator Fixed64(double d) { return new Fixed64(FromDouble(d)); }
 
   #region Useful constants
-  public static readonly Fixed64 E        = new Fixed64(8589934592L + 3084996963);
-  public static readonly Fixed64 Epsilon  = new Fixed64((long)1);
+  /// <summary>Napier's constant, approximately 2.718282.</summary>
+  public static readonly Fixed64 E = new Fixed64(8589934592L + 3084996963);
+  /// <summary>The smallest positive value that can be represented by a <see cref="Fixed32"/>.</summary>
+  public static readonly Fixed64 Epsilon = new Fixed64((long)1);
+  /// <summary>The maximum value that can be represented by a <see cref="Fixed32"/>.</summary>
   public static readonly Fixed64 MaxValue = new Fixed64(0x7FFFFFFFFFFFFFFFL);
+  /// <summary>The minimum value that can be represented by a <see cref="Fixed32"/>.</summary>
   public static readonly Fixed64 MinValue = new Fixed64(unchecked((long)0x8000000000000000));
+  /// <summary>Negative one.</summary>
   public static readonly Fixed64 MinusOne = new Fixed64(Trunc);
-  public static readonly Fixed64 One      = new Fixed64(OneVal);
-  public static readonly Fixed64 PI       = new Fixed64(12884901888L + 608135817);
-  public static readonly Fixed64 PIover2  = new Fixed64(4294967296L  + 2451551556);
-  public static readonly Fixed64 TwoPI    = new Fixed64(25769803776L + 1216271633);
-  public static readonly Fixed64 Zero     = new Fixed64((long)0);
+  /// <summary>One.</summary>
+  public static readonly Fixed64 One = new Fixed64(OneVal);
+  /// <summary>PI, approximately 3.141593.</summary>
+  public static readonly Fixed64 PI = new Fixed64(12884901888L + 608135817);
+  /// <summary>PI/2, approximately 1.570796.</summary>
+  public static readonly Fixed64 PIover2 = new Fixed64(4294967296L  + 2451551556);
+  /// <summary>PI/2, approximately 6.283185.</summary>
+  public static readonly Fixed64 TwoPI = new Fixed64(25769803776L + 1216271633);
+  /// <summary>Zero.</summary>
+  public static readonly Fixed64 Zero = new Fixed64((long)0);
   #endregion
 
   const long Trunc  = unchecked((long)0xFFFFFFFF00000000);
@@ -733,6 +781,7 @@ public struct Fixed64 : IFormattable, IComparable, IConvertible
   }
 
   #region IComparable Members
+  /// <include file="documentation.xml" path="//IComparable/CompareTo/*"/>
   public int CompareTo(object obj)
   { if(obj==null) return 1;
     if(obj is Fixed64)
@@ -745,63 +794,66 @@ public struct Fixed64 : IFormattable, IComparable, IConvertible
 
   #region IConvertible Members
   // FIXME: these should probably do rounding
+  /// <include file="documentation.xml" path="//IConvertible/ToUInt64/*"/>
   public ulong ToUInt64(IFormatProvider provider)
   { int n = ToInt();
     if(n<0) throw new OverflowException();
     return (ulong)n;
   }
-
+  /// <include file="documentation.xml" path="//IConvertible/ToSByte/*"/>
   public sbyte ToSByte(IFormatProvider provider)
   { int n = ToInt();
     if(n<sbyte.MinValue || n>sbyte.MaxValue) throw new OverflowException();
     return (sbyte)n;
   }
-
+  /// <include file="documentation.xml" path="//IConvertible/ToDouble/*"/>
   public double ToDouble(IFormatProvider provider) { return ToDouble(); }
+  /// <include file="documentation.xml" path="//Mathematics/Fixed/ToDateTime/*"/>
   public DateTime ToDateTime(IFormatProvider provider) { throw new InvalidCastException(); }
-
+  /// <include file="documentation.xml" path="//IConvertible/ToSingle/*"/>
   public float ToSingle(IFormatProvider provider)
   { double d = ToDouble();
     if(d<float.MinValue || d>float.MaxValue) throw new OverflowException();
     return (float)d;
   }
-
+  /// <include file="documentation.xml" path="//Mathematics/Fixed/ToBoolean/*"/>
   public bool ToBoolean(IFormatProvider provider) { return val==0; }
-
+  /// <include file="documentation.xml" path="//IConvertible/ToInt32/*"/>
   public int ToInt32(IFormatProvider provider) { return ToInt(); }
-
+  /// <include file="documentation.xml" path="//IConvertible/ToUInt16/*"/>
   public ushort ToUInt16(IFormatProvider provider)
   { int n = ToInt();
     if(n<ushort.MinValue || n>ushort.MaxValue) throw new OverflowException();
     return (ushort)n;
   }
-
+  /// <include file="documentation.xml" path="//IConvertible/ToInt16/*"/>
   public short ToInt16(IFormatProvider provider)
   { int n = ToInt();
     if(n<short.MinValue || n>short.MaxValue) throw new OverflowException();
     return (short)n;
   }
-
+  /// <include file="documentation.xml" path="//IConvertible/ToString/*"/>
   public string ToString(IFormatProvider provider) { return ToString(null, provider); }
-
+  /// <include file="documentation.xml" path="//IConvertible/ToByte/*"/>
   public byte ToByte(IFormatProvider provider)
   { int n = ToInt();
     if(n<byte.MinValue || n>byte.MaxValue) throw new OverflowException();
     return (byte)n;
   }
-
+  /// <include file="documentation.xml" path="//IConvertible/ToChar/*"/>
   public char ToChar(IFormatProvider provider)
   { int n = ToInt();
     if(n<ushort.MinValue || n>ushort.MaxValue) throw new OverflowException();
     return (char)n;
   }
-
+  /// <include file="documentation.xml" path="//IConvertible/ToInt64/*"/>
   public long ToInt64(IFormatProvider provider) { return ToInt(); }
-
+  /// <summary>Returns the <see cref="TypeCode"/> for the <see cref="Fixed64"/> type.</summary>
+  /// <returns>Returns <see cref="TypeCode.Object"/>.</returns>
   public System.TypeCode GetTypeCode() { return System.TypeCode.Object; }
-
+  /// <include file="documentation.xml" path="//IConvertible/ToDecimal/*"/>
   public decimal ToDecimal(IFormatProvider provider) { return new decimal(ToDouble()); }
-
+  /// <include file="documentation.xml" path="//IConvertible/ToType/*"/>
   public object ToType(Type conversionType, IFormatProvider provider)
   { if(conversionType==typeof(int)) return ToInt32(provider);
     if(conversionType==typeof(double)) return ToDouble();
@@ -817,14 +869,11 @@ public struct Fixed64 : IFormattable, IComparable, IConvertible
     if(conversionType==typeof(sbyte)) return ToSByte(provider);
     if(conversionType==typeof(decimal)) return ToDecimal(provider);
     if(conversionType==typeof(char)) return ToChar(provider);
-    if(conversionType==typeof(Fixed32))
-    { if(wholePart<short.MinValue || wholePart>short.MaxValue) throw new OverflowException();
-      return ToFixed32();
-    }
+    if(conversionType==typeof(Fixed32)) return ToFixed32();
     if(conversionType==typeof(Fixed64)) return this;
     throw new InvalidCastException();
   }
-
+  /// <include file="documentation.xml" path="//IConvertible/ToUInt32/*"/>
   public uint ToUInt32(IFormatProvider provider)
   { int n = ToInt();
     if(n<0) throw new OverflowException();
@@ -833,7 +882,8 @@ public struct Fixed64 : IFormattable, IComparable, IConvertible
   #endregion
 
   #region IFormattable Members
-  public string ToString(string format, IFormatProvider formatProvider)
+  /// <include file="documentation.xml" path="//Mathematics/Fixed/ToString2/*"/>
+  public string ToString(string format, IFormatProvider provider)
   { if(format==null) return ToDouble().ToString();
     if(format.Length==0 || char.ToUpper(format[0])!='R') return ToDouble().ToString(format);
     return wholePart.ToString() + '/' + ((uint)val).ToString();
