@@ -53,7 +53,6 @@ public class PSDLayer
     Bounds = new Rectangle(x, y, x2-x, y2-y);
 
     chans = IOH.ReadBE2(stream);
-    PSDCodec.ValidateChannels(chans);
     channels = new PSDChannel[chans];
     for(int i=0; i<channels.Length; i++)
     { channels[i] = (PSDChannel)IOH.ReadBE2(stream);
@@ -139,7 +138,9 @@ public class PSDCodec
     { PSDLayer layer = image.Layers[this.layer];
       if(layer.Width==0 || layer.Height==0) SkipLayer(); // SkipLayer increments 'this.layer'
       else
-      { layer.Surface = ReadImageData(layer.Width, layer.Height, layer.channels, true);
+      { int end = (int)stream.Position + layer.dataLength;
+        layer.Surface = ReadImageData(layer.Width, layer.Height, layer.channels, true);
+        IOH.Skip(stream, (int)stream.Position-end);
         this.layer++;
       }
       return layer;
@@ -153,6 +154,7 @@ public class PSDCodec
     if(image.Layers!=null && layer<image.Layers.Length)
       throw new InvalidOperationException("Not all the layers have been read yet!");
     IOH.Skip(stream, savedPos-(int)stream.Position);
+    ValidateChannels(image.Channels);
     try { return image.Flattened = ReadImageData(); }
     catch(Exception e) { Abort(); throw e; }
   }
@@ -186,7 +188,6 @@ public class PSDCodec
       if(value != 1) throw new NotSupportedException("Unsupported PSD version number: "+value);
       IOH.Skip(stream, 6);
       img.Channels = IOH.ReadBE2U(stream);
-      ValidateChannels(img.Channels);
       img.Height = IOH.ReadBE4(stream);
       img.Width  = IOH.ReadBE4(stream);
       value = IOH.ReadBE2U(stream);
@@ -421,10 +422,6 @@ public class PSDCodec
     return composite;
   }
 
-  static internal void ValidateChannels(int channels)
-  { if(channels<3 || channels>4) throw new NotSupportedException("Unsupported number of channels: "+channels);
-  }
-
   void Abort()
   { if(autoClose) stream.Close();
 
@@ -473,7 +470,8 @@ public class PSDCodec
     surface.Lock();
     try
     { for(int chan=0; chan<chans.Length; chan++)
-      { if(layer || chan==0)
+      { bool recognized = true;
+        if(layer || chan==0)
         { int value = IOH.ReadBE2(stream);
           if(value!=0 && value!=1) throw new NotSupportedException("Unsupported compression type: "+value);
           compressed = value==1;
@@ -485,6 +483,7 @@ public class PSDCodec
           case PSDChannel.Red:   dest += MaskToOffset(surface.Format.RedMask); break;
           case PSDChannel.Green: dest += MaskToOffset(surface.Format.GreenMask); break;
           case PSDChannel.Blue:  dest += MaskToOffset(surface.Format.BlueMask); break;
+          default: recognized=false; break;
         }
 
         if(compressed)
@@ -496,6 +495,12 @@ public class PSDCodec
               if(lengths[y]>maxlen) maxlen=lengths[y];
             }
             linebuf = new byte[maxlen];
+          }
+          if(!recognized)
+          { int skip=0;
+            for(int yend=yi+height; yi<yend; yi++) skip += lengths[yi];
+            IOH.Skip(stream, skip);
+            continue;
           }
           fixed(byte* lbptr=linebuf)
             for(int yend=yi+height; yi<yend; yi++)
@@ -523,7 +528,8 @@ public class PSDCodec
         }
         else
         { int length = width*height;
-          if(length<=65536)
+          if(!recognized) IOH.Skip(stream, length);
+          else if(length<=65536)
           { byte[] data = new byte[length];
             IOH.Read(stream, data);
             fixed(byte* sdata=data)
@@ -718,7 +724,7 @@ public class PSDCodec
   State    state;
   bool     autoClose, reading;
 
-  static int MaskToOffset(uint mask) // TODO: make this big-endian safe
+  static int MaskToOffset(uint mask) // TODO: make this big-endian safe?
   { int i=0;
     while(mask!=255)
     { if(mask==0) throw new InvalidOperationException("Invalid color mask.");
@@ -726,6 +732,10 @@ public class PSDCodec
       i++;
     }
     return i;
+  }
+
+  static void ValidateChannels(int channels)
+  { if(channels<3 || channels>4) throw new NotSupportedException("Unsupported number of channels: "+channels);
   }
 }
 #endregion
