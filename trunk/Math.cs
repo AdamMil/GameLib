@@ -747,7 +747,7 @@ public struct Vector
     }
   }
 
-  public Vector CrossVector { get { return new Vector(-Y, X); } }
+  public Vector CrossVector { get { return new Vector(Y, -X); } }
   public float  Length
   { get { return (float)System.Math.Sqrt(X*X+Y*Y); }
     set { Normalize(value); }
@@ -771,7 +771,7 @@ public struct Vector
   }
   public override int GetHashCode() { unsafe { fixed(Vector* v=&this) return *(int*)&v->X ^ *(int*)&v->Y; } }
   public Point ToPoint() { return new Point(X, Y); }
-  public override string ToString() { return string.Format("[{0:f},{1:f}]", X, Y); }
+  public override string ToString() { return string.Format("[{0:f2},{1:f2}]", X, Y); }
 
   public static Vector operator-(Vector v) { return new Vector(-v.X, -v.Y); }
   public static Vector operator+(Vector a, Vector b) { return new Vector(a.X+b.X, a.Y+b.Y); }
@@ -817,7 +817,7 @@ public struct Point
   { return Math.Abs(point.X-X)<=epsilon && Math.Abs(point.Y-Y)<=epsilon;
   }
   public override int GetHashCode() { unsafe { fixed(Point* v=&this) return *(int*)&v->X ^ *(int*)&v->Y; } }
-  public override string ToString() { return string.Format("({0:f},{1:f})", X, Y); }
+  public override string ToString() { return string.Format("({0:f2},{1:f2})", X, Y); }
 
   public static Point Invalid { get { return new Point(float.NaN, float.NaN); } }
   public static Vector operator- (Point lhs, Point rhs)  { return new Vector(lhs.X-rhs.X, lhs.Y-rhs.Y); }
@@ -973,8 +973,8 @@ public struct Line
         pt.X = x2;
       }
 
-      if(c2==0) end=pt;
-      else start=pt;
+      if(c2==0) start=pt;
+      else end=pt;
     }
   }
 
@@ -1084,6 +1084,9 @@ public struct Rectangle
     }
   }
 
+  public void Inflate(float x, float y) { X-=x; Width+=x*2; Y-=y; Height+=y*2; }
+  public Rectangle Inflated(float x, float y) { return new Rectangle(X-x, Y-y, Width+x*2, Height+y*2); }
+
   public void Intersect(Rectangle rect)
   { float x2=Right, ox2=rect.Right;
     if(X<rect.X)
@@ -1127,6 +1130,13 @@ public struct Rectangle
            rect.Contains(BottomRight);
   }
 
+  public void Offset(float x, float y) { X+=x; Y+=y; }
+  public void Offset(Vector vect) { X+=vect.X; Y+=vect.Y; }
+
+  public override string ToString()
+  { return string.Format("X={0:F2} Y={1:F2} Width={2:F2} Height={3:F2}", X, Y, Width, Height);
+  }
+
   public Rectangle Union(Rectangle rect)
   { Rectangle ret = new Rectangle(X, Y, Width, Height);
     ret.Unite(rect);
@@ -1139,9 +1149,6 @@ public struct Rectangle
     if(Right>rect.Right)   Width  += rect.Right-Right;
     if(Bottom>rect.Bottom) Height += rect.Bottom-Bottom;
   }
-
-  public void Offset(float x, float y) { X+=x; Y+=y; }
-  public void Offset(Vector vect) { X+=vect.X; Y+=vect.Y; }
 
   public float X, Y, Width, Height;
 }
@@ -1504,7 +1511,7 @@ public struct Vector
   { unsafe { fixed(Vector* v=&this) return *(int*)&v->X ^ *(int*)&v->Y ^ *(int*)&v->Z; }
   }
   public Point ToPoint() { return new Point(X, Y, Z); }
-  public override string ToString() { return string.Format("[{0:f},{1:f},{2:f}]", X, Y, Z); }
+  public override string ToString() { return string.Format("[{0:f2},{1:f2},{2:f2}]", X, Y, Z); }
 
   public static Vector operator-(Vector v) { return new Vector(-v.X, -v.Y, -v.Z); }
   public static Vector operator+(Vector a, Vector b) { return new Vector(a.X+b.X, a.Y+b.Y, a.Z+b.Z); }
@@ -1544,7 +1551,7 @@ public struct Point
   public override int GetHashCode()
   { unsafe { fixed(Point* v=&this) return *(int*)&v->X ^ *(int*)&v->Y ^ *(int*)&v->Z; }
   }
-  public override string ToString() { return string.Format("({0:f},{1:f},{2:f})", X, Y, Z); }
+  public override string ToString() { return string.Format("({0:f2},{1:f2},{2:f2})", X, Y, Z); }
 
   public static Vector operator-(Point lhs, Point rhs)  { return new Vector(lhs.X-rhs.X, lhs.Y-rhs.Y, lhs.Z-rhs.Z); }
   public static Point  operator-(Point lhs, Vector rhs) { return new Point(lhs.X-rhs.X, lhs.Y-rhs.Y, lhs.Z-rhs.Z); }
