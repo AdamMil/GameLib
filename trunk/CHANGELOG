@@ -40,6 +40,9 @@ Changes
 * Changed the hash code functions for Point and Vector
 * Added a ToPoint() method to the Vector classes
 ! Swapped the first two parameters to Unsafe.Copy
+* Fixed Polygon.GetBounds()
+* Made sure Line.Intersection(Rectangle) wouldn't loop infinitely (due to
+  floating point inaccuracy/imprecision)
 
 2004.02.07 (beta)
 -----------------

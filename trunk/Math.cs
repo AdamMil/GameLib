@@ -938,44 +938,67 @@ public struct Line
   
   public Line Intersection(Rectangle rect)
   { float x2=rect.Right-float.Epsilon, y2=rect.Bottom-float.Epsilon;
-    Point start=Start, end=End, pt;
+    Point start=Start, end=End;
     int c, c2;
 
-    while(true)
-    { c = start.Y<rect.Y ? 1 : start.Y>y2 ? 2 : 0;
-      if(start.X<rect.X) c |= 4;
-      else if(start.X>x2) c |= 8;
+    c = start.Y<rect.Y ? 1 : start.Y>y2 ? 2 : 0;
+    if(start.X<rect.X) c |= 4;
+    else if(start.X>x2) c |= 8;
 
-      c2 = end.Y<rect.Y ? 1 : end.Y>y2 ? 2 : 0;
-      if(end.X<rect.X) c2 |= 4;
-      else if(end.X>x2) c2 |= 8;
+    c2 = end.Y<rect.Y ? 1 : end.Y>y2 ? 2 : 0;
+    if(end.X<rect.X) c2 |= 4;
+    else if(end.X>x2) c2 |= 8;
 
-      if(c==0 && c2==0) return new Line(start, end);
-      if((c&c2) != 0) return Line.Invalid;
+    if(c==0 && c2==0) return new Line(start, end);
+    if((c&c2) != 0) return Line.Invalid;
 
-      if(c==0) { pt=end; c=c2; }
-      else pt=start;
-
-      if((c&1)!=0)
-      { pt.X += (rect.Y-pt.Y) * Vector.X / Vector.Y;
-        pt.Y = rect.Y;
+    if(c!=0)
+    { if((c&1)!=0)
+      { start.X += (rect.Y-start.Y) * Vector.X / Vector.Y;
+        start.Y = rect.Y;
       }
       else if((c&2)!=0)
-      { pt.X -= (pt.Y-y2) * Vector.X / Vector.Y;
-        pt.Y = y2;
+      { start.X -= (start.Y-y2) * Vector.X / Vector.Y;
+        start.Y = y2;
       }
       else if((c&4)!=0)
-      { pt.Y += (rect.X-pt.X) * Vector.Y / Vector.X;
-        pt.X = rect.X;
+      { start.Y += (rect.X-start.X) * Vector.Y / Vector.X;
+        start.X = rect.X;
       }
       else
-      { pt.Y -= (pt.X-x2) * Vector.Y / Vector.X;
-        pt.X = x2;
+      { start.Y -= (start.X-x2) * Vector.Y / Vector.X;
+        start.X = x2;
       }
-
-      if(c2==0) start=pt;
-      else end=pt;
     }
+    if(c2!=0)
+    { if((c2&1)!=0)
+      { end.X += (rect.Y-end.Y) * Vector.X / Vector.Y;
+        end.Y = rect.Y;
+      }
+      else if((c2&2)!=0)
+      { end.X -= (end.Y-y2) * Vector.X / Vector.Y;
+        end.Y = y2;
+      }
+      else if((c2&4)!=0)
+      { end.Y += (rect.X-end.X) * Vector.Y / Vector.X;
+        end.X = rect.X;
+      }
+      else
+      { end.Y -= (end.X-x2) * Vector.Y / Vector.X;
+        end.X = x2;
+      }
+    }
+
+    c = start.Y<rect.Y ? 1 : start.Y>y2 ? 2 : 0;
+    if(start.X<rect.X) c |= 4;
+    else if(start.X>x2) c |= 8;
+
+    c2 = end.Y<rect.Y ? 1 : end.Y>y2 ? 2 : 0;
+    if(end.X<rect.X) c2 |= 4;
+    else if(end.X>x2) c2 |= 8;
+
+    if((c&c2) != 0) return Line.Invalid;
+    return new Line(start, end);
   }
 
   public bool Intersects(Line segment) { return Intersection(segment).Valid; }
@@ -1241,10 +1264,10 @@ public class Polygon
   public Rectangle GetBounds()
   { Rectangle ret = new Rectangle(float.MaxValue, float.MaxValue, 0, 0);
     float x2=float.MinValue, y2=float.MinValue;
-    for(int i=0; i<points.Length; i++)
+    for(int i=0; i<length; i++)
     { if(points[i].X<ret.X) ret.X = points[i].X;
-      if(points[i].Y<ret.Y) ret.Y = points[i].Y;
       if(points[i].X>x2) x2 = points[i].X;
+      if(points[i].Y<ret.Y) ret.Y = points[i].Y;
       if(points[i].Y>y2) y2 = points[i].Y;
     }
     ret.Width  = x2-ret.X;
