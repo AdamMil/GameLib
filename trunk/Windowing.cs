@@ -1073,10 +1073,7 @@ public class DesktopControl : ContainerControl, IDisposable
             heldKey = ea.KE;
           }
         }
-        else if(heldKey!=null && heldKey.Key==ea.KE.Key)
-        { krTimer.Change(System.Threading.Timeout.Infinite, System.Threading.Timeout.Infinite);
-          heldKey = null;
-        }
+        else if(heldKey!=null && heldKey.Key==ea.KE.Key) StopKeyRepeat();
         DispatchKeyToFocused(ea);
         keyProcessing=false;
         return FilterAction.Drop;
@@ -1182,6 +1179,13 @@ public class DesktopControl : ContainerControl, IDisposable
     return FilterAction.Continue;
   }
   #endregion
+  
+  public void StopKeyRepeat()
+  { if(krTimer!=null)
+    { krTimer.Change(System.Threading.Timeout.Infinite, System.Threading.Timeout.Infinite);
+      heldKey = null;
+    }
+  }
 
   protected void Dispose(bool destructor)
   { if(init)
@@ -1194,7 +1198,7 @@ public class DesktopControl : ContainerControl, IDisposable
     }
   }
 
-  public void SetModal(Control control)
+  internal void SetModal(Control control)
   { if(control.Desktop!=this) throw new InvalidOperationException("The control is not associated with this desktop!");
     if(modal.Contains(control)) UnsetModal(control);
     modal.Add(control);
@@ -1203,7 +1207,7 @@ public class DesktopControl : ContainerControl, IDisposable
     while(control!=this) { control.Focus(); control=control.Parent; }
   }
 
-  public void UnsetModal(Control control)
+  internal void UnsetModal(Control control)
   { if(control.Desktop!=this) throw new InvalidOperationException("The control is not associated with this desktop!");
     modal.Remove(control);
     if(modal.Count>0)
