@@ -50,6 +50,9 @@ DEVELOPMENT (alpha/beta)
   and high shelf], and a configurable graphic equalizer)
 * Fixed a bug that caused the area behind a control not to be redrawn when
   the control was marked as invisible
+* Reworked the networking code significantly. Added the ability to use the
+  NetLink class in the same thread as both a client and server, and improved
+  the NetLink interface. Added some protection against race conditions.
 
 2004.06.28 (alpha/beta)
 -------------------
