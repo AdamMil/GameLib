@@ -77,6 +77,10 @@ public class MouseClickEvent : Event
   internal MouseClickEvent(ref SDL.MouseButtonEvent evt) : base(EventType.MouseClick)
   { Button=(byte)(evt.Button-1); Down=(evt.Down!=0); X=(int)evt.X; Y=(int)evt.Y;
   }
+  public System.Drawing.Point Point
+  { get { return new System.Drawing.Point(X, Y); }
+    set { X=value.X; Y=value.Y; }
+  }
   public byte Button;
   public bool Down;
   public int  X, Y;
