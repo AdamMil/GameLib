@@ -316,7 +316,8 @@ public sealed class Map : RedBlackBase, IDictionary
   /// <summary>Initializes a new instance of the <see cref="Map"/> class containing the items from the given
   /// <see cref="IDictionary"/> and using the specified <see cref="IComparer"/> to compare keys.
   /// </summary>
-  public Map(IDictionary dict, IComparer comparer) : base(new EntryComparer(comparer))
+  public Map(IDictionary dict, IComparer comparer)
+    : base(comparer==Comparer.Default ? EntryComparer.Default : new EntryComparer(comparer))
   { foreach(DictionaryEntry de in dict) Add(de.Key, de.Value);
   }
 
@@ -567,6 +568,7 @@ public sealed class Map : RedBlackBase, IDictionary
   { public EntryComparer(IComparer comparer) { cmp=comparer; }
     public int Compare(object x, object y) { return cmp.Compare(((Entry)x).Key, ((Entry)y).Key); }
     IComparer cmp;
+    public static readonly EntryComparer Default = new EntryComparer(Comparer.Default);
   }
   
   void AssertNotEmpty() { if(base.Count==0) throw new InvalidOperationException("The collection is empty"); }
