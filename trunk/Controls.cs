@@ -168,6 +168,17 @@ public class Label : LabelBase
 { public Label() { }
   public Label(string text) { Text=text; }
 
+  public int TextPadding
+  { get { return padding; }
+    set
+    { if(value!=padding)
+      { if(value<0) throw new ArgumentOutOfRangeException("TextPadding", value, "must be >=0");
+        padding = value;
+        Invalidate();
+      }
+    }
+  }
+
   protected internal override void OnPaint(PaintEventArgs e)
   { base.OnPaint(e);
     if(Image!=null)
@@ -177,12 +188,16 @@ public class Label : LabelBase
     if(Text.Length>0)
     { GameLib.Fonts.Font f = Font;
       if(f != null)
-      { f.Color     = ForeColor;
+      { Rectangle rect = DisplayRect;
+        rect.Inflate(-padding, -padding);
+        f.Color     = ForeColor;
         f.BackColor = BackColor;
-        f.Render(e.Surface, Text, DisplayRect, TextAlign);
+        f.Render(e.Surface, Text, rect, TextAlign);
       }
     }
   }
+
+  int padding;
 }
 #endregion
 
@@ -980,6 +995,7 @@ public class TextBox : TextBoxBase
     { Rectangle rect = DisplayRect;
       rect.Inflate(-padding, -padding);
       Point location = rect.Location;
+      if(rect.Height>font.Height) location.Y += (rect.Height-font.Height)/2;
 
       string text = Text.Substring(start, end-start);
 
@@ -1273,11 +1289,11 @@ public abstract class MenuBarBase : Control
   
   public MenuCollection Menus { get { return menus; } }
 
-  public int OuterPadding
-  { get { return outerPadding; }
+  public int Spacing
+  { get { return spacing; }
     set
-    { if(value<0) throw new ArgumentOutOfRangeException("OuterPadding", value, "must be >=0");
-      outerPadding=value;
+    { if(value<0) throw new ArgumentOutOfRangeException("spacing", value, "must be >=0");
+      spacing=value;
       Relayout();
     }
   }
@@ -1285,7 +1301,7 @@ public abstract class MenuBarBase : Control
   public MenuBase Add(MenuBase item) { Menus.Add(item); return item; }
 
   public bool HandleKey(Events.KeyboardEvent e)
-  { for(int i=0; i<buttons.Length; i++) if(buttons[i].Menu.GlobalHotKey.Matches(e)) { Open(i); return true; }
+  { for(int i=0; i<buttons.Length; i++) if(buttons[i].Menu.GlobalHotKey.Matches(e)) { Open(i, false); return true; }
     foreach(MenuBase menu in menus)
       foreach(MenuItemBase item in menu.Controls)
         if(item.GlobalHotKey.Matches(e)) { menu.PostClickEvent(item); return true; }
@@ -1381,29 +1397,30 @@ public abstract class MenuBarBase : Control
   }
   protected MenuButton[] Buttons { get { return buttons; } }
 
+  protected internal void Relayout()
+  { GameLib.Fonts.Font font = Font;
+    if(font==null) { buttons = new MenuButton[0]; return; }
+
+    buttons = new MenuButton[menus.Count];
+    for(int i=0,x=spacing; i<menus.Count; i++)
+    { MenuBase menu = (MenuBase)menus[i];
+      Size size = MeasureItem(menu);
+      buttons[i] = new MenuButton(menu, new Rectangle(x, (Height-size.Height)/2, size.Width, size.Height));
+      x += size.Width+spacing;
+    }
+    Invalidate();
+  }
+
   internal void OnMenuClosed(MenuBase menu)
   { for(int i=0; i<buttons.Length; i++)
       if(buttons[i].Menu==menu && buttons[i].State!=ButtonState.Normal) { Close(i); break; }
   }
 
-  internal void Relayout()
-  { GameLib.Fonts.Font font = Font;
-    if(font==null) { buttons = new MenuButton[0]; return; }
-
-    buttons = new MenuButton[menus.Count];
-    for(int i=0,x=outerPadding; i<menus.Count; i++)
-    { MenuBase menu = (MenuBase)menus[i];
-      Size size = MeasureItem(menu);
-      buttons[i] = new MenuButton(menu, new Rectangle(x, (Height-size.Height)/2, size.Width, size.Height));
-      x += size.Width+outerPadding;
-    }
-    Invalidate();
-  }
-
-  void Open(int menu)
+  void Open(int menu) { Open(menu, true); }
+  void Open(int menu, bool pullDown)
   { buttons[menu].State = ButtonState.Open;
-    buttons[menu].Menu.Show(this, new Point(buttons[menu].Area.X, buttons[menu].Area.Bottom), true, false);
-    Capture = true;
+    buttons[menu].Menu.Show(this, new Point(buttons[menu].Area.X, buttons[menu].Area.Bottom), pullDown, false);
+    Capture = pullDown;
     Invalidate(buttons[menu].Area);
   }
   
@@ -1416,7 +1433,7 @@ public abstract class MenuBarBase : Control
 
   MenuCollection menus;
   MenuButton[] buttons;
-  int outerPadding=1;
+  int spacing=1;
 }
 #endregion
 
@@ -1577,7 +1594,7 @@ public class MenuBar : MenuBarBase
     foreach(MenuButton button in Buttons)
     { if(button.Area.IntersectsWith(e.WindowRect))
       { if(button.State!=ButtonState.Normal)
-          Helpers.DrawBorder(e.Surface, WindowToDisplay(button.Area), BorderStyle.Fixed3D, false);
+          Helpers.DrawBorder(e.Surface, WindowToDisplay(button.Area), BorderStyle.Fixed3D, BackColor, false);
       }
     }
   }

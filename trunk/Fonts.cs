@@ -99,7 +99,8 @@ public abstract class Font
   { if(text.Length==0) return new int[0];
 
     ArrayList list = new ArrayList();
-    int x=rect.X+startx, start=0, end=0, pend, length=0, plen=0, height=LineSkip;
+    // HACK: LineSkip should never be less than Height, but sometimes it is, so we take the minimum
+    int x=rect.X+startx, start=0, end=0, pend, length=0, plen=0, height=Math.Min(Height, LineSkip);
     int rwidth=rect.Width-startx, rheight=rect.Height-starty;
     if(height>rheight) return new int[0];
 
@@ -295,10 +296,8 @@ public class TrueTypeFont : NonFixedFont, IDisposable
   { /*int width, height; -- DOESN'T WORK CONSISTENTLY
     TTF.SizeUNICODE(font, text, out width, out height);*/
     Size size = new Size(0, Height);
-    for(int i=0; i<text.Length; i++)
-    { CachedChar c = GetChar(text[i]);
-      size.Width += i==text.Length-1 ? c.Width : c.Advance;
-    }
+    for(int i=0; i<text.Length; i++) size.Width += GetChar(text[i]).Advance; // less correct, but more consistent
+      //size.Width += i==0 && c.OffsetX<0 ? c.Width+c.OffsetX : i==text.Length-1 ? c.Width : c.Advance;
     return size;
   }
 
@@ -306,8 +305,9 @@ public class TrueTypeFont : NonFixedFont, IDisposable
   { int width=0;
     for(int i=0; i<text.Length; i++)
     { CachedChar c = GetChar(text[i]);
-      width += i>0 ? c.Advance : 0;
-      if(width+c.Width > pixels) return i;
+      /*width += i>0 ? c.Advance : 0;
+      if(width+c.Width+(i==0 && c.OffsetX<0 ? c.OffsetX : 0) > pixels) return i;*/
+      if(width+c.Advance > pixels) return i; // less correct, but more consistent
     }
     return text.Length;
   }
