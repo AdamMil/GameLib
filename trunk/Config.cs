@@ -13,6 +13,7 @@ public class Config
   public const string SDLGFXImportPath   = "sdlgfx";
   public const string GLMixerImportPath  = "Mixer";
   public const string SndFileImportPath  = "libsndfile";
+  public const string VorbisImportPath   = "vorbisfile";
   
   #if BIGENDIAN
   public const bool CompiledBigEndian = true;
