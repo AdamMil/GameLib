@@ -66,6 +66,7 @@ DEVELOPMENT (alpha/beta)
 + Added support for formatted binary reading.
 + Added a Connected event and OnConnected override for the network Client.
 * Cleaned up and optimized the binary reading/writing code somewhat.
++ Added quaternion and matrix classes to the Mathematics namespace
 
 2004.06.28 (alpha/beta)
 -------------------

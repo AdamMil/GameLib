@@ -757,7 +757,11 @@ public class NetLink
   public void Send(byte[] data, SendFlag flags) { Send(data, 0, data.Length, flags, 0, null); }
   /// <include file="documentation.xml" path="//Network/NetLink/Send/*[self::Common or self::Flags or self::Timeout]/*"/>
   public void Send(byte[] data, SendFlag flags, uint timeoutMs) { Send(data, 0, data.Length, flags, timeoutMs, null); }
-  /// <include file="documentation.xml" path="//Network/NetLink/Send/*/*"/>
+  /// <include file="documentation.xml" path="//Network/NetLink/Send/*[self::Common or self::Length or self::Index or self::Flags or self::Timeout]/*"/>
+  /// <param name="tag">Arbitrary data that will be associated with this message and that can be accessed via
+  /// <see cref="LinkMessage.Tag"/>. The data is not examined or modified by the network engine. Note that this means
+  /// <see cref="LinkMessage.Tag"/> will always be null on the receiving end.
+  /// </param>
   public void Send(byte[] data, int index, int length, SendFlag flags, uint timeoutMs, object tag)
   { if(!connected) throw new InvalidOperationException("Link is not open");
     if((flags&SendFlag.NotifyReceived)!=0)

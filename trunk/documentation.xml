@@ -492,18 +492,6 @@ byte[] output = IOH.Write("dfp?d", parms);
     <param name="obj">An object to test for equality.</param>
     <returns>Returns true if <paramref name="obj"/> is a <see cref="Line"/> and equals this one.</returns>
    </Equals>
-   <Equals2>
-    <summary>Determines whether the given object is a <see cref="Line"/> equal to this one, within a given margin of
-    error.
-    </summary>
-    <param name="obj">An object to test for equality.</param>
-    <param name="epsilon">The given margin of error. The difference between both lines' <see cref="Start"/> and
-    <see cref="Vector"/> properties must be less than or equal to this for them to qualify as equal.
-    </param>
-    <returns>Returns true if <paramref name="obj"/> is a <see cref="Line"/> and equals this one, within the given
-    margin of error.
-    </returns>
-   </Equals2>
    <Equals3>
     <summary>Determines whether the given line is equal to this one, within a given margin of error.</summary>
     <param name="line">A line to test for equality.</param>
@@ -530,16 +518,6 @@ byte[] output = IOH.Write("dfp?d", parms);
     <param name="obj">An object to test for equality.</param>
     <returns>Returns true if <paramref name="obj"/> is a <see cref="Point"/> and equals this one.</returns>
    </Equals>
-   <Equals2>
-    <summary>Determines whether the given object is a point equal to this one, within a given margin of error.</summary>
-    <param name="obj">An object to test for equality.</param>
-    <param name="epsilon">The given margin of error. The difference between both points' X and Y coordinates must be
-    less than or equal to this for them to qualify as equal.
-    </param>
-    <returns>Returns true if <paramref name="obj"/> is a <see cref="Point"/> and equals this one, within the given
-    margin of error.
-    </returns>
-   </Equals2>
    <Equals3>
     <summary>Determines whether the given point is equal to this one, within a given margin of error.</summary>
     <param name="point">A point to test for equality.</param>
@@ -563,17 +541,6 @@ byte[] output = IOH.Write("dfp?d", parms);
     <param name="obj">An object to test for equality.</param>
     <returns>Returns true if <paramref name="obj"/> is a <see cref="Vector"/> and equals this one.</returns>
    </Equals>
-   <Equals2>
-    <summary>Determines whether the given object is a <see cref="Vector"/> equal to this one, within the given margin of error.
-    </summary>
-    <param name="obj">An object to test for equality.</param>
-    <param name="epsilon">The given margin of error. The difference between both vectors' X and Y axes must be
-    less than or equal to this for them to qualify as equal.
-    </param>
-    <returns>Returns true if <paramref name="obj"/> is a <see cref="Vector"/> and equals this one, within the given
-    margin of error.
-    </returns>
-   </Equals2>
    <Equals3>
     <summary>Determines whether the given <see cref="Vector"/> is equal to this one, within a given margin of error.</summary>
     <param name="vect">A vector to test for equality.</param>
@@ -760,14 +727,6 @@ byte[] output = IOH.Write("dfp?d", parms);
         <summary>Queues a message for sending.</summary>
         <param name="data">An array of <see cref="System.Byte"/> containing the message data.</param>
       </Common>
-      <RawSend>
-        <param name="orig">A reference to the original, unserialized message data.</param>
-        <remarks>This method is used to send a raw block of data over the network. It is assumed that the data
-          was obtained by serializing it with the <see cref="Converter"/>. The primary use for this is if you want
-          to send a complex message to several players without first creating a collection containing them,
-          or to send the same message at several different times.
-        </remarks>
-      </RawSend>
       <Length><param name="length">The length of the message data.</param></Length>
       <Index><param name="index">The index into <paramref name="data"/> at which the message data begins.</param></Index>
       <Flags>
@@ -813,6 +772,17 @@ byte[] output = IOH.Write("dfp?d", parms);
         </list>
         </param>
       </Common>
+      <RawSend>
+        <param name="data">An array of <see cref="System.Byte"/> containing the serialized message data.
+          The data should have been obtained from <see cref="Converter"/>.
+        </param>
+        <param name="orig">A reference to the original, unserialized message data.</param>
+        <remarks>This method is used to send a raw block of data over the network. It is assumed that the data
+          was obtained by serializing it with the <see cref="Converter"/>. The primary use for this is if you want
+          to send a complex message to several players without first creating a collection containing them,
+          or to send the same message at several different times.
+        </remarks>
+      </RawSend>
       <byteData><param name="data">An array of <see cref="System.Byte"/> containing the message data.</param></byteData>
       <Length><param name="length">The length of the message data.</param></Length>
       <Index>
