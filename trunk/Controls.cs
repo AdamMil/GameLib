@@ -19,6 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // TODO: implement more controls (checkbox, listbox, dropdown)
 // TODO: have controls display differently when disabled
 // TODO: implement a menubar control
+// TODO: implement docking
 using System;
 using System.Collections;
 using System.Drawing;
@@ -32,16 +33,16 @@ namespace GameLib.Forms
 #region ContainerControl
 public class ContainerControl : Control
 { protected internal override void OnPaint(PaintEventArgs e)
-  { foreach(Control c in Controls)
+  { base.OnPaint(e);
+    foreach(Control c in Controls)
       if(c.Visible)
-      { Rectangle paint = Rectangle.Intersect(c.ParentRect, e.WindowRect);
+      { Rectangle paint = Rectangle.Intersect(c.Bounds, e.WindowRect);
         if(paint.Width>0)
         { paint.X -= c.Left; paint.Y -= c.Top;
           c.AddInvalidRect(paint);
           c.Update();
         }
       }
-    base.OnPaint(e);
   }
   
   protected internal override void OnLayout(EventArgs e)

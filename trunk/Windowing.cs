@@ -68,10 +68,10 @@ public class DragEventArgs : EventArgs
     }
   }
   /// <summary>
-  /// This field holds the beginning of the drag, in window coordinates. It is valid during all of the drag events.
+  /// This field holds the beginning of the drag, in control coordinates. It is valid during all of the drag events.
   /// </summary>
   public Point Start;
-  /// <summary>This field holds the beginning of the drag, in window coordinates. It is valid during the
+  /// <summary>This field holds the beginning of the drag, in control coordinates. It is valid during the
   /// <see cref="Control.DragMove"/> and <see cref="Control.DragEnd"/> events.
   /// </summary>
   public Point End;
@@ -93,7 +93,7 @@ public delegate void DragEventHandler(object sender, DragEventArgs e);
 public class PaintEventArgs : EventArgs
 { 
   /// <param name="control">The control that is to be painted.</param>
-  /// <param name="windowRect">The area within the control to be painted, in window coordinates.
+  /// <param name="windowRect">The area within the control to be painted, in control coordinates.
   /// This rectangle is used to generated the <see cref="DisplayRect"/> field.
   /// </param>
   /// <param name="surface">The surface onto which the control should be drawn. This is expected to be the
@@ -119,9 +119,9 @@ public class PaintEventArgs : EventArgs
   }
   /// <summary>This field holds a reference to the surface upon which the control should be painted.</summary>
   public Surface Surface;
-  /// <summary>This rectangle holds the area to be painted, in window coordinates.</summary>
+  /// <summary>This rectangle holds the area to be painted, in control coordinates.</summary>
   public Rectangle WindowRect;
-  /// <summary>This rectangle holds the area to be painted, in screen coordinates within <see cref="Surface"/>.
+  /// <summary>This rectangle holds the area to be painted, in display coordinates within <see cref="Surface"/>.
   /// </summary>
   public Rectangle DisplayRect;
 }
@@ -152,7 +152,7 @@ public class ClickEventArgs : EventArgs
   /// <param name="ce">This reference is stored in the <see cref="CE"/> field.</param>
   public ClickEventArgs(MouseClickEvent ce) { CE=ce; }
   /// <summary>This field holds the mouse click information. Fields referring to the location where the
-  /// click occurred will be automatically converted to window coordinates when the event handler is called.
+  /// click occurred will be automatically converted to control coordinates when the event handler is called.
   /// </summary>
   public MouseClickEvent CE;
   /// <summary>This is set to true within an event handler to indicate that the event has been handled and should
@@ -164,7 +164,7 @@ public class ClickEventArgs : EventArgs
 public delegate void ClickEventHandler(object sender, ClickEventArgs e);
 /// <summary>This delegate is used along with <see cref="MouseMoveEvent"/> to service mouse move events.
 /// Information in <c>e</c> relating to the location of the mouse movement will be automatically converted
-/// to window coordinates when the event handler is called.
+/// to control coordinates when the event handler is called.
 /// </summary>
 public delegate void MouseMoveEventHandler(object sender, MouseMoveEvent e);
 #endregion
@@ -174,6 +174,16 @@ public delegate void MouseMoveEventHandler(object sender, MouseMoveEvent e);
 /// This enum is generally used by derived controls to control how they will be treated by the
 /// <see cref="DesktopControl">Desktop</see>. The enumeration members can be ORed together to combine their effects.
 /// </summary>
+/// <remarks>
+/// THREADING CONSIDERATIONS
+/// <para>This class, and classes derived from it, are not designed to be used from multiple threads simultaneously.
+/// The thread that reads the events (see <see cref="GameLib.Events.Events">Events</see>) should be the only thread
+/// to use this control. If you want to trigger an event from another thread, the recommended implementation is to
+/// push a custom event, derived from <see cref="WindowEvent"/>, with the <see cref="WindowEvent.Control"/> field
+/// set to the control you want to notify. The control can then use <see cref="Control.OnCustomEvent"/> to handle
+/// the event.
+/// </para>
+/// </remarks>
 [Flags]
 public enum ControlStyle
 { 
@@ -196,7 +206,7 @@ public enum ControlStyle
   Anyclick=NormalClick|Draggable,
   /// <summary>Instead of drawing to the desktop directly, the control will have a backing surface to which all
   /// drawing will be done. This is especially useful if it's difficult for the control to keep its drawing within
-  /// its window. Transparent background colors for controls with backing surfaces is not supported.
+  /// its window. Transparent background colors for controls with backing surfaces are not supported.
   /// </summary>
   BackingSurface=16
 }
@@ -452,9 +462,9 @@ public class Control
     }
     set
     { if(value!=back)
-      { ValueChangedEventArgs e = new ValueChangedEventArgs(back);
+      { Color old = BackColor;
         back = value;
-        OnBackColorChanged(e);
+        if(BackColor!=old) OnBackColorChanged(new ValueChangedEventArgs(old));
       }
     }
   }
@@ -489,7 +499,7 @@ public class Control
   }
 
   /// <summary>Gets or sets the position of the bottom edge of the control relative to its parent.</summary>
-  /// <remarks>Setting this property will move the control.</remarks>
+  /// <remarks>Changing this property will move the control.</remarks>
   public int Bottom
   { get { return bounds.Bottom; }
     set
@@ -502,7 +512,7 @@ public class Control
   }
 
   /// <summary>Gets or sets the location and size of the control relative to its parent.</summary>
-  /// <remarks>Setting this property will both move and resize the control.</remarks>
+  /// <remarks>Changing this property will both move and resize the control.</remarks>
   public Rectangle Bounds
   { get { return bounds; }
     set
@@ -608,8 +618,9 @@ public class Control
     }
     set
     { if(value!=enabled)
-      { enabled = value;
-        OnEnabledChanged(new ValueChangedEventArgs(!value));
+      { bool old = Enabled;
+        enabled = value;
+        if(Enabled!=old) OnEnabledChanged(new ValueChangedEventArgs(old));
       }
     }
   }
@@ -628,6 +639,12 @@ public class Control
     }
   }
 
+  /// <summary>Gets or sets the font that this control should use.</summary>
+  /// <remarks>Setting this property will alter the <see cref="RawFont"/> property of this control. 
+  /// Setting it to <c>null</c> will cause it to inherit the its parent's font. Reading this property will
+  /// take inheritance into account and return the effective font for this control. Since the font is likely
+  /// shared with other controls, you should set the font's properties (such as the color) before using it.
+  /// </remarks>
   public GameLib.Fonts.Font Font
   { get
     { Control c = this;
@@ -636,13 +653,19 @@ public class Control
     }
     set
     { if(value!=font)
-      { ValueChangedEventArgs e = new ValueChangedEventArgs(font);
+      { GameLib.Fonts.Font old = Font;
         font = value;
-        OnFontChanged(e);
+        if(Font!=old) OnFontChanged(new ValueChangedEventArgs(old));
       }
     }
   }
 
+  /// <summary>Gets or sets the foreground color control should use.</summary>
+  /// <remarks>Setting this property will alter the <see cref="RawForeColor"/> property of this control. 
+  /// Setting it to <see cref="System.Drawing.Color.Transparent">Color.Transparent</see> will cause it to
+  /// inherit its parent's foreground color. Reading this property will take inheritance into account and
+  /// return the effective foreground color for this control.
+  /// </remarks>
   public Color ForeColor
   { get
     { Control c = this;
@@ -651,15 +674,18 @@ public class Control
     }
     set
     { if(value!=fore)
-      { ValueChangedEventArgs e = new ValueChangedEventArgs(fore);
+      { Color old=ForeColor;
         fore = value;
-        OnForeColorChanged(e);
+        if(ForeColor!=old) OnForeColorChanged(new ValueChangedEventArgs(old));
       }
     }
   }
 
+  /// <summary>Returns true if this control has any child controls.</summary>
   public bool HasChildren { get { return controls.Count>0; } }
 
+  /// <summary>Gets or sets the height of this control, in pixels.</summary>
+  /// <remarks>Changing this property will resize the control.</remarks>
   public int Height
   { get { return bounds.Height; }
     set
@@ -671,6 +697,13 @@ public class Control
     }
   }
 
+  /// <summary>Gets or sets the area of the control that must be painted.</summary>
+  /// <remarks>This property holds the rectangle, relative to the <see cref="WindowRect"/>, of the bounding box
+  /// of the area that
+  /// is invalid and should be painted on the next call to <see cref="OnPaint"/>. Generally, this property will
+  /// not be used directly. Use the <see cref="Invalidate"/> and <see cref="Refresh"/> methods to mark areas of
+  /// the control as invalid.
+  /// </remarks>
   public Rectangle InvalidRect
   { get { return invalid; }
     set
@@ -679,8 +712,14 @@ public class Control
     }
   }
   
+  /// <summary>Gets or sets whether this control receives keyboard events before its children.</summary>
+  /// <remarks>If a control has key preview, it will receive keyboard events before its children, and have
+  /// a chance to process and/or cancel them.
+  /// </remarks>
   public bool KeyPreview { get { return keyPreview; } set { keyPreview=value; } }
   
+  /// <summary>Gets or sets the position of the left edge of the control relative to its parent.</summary>
+  /// <remarks>Changing this property will move the control.</remarks>
   public int Left
   { get { return bounds.X; }
     set
@@ -692,6 +731,8 @@ public class Control
     }
   }
 
+  /// <summary>Gets or sets the location of this control's top-left point, relative to its parent.</summary>
+  /// <remarks>Changing this property will move the control.</remarks>
   public Point Location
   { get { return bounds.Location; }
     set
@@ -703,6 +744,11 @@ public class Control
     }
   }
 
+  /// <summary>Returns true if this is a modal control.</summary>
+  /// <remarks>A modal control will receive input focus and all keyboard events, and cannot lose focus unless a new
+  /// modal control is opened after it. You can use the <see cref="TopModal"/> property to check whether this
+  /// control is the topmost modal control (the one with focus).
+  /// </remarks>
   public bool Modal
   { get
     { DesktopControl desktop = Desktop;
@@ -710,6 +756,13 @@ public class Control
     }
   }
 
+  /// <summary>Gets or sets name of this control.</summary>
+  /// <remarks>The name can be used to locate a control within its parent easily, using the
+  /// <see cref="ControlCollection.Find"/> methods, but is otherwise not used by the windowing system.
+  /// For proper functioning, the name should be unique among all its ancestors and their descendants, and
+  /// should follow this naming convention: <c>[a-zA-Z_][a-zA-Z0-9_]*</c>. Essentially, a letter or underscore
+  /// followed by possibly more letters, digits, and/or underscores.
+  /// </remarks>
   public string Name
   { get { return name; }
     set
@@ -718,6 +771,10 @@ public class Control
     }
   }
 
+  /// <summary>Gets or sets this control's parent control.</summary>
+  /// <remarks>This property will return null if the control has no parent. Setting this property will
+  /// remove this control from its current parent, if any, and add it to the new parent, if any.
+  /// </remarks>
   public Control Parent
   { get { return parent; }
     set
@@ -734,15 +791,44 @@ public class Control
     }
   }
 
-  public Rectangle ParentRect { get { return WindowToParent(WindowRect); } }
-
+  /// <summary>Gets this control's raw background color.</summary>
+  /// <remarks>Generally, the <see cref="BackColor"/> property should be used to get the background color,
+  /// but if you want to get it without taking inheritance into account, use this one.
+  /// </remarks>
   public Color RawBackColor   { get { return back; } }
+
+  /// <summary>Gets this control's raw cursor.</summary>
+  /// <remarks>Generally, the <see cref="Cursor"/> property should be used to get the cursor, but if you want
+  /// to get it without taking inheritance into account, use this one.
+  /// </remarks>
   public IBlittable RawCursor { get { return cursor; } }
+
+  /// <summary>Gets this control's raw enabled value.</summary>
+  /// <remarks>Generally, the <see cref="Enabled"/> property should be used to determine if the control is enabled,
+  /// but if you don't want inheritance to be taken into account, use this one.
+  /// </remarks>
   public bool RawEnabled      { get { return enabled; } }
+
+  /// <summary>Gets this control's raw font.</summary>
+  /// <remarks>Generally, the <see cref="Font"/> property should be used to get the font, but if you want
+  /// to get it without taking inheritance into account, use this one.
+  /// </remarks>
   public GameLib.Fonts.Font RawFont { get { return font; } }
+
+  /// <summary>Gets this control's raw foreground color.</summary>
+  /// <remarks>Generally, the <see cref="ForeColor"/> property should be used to get the foreground color,
+  /// but if you want to get it without taking inheritance into account, use this one.
+  /// </remarks>
   public Color RawForeColor   { get { return fore; } }
+
+  /// <summary>Gets this control's raw visible value.</summary>
+  /// <remarks>Generally, the <see cref="Visible"/> property should be used to determine if the control is visible,
+  /// but if you don't want inheritance to be taken into account, use this one.
+  /// </remarks>
   public bool RawVisible      { get { return visible; } }
 
+  /// <summary>Gets or sets the position of the right edge of the control relative to its parent.</summary>
+  /// <remarks>Changing this property will move the control.</remarks>
   public int Right
   { get { return bounds.Right; }
     set
@@ -754,11 +840,20 @@ public class Control
     }
   }
 
+  /// <summary>Gets or sets whether this control is its parent's focused control.</summary>
+  /// <remarks>See the <see cref="Focused"/> property for more information on input focusing. Unlike the
+  /// <see cref="Focused"/> property, which will return true only this control and all of its ancestors are
+  /// focused, this property only considers whether or not this control is focused. Thus, this property is not
+  /// for determining whether this control actual input focus. Setting this property is equivalent to calling
+  /// <see cref="Focus"/> or <see cref="Blur"/>, depending on whether the value is true or false, respectively.
+  /// </remarks>
   public bool Selected
   { get { return parent==null ? false : parent.focused==this; }
     set { if(value) Focus(); else Blur(); }
   }
   
+  /// <summary>Gets or sets the size of this control.</summary>
+  /// <remarks>Changing this control will resize the control.</remarks>
   public Size Size
   { get { return bounds.Size; }
     set
@@ -770,6 +865,11 @@ public class Control
     }
   }
 
+  /// <summary>Gets or sets this control's <see cref="ControlStyle"/>.</summary>
+  /// <remarks>This property is generally designed to be set by the implementors of controls. Altering this
+  /// property could invalidate assumptions made by the control and cause problems. See the
+  /// <see cref="ControlStyle"/> enum for more information about control styles.
+  /// </remarks>
   public ControlStyle Style
   { get { return style; }
     set
@@ -781,6 +881,12 @@ public class Control
     }
   }
 
+  /// <summary>Gets or sets this control's position within the tab order.</summary>
+  /// <remarks>Controls are often meant to be used in a certain order. By setting this property, you can alter
+  /// the logical order of controls. <see cref="TabToNextControl"/> and <see cref="DesktopControl"/> both use
+  /// this property to determine in what order controls should be focused. The default value is -1, which means
+  /// that this control is not part of the tab ordering.
+  /// </remarks>
   public int TabIndex
   { get { return tabIndex; }
     set
@@ -789,8 +895,20 @@ public class Control
     }
   }
 
+  /// <summary>Gets or sets a bit of user data associated with this control.</summary>
+  /// <remarks>This property is not altered or used by the windowing system in any way. It is meant to be used
+  /// to associate any context with controls that might be helpful. The <see cref="Name"/> property can be used
+  /// similarly, but with some restrictions.
+  /// </remarks>
   public object Tag { get { return tag; } set { tag=value; } }
   
+  /// <summary>Gets or sets this control's text.</summary>
+  /// <remarks>Different types of controls use this property differently. For <see cref="Form"/>, it's the window
+  /// caption. For <see cref="ButtonBase"/>, it's the text displayed along with the button. For
+  /// <see cref="MenuBase"/> and <see cref="MenuItemBase"/>, it's the text displayed for the menu. For
+  /// <see cref="TextBoxBase"/>, it's the text entered by the user. Other controls may use this differently.
+  /// See the documentation for derived classes to see how they treat this property.
+  /// </remarks>
   public virtual string Text
   { get { return text; }
     set
@@ -802,6 +920,8 @@ public class Control
     }
   }
 
+  /// <summary>Gets or sets the position of the top edge of the control relative to its parent.</summary>
+  /// <remarks>Changing this property will move the control.</remarks>
   public int Top
   { get { return bounds.Top; }
     set
@@ -813,6 +933,24 @@ public class Control
     }
   }
 
+  /// <summary>Returns true if this is the topmost modal control.</summary>
+  /// <remarks>A modal control will receive input focus and all keyboard events, and cannot lose focus unless a new
+  /// modal control is opened after it. You can use this property to check whether this control is the topmost
+  /// modal control (the one with focus).
+  /// </remarks>
+  public bool TopModal
+  { get
+    { DesktopControl desktop = Desktop;
+      return desktop != null && desktop.modal.Count>0 && desktop.modal[desktop.modal.Count-1]==this;
+    }
+  }
+
+  /// <summary>Gets or sets whether this control will be rendered.</summary>
+  /// <remarks>Setting this property will alter the <see cref="RawVisible"/> property of this control. 
+  /// Setting it to true will cause it to inherit the visibility status of its parent. Reading this property will
+  /// return whether this control is effectively visible, taking inheritance into account. A control that is not
+  /// visible will not be rendered.
+  /// </remarks>
   public bool Visible
   { get
     { Control c = this;
@@ -827,6 +965,8 @@ public class Control
     }
   }
 
+  /// <summary>Gets or sets the width of this control, in pixels.</summary>
+  /// <remarks>Changing this property will resize the control.</remarks>
   public int Width
   { get { return bounds.Width; }
     set
@@ -838,13 +978,40 @@ public class Control
     }
   }
 
+  /// <summary>Gets a rectangle representing the client area of this control.</summary>
+  /// <remarks>The client area of the control is the area of the control, relative to the control itself.
+  /// The <see cref="Rectangle.X"/> and <see cref="Rectangle.Y"/> of the returned rectangle will both be 0,
+  /// and the <see cref="Rectangle.Width"/> and <see cref="Rectangle.Height"/> of the returned rectangle will
+  /// be equal to the <see cref="Width"/> and <see cref="Height"/> of this control.
+  /// </remarks>
   public Rectangle WindowRect { get { return new Rectangle(0, 0, bounds.Width, bounds.Height); } }
 
+  /// <summary>Gets this control's offset from its parent's bottom edge.</summary>
+  /// <remarks>This property is meant to be used by controls handling <see cref="OnLayout"/> and doing custom
+  /// layout. It holds the number of pixels that should be between this control's bottom edge and its parent's.
+  /// The <see cref="ContainerControl"/> class implements the standard <see cref="OnLayout"/> handler, and it's
+  /// recommended that you consider deriving from <see cref="ContainerControl"/> instead of attempting to
+  /// implement anchoring and docking yourself.
+  /// </remarks>
   public int BottomAnchorOffset { get { return bottomAnchor; } }
+
+  /// <summary>Gets this control's offset from its parent's right edge.</summary>
+  /// <remarks>This property is meant to be used by controls handling <see cref="OnLayout"/> and doing custom
+  /// layout. It holds the number of pixels that should be between this control's right edge and its parent's.
+  /// The <see cref="ContainerControl"/> class implements the standard <see cref="OnLayout"/> handler, and it's
+  /// recommended that you consider deriving from <see cref="ContainerControl"/> instead of attempting to
+  /// implement anchoring and docking yourself.
+  /// </remarks>
   public int RightAnchorOffset  { get { return rightAnchor;  } }
   #endregion
   
   #region Public methods
+  /// <summary>Marks a region of the control as invalid, without triggering a repaint event.</summary>
+  /// <param name="rect">The rectangle, in control coordinates, to mark as invalid.</param>
+  /// <remarks>Generally this method should not be used to mark regions invalid because it does not cause a
+  /// repaint event to be triggered. Instead, consider using the <see cref="Invalidate"/> and <see cref="Refresh"/>
+  /// methods. This method may be useful in conjunction with the <see cref="Update"/> method, however.
+  /// </remarks>
   public void AddInvalidRect(Rectangle rect)
   { rect.Intersect(WindowRect);
     if(rect.Width==0) return;
@@ -852,6 +1019,10 @@ public class Control
     else invalid = Rectangle.Union(rect, invalid);
   }
 
+  /// <summary>Brings this control to the front of the Z-order.</summary>
+  /// <remarks>This method will bring this control to the front, ensuring that it's drawn above its other siblings.
+  /// </remarks>
+  /// <exception cref="InvalidOperationException">Thrown if this control has no parent.</exception>
   public void BringToFront()
   { AssertParent();
     ArrayList list = parent.controls.Array;
@@ -862,15 +1033,62 @@ public class Control
     }
   }
 
+  /// <summary>Removes input focus from this control.</summary>
+  /// <remarks>After calling this method, the control will not have input focus.</remarks>
   public void Blur() { if(parent!=null && parent.FocusedControl==this) parent.FocusedControl=null; }
 
+  /// <summary>Converts a point from display coordinates to control coordinates.</summary>
+  /// <param name="displayPoint">The point to convert, in display coordinates.</param>
+  /// <returns>The converted point, in control coordinates.</returns>
+  /// <remarks>This method converts a point relative to this control's display surface (the <see cref="Surface"/>
+  /// property of this control's <see cref="Desktop"/>) into control coordinates. This method does not return a
+  /// correct value for controls that use a backing surface (see <see cref="DisplayRect"/> for more information).
+  /// </remarks>
+  public Point DisplayToWindow(Point displayPoint)
+  { Control c = this;
+    while(c!=null) { displayPoint.X-=c.bounds.X; displayPoint.Y-=c.bounds.Y; c=c.parent; }
+    return displayPoint;
+  }
+
+  /// <summary>Converts a rectangle from display coordinates to control coordinates.</summary>
+  /// <param name="displayRect">The rectangle to convert, in display coordinates.</param>
+  /// <returns>The converted rectangle, in control coordinates.</returns>
+  /// <remarks>This method converts a rectangle relative to this control's display surface (the <see cref="Surface"/>
+  /// property of this control's <see cref="Desktop"/>) into control coordinates. This method does not return a
+  /// correct value for controls that use a backing surface (see <see cref="DisplayRect"/> for more information).
+  /// </remarks>
+  public Rectangle DisplayToWindow(Rectangle displayRect)
+  { return new Rectangle(DisplayToWindow(displayRect.Location), displayRect.Size);
+  }
+
+  /// <summary>Selects this control.</summary>
+  /// <remarks>Calling this is equivalent to calling <see cref="Focus(bool)"/> and passing true.</remarks>
   public void Focus() { Focus(false); }
+
+  /// <summary>Attempts to give this control input focus.</summary>
+  /// <param name="focusAncestors">If true, an attempt will be made to give all the ancestors input focus as well.
+  /// </param>
+  /// <remarks>This method will select this control (if <see cref="CanFocus"/> is true), and possibly try the same
+  /// with all its ancestors, depending on the value of <paramref name="focusAncestors"/>.
+  /// </remarks>
+  /// <exception cref="InvalidOperationException">Thrown if this control has no parent.</exception>
   public void Focus(bool focusAncestors)
   { AssertParent();
     if(CanFocus) parent.FocusedControl = this;
-    if(focusAncestors && parent.parent!=null) parent.Focus(true);
+    if(focusAncestors)
+    { Control anc = parent;
+      while(anc.parent!=null)
+      { if(anc.CanFocus) anc.parent.FocusedControl=anc;
+        anc=anc.parent;
+      }
+    }
   }
 
+  /// <summary>Returns the topmost control at a given point in control coordinates.</summary>
+  /// <param name="point">The point to consider, in control coordinates.</param>
+  /// <returns>The child control at the point specified, or null if none are.</returns>
+  /// <remarks>If multiple children overlap at the given point, the one highest in the Z-order will be returned.
+  /// </remarks>
   public Control GetChildAtPoint(Point point)
   { for(int i=controls.Count-1; i>=0; i--)
     { Control c = controls[i];
@@ -879,7 +1097,17 @@ public class Control
     return null;
   }
 
+  /// <summary>Returns the next control in the tab order.</summary>
+  /// <returns>The next control in the tab order, or null if none were found.</returns>
+  /// <remarks>Calling this is equivalent to calling <see cref="GetNextControl(bool)"/> and passing false.</remarks>
   public Control GetNextControl() { return GetNextControl(false); }
+
+  /// <summary>Returns the next or previous control in the tab order.</summary>
+  /// <param name="reverse">If true, the previous control in the tab order will be returned.</param>
+  /// <returns>The next or previous control in the tab order, or null if none were found.</returns>
+  /// <remarks>This method uses the <see cref="TabIndex"/> property to order the controls. This method treats the
+  /// set of controls as a circular list, so the control after the last one in the tab order is the first again.
+  /// </remarks>
   public Control GetNextControl(bool reverse)
   { Control next=null, ext=null;
     if(reverse)
@@ -901,7 +1129,19 @@ public class Control
     return next==null ? ext : next;
   }
 
+  /// <summary>Invalidates the entire control area and triggers a repaint.</summary>
+  /// <remarks>Calling this is equivalent to calling <see cref="Invalidate(Rectangle)"/> and passing
+  /// <see cref="WindowRect"/>.
+  /// </remarks>
   public void Invalidate() { Invalidate(WindowRect); }
+
+  /// <summary>Invalidates an area in control coordinates and triggers a repaint.</summary>
+  /// <param name="area">The area to invalidate, in control coordinates.</param>
+  /// <remarks>Calling this may also invalidate areas of this control's parent. For instance, if this control has
+  /// a transparent background, then its parent will need to be invalidated as well to redraw the background.
+  /// This method can be called multiple times in quick succession, and only one paint event will be generated
+  /// because if a paint event for this control is already queued, no new one will be added.
+  /// </remarks>
   public void Invalidate(Rectangle area)
   { if(back==Color.Transparent && parent!=null) parent.Invalidate(WindowToParent(area));
     else
@@ -914,26 +1154,24 @@ public class Control
     }
   }
 
+  /// <summary>Returns true if this control or one of its children is the control specified.</summary>
+  /// <param name="control">The control to compare to.</param>
+  /// <returns>Returns true if this control or one of its children is the control specified, and false
+  /// otherwise.
+  /// </returns>
   public bool IsOrHas(Control control) { return this==control || Controls.Contains(control); }
 
+  /// <summary>Forces an immediate repaint.</summary>
   public void Update()
   { DesktopControl desktop = Desktop;
     if(desktop!=null) desktop.DoPaint(this);
   }
   
-  public Point DisplayToWindow(Point displayPoint)
-  { Control c = this;
-    while(c!=null) { displayPoint.X-=c.bounds.X; displayPoint.Y-=c.bounds.Y; c=c.parent; }
-    return displayPoint;
-  }
-  public Point WindowToChild(Point windowPoint, Control child)
-  { windowPoint.X -= child.bounds.X; windowPoint.Y -= child.bounds.Y;
-    return windowPoint;
-  }
-  public Point WindowToParent(Point windowPoint)
-  { windowPoint.X+=bounds.X; windowPoint.Y+=bounds.Y; return windowPoint;
-  }
-  public Point WindowToDisplay(Point windowPoint) { return WindowToAncestor(windowPoint, null); }
+  /// <summary>Converts a point from control coordinates to an ancestor's control coordinates.</summary>
+  /// <param name="windowPoint">The point to convert, in control coordinates.</param>
+  /// <param name="ancestor">The ancestor whose control coordinates the point will be converted to.</param>
+  /// <returns>The converted point, in the control coordinates of the specified ancestor.</returns>
+  /// <remarks>If <paramref name="ancestor"/> is not an ancestor of this control, the results are undefined.</remarks>
   public Point WindowToAncestor(Point windowPoint, Control ancestor)
   { if(ancestor==this) return windowPoint;
     Control c = this;
@@ -941,24 +1179,82 @@ public class Control
     return windowPoint;
   }
 
-  public Rectangle DisplayToWindow(Rectangle displayRect)
-  { return new Rectangle(DisplayToWindow(displayRect.Location), displayRect.Size);
-  }
-  public Rectangle WindowToChild(Rectangle windowRect, Control child)
-  { windowRect.X -= child.bounds.X; windowRect.Y -= child.bounds.Y;
-    return windowRect;
-  }
-  public Rectangle WindowToParent(Rectangle windowRect)
-  { return new Rectangle(WindowToParent(windowRect.Location), windowRect.Size);
-  }
-  public Rectangle WindowToDisplay(Rectangle windowRect)
-  { return new Rectangle(WindowToAncestor(windowRect.Location, null), windowRect.Size);
-  }
+  /// <summary>Converts a rectangle from control coordinates to an ancestor's control coordinates.</summary>
+  /// <param name="windowRect">The rectangle to convert, in control coordinates.</param>
+  /// <param name="ancestor">The ancestor whose control coordinates the rectangle will be converted to.</param>
+  /// <returns>The converted rectangle, in the control coordinates of the specified ancestor.</returns>
+  /// <remarks>If <paramref name="ancestor"/> is not an ancestor of this control, the results are undefined.</remarks>
   public Rectangle WindowToAncestor(Rectangle windowRect, Control ancestor)
   { return new Rectangle(WindowToAncestor(windowRect.Location, ancestor), windowRect.Size);
   }
 
+  /// <summary>Converts a point from control coordinates to a child's control coordinates.</summary>
+  /// <param name="windowPoint">The point to convert, in control coordinates.</param>
+  /// <param name="child">The child whose control coordinates the point will be converted to.</param>
+  /// <returns>The converted point, in the control coordinates of the specified child.</returns>
+  /// <remarks>If <paramref name="child"/> is not a child of this control, the results are undefined.</remarks>
+  public Point WindowToChild(Point windowPoint, Control child)
+  { windowPoint.X -= child.bounds.X; windowPoint.Y -= child.bounds.Y;
+    return windowPoint;
+  }
+
+  /// <summary>Converts a rectangle from control coordinates to a child's control coordinates.</summary>
+  /// <param name="windowRect">The rectangle to convert, in control coordinates.</param>
+  /// <param name="child">The child whose control coordinates the rectangle will be converted to.</param>
+  /// <returns>The converted rectangle, in the control coordinates of the specified child.</returns>
+  /// <remarks>If <paramref name="child"/> is not a child of this control, the results are undefined.</remarks>
+  public Rectangle WindowToChild(Rectangle windowRect, Control child)
+  { windowRect.X -= child.bounds.X; windowRect.Y -= child.bounds.Y;
+    return windowRect;
+  }
+
+  /// <summary>Converts a point from control coordinates to display coordinates.</summary>
+  /// <param name="windowPoint">The point to convert, in control coordinates.</param>
+  /// <returns>The converted point, in display coordinates.</returns>
+  /// <remarks>This method converts a point relative to this control into display coordinates (coordinates relative
+  /// to the display surface [the <see cref="Surface"/> property of this control's <see cref="Desktop"/>]). This
+  /// method does not return a correct value for controls that use a backing surface
+  /// (see <see cref="DisplayRect"/> for more information).
+  /// </remarks>
+  public Point WindowToDisplay(Point windowPoint) { return WindowToAncestor(windowPoint, null); }
+
+  /// <summary>Converts a rectangle from control coordinates to display coordinates.</summary>
+  /// <param name="windowRect">The rectangle to convert, in control coordinates.</param>
+  /// <returns>The converted rectangle, in display coordinates.</returns>
+  /// <remarks>This method converts a rectangle relative to this control into display coordinates (coordinates
+  /// relative to the display surface [the <see cref="Surface"/> property of this control's <see cref="Desktop"/>]).
+  /// This method does not return a correct value for controls that use a backing surface
+  /// (see <see cref="DisplayRect"/> for more information).
+  /// </remarks>
+  public Rectangle WindowToDisplay(Rectangle windowRect)
+  { return new Rectangle(WindowToAncestor(windowRect.Location, null), windowRect.Size);
+  }
+
+  /// <summary>Converts a point from control coordinates to the parent's control coordinates.</summary>
+  /// <param name="windowPoint">The point to convert, in control coordinates.</param>
+  /// <returns>The converted point, in the control coordinates this control's parent.</returns>
+  public Point WindowToParent(Point windowPoint)
+  { windowPoint.X+=bounds.X; windowPoint.Y+=bounds.Y; return windowPoint;
+  }
+
+  /// <summary>Converts a rectangle from control coordinates to the parent's control coordinates.</summary>
+  /// <param name="windowRect">The rectangle to convert, in control coordinates.</param>
+  /// <returns>The converted rectangle, in the control coordinates this control's parent.</returns>
+  public Rectangle WindowToParent(Rectangle windowRect)
+  { return new Rectangle(WindowToParent(windowRect.Location), windowRect.Size);
+  }
+
+  /// <summary>Immediately repaints the entire display surface.</summary>
+  /// <remarks>Calling this is equivalent to calling <see cref="Refresh(Rectangle)"/> and passing
+  /// <see cref="WindowRect"/>.
+  /// </remarks>
   public void Refresh() { Refresh(WindowRect); }
+
+  /// <summary>Invalidates the given area and immediately repaints the control.</summary>
+  /// <param name="area">The area to invalidate.</param>
+  /// <remarks>This method adds the given area to the invalid rectangle (see <see cref="InvalidRect"/>) and
+  /// then forces an immediate repaint.
+  /// </remarks>
   public void Refresh(Rectangle area)
   { if(back==Color.Transparent && parent!=null) parent.Refresh(WindowToParent(area));
     else
@@ -967,15 +1263,10 @@ public class Control
     }
   }
 
-  public void ResumeLayout() { ResumeLayout(true); }
-  public void ResumeLayout(bool updateNow)
-  { if(layoutSuspended && pendingLayout)
-    { if(updateNow) OnLayout(new EventArgs());
-      else if(Events.Events.Initialized) Events.Events.PushEvent(new WindowLayoutEvent(this));
-    }
-    layoutSuspended=false;
-  }
-
+  /// <summary>Sends this control to the back of the Z-order.</summary>
+  /// <remarks>This method will send this control to the back, ensuring that it's drawn below its other siblings.
+  /// </remarks>
+  /// <exception cref="InvalidOperationException">Thrown if this control has no parent.</exception>
   public void SendToBack()
   { AssertParent();
     ArrayList list = parent.controls.Array;
@@ -986,41 +1277,201 @@ public class Control
     }
   }
 
-  public void SuspendLayout() { layoutSuspended=true; }
-  
+  /// <summary>This method selects the next control in the tab order.</summary>
+  /// <remarks>Calling this method is equivalent to calling <see cref="TabToNextControl(bool)"/> and passing false.
+  /// </remarks>
   public void TabToNextControl() { TabToNextControl(false); }
+
+  /// <summary>This method selects the next or previous control in the tab order.
+  /// <seealso cref="Selected"/> <seealso cref="GetNextControl(bool)"/>
+  /// </summary>
+  /// <param name="reverse">If true, selects the previous control. Otherwise, selects the next control.</param>
   public void TabToNextControl(bool reverse) { FocusedControl = GetNextControl(reverse); }
   #endregion
   
   #region Events
-  public event ValueChangedEventHandler BackColorChanged, BackImageChanged, BackImageAlignChanged, EnabledChanged,
-    FontChanged, ForeColorChanged, LocationChanged, ParentChanged, SizeChanged, TabIndexChanged, TextChanged,
-    VisibleChanged;
-  public event EventHandler GotFocus, LostFocus, Layout, MouseEnter, MouseLeave, Move, Resize;
-  public event ControlEventHandler ControlAdded, ControlRemoved;
-  public event KeyEventHandler KeyDown, KeyUp, KeyPress;
+  /// <summary>Occurs when the value of the <see cref="BackColor"/> property changes.</summary>
+  public event ValueChangedEventHandler BackColorChanged;
+  /// <summary>Occurs when the value of the <see cref="BackImage"/> property changes.</summary>
+  public event ValueChangedEventHandler BackImageChanged;
+  /// <summary>Occurs when the value of the <see cref="BackImageAlign"/> property changes.</summary>
+  public event ValueChangedEventHandler BackImageAlignChanged;
+  /// <summary>Occurs when the value of the <see cref="Enabled"/> property changes.</summary>
+  public event ValueChangedEventHandler EnabledChanged;
+  /// <summary>Occurs when the value of the <see cref="Font"/> property changes.</summary>
+  public event ValueChangedEventHandler FontChanged;
+  /// <summary>Occurs when the value of the <see cref="ForeColor"/> property changes.</summary>
+  public event ValueChangedEventHandler ForeColorChanged;
+  /// <summary>Occurs when the value of the <see cref="Location"/> property changes.</summary>
+  public event ValueChangedEventHandler LocationChanged;
+  /// <summary>Occurs when the value of the <see cref="Parent"/> property changes.</summary>
+  public event ValueChangedEventHandler ParentChanged;
+  /// <summary>Occurs when the value of the <see cref="Size"/> property changes.</summary>
+  public event ValueChangedEventHandler SizeChanged;
+  /// <summary>Occurs when the value of the <see cref="TabIndex"/> property changes.</summary>
+  public event ValueChangedEventHandler TabIndexChanged;
+  /// <summary>Occurs when the value of the <see cref="Text"/> property changes.</summary>
+  public event ValueChangedEventHandler TextChanged;
+  /// <summary>Occurs when the value of the <see cref="Visible"/> property changes.</summary>
+  public event ValueChangedEventHandler VisibleChanged;
+
+  /// <summary>Occurs when the control is selected.</summary>
+  /// <remarks>This event only signifies that the control was focused by its parent. The event handler should
+  /// consider using the <see cref="Focused"/> property to check that this control has actual input focus.
+  /// </remarks>
+  public event EventHandler GotFocus;
+
+  /// <summary>Occurs when the control is unselected.</summary>
+  /// <remarks>This event only signifies that the control was unfocused by its parent. The control may not have
+  /// had actual input focus before this event was raised.
+  /// </remarks>
+  public event EventHandler LostFocus;
+
+  /// <summary>Occurs when the control is to lay out its children.</summary>
+  /// <remarks>This event should be raised before the actual layout code executes, so the event handler can
+  /// make modifications to control positions and expect the changes to be taken into account.
+  /// </remarks>
+  public event EventHandler Layout;
+
+  /// <summary>Occurs when the mouse is positioned over the control or one of its ancestors.</summary>
+  /// <remarks>If at any level in the control hierarchy, there are multiple overlapping sibling controls under the
+  /// cursor, the one with the highest Z-order will be given precedence.  This event will not be raised for
+  /// controls that are not visible.
+  /// </remarks>
+  public event EventHandler MouseEnter;
+
+  /// <summary>Occurs when the mouse is leaves the control's area.</summary>
+  /// <remarks>If the <see cref="MouseEnter"/> event was not raised for this control, the <see cref="MouseLeave"/>
+  /// event will not be raised either. This event will not be raised for controls that are not visible.
+  /// </remarks>
+  public event EventHandler MouseLeave;
+
+  /// <summary>Occurs after the value of the <see cref="Location"/> property changes.</summary>
+  /// <remarks>This event occurs after the <see cref="LocationChanged"/> event. Generally, it's better to hook this
+  /// event rather han the <see cref="LocationChanged"/> event.
+  /// </remarks>
+  public event EventHandler Move;
+
+  /// <summary>Occurs after the value of the <see cref="Size"/> property changes.</summary>
+  /// <remarks>This event occurs after the <see cref="SizeChanged"/> event. Generally, it's better to hook this
+  /// event rather han the <see cref="SizeChanged"/> event.
+  /// </remarks>
+  public event EventHandler Resize;
+
+  /// <summary>Occurs after a child is added to this control.</summary>
+  public event ControlEventHandler ControlAdded;
+  /// <summary>Occurs after a child is removed from this control.</summary>
+  public event ControlEventHandler ControlRemoved;
+
+  /// <summary>Occurs when a keyboard key is pressed and this control has input focus.</summary>
+  public event KeyEventHandler KeyDown;
+  /// <summary>Occurs when a keyboard key is released and this control has input focus.</summary>
+  public event KeyEventHandler KeyUp;
+
+  /// <summary>Occurs when a key having an associated character is pressed and this control has input focus.</summary>
+  /// <remarks>Some keys do not have associated characters, such as the shift keys, the arrow keys, etc.
+  /// Some key presses depend on the state of other keys. For instance, the character associated with the A key
+  /// depends on the state of the Caps Lock state and modifier keys such as Shift and Ctrl.
+  /// </remarks>
+  public event KeyEventHandler KeyPress;
+
+  /// <summary>Occurs when the mouse is moved over a control's surface.</summary>
+  /// <remarks>If another control has captured mouse input or is the topmost modal contral, this event will only
+  /// be raised for that control.
+  /// </remarks>
   public event MouseMoveEventHandler MouseMove;
-  public event ClickEventHandler MouseDown, MouseUp, MouseClick, DoubleClick;
-  public event DragEventHandler DragStart, DragMove, DragEnd;
-  public event PaintEventHandler PaintBackground, Paint;
-  
-  // TODO: should these be triggered if our back-color is transparent and an ancestor's is changed?
+
+  /// <summary>Occurs when the mouse button is pressed inside a control's area.</summary>
+  /// <remarks>If another control has captured mouse input or is the topmost modal contral, this event will only
+  /// be raised for that control. The control must have the <see cref="ControlStyle.Clickable"/> style to receive
+  /// this event.
+  /// </remarks>
+  public event ClickEventHandler MouseDown;
+
+  /// <summary>Occurs when the mouse button is released inside a control's area.</summary>
+  /// <remarks>If another control has captured mouse input or is the topmost modal contral, this event will only
+  /// be raised for that control. The control must have the <see cref="ControlStyle.Clickable"/> style to receive
+  /// this event.
+  /// </remarks>
+  public event ClickEventHandler MouseUp;
+
+  /// <summary>Occurs when the mouse button is both pressed and released inside a control's area.</summary>
+  /// <remarks>If another control has captured mouse input or is the topmost modal contral, this event will only
+  /// be raised for that control. The control must have the <see cref="ControlStyle.Clickable"/> style to receive
+  /// this event.
+  /// </remarks>
+  public event ClickEventHandler MouseClick;
+
+  /// <summary>Occurs when the mouse button is double-clicked inside a control's area.</summary>
+  /// <remarks>If another control has captured mouse input or is the topmost modal contral, this event will only
+  /// be raised for that control. The control must have the <see cref="ControlStyle.DoubleClickable"/> style to
+  /// receive this event.
+  /// <seealso cref="DesktopControl.DoubleClickDelay"/>
+  /// </remarks>
+  public event ClickEventHandler DoubleClick;
+
+  /// <summary>Occurs when the mouse is clicked and dragged inside the control's area.</summary>
+  /// <remarks>If another control has captured mouse input or is the topmost modal contral, this event will only
+  /// be raised for that control. The control must have the <see cref="ControlStyle.Draggable"/> style to
+  /// receive this event.
+  /// <see cref="Control.DragThreshold"/> <see cref="DesktopControl.DragThreshold"/>
+  /// </remarks>
+  public event DragEventHandler DragStart;
+
+  /// <summary>Occurs when the mouse is moved after a drag has started. <seealso cref="DragStart"/></summary>
+  public event DragEventHandler DragMove;
+  /// <summary>Occurs when the mouse button is released, ending a drag. <seealso cref="DragStart"/></summary>
+  public event DragEventHandler DragEnd;
+
+  /// <summary>Occurs immediately before the background of a control is to be repainted.</summary>
+  public event PaintEventHandler PaintBackground;
+  /// <summary>Occurs immediately before a control is to be repainted.</summary>
+  public event PaintEventHandler Paint;
+
+  /// <summary>Raises the <see cref="BackColorChanged"/> event and performs default handing.</summary>
+  /// <param name="e">A <see cref="ValueChangedEventArgs"/> that contains the event data.</param>
+  /// <remarks>This method raises the <see cref="BackColorChanged"/> event, invalidates the control (using
+  /// <see cref="Invalidate"/>), and calls <see cref="OnParentBackColorChanged"/> on each child.
+  /// When overriding this method in a derived class, be sure to call the base class' version to ensure that the
+  /// default processing gets performed.
+  /// </remarks>
   protected virtual void OnBackColorChanged(ValueChangedEventArgs e)
   { if(BackColorChanged!=null) BackColorChanged(this, e);
     Invalidate();
     foreach(Control c in controls) c.OnParentBackColorChanged(e);
   }
 
+  /// <summary>Raises the <see cref="BackImageChanged"/> event and performs default handing.</summary>
+  /// <param name="e">A <see cref="ValueChangedEventArgs"/> that contains the event data.</param>
+  /// <remarks>This method raises the <see cref="BackImageChanged"/> event and invalidates the control (using
+  /// <see cref="Invalidate"/>).
+  /// When overriding this method in a derived class, be sure to call the base class' version to ensure that the
+  /// default processing gets performed.
+  /// </remarks>
   protected virtual void OnBackImageChanged(ValueChangedEventArgs e)
   { if(BackImageChanged!=null) BackImageChanged(this, e);
     Invalidate();
   }
 
+  /// <summary>Raises the <see cref="BackImageAlignChanged"/> event and performs default handing.</summary>
+  /// <param name="e">A <see cref="ValueChangedEventArgs"/> that contains the event data.</param>
+  /// <remarks>This method raises the <see cref="BackImageAlignChanged"/> event and invalidates the control (using
+  /// <see cref="Invalidate"/>) if a background image is defined.
+  /// When overriding this method in a derived class, be sure to call the base class' version to ensure that the
+  /// default processing gets performed.
+  /// </remarks>
   protected virtual void OnBackImageAlignChanged(ValueChangedEventArgs e)
   { if(BackImageAlignChanged!=null) BackImageAlignChanged(this, e);
     if(backImage!=null) Invalidate();
   }
 
+  /// <summary>Raises the <see cref="EnabledChanged"/> event and performs default handing.</summary>
+  /// <param name="e">A <see cref="ValueChangedEventArgs"/> that contains the event data.</param>
+  /// <remarks>This method raises the <see cref="EnabledChanged"/> event, and invalidates and possibly blurs the
+  /// control, and calls <see cref="OnParentEnabledChanged"/> on each child.
+  /// When overriding this method in a derived class, be sure to call the base class' version to ensure that the
+  /// default processing gets performed. The proper place to do this is at the beginning of the derived version.
+  /// </remarks>
   protected virtual void OnEnabledChanged(ValueChangedEventArgs e)
   { if(EnabledChanged!=null) EnabledChanged(this, e);
     if(Enabled != (bool)e.OldValue)
@@ -1030,18 +1481,39 @@ public class Control
     }
   }
 
+  /// <summary>Raises the <see cref="FontChanged"/> event and performs default handing.</summary>
+  /// <param name="e">A <see cref="ValueChangedEventArgs"/> that contains the event data.</param>
+  /// <remarks>This method raises the <see cref="FontChanged"/> event, and invalidates the control (using
+  /// <see cref="Invalidate"/>), and calls <see cref="OnParentFontChanged"/> on each child.
+  /// When overriding this method in a derived class, be sure to call the base class' version to ensure that the
+  /// default processing gets performed.
+  /// </remarks>
   protected virtual void OnFontChanged(ValueChangedEventArgs e)
   { if(FontChanged!=null) FontChanged(this, e);
     Invalidate();
     foreach(Control c in controls) c.OnParentFontChanged(e);
   }
 
+  /// <summary>Raises the <see cref="ForeColorChanged"/> event and performs default handing.</summary>
+  /// <param name="e">A <see cref="ValueChangedEventArgs"/> that contains the event data.</param>
+  /// <remarks>This method raises the <see cref="ForeColorChanged"/> event, and invalidates the control (using
+  /// <see cref="Invalidate"/>), and calls <see cref="OnParentForeColorChanged"/> on each child.
+  /// When overriding this method in a derived class, be sure to call the base class' version to ensure that the
+  /// default processing gets performed.
+  /// </remarks>
   protected virtual void OnForeColorChanged(ValueChangedEventArgs e)
   { if(ForeColorChanged!=null) ForeColorChanged(this, e);
     Invalidate();
     foreach(Control c in controls) c.OnParentForeColorChanged(e);
   }
 
+  /// <summary>Raises the <see cref="LocationChanged"/> event and performs default handing.</summary>
+  /// <param name="e">A <see cref="ValueChangedEventArgs"/> that contains the event data.</param>
+  /// <remarks>This method raises the <see cref="LocationChanged"/> event, and invalidates the control and
+  /// its parent (using <see cref="Invalidate"/>), updates anchor information, and calls <see cref="OnMove"/>.
+  /// When overriding this method in a derived class, be sure to call the base class' version to ensure that the
+  /// default processing gets performed. The proper place to do this is at the end of the derived version.
+  /// </remarks>
   protected virtual void OnLocationChanged(ValueChangedEventArgs e)
   { if(LocationChanged!=null) LocationChanged(this, e);
     if(parent!=null)
@@ -1052,18 +1524,59 @@ public class Control
     OnMove(e);
   }
 
+  /// <summary>Raises the <see cref="ParentChanged"/> event and performs default handing.</summary>
+  /// <param name="e">A <see cref="ValueChangedEventArgs"/> that contains the event data.</param>
+  /// <remarks>This method raises the <see cref="ParentChanged"/> event, and performs important processing.
+  /// When overriding this method in a derived class, be sure to call the base class' version to ensure that the
+  /// default processing gets performed. The proper place for this is at the beginning of the derived version.
+  /// </remarks>
   protected virtual void OnParentChanged(ValueChangedEventArgs e)
   { if(ParentChanged!=null) ParentChanged(this, e);
     UpdateBackingSurface(false);
+
     if(parent!=null)
     { UpdateAnchor();
       UpdateDock();
       Invalidate();
       parent.TriggerLayout();
     }
-    if(e.OldValue!=null) ((Control)e.OldValue).TriggerLayout();
+
+    if(e.OldValue==null)
+    { if(back!=BackColor) OnBackColorChanged(new ValueChangedEventArgs(back));
+      if(enabled!=Enabled) OnEnabledChanged(new ValueChangedEventArgs(enabled));
+      if(font!=Font) OnFontChanged(new ValueChangedEventArgs(font));
+      if(fore!=ForeColor) OnForeColorChanged(new ValueChangedEventArgs(fore));
+      if(visible!=Visible) OnVisibleChanged(new ValueChangedEventArgs(visible));
+    }
+    else
+    { Control oldPar = (Control)e.OldValue;
+
+      if(back==Color.Transparent)
+      { Color old = oldPar.BackColor; 
+        if(old!=back) OnBackColorChanged(new ValueChangedEventArgs(old));
+      }
+      if(enabled && !oldPar.Enabled) OnEnabledChanged(new ValueChangedEventArgs(false));
+      if(font==null)
+      { GameLib.Fonts.Font old = oldPar.Font;
+        if(old!=font) OnFontChanged(new ValueChangedEventArgs(old));
+      }
+      if(fore==Color.Transparent)
+      { Color old = oldPar.ForeColor; 
+        if(old!=fore) OnBackColorChanged(new ValueChangedEventArgs(old));
+      }
+      if(visible && !oldPar.Visible) OnEnabledChanged(new ValueChangedEventArgs(false));
+      
+      ((Control)e.OldValue).TriggerLayout();
+    }
   }
 
+  /// <summary>Raises the <see cref="SizeChanged"/> event and performs default handing.</summary>
+  /// <param name="e">A <see cref="ValueChangedEventArgs"/> that contains the event data.</param>
+  /// <remarks>This method raises the <see cref="SizeChanged"/> event, performs important processing, and calls
+  /// <see cref="OnResize"/>. When overriding this method in a derived class, be sure to call the base class'
+  /// version to ensure that the default processing gets performed. The proper place to do this is at the end
+  /// of the derived version.
+  /// </remarks>
   protected virtual void OnSizeChanged(ValueChangedEventArgs e)
   { if(SizeChanged!=null) SizeChanged(this, e);
     if(invalid.Right>bounds.Width) invalid.Width-=invalid.Right-bounds.Width;
@@ -1085,12 +1598,29 @@ public class Control
     foreach(Control c in controls) c.OnParentResized(e);
   }
 
+  /// <summary>Raises the <see cref="TabIndexChanged"/> event.</summary>
+  /// <param name="e">A <see cref="ValueChangedEventArgs"/> that contains the event data.</param>
+  /// <remarks>When overriding this method in a derived class, be sure to call the base class'
+  /// version to ensure that the default processing gets performed.
+  /// </remarks>
   protected virtual void OnTabIndexChanged(ValueChangedEventArgs e)
   { if(TabIndexChanged!=null) TabIndexChanged(this, e);
   }
 
+  /// <summary>Raises the <see cref="TextChanged"/> event.</summary>
+  /// <param name="e">A <see cref="ValueChangedEventArgs"/> that contains the event data.</param>
+  /// <remarks>When overriding this method in a derived class, be sure to call the base class'
+  /// version to ensure that the default processing gets performed.
+  /// </remarks>
   protected virtual void OnTextChanged(ValueChangedEventArgs e) { if(TextChanged!=null) TextChanged(this, e); }
 
+  /// <summary>Raises the <see cref="VisibleChanged"/> event and performs default handing.</summary>
+  /// <param name="e">A <see cref="ValueChangedEventArgs"/> that contains the event data.</param>
+  /// <remarks>This method raises the <see cref="VisibleChanged"/> event, invalidates and possibly blurs the
+  /// control, and calls <see cref="OnParentVisibleChanged"/> on each child.
+  /// When overriding this method in a derived class, be sure to call the base class' version to ensure that the
+  /// default processing gets performed. The proper place to do this is at the beginning of the derived version.
+  /// </remarks>
   protected virtual void OnVisibleChanged(ValueChangedEventArgs e)
   { if(VisibleChanged!=null) VisibleChanged(this, e);
     if(Visible!=(bool)e.OldValue)
@@ -1100,84 +1630,243 @@ public class Control
     }
   }
 
+  /// <summary>Raises the <see cref="GotFocus"/> event.</summary>
+  /// <param name="e">An <see cref="EventArgs"/> that contains the event data.</param>
+  /// <remarks>When overriding this method in a derived class, be sure to call the base class'
+  /// version to ensure that the default processing gets performed.
+  /// </remarks>
   protected virtual void OnGotFocus(EventArgs e)  { if(GotFocus!=null) GotFocus(this, e); }
+
+  /// <summary>Raises the <see cref="LostFocus"/> event.</summary>
+  /// <param name="e">An <see cref="EventArgs"/> that contains the event data.</param>
+  /// <remarks>When overriding this method in a derived class, be sure to call the base class'
+  /// version to ensure that the default processing gets performed.
+  /// </remarks>
   protected virtual void OnLostFocus(EventArgs e) { if(LostFocus!=null) LostFocus(this, e); }
 
+  /// <summary>Raises the <see cref="Layout"/> event and performs default handling.</summary>
+  /// <param name="e">An <see cref="EventArgs"/> that contains the event data.</param>
+  /// <remarks>When overriding this method in a derived class, be sure to call the base class'
+  /// version to ensure that the default processing gets performed. The proper place to do this is at
+  /// the beginning of the derived version.
+  /// </remarks>
   protected internal virtual void OnLayout(EventArgs e)
   { if(Layout!=null) Layout(this, e);
-    if(dock!=DockStyle.None && parent!=null) UpdateDock();
     pendingLayout=false;
   }
 
+  /// <summary>Raises the <see cref="MouseEnter"/> event.</summary>
+  /// <param name="e">An <see cref="EventArgs"/> that contains the event data.</param>
+  /// <remarks>When overriding this method in a derived class, be sure to call the base class'
+  /// version to ensure that the default processing gets performed.
+  /// </remarks>
   protected internal virtual void OnMouseEnter(EventArgs e) { if(MouseEnter!=null) MouseEnter(this, e); }
+
+  /// <summary>Raises the <see cref="MouseLeave"/> event.</summary>
+  /// <param name="e">An <see cref="EventArgs"/> that contains the event data.</param>
+  /// <remarks>When overriding this method in a derived class, be sure to call the base class'
+  /// version to ensure that the default processing gets performed.
+  /// </remarks>
   protected internal virtual void OnMouseLeave(EventArgs e) { if(MouseLeave!=null) MouseLeave(this, e); }
 
+  /// <summary>Raises the <see cref="Move"/> event.</summary>
+  /// <param name="e">An <see cref="EventArgs"/> that contains the event data.</param>
+  /// <remarks>When overriding this method in a derived class, be sure to call the base class'
+  /// version to ensure that the default processing gets performed.
+  /// </remarks>
   protected virtual void OnMove(EventArgs e)   { if(Move!=null) Move(this, e); }
+
+  /// <summary>Raises the <see cref="Resize"/> event.</summary>
+  /// <param name="e">An <see cref="EventArgs"/> that contains the event data.</param>
+  /// <remarks>When overriding this method in a derived class, be sure to call the base class'
+  /// version to ensure that the default processing gets performed.
+  /// </remarks>
   protected virtual void OnResize(EventArgs e) { if(Resize!=null) Resize(this, e); }
 
-  protected virtual void OnControlAdded(ControlEventArgs e) { if(ControlAdded!=null) ControlAdded(this, e); }
+  /// <summary>Raises the <see cref="ControlAdded"/> event and performs default handling.</summary>
+  /// <param name="e">A <see cref="ControlEventArgs"/> that contains the event data.</param>
+  /// <remarks>When overriding this method in a derived class, be sure to call the base class'
+  /// version to ensure that the default processing gets performed. The proper place to do this is at the
+  /// end of the derived version.
+  /// </remarks>
+  protected virtual void OnControlAdded(ControlEventArgs e)
+  { if(e.Control.Dock != DockStyle.None) TriggerLayout();
+    if(ControlAdded!=null) ControlAdded(this, e);
+  }
+
+  /// <summary>Raises the <see cref="ControlRemoved"/> event and performs default handling.</summary>
+  /// <param name="e">A <see cref="ControlEventArgs"/> that contains the event data.</param>
+  /// <remarks>When overriding this method in a derived class, be sure to call the base class'
+  /// version to ensure that the default processing gets performed. The proper place to do this is at the end
+  /// of the derived version.
+  /// </remarks>
   protected virtual void OnControlRemoved(ControlEventArgs e)
   { if(focused==e.Control) { focused.OnLostFocus(e); focused=null; }
+    if(e.Control.Dock != DockStyle.None) TriggerLayout();
     if(e.Control.Visible) Invalidate(e.Control.Bounds);
     if(ControlRemoved!=null) ControlRemoved(this, e);
   }
 
-  protected internal virtual void OnKeyDown(KeyEventArgs e)  { if(KeyDown!=null) KeyDown(this, e); }
-  protected internal virtual void OnKeyUp(KeyEventArgs e)    { if(KeyUp!=null) KeyUp(this, e); }
+  /// <summary>Raises the <see cref="KeyDown"/> event.</summary>
+  /// <param name="e">A <see cref="KeyEventArgs"/> that contains the event data.</param>
+  /// <remarks>When overriding this method in a derived class, be sure to call the base class'
+  /// version to ensure that the default processing gets performed.
+  /// </remarks>
+  protected internal virtual void OnKeyDown(KeyEventArgs e) { if(KeyDown!=null) KeyDown(this, e); }
+
+  /// <summary>Raises the <see cref="KeyUp"/> event.</summary>
+  /// <param name="e">A <see cref="KeyEventArgs"/> that contains the event data.</param>
+  /// <remarks>When overriding this method in a derived class, be sure to call the base class'
+  /// version to ensure that the default processing gets performed.
+  /// </remarks>
+  protected internal virtual void OnKeyUp(KeyEventArgs e) { if(KeyUp!=null) KeyUp(this, e); }
+
+  /// <summary>Raises the <see cref="KeyPress"/> event.</summary>
+  /// <param name="e">A <see cref="KeyEventArgs"/> that contains the event data.</param>
+  /// <remarks>When overriding this method in a derived class, be sure to call the base class'
+  /// version to ensure that the default processing gets performed.
+  /// </remarks>
   protected internal virtual void OnKeyPress(KeyEventArgs e) { if(KeyPress!=null) KeyPress(this, e); }
 
+  /// <summary>Raises the <see cref="MouseMove"/> event.</summary>
+  /// <param name="e">A <see cref="MouseMoveEvent"/> that contains the event data.</param>
+  /// <remarks>When overriding this method in a derived class, be sure to call the base class'
+  /// version to ensure that the default processing gets performed.
+  /// </remarks>
   protected internal virtual void OnMouseMove(MouseMoveEvent e) { if(MouseMove!=null) MouseMove(this, e); }
 
-  protected internal virtual void OnMouseDown(ClickEventArgs e)   { if(MouseDown!=null) MouseDown(this, e); }
-  protected internal virtual void OnMouseUp(ClickEventArgs e)     { if(MouseUp!=null) MouseUp(this, e); }
-  protected internal virtual void OnMouseClick(ClickEventArgs e)  { if(MouseClick!=null) MouseClick(this, e); }
-  protected internal virtual void OnDoubleClick(ClickEventArgs e) { if(DoubleClick!=null) DoubleClick(this, e); }
-  
-  protected internal virtual void OnDragStart(DragEventArgs e) { if(DragStart!=null) DragStart(this, e); }
-  protected internal virtual void OnDragMove(DragEventArgs e)  { if(DragMove!=null) DragMove(this, e); }
-  protected internal virtual void OnDragEnd(DragEventArgs e)   { if(DragEnd!=null) DragEnd(this, e); }
+  /// <summary>Raises the <see cref="MouseDown"/> event.</summary>
+  /// <param name="e">A <see cref="ClickEventArgs"/> that contains the event data.</param>
+  /// <remarks>When overriding this method in a derived class, be sure to call the base class'
+  /// version to ensure that the default processing gets performed.
+  /// </remarks>
+  protected internal virtual void OnMouseDown(ClickEventArgs e) { if(MouseDown!=null) MouseDown(this, e); }
 
+  /// <summary>Raises the <see cref="MouseUp"/> event.</summary>
+  /// <param name="e">A <see cref="ClickEventArgs"/> that contains the event data.</param>
+  /// <remarks>When overriding this method in a derived class, be sure to call the base class'
+  /// version to ensure that the default processing gets performed.
+  /// </remarks>
+  protected internal virtual void OnMouseUp(ClickEventArgs e) { if(MouseUp!=null) MouseUp(this, e); }
+
+  /// <summary>Raises the <see cref="MouseClick"/> event.</summary>
+  /// <param name="e">A <see cref="ClickEventArgs"/> that contains the event data.</param>
+  /// <remarks>When overriding this method in a derived class, be sure to call the base class'
+  /// version to ensure that the default processing gets performed.
+  /// </remarks>
+  protected internal virtual void OnMouseClick(ClickEventArgs e) { if(MouseClick!=null) MouseClick(this, e); }
+
+  /// <summary>Raises the <see cref="DoubleClick"/> event.</summary>
+  /// <param name="e">A <see cref="ClickEventArgs"/> that contains the event data.</param>
+  /// <remarks>When overriding this method in a derived class, be sure to call the base class'
+  /// version to ensure that the default processing gets performed.
+  /// </remarks>
+  protected internal virtual void OnDoubleClick(ClickEventArgs e) { if(DoubleClick!=null) DoubleClick(this, e); }
+
+  /// <summary>Raises the <see cref="DragStart"/> event.</summary>
+  /// <param name="e">A <see cref="DragEventArgs"/> that contains the event data.</param>
+  /// <remarks>When overriding this method in a derived class, be sure to call the base class'
+  /// version to ensure that the default processing gets performed.
+  /// </remarks>
+  protected internal virtual void OnDragStart(DragEventArgs e) { if(DragStart!=null) DragStart(this, e); }
+
+  /// <summary>Raises the <see cref="DragMove"/> event.</summary>
+  /// <param name="e">A <see cref="DragEventArgs"/> that contains the event data.</param>
+  /// <remarks>When overriding this method in a derived class, be sure to call the base class'
+  /// version to ensure that the default processing gets performed.
+  /// </remarks>
+  protected internal virtual void OnDragMove(DragEventArgs e) { if(DragMove!=null) DragMove(this, e); }
+
+  /// <summary>Raises the <see cref="DragEnd"/> event.</summary>
+  /// <param name="e">A <see cref="DragEventArgs"/> that contains the event data.</param>
+  /// <remarks>When overriding this method in a derived class, be sure to call the base class'
+  /// version to ensure that the default processing gets performed.
+  /// </remarks>
+  protected internal virtual void OnDragEnd(DragEventArgs e) { if(DragEnd!=null) DragEnd(this, e); }
+
+  /// <summary>Raises the <see cref="PaintBackground"/> event and performs default painting.</summary>
+  /// <param name="e">A <see cref="PaintEventArgs"/> that contains the event data.</param>
+  /// <remarks>When overriding this method in a derived class, be sure to call the base class'
+  /// version to ensure that the default processing gets performed. The proper place to do this is at the start
+  /// of the derived version.
+  /// </remarks>
   protected internal virtual void OnPaintBackground(PaintEventArgs e)
-  { if(back!=Color.Transparent) e.Surface.Fill(e.DisplayRect, back);
+  { if(PaintBackground!=null) PaintBackground(this, e);
+    if(back!=Color.Transparent) e.Surface.Fill(e.DisplayRect, back);
     if(backImage!=null)
     { Point at = Helpers.CalculateAlignment(DisplayRect, new Size(backImage.Width, backImage.Height), backImageAlign);
       backImage.Blit(e.Surface, at.X, at.Y);
     }
-    if(PaintBackground!=null) PaintBackground(this, e);
   }
+
+  /// <summary>Raises the <see cref="Paint"/> event and performs default painting.</summary>
+  /// <param name="e">A <see cref="PaintEventArgs"/> that contains the event data.</param>
+  /// <remarks>When overriding this method in a derived class, be sure to call the base class'
+  /// version to ensure that the default processing gets performed. The proper place to do this is at the start
+  /// of the derived version.
+  /// </remarks>
   protected internal virtual void OnPaint(PaintEventArgs e)
   { if(Paint!=null) Paint(this, e);
     invalid.Width = 0;
     pendingPaint  = false;
   }
   
+  /// <summary>Called when the parent's <see cref="BackColor"/> property changes.</summary>
+  /// <param name="e">A <see cref="ValueChangedEventArgs"/> that contains the event data.</param>
+  /// <remarks>This method will call <see cref="OnBackColorChanged"/> if necessary.
+  /// When overriding this method in a derived class, be sure to call the base class' version to ensure that the
+  /// default processing gets performed.
+  /// </remarks>
   protected virtual void OnParentBackColorChanged(ValueChangedEventArgs e)
-  { if(back==Color.Transparent)
-    { Invalidate();
-      foreach(Control c in controls) c.OnBackColorChanged(e);
-    }
+  { if(back==Color.Transparent) OnBackColorChanged(e);
   }
-  protected virtual void OnParentEnabledChanged(ValueChangedEventArgs e)
-  { if(Enabled==(bool)e.OldValue)
-    { Invalidate();
-      foreach(Control c in controls) c.OnEnabledChanged(e);
-    }
-  }
-  protected virtual void OnParentFontChanged(ValueChangedEventArgs e)
-  { if(font==null)
-    { Invalidate();
-      foreach(Control c in controls) c.OnFontChanged(e);
-    }
-  }
+
+  /// <summary>Called when the parent's <see cref="Enabled"/> property changes.</summary>
+  /// <param name="e">A <see cref="ValueChangedEventArgs"/> that contains the event data.</param>
+  /// <remarks>This method will call <see cref="OnEnabledChanged"/> if necessary.
+  /// When overriding this method in a derived class, be sure to call the base class' version to ensure that the
+  /// default processing gets performed.
+  /// </remarks>
+  protected virtual void OnParentEnabledChanged(ValueChangedEventArgs e) { if(enabled) OnEnabledChanged(e); }
+
+  /// <summary>Called when the parent's <see cref="Font"/> property changes.</summary>
+  /// <param name="e">A <see cref="ValueChangedEventArgs"/> that contains the event data.</param>
+  /// <remarks>This method will call <see cref="OnFontChanged"/> if necessary.
+  /// When overriding this method in a derived class, be sure to call the base class' version to ensure that the
+  /// default processing gets performed.
+  /// </remarks>
+  protected virtual void OnParentFontChanged(ValueChangedEventArgs e) { if(font==null) c.OnFontChanged(e); }
+
+  /// <summary>Called when the parent's <see cref="ForeColor"/> property changes.</summary>
+  /// <param name="e">A <see cref="ValueChangedEventArgs"/> that contains the event data.</param>
+  /// <remarks>This method will call <see cref="OnForeColorChanged"/> if necessary.
+  /// When overriding this method in a derived class, be sure to call the base class' version to ensure that the
+  /// default processing gets performed.
+  /// </remarks>
   protected virtual void OnParentForeColorChanged(ValueChangedEventArgs e)
-  { if(fore==Color.Transparent)
-    { Invalidate();
-      foreach(Control c in controls) c.OnForeColorChanged(e);
-    }
+  { if(fore==Color.Transparent) OnForeColorChanged(e);
   }
+
+  /// <summary>Called when the parent's <see cref="Size"/> property changes.</summary>
+  /// <param name="e">A <see cref="ValueChangedEventArgs"/> that contains the event data.</param>
+  /// <remarks>When overriding this method in a derived class, be sure to call the base class' version to ensure
+  /// that the default processing gets performed.
+  /// </remarks>
   protected virtual void OnParentResized(EventArgs e) { }
-  protected virtual void OnParentVisibleChanged(ValueChangedEventArgs e) { if(Visible) Invalidate(); }
+
+  /// <summary>Called when the parent's <see cref="Visible"/> property changes.</summary>
+  /// <param name="e">A <see cref="ValueChangedEventArgs"/> that contains the event data.</param>
+  /// <remarks>This method will call <see cref="OnVisibleChanged"/> if necessary.
+  /// When overriding this method in a derived class, be sure to call the base class' version to ensure that the
+  /// default processing gets performed.
+  /// </remarks>
+  protected virtual void OnParentVisibleChanged(ValueChangedEventArgs e) { if(visible) OnVisibleChanged(e); }
   
+  /// <summary>Called when the control receives a custom window event.</summary>
+  /// <param name="e">A <see cref="WindowEvent"/> that contains the event.</param>
+  /// <remarks>When overriding this method in a derived class, be sure to call the base class' version to
+  /// ensure that the default processing gets performed.
+  /// </remarks>
   protected internal virtual void OnCustomEvent(WindowEvent e) { }
   #endregion
   
@@ -1213,7 +1902,13 @@ public class Control
 
   protected internal bool HasStyle(ControlStyle test) { return (style & test) != ControlStyle.None; }
 
-  protected internal int dragThreshold = -1;
+  protected internal int DragThreshold
+  { get { return dragThreshold; }
+    set
+    { if(value<-1) throw new ArgumentOutOfRangeException("DragThreshold", value, "must be >=0 or -1");
+      dragThreshold=value;
+    }
+  }
 
   internal void UpdateBackingSurface(bool forceNew)
   { DesktopControl desktop = Desktop;
@@ -1244,13 +1939,13 @@ public class Control
 
   protected void TriggerLayout()
   { if(!pendingLayout && Events.Events.Initialized)
-    { if(!layoutSuspended) Events.Events.PushEvent(new WindowLayoutEvent(this));
+    { Events.Events.PushEvent(new WindowLayoutEvent(this));
       pendingLayout=true;
     }
   }
 
   protected Rectangle bounds = new Rectangle(0, 0, 100, 100), invalid;
-  protected bool pendingPaint, pendingLayout, layoutSuspended;
+  protected bool pendingPaint, pendingLayout;
   
   void UpdateAnchor()
   { if((anchor&AnchorStyle.Right) != 0) rightAnchor=parent.Width-bounds.Right;
@@ -1276,7 +1971,7 @@ public class Control
   IBlittable backImage, cursor;
   string name=string.Empty, text=string.Empty;
   object tag;
-  int tabIndex=-1, bottomAnchor, rightAnchor;
+  int tabIndex=-1, bottomAnchor, rightAnchor, dragThreshold=-1;
   ControlStyle style;
   AnchorStyle  anchor=AnchorStyle.None;
   DockStyle    dock;
