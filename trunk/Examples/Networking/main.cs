@@ -94,11 +94,12 @@ class Complex : INetSerializable
   { IOH.Write(buf, index, ">d?dp", Array.Length, Array, String);
   }
 
-  public void DeserializeFrom(byte[] buf, int index)
+  public int DeserializeFrom(byte[] buf, int index)
   { Array = new int[IOH.ReadBE4(buf, index)]; index += 4;
     for(int i=0; i<Array.Length; index+=4,i++)
       Array[i] = IOH.ReadBE4(buf, index);
     String = Encoding.ASCII.GetString(buf, index+1, buf[index]);
+    return SizeOf();
   }
   #endregion
 
@@ -113,7 +114,7 @@ class App
     IPEndPoint ep = new IPEndPoint(IPAddress.Loopback, 3000);
 
     Type[] types = new Type[] // types that we'll be serializing/deserializing
-    { typeof(Simple), typeof(OtherSimple), typeof(Complex)
+    { typeof(Simple), typeof(OtherSimple), typeof(Complex), typeof(float),
     };
 
     // Medium-level networking involves using NetLink objects directly
@@ -163,7 +164,9 @@ class App
       server.Send(null, new byte[] { 1, 2, 3 });
       server.Send(null, new OtherSimple(SimpleEnum.Two, 2, 3.14f,
                                         new Point(2, 2), 'x'));
+      server.Send(null, new float[] { 1.1f, 2.2f, 3.3f });
       client.Send(new Simple(SimpleEnum.One, 1, 1, new Point(-1, -1)));
+
       client.Send(new Complex("hello!", 1, 2, 3, 4, 5));
       client.DelayedDisconnect(1000); // give it up to 1 second to send
       while(client.Connected);        // all remaining data
