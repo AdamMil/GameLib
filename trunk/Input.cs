@@ -407,6 +407,11 @@ public sealed class Mouse
   public static byte Buttons { get { return buttons; } set { buttons=value; } }
   public static bool OnlyPressed(MouseButton button) { return buttons==(1<<(byte)button); }
   public static bool Pressed(MouseButton button) { return (buttons&(1<<(byte)button))!=0; }
+  public static bool PressedRel(MouseButton button)
+  { bool ret=Pressed(button);
+    if(ret) SetPressed(button, false);
+    return ret;
+  }
   public static void SetPressed(MouseButton button, bool down)
   { if(down) buttons |= (byte)(1<<(byte)button);
     else buttons &= (byte)~(1<<(byte)button);

@@ -39,16 +39,16 @@ public class PriorityQueue : RedBlackTree
   public void Add(int priority, object value) { base.Add(priority, value); }
 
   public object RemoveMinimum()
-  { if(count==0) throw new InvalidOperationException("The collection is empty");
-    Node n=root;
+  { if(Count==0) throw new InvalidOperationException("The collection is empty");
+    Node n=Root;
     do n=n.Left; while(n.Left!=Node.Null);
     Remove(n);
     return n.Value;
   }
 
   public object RemoveMaximum()
-  { if(count==0) throw new InvalidOperationException("The collection is empty");
-    Node n=root;
+  { if(Count==0) throw new InvalidOperationException("The collection is empty");
+    Node n=Root;
     do n=n.Right; while(n.Right!=Node.Null);
     Remove(n);
     return n.Value;

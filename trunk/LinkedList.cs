@@ -22,7 +22,7 @@ using System.Collections;
 namespace GameLib.Collections
 {
 
-public class LinkedList : ICollection, IEnumerable
+public sealed class LinkedList : ICollection, IEnumerable
 { public LinkedList() { cmp=Comparer.Default; }
   public LinkedList(IComparer comparer) { cmp=comparer; }
   public LinkedList(ICollection col) { foreach(object o in col) Append(o); }
@@ -53,7 +53,7 @@ public class LinkedList : ICollection, IEnumerable
   #endregion
 
   #region IEnumerable
-  public class Enumerator : IEnumerator
+  public sealed class Enumerator : IEnumerator
   { internal Enumerator(LinkedList list, Node head)
     { if(head==null) GC.SuppressFinalize(this);
       else
@@ -196,9 +196,9 @@ public class LinkedList : ICollection, IEnumerable
   }
   public void Clear() { head=tail=null; count=0; }
   
-  protected IComparer cmp;
-  protected Node head, tail;
-  protected int count;
+  IComparer cmp;
+  Node head, tail;
+  int count;
 }
 
 } // namespace GameLib.Collections

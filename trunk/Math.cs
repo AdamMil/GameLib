@@ -41,7 +41,8 @@ namespace TwoD
 #region Vector
 public struct Vector
 { public Vector(float x, float y) { X=x; Y=y; }
-  
+  public Vector(Point pt) { X=pt.X; Y=pt.Y; }
+
   public float Angle
   { get
     { float angle = (float)Math.Acos(X/Length);
@@ -64,6 +65,8 @@ public struct Vector
     return new Vector(X*cos-Y*sin, X*sin+Y*cos);
   }
   
+  public override bool Equals(object obj) { return obj is Vector ? (Vector)obj==this : false; }
+  public override int GetHashCode() { return X.GetHashCode() ^ Y.GetHashCode(); }
   public override string ToString() { return string.Format("[{0:f},{1:f}]", X, Y); }
 
   public static Vector operator-(Vector v) { return new Vector(-v.X, -v.Y); }
@@ -73,9 +76,12 @@ public struct Vector
   public static Vector operator/(Vector a, Vector b) { return new Vector(a.X/b.X, a.Y/b.Y); }
   public static Vector operator*(Vector v, float f)  { return new Vector(v.X*f, v.Y*f); }
   public static Vector operator/(Vector v, float f)  { return new Vector(v.X/f, v.Y/f); }
-  
+
+  public static bool operator==(Vector a, Vector b) { return a.X==b.X && a.Y==b.Y; }
+  public static bool operator!=(Vector a, Vector b) { return a.X!=b.X || a.Y!=b.Y; }
+
   public float X, Y;
-  
+
   void Assign(Vector v) { X=v.X; Y=v.Y; }
 }
 #endregion
@@ -98,12 +104,17 @@ public struct Point
   public void Offset(float xd, float yd) { X+=xd; Y+=yd; }
 
   public System.Drawing.Point ToPoint() { return new System.Drawing.Point((int)Math.Round(X), (int)Math.Round(Y)); }
+
+  public override bool Equals(object obj) { return obj is Point ? (Point)obj==this : false; }
+  public override int GetHashCode() { return X.GetHashCode() ^ Y.GetHashCode(); }
   public override string ToString() { return string.Format("({0:f},{1:f})", X, Y); }
 
   public static Point Invalid { get { return new Point(float.NaN, float.NaN); } }
-  public static Vector operator-(Point lhs, Point rhs)  { return new Vector(lhs.X-rhs.X, lhs.Y-rhs.Y); }
-  public static Point  operator-(Point lhs, Vector rhs) { return new Point(lhs.X-rhs.X, lhs.Y-rhs.Y); }
-  public static Point  operator+(Point lhs, Vector rhs) { return new Point(lhs.X+rhs.X, lhs.Y+rhs.Y); }
+  public static Vector operator- (Point lhs, Point rhs)  { return new Vector(lhs.X-rhs.X, lhs.Y-rhs.Y); }
+  public static Point  operator- (Point lhs, Vector rhs) { return new Point(lhs.X-rhs.X, lhs.Y-rhs.Y); }
+  public static Point  operator+ (Point lhs, Vector rhs) { return new Point(lhs.X+rhs.X, lhs.Y+rhs.Y); }
+  public static bool   operator==(Point lhs, Point rhs)  { return lhs.X==rhs.X && lhs.Y==rhs.Y; }
+  public static bool   operator!=(Point lhs, Point rhs)  { return lhs.X!=rhs.X || lhs.Y!=rhs.Y; }
   public static implicit operator Point(System.Drawing.Point point) { return new Point(point.X, point.Y); }
 
   public float X, Y;
@@ -166,10 +177,15 @@ public struct Line
 
   public float WhichSide(Point point) { return Vector.CrossVector.DotProduct(point-Start); }
 
+  public override bool Equals(object obj) { return obj is Line ? (Line)obj==this : false; }
+  public override int GetHashCode() { return Start.GetHashCode() ^ Vector.GetHashCode(); }
   public override string ToString() { return string.Format("{0}->{1}", Start, Vector); }
 
   public static Line FromPoints(Point start, Point end) { return new Line(start, end-start); }
   public static Line FromPoints(float x1, float y1, float x2, float y2) { return new Line(x1, y1, x2-x1, y2-y1); }
+  
+  public static bool operator==(Line lhs, Line rhs) { return lhs.Start==rhs.Start && lhs.Vector==rhs.Vector; }
+  public static bool operator!=(Line lhs, Line rhs) { return lhs.Start!=rhs.Start || lhs.Vector!=rhs.Vector; }
 
   public Point  Start;
   public Vector Vector;
@@ -492,6 +508,7 @@ namespace ThreeD
 #region Vector
 public struct Vector
 { public Vector(float x, float y, float z) { X=x; Y=y; Z=z; }
+  public Vector(Point pt) { X=pt.X; Y=pt.Y; Z=pt.Z; }
   
   public float  Length    { get { return (float)System.Math.Sqrt(X*X+Y*Y+Z*Z); } }
   public float  LengthSqr { get { return X*X+Y*Y+Z*Z; } }
@@ -522,6 +539,8 @@ public struct Vector
     return new Vector(X*cos-Y*sin, X*sin+Y*cos, Z);
   }
   
+  public override bool Equals(object obj) { return obj is Vector ? (Vector)obj==this : false; }
+  public override int GetHashCode() { return (X+Y+Z).GetHashCode(); }
   public override string ToString() { return string.Format("[{0:f},{1:f},{2:f}]", X, Y, Z); }
 
   public static Vector operator-(Vector v) { return new Vector(-v.X, -v.Y, -v.Z); }
@@ -531,6 +550,8 @@ public struct Vector
   public static Vector operator/(Vector a, Vector b) { return new Vector(a.X/b.X, a.Y/b.Y, a.Z/b.Z); }
   public static Vector operator*(Vector v, float f)   { return new Vector(v.X*f, v.Y*f, v.Z*f); }
   public static Vector operator/(Vector v, float f)   { return new Vector(v.X/f, v.Y/f, v.Z/f); }
+  public static bool   operator==(Vector a, Vector b) { return a.X==b.X && a.Y==b.Y && a.Z==b.Z; }
+  public static bool   operator!=(Vector a, Vector b) { return a.X!=b.X || a.Y!=b.Y || a.Z!=b.Z; }
   
   public float X, Y, Z;
   
@@ -553,11 +574,15 @@ public struct Point
 
   public void Offset(float xd, float yd, float zd) { X+=xd; Y+=yd; Z+=zd; }
 
+  public override bool Equals(object obj) { return obj is Point ? (Point)obj==this : false; }
+  public override int GetHashCode() { return (X+Y+Z).GetHashCode(); }
   public override string ToString() { return string.Format("({0:f},{1:f},{2:f})", X, Y, Z); }
 
   public static Vector operator-(Point lhs, Point rhs)  { return new Vector(lhs.X-rhs.X, lhs.Y-rhs.Y, lhs.Z-rhs.Z); }
   public static Point  operator-(Point lhs, Vector rhs) { return new Point(lhs.X-rhs.X, lhs.Y-rhs.Y, lhs.Z-rhs.Z); }
   public static Point  operator+(Point lhs, Vector rhs) { return new Point(lhs.X+rhs.X, lhs.Y+rhs.Y, lhs.Z+rhs.Z); }
+  public static bool   operator==(Point lhs, Point rhs) { return lhs.X==rhs.X && lhs.Y==rhs.Y && lhs.Z==rhs.Z; }
+  public static bool   operator!=(Point lhs, Point rhs) { return lhs.X!=rhs.X || lhs.Y!=rhs.Y || lhs.Z!=rhs.Z; }
   
   public float X, Y, Z;
 }
@@ -577,12 +602,17 @@ public struct Line
     return point==0 ? Start : End;
   }
 
+  public override bool Equals(object obj) { return obj is Line ? (Line)obj==this : false; }
+  public override int GetHashCode() { return Start.GetHashCode() ^ Vector.GetHashCode(); }
   public override string ToString() { return string.Format("{0}->{1}", Start, Vector); }
 
   public static Line FromPoints(Point start, Point end) { return new Line(start, end-start); }
   public static Line FromPoints(float x1, float y1, float z1, float x2, float y2, float z2)
   { return new Line(x1, y1, z1, x2-x1, y2-y1, z2-z1);
   }
+
+  public static bool operator==(Line lhs, Line rhs) { return lhs.Start==rhs.Start && lhs.Vector==rhs.Vector; }
+  public static bool operator!=(Line lhs, Line rhs) { return lhs.Start!=rhs.Start || lhs.Vector!=rhs.Vector; }
 
   public Point  Start;
   public Vector Vector;
