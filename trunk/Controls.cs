@@ -28,6 +28,7 @@ using GameLib.Input;
 namespace GameLib.Forms
 {
 
+#region Base control classes
 #region ContainerControl
 public class ContainerControl : Control
 { protected void DoLayout() { DoLayout(false); }
@@ -82,6 +83,82 @@ public class ContainerControl : Control
 }
 #endregion
 
+#region ScrollableControl
+// TODO: document
+public class ScrollableControl : Control
+{ protected ScrollableControl() { }
+  protected ScrollableControl(bool horzizontal, bool vertical)
+  { ShowHorizontalScrollBar = horzizontal;
+    ShowVerticalScrollBar   = vertical;
+  }
+
+  public override Rectangle ContentRect
+  { get
+    { Rectangle rect = base.ContentRect;
+      if(horz!=null) rect.Width  -= horz.Width;
+      if(vert!=null) rect.Height -= vert.Height;
+      return rect;
+    }
+  }
+
+  protected ScrollBarBase HorizontalScrollBar { get { return horz; } }
+  protected ScrollBarBase VerticalScrollBar { get { return vert; } }
+
+  protected bool ShowHorizontalScrollBar
+  { get { return horz!=null; }
+    set
+    { if(value != (horz!=null))
+      { if(horz==null)
+        { horz = MakeScrollBar(true);
+          Controls.Add(horz);
+          TriggerLayout();
+        }
+        else
+        { Controls.Remove(horz);
+          horz = null;
+          TriggerLayout();
+        }
+      }
+    }
+  }
+
+  protected bool ShowVerticalScrollBar
+  { get { return vert!=null; }
+    set
+    { if(value != (vert!=null))
+      { if(vert==null)
+        { vert = MakeScrollBar(false);
+          Controls.Add(vert);
+          TriggerLayout();
+        }
+        else
+        { Controls.Remove(vert);
+          vert = null;
+          TriggerLayout();
+        }
+      }
+    }
+  }
+
+  protected internal override void OnLayout(LayoutEventArgs e)
+  { base.OnLayout(e);
+    Rectangle rect = base.ContentRect;
+    if(horz!=null) horz.Height = rect.Height - (vert==null ? 0 : vert.Height);
+    if(vert!=null) vert.Width  = rect.Height - (horz==null ? 0 : horz.Width);
+  }
+
+  protected virtual ScrollBarBase MakeScrollBar(bool horizontal)
+  { ScrollBar bar = new ScrollBar();
+    bar.Horizontal = horizontal;
+    return bar;
+  }
+  
+  ScrollBarBase horz, vert;
+}
+#endregion
+#endregion
+
+#region Basic controls
 #region Line
 public class Line : Control
 { public Line() { Size=new Size(1,1); }
@@ -401,88 +478,6 @@ public class CheckBox : CheckBoxBase
   }
 
   bool down;
-}
-#endregion
-
-#region ListBase
-// TODO: implement multi-column list boxes
-// TODO: document
-public abstract class ListBase : Control
-{ protected ListBase() { items = new ItemCollection(this); }
-  protected ListBase(ICollection items) { this.items=new ItemCollection(this, items); }
-  protected ListBase(IEnumerable items)
-  { this.items = new ItemCollection(this);
-    foreach(object o in items) this.items.Add(o);
-  }
-
-  #region ItemCollection
-  public sealed class ItemCollection : CollectionBase
-  { public ItemCollection(ListBase list) { parent=list; }
-    public ItemCollection(ListBase list, ICollection items) { parent=list; InnerList.AddRange(items); }
-    
-    public int Add(object item) { return List.Add(item); }
-    public void AddRange(params object[] items) { for(int i=0; i<items.Length; i++) List.Add(items[i]); }
-    public void AddRange(ICollection items) { foreach(object o in items) List.Add(o); }
-
-    public void Remove(object item) { List.Remove(item); }
-
-    protected override void OnClearComplete() { parent.Invalidate(parent.ContentRect); }
-    protected override void OnInsertComplete(int index, object value) { RedrawFrom(index); }
-    protected override void OnRemoveComplete(int index, object value) { RedrawFrom(index); }
-    protected override void OnSetComplete(int index, object oldValue, object newValue)
-    { parent.Invalidate(parent.GetItemRectangle(index));
-    }
-    
-    void RedrawFrom(int index)
-    { Rectangle rect = parent.GetItemRectangle(index);
-      rect.Height += parent.Bottom-rect.Bottom; // invalidate all the items after this one, too
-      parent.Invalidate(rect);
-    }
-
-    ListBase parent;
-  }
-  #endregion
-
-  public virtual int DefaultItemHeight
-  { get
-    { GameLib.Fonts.Font font = Font;
-      return font==null ? 0 : font.LineSkip;
-    }
-  }
-
-  public ItemCollection Items { get { return items; } }
-
-  public virtual Size PreferredSize
-  { get
-    { Size ret = new Size(0, 0);
-      for(int i=0; i<items.Count; i++)
-      { Size size = MeasureItem(i);
-        ret.Height += size.Height;
-        if(size.Width>ret.Width) ret.Width=size.Width;
-      }
-      return ret;
-    }
-  }
-
-  /*public bool ScrollAlwaysVisible { get; set; }
-  public int SelectedIndex { get; set; }
-  public int SelectedItem { get; set; }
-  public bool Sorted { get; set; }
-  public override string Text { get; set; }
-  public int TopIndex { get; set; }
-
-  public int FindString(string startsWith) { return FindString(startsWith, 0); }
-  public int FindString(string startsWith, int from);
-
-  public int FindStringExact(string startsWith) { return FindStringExact(startsWith, 0); }
-  public int FindStringExact(string startsWith, int from);*/
-  
-  public Rectangle GetItemRectangle(int index) { throw new NotImplementedException(); }
-  
-  protected abstract void DrawItem(int index, Rectangle bounds);
-  protected abstract Size MeasureItem(int index);
-  
-  ItemCollection items;
 }
 #endregion
 
@@ -1274,6 +1269,179 @@ public class TextBox : TextBoxBase
 }
 #endregion
 
+#endregion
+
+#region List controls
+#region ListControl
+// TODO: implement multi-column list boxes
+// TODO: document
+public abstract class ListControl : Control
+{ protected ListControl() { items = new ItemCollection(this); }
+  protected ListControl(ICollection items) { this.items=new ItemCollection(this, items); }
+  protected ListControl(IEnumerable items)
+  { this.items = new ItemCollection(this);
+    foreach(object o in items) this.items.InnerAdd(o);
+  }
+
+  #region ItemCollection
+  public sealed class ItemCollection : CollectionBase
+  { public ItemCollection(ListControl list) { parent=list; }
+    public ItemCollection(ListControl list, ICollection items) { parent=list; InnerList.AddRange(items); }
+    
+    public object this[int index] { get { return InnerList[index]; } }
+
+    public int Add(object item) { return List.Add(item); }
+    public void AddRange(params object[] items) { for(int i=0; i<items.Length; i++) List.Add(items[i]); }
+    public void AddRange(ICollection items) { foreach(object o in items) List.Add(o); }
+
+    public void Remove(object item) { List.Remove(item); }
+
+    internal bool Sorted
+    { get { return sorted; }
+      set
+      { if(value && !sorted)
+        { throw new NotImplementedException(); // TODO: implement sorted lists (be sure to preserve selected items)
+          parent.Invalidate(parent.ContentRect);
+        }
+        sorted=value;
+      }
+    }
+    internal int IndexOf(object item) { return InnerList.IndexOf(item); } // TODO: use sorted list
+    internal void InnerAdd(object item) { InnerList.Add(item); }
+
+    protected override void OnClearComplete() { parent.Invalidate(parent.ContentRect); }
+    protected override void OnInsertComplete(int index, object value) { RedrawFrom(index); }
+    protected override void OnRemoveComplete(int index, object value) { RedrawFrom(index); }
+    protected override void OnSetComplete(int index, object oldValue, object newValue)
+    { parent.Invalidate(parent.GetItemRectangle(index));
+    }
+    
+    void RedrawFrom(int index)
+    { Rectangle rect = parent.GetItemRectangle(index);
+      rect.Height += parent.Bottom-rect.Bottom; // invalidate all the items after this one, too
+      parent.Invalidate(rect);
+    }
+
+    ListControl parent;
+    bool sorted;
+  }
+  #endregion
+
+  #region SelectedIndexCollection
+  protected class SelectedIndexCollection : CollectionBase
+  { 
+  }
+  #endregion
+
+  public ItemCollection Items { get { return items; } }
+  public abstract Size PreferredSize { get; }
+  public abstract int SelectedIndex { get; set; }
+
+  public object SelectedItem
+  { get { return items[SelectedIndex]; }
+    set { SelectedIndex = items.IndexOf(value); }
+  }
+
+  public bool Sorted { get { return items.Sorted; } set { items.Sorted=value; } }
+
+  public override string Text
+  { get { return SelectedIndex<0 ? "" : GetItemText(SelectedIndex); }
+    set { SelectedIndex = FindStringExact(value); }
+  }
+
+  public int TopIndex
+  { get { return top; }
+    set
+    { int newValue = Math.Max(Math.Min(value, items.Count), 0);
+      if(newValue!=top)
+      { top=newValue;
+        Invalidate(ContentRect);
+      }
+    }
+  }
+
+  public int FindString(string startsWith) { return FindString(startsWith, 0); }
+  public int FindString(string startsWith, int from)
+  { for(; from<items.Count; from++) if(GetItemText(from).StartsWith(startsWith)) return from;
+    return -1;
+  }
+
+  public int FindStringExact(string text) { return FindStringExact(text, 0); }
+  public int FindStringExact(string text, int from)
+  { for(; from<items.Count; from++) if(GetItemText(from)==text) return from;
+    return -1;
+  }
+
+  public abstract Rectangle GetItemRectangle(int index);
+
+  public string GetItemText(int index) { return items[index].ToString(); }
+  
+  protected abstract int DefaultItemHeight { get; }
+  protected abstract bool IsSelected(int index);
+  protected abstract void DrawItem(int index, PaintEventArgs e, Rectangle bounds);
+  protected abstract Size MeasureItem(int index);
+
+  ItemCollection items;
+  int top;
+}
+#endregion
+
+#region ListBoxBase
+public abstract class ListBoxBase : ListControl
+{ protected ListBoxBase() { }
+  protected ListBoxBase(ICollection items) : base(items) { }
+  protected ListBoxBase(IEnumerable items) : base(items) { }
+  
+  public Color SelectedBackColor { get { return selBack; } set { selBack=value; } }
+  public Color SelectedForeColor { get { return selFore; } set { selFore=value; } }
+
+  public override Size PreferredSize
+  { get
+    { Size ret = new Size(0, 0);
+      for(int i=0; i<Items.Count; i++)
+      { Size size = MeasureItem(i);
+        ret.Height += size.Height;
+        if(size.Width>ret.Width) ret.Width=size.Width;
+      }
+      return ret;
+    }
+  }
+
+  public override int SelectedIndex
+  { get { return selected; }
+    set
+    { int newValue = value<-1 || value>=Items.Count ? -1 : value;
+      if(newValue!=selected)
+      { if(selected>=0) Invalidate(GetItemRectangle(selected));
+        if(newValue>=0) Invalidate(GetItemRectangle(newValue));
+        selected = newValue;
+      }
+    }
+  }
+
+  protected void CalculateRedraw(PaintEventArgs e, ref Rectangle bounds, out int start, out int end)
+  { throw new NotImplementedException();
+  }
+
+  protected internal override void OnPaint(PaintEventArgs e)
+  { Rectangle bounds = ContentDrawRect;
+    int start, end;
+    CalculateRedraw(e, ref bounds, out start, out end);
+
+    for(; start<end && bounds.Height>0; start++)
+    { Size size = MeasureItem(start);
+      DrawItem(start, e, new Rectangle(bounds.Location, size));
+      bounds.Y += size.Height; bounds.Height -= size.Height;
+    }
+  }
+
+  int selected=-1;
+  Color selBack=SystemColors.Highlight, selFore=SystemColors.HighlightText;
+}
+#endregion
+#endregion
+
+#region Menus
 #region MenuItemBase
 public abstract class MenuItemBase : Control
 { public MenuItemBase() { BackColor = SystemColors.Menu; ForeColor = SystemColors.MenuText; }
@@ -1806,7 +1974,9 @@ public class MenuBar : MenuBarBase
   int horzPadding=6, vertPadding=2;
 }
 #endregion
+#endregion
 
+#region Forms
 #region TitleBarBase
 public abstract class TitleBarBase : ContainerControl
 { public TitleBarBase(FormBase parent)
@@ -2280,6 +2450,7 @@ public sealed class MessageBox : Form
 public class ColorPicker : Form
 { public ColorPicker() { throw new NotImplementedException("The ColorPicker form is not yet implemented."); }
 }
+#endregion
 #endregion
 
 } // namespace GameLib.Forms
