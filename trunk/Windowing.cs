@@ -438,20 +438,23 @@ public class Control
     { Control control = (Control)value;
       if(control==null) throw new ArgumentNullException("control");
       if(control.Parent!=null) throw new ArgumentException("Already belongs to a control!");
-      control.SetParent(parent);
       base.OnInsert(index, value);
     }
-    protected override void OnRemove(int index, object value)
-    { ((Control)value).SetParent(null);
-      base.OnRemove(index, value);
+    protected override void OnInsertComplete(int index, object value)
+    { ((Control)value).SetParent(parent);
+      base.OnInsertComplete(index, value);
     }
-    protected override void OnSet(int index, object oldValue, object newValue)
+    protected override void OnRemoveComplete(int index, object value)
+    { ((Control)value).SetParent(null);
+      base.OnRemoveComplete(index, value);
+    }
+    protected override void OnSetComplete(int index, object oldValue, object newValue)
     { Control control = (Control)newValue;
       if(control==null) throw new ArgumentNullException("control");
       if(control.Parent!=null) throw new ArgumentException("Already belongs to a control!");
       ((Control)oldValue).SetParent(null);
       control.SetParent(parent);
-      base.OnSet(index, oldValue, newValue);
+      base.OnSetComplete(index, oldValue, newValue);
     }
 
     Control parent;
@@ -1117,7 +1120,7 @@ public class Control
   }
 
   /// <summary>Selects this control.</summary>
-  /// <remarks>Calling this is equivalent to calling <see cref="Focus(bool)"/> and passing true.</remarks>
+  /// <remarks>Calling this is equivalent to calling <see cref="Focus(bool)"/> and passing false.</remarks>
   public void Focus() { Focus(false); }
 
   /// <summary>Attempts to give this control input focus.</summary>
@@ -2069,7 +2072,7 @@ public class Control
   { get { return focused; }
     set
     { if(value!=focused)
-      { if(value != null && !controls.Contains(value))
+      { if(value!=null && !controls.Contains(value))
           throw new ArgumentException("Not a child of this control", "FocusedControl");
         // TODO: make sure controls can call .Focus() inside OnLostFocus()
         if(focused!=null) focused.OnLostFocus(new EventArgs());
@@ -2794,7 +2797,7 @@ public class DesktopControl : ContainerControl, IDisposable
     modal.Add(control);
     if(capturing!=control) capturing=null;
     if(dragging!=null && dragging!=control) EndDrag();
-    while(control!=this) { control.Focus(); control=control.Parent; }
+    control.Focus(true);
   }
 
   internal void UnsetModal(Control control)
@@ -2804,7 +2807,7 @@ public class DesktopControl : ContainerControl, IDisposable
     { control = (Control)modal[modal.Count-1];
       if(capturing!=control) capturing=null;
       if(dragging!=null && dragging!=control) EndDrag();
-      while(control!=this) { control.Focus(); control=control.Parent; }
+      control.Focus(true);
     }
   }
 

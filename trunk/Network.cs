@@ -28,7 +28,8 @@ using System.Reflection;
 using GameLib.IO;
 
 // TODO: stress test the locking, changes were made that may have destabilized it
-// TODO: expose low-level networking by cleaning up the NetLink class and making it public
+// TODO: expose low-level networking by making the NetLink class suitable for non-threaded use
+// TODO: add a 'Peer' class
 
 namespace GameLib.Network
 {
@@ -176,7 +177,7 @@ public delegate void NetLinkHandler(NetLink link);
 public delegate void LinkMessageHandler(NetLink link, LinkMessage msg);
 public delegate bool LinkMessageRecvHandler(NetLink link, LinkMessage msg);
 
-public class LinkMessage
+public sealed class LinkMessage
 { internal LinkMessage() { }
   internal LinkMessage(byte[] data, int index, int length, SendFlag flags, uint timeout, object tag)
   { this.data=data; this.index=index; this.length=length; this.flags=flags; this.tag=tag;
@@ -202,7 +203,6 @@ public sealed class NetLink
 
   public const uint NoTimeout=0;
 
-  // FIXNOW: either make MessageReceived a property instead of an event or iterate through the handlers manually
   public event LinkMessageRecvHandler MessageReceived;
   public event LinkMessageHandler RemoteReceived, MessageSent;
   public event NetLinkHandler     Disconnected;
@@ -210,7 +210,7 @@ public sealed class NetLink
   public bool Connected        { get { if(tcp!=null) Poll(); return connected; } }
   public int  Available        { get { ReceivePoll(); lock(recv) return recv.Count; } }
   public SendFlag DefaultFlags { get { return defFlags; } set { defFlags=value; } }
-  
+
   public uint LagAverage  { get { return lagAverage;  } set { lagAverage =value; } }
   public uint LagVariance { get { return lagVariance; } set { lagVariance=value; } }
 
@@ -224,11 +224,11 @@ public sealed class NetLink
     sock.Connect(remote);
     Open(sock);
   }
-  
+
   public void Open(Socket tcp)
   { if(tcp==null) throw new ArgumentNullException("tcp");
     if(!tcp.Connected) throw new ArgumentException("If TCP is being used, the socket must be connected already!");
-    
+
     try
     { IPEndPoint localTcp = (IPEndPoint)tcp.LocalEndPoint, localUdp;
 
@@ -236,6 +236,7 @@ public sealed class NetLink
       udp.Bind(new IPEndPoint(localTcp.Address, 0));  // bind the udp to a local port on the same interface as the tcp
       localUdp = (IPEndPoint)udp.LocalEndPoint;       // figure out what that is
 
+      tcp.Blocking = true;
       byte[] buf = new byte[2];                       // send the udp's endpoint to the other side
       IOH.WriteLE2(buf, 0, (short)localUdp.Port);     // the other side should be doing the same thing
       tcp.Send(buf);                                  // PS. i know it's obsolete, but 'new IPAddress(byte[])' fails
@@ -243,6 +244,7 @@ public sealed class NetLink
       if(!tcp.Poll(2000000, SelectMode.SelectRead) || tcp.Receive(buf)!=2)
       { tcp.Close();
         udp.Close();
+        throw new HandshakeException();
       }
 
       // connect to it
@@ -255,7 +257,7 @@ public sealed class NetLink
     }
     catch(SocketException) { throw new HandshakeException(); }
 
-    udpMax = 1450;
+    udpMax = 1450; // this is common for ethernet, but probably too high for dialup(?)
 
     low = new Queue(); norm = new Queue(); high = new Queue(); recv = new Queue();
     nextSize  = -1;
@@ -384,7 +386,7 @@ public sealed class NetLink
                 m.data   = new byte[m.Length];
                 m.flags  = recvFlags;
                 Array.Copy(recvBuf, m.Data, m.Length);
-                if(MessageReceived==null || MessageReceived(this, m)) lock(recv) recv.Enqueue(m);
+                OnMessageReceived(m);
               }
             }
             else break;
@@ -404,7 +406,7 @@ public sealed class NetLink
           m.data   = new byte[m.Length];
           m.flags  = (SendFlag)(recvBuf[0]&~(byte)HeadFlag.Mask);
           Array.Copy(recvBuf, HeaderSize, m.Data, 0, m.Length);
-          if(MessageReceived==null || MessageReceived(this, m)) lock(recv) recv.Enqueue(m);
+          OnMessageReceived(m);
         }
   }
   
@@ -459,6 +461,16 @@ public sealed class NetLink
   enum HeadFlag : byte { Ack=32, Mask=0xE0 }
   const int HeaderSize=4, SeqMax=1024;
   
+  void OnMessageReceived(LinkMessage msg)
+  { if(MessageReceived==null) lock(recv) recv.Enqueue(msg);
+    else
+    { Delegate[] list = MessageReceived.GetInvocationList();
+      foreach(LinkMessageRecvHandler eh in list)
+        if(!eh(this, msg)) return;
+      lock(recv) recv.Enqueue(msg);
+    }
+  }
+
   void SizeBuffer(int len)
   { if(len<256) len=256;
     if(recvBuf==null || recvBuf.Length<len) recvBuf=new byte[len];
