@@ -444,6 +444,8 @@ internal class SDL
   public static extern int PollEvent(ref Event evt);
   [DllImport(Config.SDLImportPath, EntryPoint="SDL_WaitEvent", CallingConvention=CallingConvention.Cdecl)]
   public static extern int WaitEvent(ref Event evt);
+  [DllImport(Config.SDLImportPath, EntryPoint="SDL_PushEvent", CallingConvention=CallingConvention.Cdecl)]
+  public static extern int PushEvent(ref Event evt);
   #endregion
   
   #region Input

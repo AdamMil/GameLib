@@ -167,6 +167,7 @@ public sealed class Events
       lock(queue)
       { SDL.Deinitialize(SDL.InitFlag.Video|SDL.InitFlag.EventThread);
         queue.Clear();
+        waiting = 0;
       }
   }
 
@@ -189,43 +190,55 @@ public sealed class Events
   public static Event PeekEvent(int timeout) { return NextEvent(timeout, false); }
   public static Event NextEvent(int timeout) { return NextEvent(timeout, true);  }
   public static Event NextEvent(int timeout, bool remove)
-  { lock(queue)
-    { AssertInit();
-      if(queue.Count>0) return (Event)(remove ? queue.Dequeue() : queue.Peek());
+  { AssertInit();
 
-      Event ret = PeekSDLEvent();
-      if(ret!=null) return ret;
-      if(timeout==0) return null;
-      if(timeout==Infinite)
-      { ret = NextSDLEvent();
-        if(!remove) QueueEvent(ret);
+    lock(queue)
+    { if(waiting>0) waiting--;
+      if(queue.Count>0) return (Event)(remove ? queue.Dequeue() : queue.Peek());
+    }
+
+    Event ret;
+
+    if(timeout==Infinite)
+    { ret = NextSDLEvent();
+      lock(queue)
+      { if(ret==null) { waiting--; return (Event)(remove ? queue.Dequeue() : queue.Peek()); }
+        else if(!remove) QueueEvent(ret);
         return ret;
       }
+    }
 
-      uint start = SDL.GetTicks();
-      do
-      { ret = PeekSDLEvent();
-        if(ret!=null)
+    uint start = SDL.GetTicks();
+    do
+    { ret = PeekSDLEvent();
+      lock(queue)
+      { if(ret!=null)
         { if(!remove) QueueEvent(ret);
+          if(waiting>0) { waiting--; return (Event)(remove ? queue.Dequeue() : queue.Peek()); }
           return ret;
         }
-        System.Threading.Thread.Sleep(10);
-        timeout -= (int)(SDL.GetTicks()-start);
-      } while(timeout>0);
-      return null;
-    }
+      }
+      System.Threading.Thread.Sleep(10);
+      timeout -= (int)(SDL.GetTicks()-start);
+    } while(timeout>0);
+    return null;
   }
 
   public static bool PushEvent(Event evt) { return PushEvent(evt, false); }
   public static bool PushEvent(Event evt, bool filter)
   { if(evt==null) throw new ArgumentNullException("evt");
+    AssertInit();
+    if(initCount==0) return false;
+    if(filter && !FilterEvent(evt)) return false;
     lock(queue)
-    { AssertInit();
-      if(initCount==0) return false;
-      if(filter && !FilterEvent(evt)) return false;
-      QueueEvent(evt);
-      return true;
+    { QueueEvent(evt);
+      waiting++;
+      SDL.Event e = new SDL.Event();
+      e.Type = SDL.EventType.UserEvent0;
+      SDL.PushEvent(ref e);
     }
+
+    return true;
   }
 
   static unsafe Event PeekSDLEvent()
@@ -259,6 +272,7 @@ public sealed class Events
   static void AssertInit() { if(initCount==0) throw new InvalidOperationException("Events not initialized yet"); }
   static bool FilterEvent(Event evt)
   { if(evt==null) return false;
+    if(evt==userEvent) return true;
     if(EventFilter!=null)
     { Delegate[] list = EventFilter.GetInvocationList();
       foreach(EventFilter ef in list)
@@ -283,6 +297,7 @@ public sealed class Events
       case SDL.EventType.Quit: return new QuitEvent();
       case SDL.EventType.VideoResize: return new ResizeEvent(ref evt.Resize);
       case SDL.EventType.VideoExposed: return new RepaintEvent();
+      case SDL.EventType.UserEvent0: return userEvent;
       default: return null;
     }
   }
@@ -293,7 +308,8 @@ public sealed class Events
   }
 
   static System.Collections.Queue queue = new System.Collections.Queue();
-  static uint initCount;
+  static UserEvent userEvent = new UserEvent();
+  static uint initCount, waiting;
   static int  max=512;
 }
 #endregion
