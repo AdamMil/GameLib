@@ -873,6 +873,7 @@ public class Audio
   public static PlayPolicy PlayPolicy { get { return playPolicy; } set { playPolicy=value; } }
   public static MixPolicy  MixPolicy  { get { return mixPolicy; } set { mixPolicy=value; } }
 
+  // TODO: should this be counted like the others?
   public static bool Initialize() { return Initialize(22050, SampleFormat.Default, Speakers.Stereo, 50); }
   public static bool Initialize(uint frequency) { return Initialize(frequency, SampleFormat.Default, Speakers.Stereo, 50); }
   public static bool Initialize(uint frequency, SampleFormat format) { return Initialize(frequency, format, Speakers.Stereo, 50); }
