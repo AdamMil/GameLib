@@ -20,19 +20,19 @@ DEVELOPMENT (alpha/beta)
   system (Control.Content* and Control.Padding* properties)
 - Removed HorizontalPadding and VerticalPadding from MenuItem (it's been
   superceded by Control.Padding)
-* Simplified the layout system somewhat (lots of changes here)
-- Removed BoundsType because it's no longer needed with the simpler layout
+! Simplified the layout system somewhat (lots of changes here)
+! Removed BoundsType because it's no longer needed with the simpler layout
   system
 + Added ScrollableControl (a control that supports built-in scrollbars)
 + Added basic list controls (ListBox and ComboBox, though ComboBox isn't
   perfect yet)
 * Fixed an awful bug that caused bits of Controls to disappear if they had
-  a backing surface and certain types of child controls
+  a backing surface and contained certain types of child controls
 * Various other windowing changes
 * Altered the Windowing sample to reflect the changes
 * Moved a lot more documentation into documentation.xml so the source code
-  will be less cluttered with repetitive text
-* Changed Surface.PutPixelRaw to Surface.PutPixel
+  would be less cluttered with repetitive text
+! Changed Surface.PutPixelRaw to Surface.PutPixel
 + Added some new overloads for Font.WordWrap that accept a Size instead of
   a Rectangle
 * Cleaned up the MessageBox code
@@ -41,7 +41,7 @@ DEVELOPMENT (alpha/beta)
   application to become deadlocked on shutdown
 * Fixed a bug in the audio filter code that was due to an array not being
   cleared before use
-+ Redesigned the audio filtering code, adding support for simple filter
+! Redesigned the audio filtering code, adding support for simple filter
   graphs
 + Added support for floating point sample data in the audio mixer
 + Added a tone generator audio source (sine, saw, triangle, and square)
@@ -50,21 +50,22 @@ DEVELOPMENT (alpha/beta)
   and high shelf], and a configurable graphic equalizer)
 * Fixed a bug that caused the area behind a control not to be redrawn when
   the control was marked as invisible
-* Reworked the networking code significantly. Added the ability to use the
+! Reworked the networking code significantly. Added the ability to use the
   NetLink class in the same thread as both a client and server, and improved
   the NetLink interface by removing the need for handshaking. Added some
   protection against race conditions.
 * Updated the networking sample to use the new networking features
-* Renamed INetSerializeable to INetSerializable
-* In MessageConverter, renamed ToObject and FromObject to Deserialize and
+! Renamed INetSerializeable to INetSerializable
+! In MessageConverter, renamed ToObject and FromObject to Deserialize and
   Serialize, respectively.
-* Renamed for the Network.Server class, renamed Open() and Close() to
+! Renamed for the Network.Server class, renamed Open() and Close() to
   Initialize() and Deinitialize(), respectively
 + Added documentation for the networking code
 + Added overridable On*() methods for the NetLink, Server, and Client classes,
   so that they can be customized via derivation in addition to hooking events.
 + Added support for formatted binary reading.
 + Added a Connected event and OnConnected override for the network Client.
+* Cleaned up and optimized the binary reading/writing code somewhat.
 
 2004.06.28 (alpha/beta)
 -------------------
