@@ -250,7 +250,7 @@ public class ScrollBarBase : Control
   #region Properties
   public bool AutoUpdate { get { return autoUpdate; } set { autoUpdate=value; } }
 
-  public int BigIncrement { get { return bigInc; } set { bigInc=value; } }
+  public int PageIncrement { get { return pageInc; } set { pageInc=value; } }
 
   public uint ClickRepeatDelay
   { get { return crDelay; }
@@ -301,7 +301,7 @@ public class ScrollBarBase : Control
     set { min=value; Invalidate(); }
   }
 
-  public int SmallIncrement { get { return smallInc; } set { smallInc=value; } }
+  public int Increment { get { return smallInc; } set { smallInc=value; } }
 
   public int ThumbSize
   { get { return thumbSize; }
@@ -422,11 +422,11 @@ public class ScrollBarBase : Control
     if(Up!=null) Up(this, e);
   }
   protected virtual void OnPageDown(EventArgs e)
-  { if(autoUpdate) Value=value-bigInc;
+  { if(autoUpdate) Value=value-pageInc;
     if(PageDown!=null) PageDown(this, e);
   }
   protected virtual void OnPageUp(EventArgs e)
-  { if(autoUpdate) Value=value+bigInc;
+  { if(autoUpdate) Value=value+pageInc;
     if(PageUp!=null) PageUp(this, e);
   }
   protected virtual void OnThumbDragStart(ThumbEventArgs e)
@@ -475,7 +475,7 @@ public class ScrollBarBase : Control
 
   System.Threading.Timer crTimer;
   ClickRepeat repeatEvent;
-  int  value, min, max=100, smallInc=1, bigInc=10, endSize=8, thumbSize=10, dragOff=-1;
+  int  value, min, max=100, smallInc=1, pageInc=10, endSize=8, thumbSize=10, dragOff=-1;
   uint crDelay, crRate=50;
   bool autoUpdate, horizontal, repeated;
 }

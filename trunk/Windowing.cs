@@ -749,7 +749,7 @@ public class Control
 #endregion
 
 #region DesktopControl class
-public enum AutoFocus { None=0, Click=1, Hover=2 }
+public enum AutoFocus { None=0, Click=1, Over=2, OverSticky=3 }
 
 public class DesktopControl : ContainerControl
 { public DesktopControl() { Init(); }
@@ -876,11 +876,11 @@ public class DesktopControl : ContainerControl
           c.OnMouseEnter(eventArgs);
         }
         at = p.PointToChild(at, c);
-        if(focus==AutoFocus.Hover && c.CanFocus) c.Focus();
+        if((focus==AutoFocus.OverSticky || focus==AutoFocus.Over) && c.CanFocus) c.Focus();
         ei++;
         p = c;
       }
-      if(focus==AutoFocus.Hover) p.FocusedControl = null;
+      if(focus==AutoFocus.Over) p.FocusedControl = null;
       
       if(dragging!=null)
       { if(dragStarted)
@@ -986,6 +986,7 @@ public class DesktopControl : ContainerControl
       }
       else if(p==this && capturing==null) goto done;
 
+      clickStatus = ClickStatus.All;
       if(capturing!=null)
       { ea.CE.Point = capturing.PointToClient(ea.CE.Point);
         DispatchClickEvent(capturing, ea, time);
@@ -1041,11 +1042,11 @@ public class DesktopControl : ContainerControl
   }
 
   protected bool DispatchClickEvent(Control target, ClickEventArgs e, uint time)
-  { if(e.CE.Down)
+  { if(e.CE.Down && (clickStatus&ClickStatus.UpDown) != ClickStatus.None)
     { target.OnMouseDown(e);
-      if(e.Handled) return false;
+      if(e.Handled) { clickStatus ^= ClickStatus.UpDown; e.Handled=false; }
     }
-    if(target.HasStyle(ControlStyle.NormalClick) && e.CE.Button<8)
+    if(target.HasStyle(ControlStyle.NormalClick) && (clickStatus&ClickStatus.Click)!=ClickStatus.None && e.CE.Button<8)
     { if(e.CE.Down) lastClicked[e.CE.Button] = target;
       else
       { if(lastClicked[e.CE.Button]==target)
@@ -1053,16 +1054,18 @@ public class DesktopControl : ContainerControl
             target.OnDoubleClick(e);
           else target.OnMouseClick(e);
           target.lastClickTime = time;
-          // FIXME: handle the Handled property separately for MouseDown, MouseUp, and Click
-          // FIXME: change this to if(any_not_handled) lastClicked[...
-          if(!e.Handled) lastClicked[e.CE.Button]=target.Parent; // TODO: make sure this is okay with captured/dragged controls
+          if(e.Handled) { clickStatus ^= ClickStatus.Click; e.Handled=false; }
+          lastClicked[e.CE.Button]=target.Parent; // TODO: make sure this is okay with captured/dragged controls
         }
       }
     }
-    if(!e.CE.Down) target.OnMouseUp(e);
-    return !e.Handled;
+    if(!e.CE.Down && (clickStatus&ClickStatus.UpDown) != ClickStatus.None)
+    { target.OnMouseUp(e);
+      if(e.Handled) { clickStatus ^= ClickStatus.UpDown; e.Handled=false; }
+    } 
+    return clickStatus!=ClickStatus.None;
   }
-  
+
   protected bool DispatchKeyToFocused(KeyEventArgs e)
   { if(e.Handled) return false;
     if(FocusedControl!=null)
@@ -1079,6 +1082,8 @@ public class DesktopControl : ContainerControl
   }
   #endregion
   
+  protected internal Control capturing;
+
   protected void RepeatKey(object dummy) { Events.Events.PushEvent(new KeyRepeatEvent()); }
   protected void TabToNext(bool reverse)
   { Control fc = this;
@@ -1086,10 +1091,9 @@ public class DesktopControl : ContainerControl
     (fc==this ? this : fc.Parent).TabToNextControl(reverse);
   }
   
-  protected internal Control capturing;
-
+  [Flags] protected enum ClickStatus { None=0, UpDown=1, Click=2, All=UpDown|Click };
   protected Surface surface;
-  protected AutoFocus   focus;
+  protected AutoFocus   focus=AutoFocus.Click;
   protected Control[]   lastClicked=new Control[8], entered=new Control[8];
   protected Control     dragging;
   protected System.Threading.Timer krTimer;
@@ -1097,6 +1101,7 @@ public class DesktopControl : ContainerControl
   protected DragEventArgs drag;
   protected Rectangle[] updated = new Rectangle[8];
   protected Input.Key tab=Input.Key.Tab;
+  protected ClickStatus clickStatus;
   protected int   dragThresh=16, enteredLen, updatedLen;
   protected uint  dcDelay=350, krDelay, krRate=50;
   protected bool  keys=true, clicks=true, moves=true, active, init, dragStarted;
