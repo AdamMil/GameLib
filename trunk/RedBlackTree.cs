@@ -129,7 +129,7 @@ public class RedBlackTree : IDictionary, ICollection, IEnumerable
   #endregion
 
   #region IEnumerable
-  public class Enumerator : IDictionaryEnumerator
+  public sealed class Enumerator : IDictionaryEnumerator
   { internal Enumerator(RedBlackTree tree, Node root)
     { if(root==Node.Null) GC.SuppressFinalize(this);
       else
@@ -268,7 +268,7 @@ public class RedBlackTree : IDictionary, ICollection, IEnumerable
   }
 
   #region Node class
-  internal protected class Node
+  internal sealed class Node
   { public Node() { }
     public Node(Node parent, object key, object value)
     { Parent=parent; Key=key; Value=value; Red=true;
@@ -282,34 +282,9 @@ public class RedBlackTree : IDictionary, ICollection, IEnumerable
   }
   #endregion
 
-  protected void AssertWriteable()
-  { if(IsReadOnly || IsFixedSize)
-      throw new NotSupportedException("Collection is "+(IsReadOnly?"read-only":"fixed-size"));
-  }
+  internal Node Root { get { return root; } }
 
-  protected void LeftRotate(Node x)
-  { Node y=x.Right;
-    if((x.Right=y.Left)!=Node.Null) y.Left.Parent=x;
-    if((y.Parent=x.Parent)!=Node.Null)
-    { if(x==x.Parent.Left) x.Parent.Left=y;
-      else x.Parent.Right=y;
-    }
-    else root=y;
-    y.Left=x; x.Parent=y;
-  }
-
-  protected void RightRotate(Node y)
-  { Node x=y.Left;
-    if((y.Left=x.Right)!=Node.Null) x.Right.Parent=y;
-    if((x.Parent=y.Parent)!=Node.Null)
-    { if(y==y.Parent.Left) y.Parent.Left=x;
-      else y.Parent.Right=x;
-    }
-    else root=x;
-    x.Right=y; y.Parent=x;
-  }
-  
-  protected Node Find(object key)
+  internal Node Find(object key)
   { if(key==null) throw new ArgumentNullException("key");
 
     Node n=root;
@@ -323,7 +298,7 @@ public class RedBlackTree : IDictionary, ICollection, IEnumerable
     return n;
   }
   
-  protected void Remove(Node n)
+  internal void Remove(Node n)
   { if(n==Node.Null) return;
     Node w, x, y, p;
     y = n.Left==Node.Null || n.Right==Node.Null ? n : Successor(n);
@@ -390,16 +365,43 @@ public class RedBlackTree : IDictionary, ICollection, IEnumerable
     if(TreeChanged!=null) TreeChanged();
   }
 
-  protected Node Successor(Node x)
+  internal Node Successor(Node x)
   { Node y;
     if(x.Right!=Node.Null) for(y=x.Right; y.Left!=Node.Null; y=y.Left);
     else for(y=x.Parent; y!=Node.Null && x==y.Right; x=y, y=y.Parent);
     return y;
   }
 
-  protected Node root=Node.Null;
-  protected IComparer comparer;
-  protected int  count;
+  void AssertWriteable()
+  { if(IsReadOnly || IsFixedSize)
+      throw new NotSupportedException("Collection is "+(IsReadOnly?"read-only":"fixed-size"));
+  }
+
+  void LeftRotate(Node x)
+  { Node y=x.Right;
+    if((x.Right=y.Left)!=Node.Null) y.Left.Parent=x;
+    if((y.Parent=x.Parent)!=Node.Null)
+    { if(x==x.Parent.Left) x.Parent.Left=y;
+      else x.Parent.Right=y;
+    }
+    else root=y;
+    y.Left=x; x.Parent=y;
+  }
+
+  void RightRotate(Node y)
+  { Node x=y.Left;
+    if((y.Left=x.Right)!=Node.Null) x.Right.Parent=y;
+    if((x.Parent=y.Parent)!=Node.Null)
+    { if(y==y.Parent.Left) y.Parent.Left=x;
+      else y.Parent.Right=x;
+    }
+    else root=x;
+    x.Right=y; y.Parent=x;
+  }
+  
+  Node root=Node.Null;
+  IComparer comparer;
+  int  count;
 }
 
 } // namespace GameLib.Collections

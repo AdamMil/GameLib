@@ -37,7 +37,7 @@ class App
   static string dataPath = "./data/"; 
   #endif
 
-  const int NUM_PARTICLES=125;
+  const int NUM_PARTICLES=150;
   const float ZOOM=-15f;
 
   struct Particle
@@ -82,7 +82,7 @@ class App
   
   static void Initialize()
   { Video.Initialize();
-    Video.SetGLMode(640, 480, 32, SurfaceFlag.Fullscreen); 
+    Video.SetGLMode(640, 480, 32);
 
     GL.glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     GL.glDisable(GL.GL_DITHER);
@@ -141,15 +141,14 @@ class App
 
     float angle;  // angle between the spigot and the mouse (in radians)
     float length; // distance to the mouse from the spigot
-    { Vector dir;
-      double[] model=new double[16], proj=new double[16];
+    { double[] model=new double[16], proj=new double[16];
       int[] view=new int[4];
       double x, y, z;
       GL.glGetDoublev(GL.GL_MODELVIEW_MATRIX, model);
       GL.glGetDoublev(GL.GL_PROJECTION_MATRIX, proj);
       GL.glGetIntegerv(GL.GL_VIEWPORT, view);
       GLU.gluUnProject(Mouse.X, Mouse.Y, 1, model, proj, view, out x, out y, out z);
-      dir = new Vector((float)x/2, (float)y/2);
+      Vector dir = new Vector((float)x/2, (float)y/2);
       length = dir.Length;
       angle  = dir.Angle;
     }
