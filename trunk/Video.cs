@@ -206,13 +206,14 @@ public sealed class Video
   { AssertModeSet();
     unsafe { SDL.UpdateRect(display.surface, x, y, width, height); }
   }
-  public unsafe static void UpdateRects(Rectangle[] rects)
+  public static void UpdateRects(Rectangle[] rects) { UpdateRects(rects, rects.Length); }
+  public unsafe static void UpdateRects(Rectangle[] rects, int length)
   { AssertModeSet();
     if(rects==null) throw new ArgumentNullException("rects");
     unsafe
-    { SDL.Rect* array = stackalloc SDL.Rect[rects.Length];
-      for(int i=0; i<rects.Length; i++) array[i] = new SDL.Rect(rects[i]);
-      SDL.UpdateRects(display.surface, (uint)rects.Length, array);
+    { SDL.Rect* array = stackalloc SDL.Rect[length];
+      for(int i=0; i<length; i++) array[i] = new SDL.Rect(rects[i]);
+      SDL.UpdateRects(display.surface, (uint)length, array);
     }
   }
 

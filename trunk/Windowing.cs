@@ -306,6 +306,8 @@ public class Control
     set
     { if(value!=parent)
       { ValueChangedEventArgs e = new ValueChangedEventArgs(parent);
+        // 'mychange' is used so OnParentChanged gets called properly
+        // (otherwise it'd get called twice with intermediate values)
         mychange=true;
         if(parent!=null) parent.Controls.Remove(this);
         if(value!=null) value.Controls.Add(this);
@@ -414,7 +416,7 @@ public class Control
   
   #region Public methods
   public void BringToFront()
-  { CheckParent();
+  { AssertParent();
     IList list = parent.controls.Array;
     if(list[0]!=this)
     { list.Remove(this);
@@ -423,12 +425,12 @@ public class Control
   }
 
   public void Blur()
-  { CheckParent();
+  { AssertParent();
     if(parent.FocusedControl==this) parent.FocusedControl=null;
   }
 
   public void Focus()
-  { CheckParent();
+  { AssertParent();
     if(CanFocus) parent.FocusedControl = this;
   }
 
@@ -506,11 +508,10 @@ public class Control
 
   public void Refresh() { Refresh(ClientRect); }
   public void Refresh(Rectangle area)
-  { pendingPaint=true;
-    Invalidate(area);
+  { if(invalid.Width==0) invalid = area;
+    else invalid = Rectangle.Union(area, invalid); 
     DesktopControl desktop = Desktop;
     if(desktop!=null) desktop.DoPaint(this);
-    else pendingPaint=false;
   }
 
   public void ResumeLayout() { ResumeLayout(true); }
@@ -523,7 +524,7 @@ public class Control
   }
 
   public void SendToBack()
-  { CheckParent();
+  { AssertParent();
     IList list = parent.controls.Array;
     if(list[list.Count-1]!=this)
     { list.Remove(this);
@@ -705,7 +706,7 @@ public class Control
     }
     parent = control;
     if(parent!=null) parent.OnControlAdded(ce);
-    OnParentChanged(ve);
+    if(!mychange) OnParentChanged(ve);
   }
   
   protected internal Control FocusedControl
@@ -723,21 +724,27 @@ public class Control
   }
   
   protected internal bool HasStyle(ControlStyle test) { return (style & test) != ControlStyle.None; }
-  protected internal ControlStyle style;
-  protected internal uint lastClickTime = int.MaxValue;
-  protected internal int  dragThreshold = -1;
+  protected internal ControlStyle Style { get { return style; } set { style=value; } }
+  protected internal int dragThreshold = -1;
 
-  protected void CheckParent() { if(parent==null) throw new InvalidOperationException("This control has no parent"); }
-  protected ControlCollection controls;
-  protected Control parent, focused;
+  internal uint lastClickTime = int.MaxValue;
+
+  protected void AssertParent()
+  { if(parent==null) throw new InvalidOperationException("This control has no parent");
+  }
   protected Rectangle bounds = new Rectangle(0, 0, 100, 100), invalid;
-  protected GameLib.Fonts.Font font;
-  protected Color back=Color.Transparent, fore=Color.Transparent;
-  protected IBlittable backimg, cursor;
-  protected string name="", text="";
-  protected object tag;
-  protected int  tabIndex=-1;
-  protected bool enabled=true, visible=true, mychange, pendingPaint, pendingLayout, keyPreview, layoutSuspended;
+  protected bool pendingPaint, pendingLayout, layoutSuspended;
+
+  ControlCollection controls;
+  Control parent, focused;
+  GameLib.Fonts.Font font;
+  Color back=Color.Transparent, fore=Color.Transparent;
+  IBlittable backimg, cursor;
+  string name="", text="";
+  object tag;
+  int tabIndex=-1;
+  ControlStyle style;
+  bool enabled=true, visible=true, mychange, keyPreview;
 }
 #endregion
 
@@ -798,16 +805,39 @@ public class DesktopControl : ContainerControl
     }
   }
   public Input.Key TabCharacter { get { return tab; } set { tab=value; } }
-  public bool Updated { get { return updated; } set { updated=value; } }
+  public bool Updated
+  { get { return updatedLen>0; }
+    set { if(value) Invalidate(); else updatedLen=0; }
+  }
+  public int UpdatedLength { get { return updatedLen; } }
+  public Rectangle[] UpdatedRects { get { return updated; } }
   #endregion
 
   public void DoPaint() { DoPaint(this); }
   public void DoPaint(Control child)
-  { if(surface!=null)
-    { PaintEventArgs pe = new PaintEventArgs(child, child.ClientRect, surface);
+  { if(surface!=null && child.InvalidRect.Width>0)
+    { PaintEventArgs pe = new PaintEventArgs(child, child.InvalidRect, surface);
       child.OnPaintBackground(pe);
       child.OnPaint(pe);
-      updated = true;
+
+      // TODO: combine rectangles more efficiently
+      int i;
+      for(i=0; i<updatedLen; i++)
+      { if(updated[i].Contains(pe.DisplayRect)) return;
+        retest:
+        if(pe.DisplayRect.Contains(updated[i]) && --updatedLen != i)
+        { updated[i] = updated[updatedLen];
+          goto retest;
+        }
+      }
+      if(i>=updatedLen)
+      { if(updatedLen==updated.Length)
+        { Rectangle[] narr = new Rectangle[updated.Length*2];
+          Array.Copy(narr, updated, updated.Length);
+          updated = narr;
+        }
+        updated[updatedLen++] = pe.DisplayRect;
+      }
     }
   }
 
@@ -837,8 +867,8 @@ public class DesktopControl : ContainerControl
         if(c==null) break;
         if(ei==enteredLen)
         { if(eventArgs==null) eventArgs=new EventArgs();
-          if(enteredLen==enteredMax)
-          { Control[] na = new Control[enteredMax*=2];
+          if(enteredLen==entered.Length)
+          { Control[] na = new Control[entered.Length*2];
             Array.Copy(entered, na, enteredLen);
             entered = na;
           }
@@ -888,7 +918,7 @@ public class DesktopControl : ContainerControl
     #endregion
     #region Keyboard
     else if(keys && e is KeyboardEvent)
-    { if(focused!=null)
+    { if(FocusedControl!=null)
       { KeyEventArgs ea = new KeyEventArgs((KeyboardEvent)e);
         if(ea.KE.Down)
         { if(krTimer!=null)
@@ -932,7 +962,7 @@ public class DesktopControl : ContainerControl
         p = c;
       }
       if(p==this)
-      { if(focus==AutoFocus.Click && ea.CE.Down && focused!=null) FocusedControl = null;
+      { if(focus==AutoFocus.Click && ea.CE.Down && FocusedControl!=null) FocusedControl = null;
         if(!dragStarted && capturing==null) goto done;
       }
 
@@ -1023,8 +1053,9 @@ public class DesktopControl : ContainerControl
             target.OnDoubleClick(e);
           else target.OnMouseClick(e);
           target.lastClickTime = time;
-          if(e.Handled) return false;
-          lastClicked[e.CE.Button]=target.Parent; // TODO: make sure this is okay with captured/dragged controls
+          // FIXME: handle the Handled property separately for MouseDown, MouseUp, and Click
+          // FIXME: change this to if(any_not_handled) lastClicked[...
+          if(!e.Handled) lastClicked[e.CE.Button]=target.Parent; // TODO: make sure this is okay with captured/dragged controls
         }
       }
     }
@@ -1034,8 +1065,8 @@ public class DesktopControl : ContainerControl
   
   protected bool DispatchKeyToFocused(KeyEventArgs e)
   { if(e.Handled) return false;
-    if(focused!=null)
-    { Control fc = focused;
+    if(FocusedControl!=null)
+    { Control fc = FocusedControl;
       while(fc.FocusedControl!=null)
       { if(fc.KeyPreview && !DispatchKeyEvent(fc, e)) goto done;
         fc = fc.FocusedControl;
@@ -1064,10 +1095,11 @@ public class DesktopControl : ContainerControl
   protected System.Threading.Timer krTimer;
   protected KeyboardEvent heldKey;
   protected DragEventArgs drag;
+  protected Rectangle[] updated = new Rectangle[8];
   protected Input.Key tab=Input.Key.Tab;
-  protected int   dragThresh=16, enteredLen, enteredMax=8;
+  protected int   dragThresh=16, enteredLen, updatedLen;
   protected uint  dcDelay=350, krDelay, krRate=50;
-  protected bool  keys=true, clicks=true, moves=true, updated, active, init, dragStarted;
+  protected bool  keys=true, clicks=true, moves=true, active, init, dragStarted;
   
   void Init()
   { Events.Events.Initialize();
