@@ -20,6 +20,7 @@ using System;
 using System.IO;
 
 // TODO: clean up code for binary formatted output (it's ugly)
+// TODO: allow a '*' prefix in binary reading that uses the number as the prefix for the next code, so we can read arrays without breaking up the format string
 
 namespace GameLib.IO
 {

@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // TODO: implement IPv6 support (it might be done already!)
 // TODO: add a 'Peer' class
 // FIXME: allow serialization of arrays
+// TODO: consider replacing INetSerializable.Deserialize with a constructor that takes a certain struct/class. this would require using a Stream rather than a byte[], though.
 
 using System;
 using System.Collections;
@@ -469,14 +470,16 @@ public sealed class MessageConverter
 #endregion
 
 #region NetLink class and supporting types
-/// <summary>This delegate is used for events that receive a <see cref="NetLink"/> object.</summary>
+/// <summary>This delegate is used for the <see cref="NetLink.Connected"/> and <see cref="NetLink.Disconnected"/>
+/// events.
+/// </summary>
 public delegate void NetLinkHandler(NetLink link);
-/// <summary>This delegate is used for events that receive <see cref="NetLink"/> and <see cref="LinkMessage"/>
-/// objects.
+/// <summary>This delegate is used for the <see cref="NetLink.MessageSent"/> and <see cref="NetLink.RemoteReceived"/>
+/// events.
 /// </summary>
 public delegate void LinkMessageHandler(NetLink link, LinkMessage msg);
-/// <summary>This delegate is used for events that indicate when a message is received. If it returns false,
-/// the message will be dropped.
+/// <summary>This delegate is used for the <see cref="NetLink.MessageReceived"/> event.
+/// If it returns false, the message will be dropped.
 /// </summary>
 public delegate bool LinkMessageRecvHandler(NetLink link, LinkMessage msg);
 
@@ -553,26 +556,31 @@ public class NetLink
   /// </summary>
   public const int NoTimeout=-1;
 
+  /// <summary>This event is raised when the network link is connected.</summary>
+  public event NetLinkHandler Connected;
+  /// <summary>This event is raised when the network link is disconnected.</summary>
+  public event NetLinkHandler Disconnected;
   /// <summary>This event is raised when a message is received.</summary>
   /// <remarks>Each handler attached to this event can return false, indicating that the message should be
   /// dropped. If that occurs, the message will not be passed to any remaining handlers.
   /// </remarks>
   public event LinkMessageRecvHandler MessageReceived;
-  /// <summary>This event is raised when a message is received by the remote host.</summary>
-  /// <remarks>Note that the message must have been sent with the <see cref="SendFlag.NotifyReceived"/> flag
-  /// in order for this event to be raised.
-  /// </remarks>
-  public event LinkMessageHandler RemoteReceived;
   /// <summary>This event is raised when a message is sent over the network.</summary>
   /// <remarks>Note that the message must have been sent with the <see cref="SendFlag.NotifySent"/> flag
   /// in order for this event to be raised.
   /// </remarks>
   public event LinkMessageHandler MessageSent;
-  /// <summary>This event is raised when the network link is disconnected.</summary>
-  public event NetLinkHandler Disconnected;
+  /// <summary>This event is raised when a message is received by the remote host.</summary>
+  /// <remarks>Note that the message must have been sent with the <see cref="SendFlag.NotifyReceived"/> flag
+  /// in order for this event to be raised.
+  /// </remarks>
+  public event LinkMessageHandler RemoteReceived;
 
-  /// <include file="documentation.xml" path="//Network/Common/Common/*"/>
-  public bool Connected
+  /// <include file="documentation.xml" path="//Network/Common/DefaultFlags/*"/>
+  public SendFlag DefaultFlags { get { return defFlags; } set { defFlags=value; } }
+
+  /// <include file="documentation.xml" path="//Network/Common/IsConnected/*"/>
+  public bool IsConnected
   { get
     { if(!connected) return false;
       Socket tcp = this.tcp;
@@ -580,8 +588,6 @@ public class NetLink
     }
   }
 
-  /// <include file="documentation.xml" path="//Network/Common/DefaultFlags/*"/>
-  public SendFlag DefaultFlags { get { return defFlags; } set { defFlags=value; } }
   /// <include file="documentation.xml" path="//Network/Common/LagAverage/*"/>
   public uint LagAverage { get { return lagAverage;  } set { lagAverage =value; } }
   /// <include file="documentation.xml" path="//Network/Common/LagVariance/*"/>
@@ -639,6 +645,7 @@ public class NetLink
     this.tcp = tcp;
     this.udp = udp;
     connected = true;
+    OnConnected();
   }
 
   /// <summary>Closes the connection to the remote host.</summary>
@@ -755,7 +762,7 @@ public class NetLink
   { if(!connected) throw new InvalidOperationException("Link is not open");
     if((flags&SendFlag.NotifyReceived)!=0)
       throw new NotImplementedException("SendFlag.NotifyReceived is not yet implemented");
-    if(!Connected) throw new ConnectionLostException();
+    if(!IsConnected) throw new ConnectionLostException();
     if(length>65535) throw new DataTooLargeException(65535);
     if(index<0 || length<0 || index+length>data.Length) throw new ArgumentOutOfRangeException("index or length");
 
@@ -903,7 +910,7 @@ public class NetLink
   /// <returns>Returns true if the connection was lost or a message was received, and false otherwise.</returns>
   /// <remarks>This method will return immediately if the connection is broken.</remarks>
   public bool WaitForEvent(int timeoutMs)
-  { if(!Connected) return true;
+  { if(!IsConnected) return true;
 
     ArrayList read=new ArrayList(2), write=null;
     uint start = timeoutMs>0 ? Timing.Msecs : 0;
@@ -920,7 +927,7 @@ public class NetLink
       if(read.Count!=0)
       { if(MessageWaiting) return true;
       }
-      else if(!Connected) return true;
+      else if(!IsConnected) return true;
       if(write!=null && write.Count!=0) SendPoll();
 
       if(timeoutMs==0) break;
@@ -965,7 +972,7 @@ public class NetLink
             send=true;
           }
 
-          if(!link.Connected || link.MessageWaiting)
+          if(!link.IsConnected || link.MessageWaiting)
           { if(ret==null) ret = new ArrayList();
             ret.Add(link);
           }
@@ -1000,7 +1007,7 @@ public class NetLink
       if(read.Count!=0)
         foreach(Socket sock in read)
         { NetLink link = (NetLink)dict[sock];
-          if(link.MessageWaiting || !link.Connected)
+          if(link.MessageWaiting || !link.IsConnected)
           { if(ret==null) ret = new ArrayList();
             else if(!ret.Contains(link)) ret.Add(link);
           }
@@ -1027,10 +1034,22 @@ public class NetLink
     return null;
   }
 
-  /// <summary>This message raises the <see cref="MessageReceived"/> event.</summary>
+  /// <summary>Raises the <see cref="Connected"/> event.</summary>
+  /// <remarks>If you override this method, be sure to call the base class' implementation.</remarks>
+  protected virtual void OnConnected()
+  { if(Connected!=null) Connected(this);
+  }
+
+  /// <summary>Raises the <see cref="Disconnected"/> event.</summary>
+  /// <remarks>If you override this method, be sure to call the base class' implementation.</remarks>
+  protected virtual void OnDisconnected()
+  { if(Disconnected!=null) Disconnected(this);
+  }
+
+  /// <summary>Raises the <see cref="MessageReceived"/> event.</summary>
   /// <param name="message">The <see cref="LinkMessage"/> that was received.</param>
   /// <returns>Returns true if the message was placed in the queue and false otherwise.</returns>
-  /// <remarks>If you override this message, be sure to call the base class' implementation. The proper place
+  /// <remarks>If you override this method, be sure to call the base class' implementation. The proper place
   /// to do this is at the beginning of the derived version.
   /// </remarks>
   protected virtual bool OnMessageReceived(LinkMessage message)
@@ -1043,10 +1062,10 @@ public class NetLink
     return true;
   }
 
-  /// <summary>This message raises the <see cref="MessageSent"/> event.</summary>
+  /// <summary>Raises the <see cref="MessageSent"/> event.</summary>
   /// <param name="message">The <see cref="LinkMessage"/> that was sent.</param>
   /// <remarks>This method is only called for messages that have requested notification via the
-  /// <see cref="SendFlag.NotifySent"/> flag. If you override this message, be sure to call the base class'
+  /// <see cref="SendFlag.NotifySent"/> flag. If you override this method, be sure to call the base class'
   /// implementation. The proper place to do this is at the beginning of the derived version.
   /// </remarks>
   protected virtual void OnMessageSent(LinkMessage message)
@@ -1154,7 +1173,7 @@ public class NetLink
       tcp.Close();
       udp.Close();
       tcp=udp=null;
-      if(Disconnected!=null) Disconnected(this);
+      OnDisconnected();
     }
   }
 
@@ -1220,6 +1239,9 @@ public class Server
   /// <summary>This class implements a strongly-typed, read-only collection of <see cref="ServerPlayer"/> objects.</summary>
   public class PlayerCollection : ReadOnlyCollectionBase
   { public ServerPlayer this[int index] { get { return (ServerPlayer)InnerList[index]; } }
+    public void CopyTo(Array array, int index) { InnerList.CopyTo(array, index); }
+    public bool Contains(ServerPlayer player) { return InnerList.Contains(player); }
+    public int IndexOf(ServerPlayer player) { return InnerList.IndexOf(player); }
     internal ArrayList Array { get { return InnerList; } }
   }
 
@@ -1468,7 +1490,8 @@ public class Server
 
   void ThreadFunc()
   { try
-    { while(!quit)
+    { ArrayList disconnected = new ArrayList();
+      while(!quit)
       { bool did=false;
 
         lock(this)
@@ -1492,7 +1515,6 @@ public class Server
             catch(HandshakeException) { sock.Close(); }
           }
 
-          ArrayList disconnected=null;
           for(int i=0; i<players.Count; i++)
           { ServerPlayer p = players[i];
             try
@@ -1506,21 +1528,22 @@ public class Server
               }
               else
               { if(p.DelayedDrop && p.Link.sendQueue==0) p.Link.Close();
-                if(!p.Link.Connected)
+                if(!p.Link.IsConnected)
                 { did=true;
                   players.Array.RemoveAt(i);
                   links.RemoveAt(i);
                   i--;
-                  if(PlayerDisconnected!=null)
-                  { if(disconnected==null) disconnected=new ArrayList();
-                    disconnected.Add(p);
-                  }
+                  disconnected.Add(p);
                 }
               }
             }
             catch(SocketException) { }
           }
-          if(disconnected!=null) foreach(ServerPlayer p in disconnected) PlayerDisconnected(this, p);
+
+          if(disconnected!=null)
+          { foreach(ServerPlayer p in disconnected) OnPlayerDisconnected(p);
+            disconnected.Clear();
+          }
         }
 
         if(!did) NetLink.WaitForEvent(links, 250);
@@ -1535,10 +1558,10 @@ public class Server
     }
   }
 
-  /// <summary>This message raises the <see cref="MessageReceived"/> event.</summary>
+  /// <summary>Raises the <see cref="MessageReceived"/> event.</summary>
   /// <param name="player">The <see cref="ServerPlayer"/> that sent the message.</param>
   /// <param name="message">The message that was received.</param>
-  /// <remarks>If you override this message, be sure to call the base class' implementation. The proper place
+  /// <remarks>If you override this method, be sure to call the base class' implementation. The proper place
   /// to do this is at the beginning of the derived version.
   /// </remarks>
   protected virtual void OnMessageReceived(ServerPlayer player, object message)
@@ -1546,11 +1569,11 @@ public class Server
     if(smh!=null) smh(this, player, message);
   }
 
-  /// <summary>This message raises the <see cref="MessageSent"/> event.</summary>
+  /// <summary>Raises the <see cref="MessageSent"/> event.</summary>
   /// <param name="player">The <see cref="ServerPlayer "/>to which the message was sent.</param>
   /// <param name="message">The message that was sent.</param>
   /// <remarks>This method is only called for messages that have requested notification via the
-  /// <see cref="SendFlag.NotifySent"/> flag. If you override this message, be sure to call the base class'
+  /// <see cref="SendFlag.NotifySent"/> flag. If you override this method, be sure to call the base class'
   /// implementation. The proper place to do this is at the beginning of the derived version.
   /// </remarks>
   protected virtual void OnMessageSent(ServerPlayer player, object message)
@@ -1558,10 +1581,10 @@ public class Server
     if(smh!=null) smh(this, player, message);
   }
 
-  /// <summary>This message raises the <see cref="PlayerConnecting"/> event.</summary>
+  /// <summary>Raises the <see cref="PlayerConnecting"/> event.</summary>
   /// <param name="player">The <see cref="ServerPlayer"/> that is connecting.</param>
   /// <returns>True if the player should be allowed to connect, and false if the player should be dropped.</returns>
-  /// <remarks>If you override this message, be sure to call the base class' implementation. The proper place
+  /// <remarks>If you override this method, be sure to call the base class' implementation. The proper place
   /// to do this is at the beginning of the derived version.
   /// </remarks>
   protected virtual bool OnPlayerConnecting(ServerPlayer player)
@@ -1572,9 +1595,9 @@ public class Server
     return true;
   }
 
-  /// <summary>This message raises the <see cref="PlayerConnected"/> event.</summary>
+  /// <summary>Raises the <see cref="PlayerConnected"/> event.</summary>
   /// <param name="player">The <see cref="ServerPlayer"/> that has connected.</param>
-  /// <remarks>If you override this message, be sure to call the base class' implementation. The proper place
+  /// <remarks>If you override this method, be sure to call the base class' implementation. The proper place
   /// to do this is at the beginning of the derived version.
   /// </remarks>
   protected virtual void OnPlayerConnected(ServerPlayer player)
@@ -1582,10 +1605,10 @@ public class Server
     if(pch!=null) pch(this, player);
   }
 
-  /// <summary>This message raises the <see cref="PlayerDisconnected"/> event.</summary>
+  /// <summary>Raises the <see cref="PlayerDisconnected"/> event.</summary>
   /// <param name="player">The <see cref="ServerPlayer"/> that has disconnected.</param>
   /// <remarks>This method is called for both planned and unplanned disconnections.
-  /// If you override this message, be sure to call the base class' implementation. The proper place
+  /// If you override this method, be sure to call the base class' implementation. The proper place
   /// to do this is at the beginning of the derived version.
   /// </remarks>
   protected virtual void OnPlayerDisconnected(ServerPlayer player)
@@ -1593,11 +1616,11 @@ public class Server
     if(pdh!=null) pdh(this, player);
   }
 
-  /// <summary>This message raises the <see cref="RemoteReceived"/> event.</summary>
+  /// <summary>Raises the <see cref="RemoteReceived"/> event.</summary>
   /// <param name="player">The <see cref="ServerPlayer"/> that has received the message.</param>
   /// <param name="message">The message that was received.</param>
   /// <remarks>This method is only called for messages that have requested notification via the
-  /// <see cref="SendFlag.NotifyReceived"/> flag. If you override this message, be sure to call the base class'
+  /// <see cref="SendFlag.NotifyReceived"/> flag. If you override this method, be sure to call the base class'
   /// implementation. The proper place to do this is at the beginning of the derived version.
   /// </remarks>
   protected virtual void OnRemoteReceived(ServerPlayer player, object message)
@@ -1635,8 +1658,10 @@ public class Server
 /// message that was sent or received.
 /// </summary>
 public delegate void ClientMessageHandler(Client client, object msg);
-/// <summary>This delegate is used for the <see cref="Client.Disconnected"/> event.</summary>
-public delegate void ClientDisconnectHandler(Client client);
+/// <summary>This delegate is used for the <see cref="Client.Connected"/> and <see cref="Client.Disconnected"/>
+/// events.
+/// </summary>
+public delegate void ClientHandler(Client client);
 
 public class Client
 { 
@@ -1651,8 +1676,10 @@ public class Client
   public Client(IPEndPoint remote) { Connect(remote); }
   ~Client() { Disconnect(); }
 
+  /// <summary>This event is raised when the client is connected.</summary>
+  public event ClientHandler Connected;
   /// <summary>This event is raised when the client is disconnected.</summary>
-  public event ClientDisconnectHandler Disconnected;
+  public event ClientHandler Disconnected;
   /// <summary>This event is raised when a message is received from the server.</summary>
   public event ClientMessageHandler MessageReceived;
   /// <summary>This event is raised when remote host receives a message.</summary>
@@ -1666,11 +1693,11 @@ public class Client
   /// </remarks>
   public event ClientMessageHandler MessageSent;
 
-  /// <include file="documentation.xml" path="//Network/Common/Common/*"/>
-  public bool Connected { get { return link==null ? false : link.Connected; } }
-
   /// <include file="documentation.xml" path="//Network/Common/DefaultFlags/*"/>
   public SendFlag DefaultFlags { get { return defFlags; } set { defFlags=value; } }
+
+  /// <include file="documentation.xml" path="//Network/Common/IsConnected/*"/>
+  public bool IsConnected { get { return link==null ? false : link.IsConnected; } }
 
   /// <include file="documentation.xml" path="//Network/Common/LagAverage/*"/>
   public uint LagAverage
@@ -1710,6 +1737,8 @@ public class Client
     link.RemoteReceived += new LinkMessageHandler(OnRemoteReceived);
     thread = new Thread(new ThreadStart(ThreadFunc));
     thread.Start();
+    
+    OnConnected();
   }
 
   /// <summary>Disconnects from the server with a delay to allow incoming and outgoing messages to be sent.</summary>
@@ -1802,9 +1831,25 @@ public class Client
     DoSend(cvt.Serialize(data), flags, timeoutMs, data);
   }
 
-  /// <summary>This message raises the <see cref="MessageReceived"/> event.</summary>
+  /// <summary>Raises the <see cref="Connected"/> event.</summary>
+  /// <remarks>If you override this method, be sure to call the base class' implementation. The proper place
+  /// to do this is at the beginning of the derived version.
+  /// </remarks>
+  protected virtual void OnConnected()
+  { if(Connected!=null) Connected(this);
+  }
+
+  /// <summary>Raises the <see cref="Disconnected"/> event.</summary>
+  /// <remarks>If you override this method, be sure to call the base class' implementation. The proper place
+  /// to do this is at the beginning of the derived version.
+  /// </remarks>
+  protected virtual void OnDisconnected()
+  { if(Disconnected!=null) Disconnected(this);
+  }
+
+  /// <summary>Raises the <see cref="MessageReceived"/> event.</summary>
   /// <param name="message">The message that was received.</param>
-  /// <remarks>If you override this message, be sure to call the base class' implementation. The proper place
+  /// <remarks>If you override this method, be sure to call the base class' implementation. The proper place
   /// to do this is at the beginning of the derived version.
   /// </remarks>
   protected virtual void OnMessageReceived(object message)
@@ -1812,10 +1857,10 @@ public class Client
     if(cmh!=null) cmh(this, message);
   }
 
-  /// <summary>This message raises the <see cref="MessageSent"/> event.</summary>
+  /// <summary>Raises the <see cref="MessageSent"/> event.</summary>
   /// <param name="message">The message that was sent.</param>
   /// <remarks>This method is only called for messages that have requested notification via the
-  /// <see cref="SendFlag.NotifySent"/> flag. If you override this message, be sure to call the base class'
+  /// <see cref="SendFlag.NotifySent"/> flag. If you override this method, be sure to call the base class'
   /// implementation. The proper place to do this is at the beginning of the derived version.
   /// </remarks>
   protected virtual void OnMessageSent(object message)
@@ -1823,10 +1868,10 @@ public class Client
     if(cmh!=null) cmh(this, message);
   }
 
-  /// <summary>This message raises the <see cref="RemoteReceived"/> event.</summary>
+  /// <summary>Raises the <see cref="RemoteReceived"/> event.</summary>
   /// <param name="message">The message that was received.</param>
   /// <remarks>This method is only called for messages that have requested notification via the
-  /// <see cref="SendFlag.NotifyReceived"/> flag. If you override this message, be sure to call the base class'
+  /// <see cref="SendFlag.NotifyReceived"/> flag. If you override this method, be sure to call the base class'
   /// implementation. The proper place to do this is at the beginning of the derived version.
   /// </remarks>
   protected virtual void OnRemoteReceived(object message)
@@ -1862,9 +1907,9 @@ public class Client
           }
           else
           { if(delayedDrop && link.sendQueue==0) link.Close();
-            if(!link.Connected)
-            { if(Disconnected!=null) Disconnected(this);
-              link = null;
+            if(!link.IsConnected)
+            { link = null;
+              OnDisconnected();
               break;
             }
           }

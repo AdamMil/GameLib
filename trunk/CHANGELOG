@@ -64,6 +64,7 @@ DEVELOPMENT (alpha/beta)
 + Added overridable On*() methods for the NetLink, Server, and Client classes,
   so that they can be customized via derivation in addition to hooking events.
 + Added support for formatted binary reading.
++ Added a Connected event and OnConnected override for the network Client.
 
 2004.06.28 (alpha/beta)
 -------------------
