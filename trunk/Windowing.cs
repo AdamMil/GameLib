@@ -45,7 +45,7 @@ public class DragEventArgs : EventArgs
   /// </summary>
   /// <param name="button">The mouse button to check for</param>
   /// <returns>Returns true if only the specified button was depressed at the time the drag was started.</returns>
-  public bool OnlyPressed(Input.MouseButton button) { return Buttons==(byte)button; }
+  public bool OnlyPressed(Input.MouseButton button) { return Buttons==(1<<(byte)button); }
   /// <summary>This method checks whether the specified button was depressed at the time the drag was started.
   /// </summary>
   /// <param name="button">The mouse button to check for</param>
