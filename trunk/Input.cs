@@ -211,6 +211,62 @@ public enum KeyMod : uint
   StatusMask=NumLock|CapsLock|Mode, KeyMask=Alt|Shift|Ctrl|Meta
 }
 
+public struct KeyCombo
+{ public KeyCombo(KeyboardEvent e) { KeyMods=e.KeyMods; Key=e.Key; Char=e.Char; }
+  public KeyCombo(KeyMod keyMods, Key key) { KeyMods=keyMods; Key=key; Char=(char)0; }
+  public KeyCombo(KeyMod keyMods, char character) { KeyMods=keyMods; Key=Key.None; Char=char.ToUpper(character); }
+  public KeyCombo(KeyMod keyMods, Key key, char character) { KeyMods=keyMods; Key=key; Char=char.ToUpper(character); }
+
+  public bool Valid { get { return Char!=0 || Key!=Key.None; } }
+
+  public bool Matches(KeyboardEvent e) { return Matches(e.KeyMods, e.Key, e.Char); }
+  public bool Matches(KeyMod keyMods, Key key) { return Matches(keyMods, key, (char)0); }
+  public bool Matches(KeyMod keyMods, char character) { return Matches(keyMods, Key.None, character); }
+  public bool Matches(KeyMod keyMods, Key key, char character)
+  { if(Char!=0)
+    { if(char.ToUpper(character)!=Char) return false;
+    }
+    else if(key!=Key) return false;
+    for(int i=0; i<masks.Length; i++)
+    { KeyMod mask = KeyMods&masks[i];
+      if(mask!=0 && (keyMods&mask)==0) return false;
+    }
+    return true;
+  }
+
+  public override string ToString()
+  { if(Char==0 && Key==Key.None) return string.Empty;
+    string ret=string.Empty;
+    if((KeyMods&KeyMod.Shift) != 0)
+    { if((KeyMods&KeyMod.LShift)==0) ret += 'R';
+      else if((KeyMods&KeyMod.RShift)==0) ret += 'L';
+      ret += "Shift-";
+    }
+    if((KeyMods&KeyMod.Ctrl) != 0)
+    { if((KeyMods&KeyMod.LCtrl)==0) ret += 'R';
+      else if((KeyMods&KeyMod.RCtrl)==0) ret += 'L';
+      ret += "Ctrl-";
+    }
+    if((KeyMods&KeyMod.Alt) != 0)
+    { if((KeyMods&KeyMod.LAlt)==0) ret += 'R';
+      else if((KeyMods&KeyMod.RAlt)==0) ret += 'L';
+      ret += "Alt-";
+    }
+    if((KeyMods&KeyMod.Meta) != 0)
+    { if((KeyMods&KeyMod.LMeta)==0) ret += 'R';
+      else if((KeyMods&KeyMod.RMeta)==0) ret += 'L';
+      ret += "Meta-";
+    }
+    return ret += Char==0 ? Key.ToString() : Char.ToString();
+  }
+
+  public KeyMod KeyMods;
+  public Key    Key;
+  public char   Char;
+  
+  static KeyMod[] masks = new KeyMod[] { KeyMod.Shift, KeyMod.Ctrl, KeyMod.Alt, KeyMod.Meta };
+}
+
 public delegate void KeyPressHandler(KeyboardEvent evt);
 public delegate void MouseMoveHandler(MouseMoveEvent evt);
 public delegate void MouseClickHandler(MouseClickEvent evt);
