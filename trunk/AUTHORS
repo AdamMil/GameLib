@@ -8,5 +8,5 @@ GameLib authors and contributors
   modifications to it.
 * GameLib is built upon the excellent SDL, SDL_image, SDL_ttf, SDL_gfx,
   and libvorbis libraries.
-* All other code written by Adam Milazzo.
+* All other code was written by Adam Milazzo.
 * Thanks to Microsoft for the .NET platform.
