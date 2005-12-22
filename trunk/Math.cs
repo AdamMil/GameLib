@@ -36,8 +36,6 @@ public sealed class MathConst
   /// <summary>A value that can be used to convert radians to degrees.</summary>
   /// <remarks>If you multiply a radian value by this constant, it will be converted to degrees.</remarks>
   public const double RadiansToDegrees = 180/Math.PI;
-  /// <summary>This value is two times pi, the number of radians in a circle.</summary>
-  public const double TwoPI = Math.PI*2;
 }
 #endregion
 
@@ -962,7 +960,7 @@ public struct Vector
   public double Angle
   { get
     { double angle = Math.Acos(X/Length);
-      if(Y>0) angle = MathConst.TwoPI-angle;
+      if(Y<0) angle = Math.PI*2-angle;
       return angle;
     }
   }
