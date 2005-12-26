@@ -58,7 +58,10 @@ public enum EventType
   UserDefined
 }
 
-/// <summary>This enum holds values specifying the type of focus event that has occurred.</summary>
+/// <summary>This enum holds values which are ORed together to specify the types of focus events that occurred.
+/// Multiple focus events can occur simultaneously, so multiple flags flags may be specified at once.
+/// </summary>
+[Flags]
 public enum FocusType
 { 
   /// <summary>Mouse focus was gained or lost. Typically this occurs when the mouse is moved into or out of the
@@ -997,10 +1000,16 @@ public sealed class Events
   { switch(evt.Type)
     { case SDL.EventType.Active:
       { FocusEvent e = new FocusEvent(ref evt.Active);
+
+        if((e.FocusType&FocusType.Application) != 0) Video.WM.minimized = e.Focused;
+        if((e.FocusType&FocusType.Input) != 0) Video.WM.inputFocus = e.Focused;
+        if((e.FocusType&FocusType.Mouse) != 0) Video.WM.mouseFocus = e.Focused;
+
         // unset keyboard mods when regaining application focus, to prevent mod keys from seeming stuck
-        if(e.Focused && (e.FocusType==FocusType.Application || e.FocusType==FocusType.Input)) mods &= ~KeyMod.KeyMask;
+        if(e.Focused && (e.FocusType&(FocusType.Application|FocusType.Input))!=0) mods &= ~KeyMod.KeyMask;
         return e;
       }
+
       case SDL.EventType.KeyDown: case SDL.EventType.KeyUp:
       { KeyboardEvent e = new KeyboardEvent(ref evt.Keyboard);
         mods = mods & ~KeyMod.StatusMask | e.StatusMods;
@@ -1027,6 +1036,7 @@ public sealed class Events
         e.Mods = mods;
         return e;
       }
+
       case SDL.EventType.MouseMove: return new MouseMoveEvent(ref evt.MouseMove);
       case SDL.EventType.MouseDown: case SDL.EventType.MouseUp: return new MouseClickEvent(ref evt.MouseButton);
       case SDL.EventType.JoyAxis: return new JoyMoveEvent(ref evt.JoyAxis);

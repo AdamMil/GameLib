@@ -1746,6 +1746,8 @@ public sealed class GL
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glLightModeli(uint pname, int param);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
+  public static extern void glLightModeli(uint pname, uint param);
+  [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glLightModeliv(uint pname, /*const*/ int* parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glLightModeliv(uint pname, int[] parms);
@@ -1755,6 +1757,38 @@ public sealed class GL
   public unsafe static extern void glLightfv(uint light, uint pname, /*const*/ float* parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glLightfv(uint light, uint pname, float[] parms);
+  public unsafe static void glLightPosition(uint light, float x, float y, float z, float w)
+  { float* p = stackalloc float[4];
+    p[0] = x;
+    p[1] = y;
+    p[2] = z;
+    p[3] = w;
+    glLightfv(light, GL_POSITION, p);
+  }
+  public unsafe static void glLightPosition(uint light, Mathematics.ThreeD.Point pt, float w)
+  { float* p = stackalloc float[4];
+    p[0] = (float)pt.X;
+    p[1] = (float)pt.Y;
+    p[2] = (float)pt.Z;
+    p[3] = w;
+    glLightfv(light, GL_POSITION, p);
+  }
+  public unsafe static void glLightColor(uint light, uint pname, System.Drawing.Color c)
+  { float* p = stackalloc float[4];
+    p[0] = c.R/255f;
+    p[1] = c.G/255f;
+    p[2] = c.B/255f;
+    p[3] = c.A/255f;
+    glLightfv(light, pname, p);
+  }
+  public unsafe static void glLightColor(uint light, uint pname, float r, float g, float b, float a)
+  { float* p = stackalloc float[4];
+    p[0] = r;
+    p[1] = g;
+    p[2] = b;
+    p[3] = a;
+    glLightfv(light, pname, p);
+  }
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glLighti(uint light, uint pname, int param);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
@@ -1811,6 +1845,22 @@ public sealed class GL
   public static extern void glMaterialf(uint face, uint pname, float param);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glMaterialfv(uint face, uint pname, /*const*/ float* parms);
+  public unsafe static void glMaterialColor(uint face, uint pname, System.Drawing.Color c)
+  { float* p = stackalloc float[4];
+    p[0] = c.R/255f;
+    p[1] = c.G/255f;
+    p[2] = c.B/255f;
+    p[3] = c.A/255f;
+    glMaterialfv(face, pname, p);
+  }
+  public unsafe static void glMaterialColor(uint face, uint pname, float r, float g, float b, float a)
+  { float* p = stackalloc float[4];
+    p[0] = r;
+    p[1] = g;
+    p[2] = b;
+    p[3] = a;
+    glMaterialfv(face, pname, p);
+  }
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glMaterialfv(uint face, uint pname, float[] parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
@@ -1839,6 +1889,7 @@ public sealed class GL
   public static extern void glNormal3bv(sbyte[] v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glNormal3d(double nx, double ny, double nz);
+  public static void glNormal3d(Mathematics.ThreeD.Vector v) { glNormal3d(v.X, v.Y, v.Z); }
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glNormal3dv(/*const*/ double *v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
@@ -2113,6 +2164,7 @@ public sealed class GL
   public static extern void glTexCoord1sv(short[] v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glTexCoord2d(double s, double t);
+  public static void glTexCoord2d(Mathematics.TwoD.Point pt) { glTexCoord2d(pt.X, pt.Y); }
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glTexCoord2dv(/*const*/ double *v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
@@ -2137,6 +2189,7 @@ public sealed class GL
   public static extern void glTexCoord2sv(short[] v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glTexCoord3d(double s, double t, double r);
+  public static void glTexCoord3d(Mathematics.ThreeD.Point pt) { glTexCoord3d(pt.X, pt.Y, pt.Z); }
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glTexCoord3dv(/*const*/ double *v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
@@ -2265,10 +2318,12 @@ public sealed class GL
   public unsafe static extern void glTexSubImage2D(uint target, int level, int xoffset, int yoffset, int width, int height, uint format, uint type, byte[] pixels);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glTranslated(double x, double y, double z);
+  public static void glTranslated(Mathematics.ThreeD.Vector v) { glTranslated(v.X, v.Y, v.Z); }
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glTranslatef(float x, float y, float z);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glVertex2d(double x, double y);
+  public static void glVertex2d(Mathematics.TwoD.Point pt) { glVertex2d(pt.X, pt.Y); }
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glVertex2dv(/*const*/ double *v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
@@ -2293,6 +2348,7 @@ public sealed class GL
   public static extern void glVertex2sv(short[] v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glVertex3d(double x, double y, double z);
+  public static void glVertex3d(Mathematics.ThreeD.Point pt) { glVertex3d(pt.X, pt.Y, pt.Z); }
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glVertex3dv(/*const*/ double *v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
