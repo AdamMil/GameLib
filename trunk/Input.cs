@@ -650,7 +650,7 @@ public sealed class Mouse
   /// to easily check for unique button presses. This method is updated by <see cref="Input.ProcessEvent"/>.
   /// </remarks>
   public static bool PressedRel(MouseButton button)
-  { bool ret=Pressed(button);
+  { bool ret = Pressed(button);
     if(ret) SetPressed(button, false);
     return ret;
   }
@@ -662,17 +662,15 @@ public sealed class Mouse
     else buttons &= (byte)~(1<<(byte)button);
   }
 
-  internal static void Initialize()
-  { unsafe
-    { int x, y;
-      Mouse.buttons = SDL.GetMouseState(&x, &y);
-      Mouse.x=x; Mouse.y=y;
-      SDL.ShowCursor(1);
-    }
+  internal unsafe static void Initialize()
+  { int x, y;
+    Mouse.buttons = SDL.GetMouseState(&x, &y);
+    Mouse.x=x; Mouse.y=y;
+    SDL.ShowCursor(1);
   }
 
   internal static void OnMouseMove(MouseMoveEvent e)
-  { x=e.X; y=e.Y; buttons=e.Buttons;
+  { x=e.X; y=e.Y; // we don't get the buttons here so that marking a button released isn't undone the next mouse movement
     if(MouseMove!=null) MouseMove(e);
   }
   internal static void OnMouseClick(MouseClickEvent e)

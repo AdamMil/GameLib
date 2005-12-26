@@ -705,7 +705,29 @@ public sealed class Video
 /// windowed video mode.
 /// </summary>
 public sealed class WM
-{ private WM() { }
+{ WM() { }
+  static WM() { inputFocus = mouseFocus = minimized = true; }
+
+  /// <summary>Gets whether the application window is active (focused) or not.</summary>
+  /// <value>A boolean indicating whether the application window has input focus.</value>
+  /// <remarks>This property is updated by the <see cref="Events.Events"/> class when it receives an event from
+  /// the underlying system.
+  /// </remarks>
+  public static bool Active { get { return inputFocus; } }
+
+  /// <summary>Gets whether the application window is minimized (iconified)or not.</summary>
+  /// <value>A boolean indicating whether the application window has been minimized (iconified).</value>
+  /// <remarks>This property is updated by the <see cref="Events.Events"/> class when it receives an event from
+  /// the underlying system, as well as by the <see cref="Minimize"/> method.
+  /// </remarks>
+  public static bool Minimized { get { return minimized; } }
+
+  /// <summary>Gets whether the application window has mouse focus.</summary>
+  /// <value>A boolean indicating whether the application window has mouse focus.</value>
+  /// <remarks>In some windowing systems, a window can be active without having mouse focus. This property is
+  /// updated by the <see cref="Events.Events"/> class when it receives an event from the underlying system.
+  /// </remarks>
+  public static bool MouseFocus { get { return mouseFocus; } }
 
   /// <summary>Gets or sets the title displayed in the application's window.</summary>
   /// <value>A string containing the title displayed in the application's window.</value>
@@ -740,7 +762,12 @@ public sealed class WM
   }
 
   /// <summary>Attempts to minimize (iconify) the window.</summary>
-  public static void Minimize() { if(SDL.WM_IconifyWindow()!=0) SDL.RaiseError(); }
+  public static void Minimize()
+  { if(SDL.WM_IconifyWindow()!=0) SDL.RaiseError();
+    minimized = true;
+  }
+  
+  internal static bool minimized, inputFocus, mouseFocus;
 }
 
 #endregion
