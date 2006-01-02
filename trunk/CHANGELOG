@@ -6,6 +6,9 @@ Legend
 !  Alteration/Removal/other that breaks backwards compatibility
 
 DEVELOPMENT (alpha/beta)
+* Made GameLib work with the official libsndfile 1.0.12
+* Made GLTexture2D restore the previous bound texture ID at the end of
+  Load()
 + Added IOH.KbHit, which returns true if console input is waiting
 + Ported the three C libraries to *nix (well, Linux at least)
 * Tweaked many of the files in order to work around bugs in the Mono

@@ -96,6 +96,7 @@ class App
     GL.glShadeModel(GL.GL_FLAT); // smooth shading is also unnecessary
 
     texture.Load(dataPath+"particle.png");
+    texture.Bind();
     GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_LINEAR);
     GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_LINEAR);
 
@@ -145,7 +146,7 @@ class App
       GL.glGetDoublev(GL.GL_MODELVIEW_MATRIX, model);
       GL.glGetDoublev(GL.GL_PROJECTION_MATRIX, proj);
       GL.glGetIntegerv(GL.GL_VIEWPORT, view);
-      GLU.gluUnProject(Mouse.X, Mouse.Y, 1, model, proj, view, out x, out y, out z);
+      GLU.gluUnProject(Mouse.X, view[3]-Mouse.Y, 1, model, proj, view, out x, out y, out z);
       Vector dir = new Vector(x/2, y/2);
       length = dir.Length;
       angle  = dir.Angle;

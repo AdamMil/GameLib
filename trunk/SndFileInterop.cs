@@ -26,30 +26,27 @@ namespace GameLib.Interop.SndFile
 [System.Security.SuppressUnmanagedCodeSecurity()]
 internal sealed class SF
 { 
-  [CallConvCdecl] public unsafe delegate long SeekHandler(IntPtr context, long offset, SeekType type);
-  [CallConvCdecl] public unsafe delegate long ReadHandler(IntPtr context, byte* data, long size, long maxnum);
-  [CallConvCdecl] public unsafe delegate long WriteHandler(IntPtr context, byte* data, long size, long num);
-  [CallConvCdecl] public unsafe delegate long TellHandler(IntPtr context);
-  [CallConvCdecl] public unsafe delegate long GetsHandler(IntPtr context, byte* buffer, long bufsize);
   [CallConvCdecl] public unsafe delegate long LengthHandler(IntPtr context);
-  [CallConvCdecl] public unsafe delegate int  TruncateHandler(IntPtr context, long len);
-  [CallConvCdecl] public unsafe delegate int  CloseHandler(IntPtr context);
+  [CallConvCdecl] public unsafe delegate long SeekHandler(long offset, SeekType type, IntPtr context);
+  [CallConvCdecl] public unsafe delegate long ReadHandler(byte* data, long bytes, IntPtr context);
+  [CallConvCdecl] public unsafe delegate long WriteHandler(byte* data, long bytes, IntPtr context);
+  [CallConvCdecl] public unsafe delegate long TellHandler(IntPtr context);
 
   #region Structs
   [StructLayout(LayoutKind.Sequential, Pack=4)]
-  public unsafe struct IOCalls
-  { public void* Seek, Read, Write, Tell, Gets, Length, Truncate, Close;
+  public unsafe struct VirtualIO
+  { public void* Length, Seek, Read, Write, Tell;
   }
 
   [StructLayout(LayoutKind.Sequential, Pack=4)]
   public struct Info
-  {	public bool Has(Format f) { return (format&f)==f; }
+  { public bool Has(Format f) { return (format&f)==f; }
     public long   frames;
-	  public int    samplerate;
-	  public int    channels;
-	  public Format format;
-	  public int    sections;
-	  public int    seekable;
+    public int    samplerate;
+    public int    channels;
+    public Format format;
+    public int    sections;
+    public int    seekable;
   }
   #endregion
 
@@ -77,13 +74,15 @@ internal sealed class SF
     W64          = 0x0B0000,     /* Sonic Foundry's 64 bit RIFF/WAV */
     MAT4         = 0x0C0000,     /* Matlab (tm) V4.2 / GNU Octave 2.0 */
     MAT5         = 0x0D0000,     /* Matlab (tm) V5.0 / GNU Octave 2.1 */
-	  PVF          = 0x0E0000,     /* Portable Voice Format */
-	  XI           = 0x0F0000,     /* Fasttracker 2 Extended Instrument */
-	  HTK          = 0x100000,     /* HMM Tool Kit format */
-	  SDS          = 0x110000,     /* Midi Sample Dump Standard */
-	  AVR          = 0x120000,     /* Audio Visual Research */
-	  WAVEX        = 0x130000,     /* MS WAVE with WAVEFORMATEX */
-	  SD2          = 0x160000,     /* Sound Designer 2 */
+    PVF          = 0x0E0000,     /* Portable Voice Format */
+    XI           = 0x0F0000,     /* Fasttracker 2 Extended Instrument */
+    HTK          = 0x100000,     /* HMM Tool Kit format */
+    SDS          = 0x110000,     /* Midi Sample Dump Standard */
+    AVR          = 0x120000,     /* Audio Visual Research */
+    WAVEX        = 0x130000,     /* MS WAVE with WAVEFORMATEX */
+    SD2          = 0x160000,     /* Sound Designer 2 */
+    FLAC         = 0x170000,     /* FLAC lossless file format */
+    CAF          = 0x180000,     /* Core Audio File format */
 
     /* Subtypes from here on. */
 
@@ -114,6 +113,9 @@ internal sealed class SF
     DWVW_24      = 0x0042,       /* 24 bit Delta Width Variable Word encoding. */
     DWVW_N       = 0x0043,       /* N bit Delta Width Variable Word encoding. */
 
+    DPCM_8       = 0x0050,       /* 8 bit differential PCM (XI only) */
+    DPCM_16      = 0x0051,       /* 16 bit differential PCM (XI only) */
+
     /* Endian-ness options. */
 
     FileEndian   = 0x00000000,   /* Default file endian-ness. */
@@ -130,8 +132,8 @@ internal sealed class SF
   #region Functions
   [DllImport(Config.SndFileImportPath, ExactSpelling=true, EntryPoint="sf_open", CallingConvention=CallingConvention.Cdecl)]
   public static extern IntPtr Open(string path, OpenMode mode, ref Info sfinfo);
-  [DllImport(Config.SndFileImportPath, ExactSpelling=true, EntryPoint="sf_open_calls", CallingConvention=CallingConvention.Cdecl)]
-  public unsafe static extern IntPtr OpenCalls(IOCalls* calls, IntPtr ioContext, OpenMode mode, ref Info sfinfo, int close);
+  [DllImport(Config.SndFileImportPath, ExactSpelling=true, EntryPoint="sf_open_virtual", CallingConvention=CallingConvention.Cdecl)]
+  public static unsafe extern IntPtr OpenVirtual(VirtualIO* vio, OpenMode mode, ref Info sfInfo, IntPtr context);
 
   [DllImport(Config.SndFileImportPath, ExactSpelling=true, EntryPoint="sf_read_raw", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern long ReadRaw(IntPtr sndfile, void* ptr, long bytes);
@@ -154,58 +156,35 @@ internal sealed class SF
   }
 }
 
-#region StreamIOCalls class
-internal class StreamIOCalls : StreamCallbackSource
-{ public unsafe StreamIOCalls(Stream stream) : this(stream, true) { }
-  public unsafe StreamIOCalls(Stream stream, bool autoClose) : base(stream, autoClose)
+#region StreamVirtualIO class
+internal class StreamVirtualIO : StreamCallbackSource
+{ public unsafe StreamVirtualIO(Stream stream) : this(stream, true) { }
+  public unsafe StreamVirtualIO(Stream stream, bool autoClose) : base(stream, autoClose)
   { if(!stream.CanSeek) throw new ArgumentException("stream must be seekable", "stream");
+    length = new SF.LengthHandler(OnLength);
     seek   = new SF.SeekHandler(OnSeek);
     read   = new SF.ReadHandler(OnRead);
     write  = new SF.WriteHandler(OnWrite);
     tell   = new SF.TellHandler(OnTell);
-    gets   = new SF.GetsHandler(OnGets);
-    length = new SF.LengthHandler(OnLength);
-    trunc  = new SF.TruncateHandler(OnTruncate);
-    close  = new SF.CloseHandler(OnClose);
-    calls.Seek     = new DelegateMarshaller(seek).ToPointer();
-    calls.Read     = new DelegateMarshaller(read).ToPointer();
-    calls.Write    = new DelegateMarshaller(write).ToPointer();
-    calls.Tell     = new DelegateMarshaller(tell).ToPointer();
-    calls.Gets     = new DelegateMarshaller(gets).ToPointer();
-    calls.Length   = new DelegateMarshaller(length).ToPointer();
-    calls.Truncate = new DelegateMarshaller(trunc).ToPointer();
-    calls.Close    = new DelegateMarshaller(close).ToPointer();
+    virtualIO.Length = new DelegateMarshaller(length).ToPointer();
+    virtualIO.Seek   = new DelegateMarshaller(seek).ToPointer();
+    virtualIO.Read   = new DelegateMarshaller(read).ToPointer();
+    virtualIO.Write  = new DelegateMarshaller(write).ToPointer();
+    virtualIO.Tell   = new DelegateMarshaller(tell).ToPointer();
   }
 
-  long OnSeek(IntPtr context, long offset, SF.SeekType type) { return Seek(offset, (SeekType)type); }
-  unsafe long OnRead(IntPtr context, byte* data, long size, long maxnum) { return Read(data, (int)size, (int)maxnum); }
-  unsafe long OnWrite(IntPtr context, byte* data, long size, long num) { return Write(data, (int)size, (int)num); }
-  long OnTell(IntPtr context) { return stream.Position; }
-  unsafe long OnGets(IntPtr context, byte* buffer, long bufsize)
-  { long i=0;
-    int  b;
-    while(i<bufsize-1)
-	  {	b = stream.ReadByte();
-      if(b==-1) break;
-      buffer[i++]=(byte)b;
-      if(b==0 || buffer[i++] == 0x10) break;
-		}
-    buffer[i]=0;
-    return i;
-  }
   long OnLength(IntPtr context) { return stream.Length; }
-  int OnTruncate(IntPtr context, long len) { return Truncate(len); }
-  int OnClose(IntPtr context) { MaybeClose(); return 0; }
+  long OnSeek(long offset, SF.SeekType type, IntPtr context) { return Seek(offset, (SeekType)type); }
+  unsafe long OnRead(byte* data, long bytes, IntPtr context) { return Read(data, (int)bytes, (int)bytes); }
+  unsafe long OnWrite(byte* data, long bytes, IntPtr context) { return Write(data, bytes, 1); }
+  long OnTell(IntPtr context) { return stream.Position; }
 
-  internal SF.IOCalls calls;
+  internal SF.VirtualIO virtualIO;
+  SF.LengthHandler   length;
   SF.SeekHandler     seek;
   SF.ReadHandler     read;
   SF.WriteHandler    write;
   SF.TellHandler     tell;
-  SF.GetsHandler     gets;
-  SF.LengthHandler   length;
-  SF.TruncateHandler trunc;
-  SF.CloseHandler    close;
 }
 #endregion
 
