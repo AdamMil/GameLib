@@ -395,17 +395,21 @@ public class GLTexture2D : IDisposable
   /// <returns>True if the texture could be loaded and false otherwise.</returns>
   public bool Load(uint internalFormat, int level, int border, Surface surface)
   { Unload();
-    uint tex;
+    uint tex, old;
+    GL.glGetIntegerv(GL.GL_TEXTURE_BINDING_2D, out old);
     GL.glGenTexture(out tex);
     if(tex==0) throw new NoMoreTexturesException();
 
     GL.glBindTexture(GL.GL_TEXTURE_2D, tex);
-    if(!OpenGL.TexImage2D(internalFormat, level, border, surface, out size))
-    { GL.glDeleteTexture(tex);
-      return false;
+    try
+    { if(!OpenGL.TexImage2D(internalFormat, level, border, surface, out size))
+      { GL.glDeleteTexture(tex);
+        return false;
+      }
+      imgSize = surface.Size; texture = tex;
+      return true;
     }
-    imgSize = surface.Size; texture = tex;
-    return true;
+    finally { GL.glBindTexture(GL.GL_TEXTURE_2D, old); }
   }
 
   /// <summary>Unloads the texture from video memory.</summary>

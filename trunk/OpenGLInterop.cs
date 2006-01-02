@@ -1534,6 +1534,12 @@ public sealed class GL
   public static extern void glGetIntegerv(uint pname, int[] parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glGetIntegerv(uint pname, out int parm);
+  [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
+  public unsafe static extern void glGetIntegerv(uint pname, uint* parms);
+  [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
+  public static extern void glGetIntegerv(uint pname, uint[] parms);
+  [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
+  public static extern void glGetIntegerv(uint pname, out uint parm);
   public static int glGetIntegerv(uint pname) { unsafe { int v; glGetIntegerv(pname, &v); return v; } }
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glGetLightfv(uint light, uint pname, float* parms);

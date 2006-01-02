@@ -400,10 +400,10 @@ public class SoundFileSource : AudioSource
   public SoundFileSource(Stream stream) : this(stream, true) { }
   public SoundFileSource(Stream stream, bool autoClose)
   { SF.Info info = new SF.Info();
-    calls = new StreamIOCalls(stream, autoClose);
+    virtualIO = new StreamVirtualIO(stream, autoClose);
     unsafe
-    { fixed(SF.IOCalls* io = &calls.calls)
-        sndfile = SF.OpenCalls(io, new IntPtr(null), SF.OpenMode.Read, ref info, 1);
+    { fixed(SF.VirtualIO* io = &virtualIO.virtualIO)
+        sndfile = SF.OpenVirtual(io, SF.OpenMode.Read, ref info, new IntPtr(null));
     }
     Init(ref info);
   }
@@ -411,13 +411,14 @@ public class SoundFileSource : AudioSource
   public SoundFileSource(Stream stream, AudioFormat format, bool autoClose)
   { SF.Info info = new SF.Info();
     InitInfo(ref info, format);
-    calls = new StreamIOCalls(stream, autoClose);
+    virtualIO = new StreamVirtualIO(stream, autoClose);
     unsafe
-    { fixed(SF.IOCalls* io = &calls.calls)
-        sndfile = SF.OpenCalls(io, new IntPtr(null), SF.OpenMode.Read, ref info, 1);
+    { fixed(SF.VirtualIO* io = &virtualIO.virtualIO)
+        sndfile = SF.OpenVirtual(io, SF.OpenMode.Read, ref info, new IntPtr(null));
     }
     Init(ref info);
   }
+
   ~SoundFileSource() { Dispose(true); }
   public override void Dispose() { Dispose(false); GC.SuppressFinalize(this); }
 
@@ -447,6 +448,10 @@ public class SoundFileSource : AudioSource
       { base.Dispose();
         SF.Close(sndfile);
         sndfile = new IntPtr(null);
+        if(virtualIO!=null)
+        { virtualIO.Dispose();
+          virtualIO = null;
+        }
       }
     }
   }
@@ -479,7 +484,7 @@ public class SoundFileSource : AudioSource
   }
 
   IntPtr sndfile;
-  StreamIOCalls calls;
+  StreamVirtualIO virtualIO;
 }
 #endregion
 
