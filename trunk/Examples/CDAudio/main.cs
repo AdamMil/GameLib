@@ -31,7 +31,7 @@ class App
     foreach(Drive drive in CD.Drives)
     { Console.Write("Drive {0} - ", drive.Number);
       if(drive.CDInDrive)
-      { Console.WriteLine("CD in drive, {0} tracks", drive.Tracks.Length);
+      { Console.WriteLine("CD in drive, {0} tracks", drive.Tracks.Count);
         foreach(Track track in drive.Tracks)
         { Console.WriteLine("  Track {0}: type={1}, start={2}, length={3}",
                             track.Number, track.Type, track.Start, track.Length);

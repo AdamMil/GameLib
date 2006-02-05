@@ -26,11 +26,16 @@ namespace GameLib.Interop.SndFile
 [System.Security.SuppressUnmanagedCodeSecurity()]
 internal sealed class SF
 { 
-  [CallConvCdecl] public unsafe delegate long LengthHandler(IntPtr context);
-  [CallConvCdecl] public unsafe delegate long SeekHandler(long offset, SeekType type, IntPtr context);
-  [CallConvCdecl] public unsafe delegate long ReadHandler(byte* data, long bytes, IntPtr context);
-  [CallConvCdecl] public unsafe delegate long WriteHandler(byte* data, long bytes, IntPtr context);
-  [CallConvCdecl] public unsafe delegate long TellHandler(IntPtr context);
+  [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+  public unsafe delegate long LengthHandler(IntPtr context);
+  [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+  public unsafe delegate long SeekHandler(long offset, SeekType type, IntPtr context);
+  [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+  public unsafe delegate long ReadHandler(byte* data, long bytes, IntPtr context);
+  [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+  public unsafe delegate long WriteHandler(byte* data, long bytes, IntPtr context);
+  [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+  public unsafe delegate long TellHandler(IntPtr context);
 
   #region Structs
   [StructLayout(LayoutKind.Sequential, Pack=4)]

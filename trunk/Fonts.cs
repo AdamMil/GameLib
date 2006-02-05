@@ -17,7 +17,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 using System;
-using System.Collections;
+using System.Collections.Generic;
 using System.Drawing;
 using GameLib.Video;
 using GameLib.Collections;
@@ -173,7 +173,7 @@ public abstract class Font : IDisposable
   public virtual int[] WordWrap(string text, Rectangle rect, int startx, int starty, char[] breakers)
   { if(text.Length==0) return new int[0];
 
-    ArrayList list = new ArrayList(); // make this a class member?
+    List<int> list = new List<int>(); // make this a class member?
     int x=rect.X+startx, start=0, end=0, pend, length=0, plen=0, height=LineSkip;
     int rwidth=rect.Width-startx, rheight=rect.Height-starty;
     if(height>rheight) return new int[0];
@@ -216,7 +216,7 @@ public abstract class Font : IDisposable
       }
     }
     done:
-    return (int[])list.ToArray(typeof(int));
+    return list.ToArray();
   }
 
   /// <summary>Frees resources used by the font.</summary>
@@ -594,7 +594,7 @@ public class TrueTypeFont : StyledFont
     { if(value<0) throw new ArgumentException("Cache size cannot be negative");
       if(value==0) ClearCache();
       else if(value<list.Count)
-      { LinkedList.Node n=list.Tail, p;
+      { LinkedListNode<CachedChar> n=list.Last, p;
         for(int i=0,num=list.Count-value; i<num; n=p,i++) { p=n.Previous; CacheRemove(n); }
       }
       cacheMax = value;
@@ -665,12 +665,12 @@ public class TrueTypeFont : StyledFont
   protected CachedChar GetChar(char c)
   { Color shade = shadeColor!=Color.Transparent ? shadeColor : bgColor!=Color.Transparent ? bgColor : Color.Black;
     CacheIndex ind = new CacheIndex(c, color, shade, fstyle, rstyle);
-    LinkedList.Node node = (LinkedList.Node)map[ind];
+    LinkedListNode<CachedChar> node;
     CachedChar cc;
-    if(node!=null)
-    { cc = (CachedChar)node.Data;
+    if(map.TryGetValue(ind, out node))
+    { cc = node.Value;
       list.Remove(node);
-      list.Prepend(node);
+      list.AddFirst(node);
       goto done;
     }
 
@@ -699,8 +699,8 @@ public class TrueTypeFont : StyledFont
     }
 
     if(cacheMax!=0)
-    { while(list.Count>=cacheMax) CacheRemove(list.Tail);
-      map[ind]=list.Prepend(cc);
+    { while(list.Count>=cacheMax) CacheRemove(list.Last);
+      map[ind] = list.AddFirst(cc);
     }
     done:
     if(Video.Video.DisplaySurface!=null)
@@ -739,22 +739,21 @@ public class TrueTypeFont : StyledFont
     base.Dispose(finalizing);
   }
 
-  internal struct CacheIndex : IComparable
+  internal struct CacheIndex
   { public CacheIndex(char c, Color color, Color shadeColor, FontStyle fstyle, RenderStyle rstyle)
     { Char=c; Color=color; ShadeColor=shadeColor; FontStyle=fstyle; RenderStyle=rstyle;
     }
-    public int CompareTo(object other)
-    { CacheIndex o = (CacheIndex)other;
-      int cmp = Char.CompareTo(o.Char);
-      if(cmp!=0) return cmp;
-      cmp = this.FontStyle.CompareTo(o.FontStyle);
-      if(cmp!=0) return cmp;
-      cmp = this.RenderStyle.CompareTo(o.RenderStyle);
-      if(cmp!=0) return cmp;
-      cmp = this.Color.ToArgb().CompareTo(o.Color.ToArgb());
-      if(cmp!=0 || this.RenderStyle!=RenderStyle.Shaded) return cmp;
-      return this.ShadeColor.ToArgb().CompareTo(o.ShadeColor.ToArgb());
+
+    public override bool Equals(object obj)
+    { CacheIndex ci = (CacheIndex)obj;
+      return Char==ci.Char && FontStyle==ci.FontStyle && RenderStyle==ci.RenderStyle && Color==ci.Color &&
+             ShadeColor==ci.ShadeColor;
     }
+
+    public override int GetHashCode()
+    { return (((int)Char<<16) | ((int)FontStyle<<8) | (int)RenderStyle) ^ Color.ToArgb() ^ ShadeColor.ToArgb();
+    }
+
     public Color       Color;
     public Color       ShadeColor;
     public char        Char;
@@ -762,10 +761,9 @@ public class TrueTypeFont : StyledFont
     public RenderStyle RenderStyle;
   }
 
-  void CacheRemove(LinkedList.Node node)
-  { CachedChar cc = (CachedChar)node.Data;
-    cc.Dispose();
-    map.Remove(cc.Index);
+  void CacheRemove(LinkedListNode<CachedChar> node)
+  { node.Value.Dispose();
+    map.Remove(node.Value.Index);
     list.Remove(node);
   }
 
@@ -777,8 +775,8 @@ public class TrueTypeFont : StyledFont
     ShadeColor = Color.Transparent;
   }
 
-  Map           map = new Map();
-  LinkedList   list = new LinkedList();
+  LinkedList<CachedChar> list = new LinkedList<CachedChar>();
+  Dictionary<CacheIndex,LinkedListNode<CachedChar>> map = new Dictionary<CacheIndex,LinkedListNode<CachedChar>>();
   Color        color, bgColor, shadeColor;
   int          cacheMax=192, compatible=-1;
   FontStyle    fstyle;

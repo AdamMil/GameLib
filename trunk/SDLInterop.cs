@@ -27,10 +27,14 @@ namespace GameLib.Interop.SDL
 internal sealed class SDL
 {
 
-  [CallConvCdecl] public unsafe delegate int SeekHandler(RWOps* ops, int offset, SeekType type);
-  [CallConvCdecl] public unsafe delegate int ReadHandler(RWOps* ops, byte* data, int size, int maxnum);
-  [CallConvCdecl] public unsafe delegate int WriteHandler(RWOps* ops, byte* data, int size, int num);
-  [CallConvCdecl] public unsafe delegate int CloseHandler(RWOps* ops);
+  [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+  public unsafe delegate int SeekHandler(RWOps* ops, int offset, SeekType type);
+  [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+  public unsafe delegate int ReadHandler(RWOps* ops, byte* data, int size, int maxnum);
+  [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+  public unsafe delegate int WriteHandler(RWOps* ops, byte* data, int size, int num);
+  [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+  public unsafe delegate int CloseHandler(RWOps* ops);
 
   #region Constants
   public const uint CDFramesPerSecond=75;

@@ -29,4 +29,4 @@ using System.Runtime.CompilerServices;
 [assembly: AssemblyProduct("GameLib")]
 [assembly: AssemblyCopyright("Copyright 2002-2005 Adam Milazzo")]
 
-[assembly: AssemblyVersion("0.2.*")]
+[assembly: AssemblyVersion("0.5.*")]

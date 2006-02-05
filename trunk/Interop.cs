@@ -22,15 +22,11 @@ using System.Runtime.InteropServices;
 namespace GameLib.Interop
 {
 
-// HACK: C# doesn't support changing the calling convention of a delegate
-[Serializable, AttributeUsage(AttributeTargets.Delegate)]
-internal sealed class CallConvCdeclAttribute : Attribute { }
-
 /// <summary>This class allows you to get an unmanaged function pointer to a managed method.</summary>
 /// <remarks>
 /// <para>When interfacing with unmanaged code that uses callbacks, it is often necessary to get an unmanaged
 /// function pointer to a managed method. This class allows you to do that. You'll want to keep an instance of this
-/// class around as long as you need the callback, just to be safe.
+/// class around as long as you need the callback.
 /// </para>
 /// <para>Take note of the expected calling
 /// convention of the callback, however. The default calling convention for delegates may not be the same as is

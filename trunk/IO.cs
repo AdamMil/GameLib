@@ -33,7 +33,7 @@ namespace GameLib.IO
 /// This class allows you to create a stream from a section of another stream. This class is not thread-safe and
 /// should not be used by multiple threads simultaneously.
 /// </remarks>
-public class StreamStream : Stream, IDisposable
+public class StreamStream : Stream
 { 
   /// <param name="stream">The underlying stream. It is assumed that the underlying stream will not be used by other
   /// code while this stream is in use. The underlying stream will not be closed automatically when this stream is
@@ -79,10 +79,6 @@ public class StreamStream : Stream, IDisposable
     this.stream=stream; this.start=start; this.length=length; this.shared=shared; this.closeInner=closeInner;
     if(!closeInner) GC.SuppressFinalize(this);
   }
-  /// <summary>The destructor calls <see cref="Dispose"/> to close the stream.</summary>
-  ~StreamStream() { Dispose(true); }
-  /// <summary>This method closes the stream with <see cref="Close"/>.</summary>
-  public void Dispose() { Dispose(false); GC.SuppressFinalize(this); }
 
   /// <summary>Returns true if the underlying stream can be read from.</summary>
   public override bool CanRead { get { AssertOpen(); return stream.CanRead; } }
@@ -234,7 +230,7 @@ public class StreamStream : Stream, IDisposable
   /// <summary>Disposes resources used by this stream.</summary>
   /// <param name="finalizing">True if this method is being called from a finalizer and false otherwise.</param>
   /// <remarks>If overriden in a derived class, remember to call the base implementation.</remarks>
-  protected void Dispose(bool finalizing) { Close(); }
+  protected override void Dispose(bool finalizing) { Close(); }
 
   Stream stream;
   long start, length, position;
@@ -246,25 +242,6 @@ public class StreamStream : Stream, IDisposable
 /// <summary>This class provides helpers for stream, console, and buffer IO.</summary>
 public sealed class IOH
 { private IOH() {}
-
-  #region Console input
-  /// <summary>Returns true if console input is waiting to be read.</summary>
-  public static bool KbHit { get { return GameLib.Interop.GLUtility.Utility.KbHit(); } }
-  /// <summary>Reads a character from standard input without using line buffering.</summary>
-  /// <returns>The next character from standard input.</returns>
-  /// <remarks>The standard <see cref="Console.Read"/> method uses line buffering, which means that it will not return
-  /// until the user presses Enter on the keyboard. This method does not use line buffering, so it returns as soon as
-  /// the user presses a character key. This method does not echo the character back to the user.
-  /// </remarks>
-  public static char Getch() { return GameLib.Interop.GLUtility.Utility.Getch(); }
-  /// <summary>Reads a character from standard input without using line buffering and echos it to standard output.</summary>
-  /// <returns>The next character from standard input.</returns>
-  /// <remarks>The standard <see cref="Console.Read"/> method uses line buffering, which means that it will not return
-  /// until the user presses Enter on the keyboard. This method does not use line buffering, so it returns as soon as
-  /// the user presses a character key. This also echos the character back to standard output.
-  /// </remarks>
-  public static char Getche() { return GameLib.Interop.GLUtility.Utility.Getche(); }
-  #endregion
 
   #region CalculateOutputs
   /// <summary>Calculates how many objects would be read by <see cref="Read(Stream,string)"/> and the like.</summary>

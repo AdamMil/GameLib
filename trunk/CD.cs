@@ -17,6 +17,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 using System;
+using System.Collections.ObjectModel;
 using GameLib.Interop.SDL;
 
 namespace GameLib.CD
@@ -117,7 +118,7 @@ public unsafe sealed class Drive
   /// <remarks>This array will likely change if the CD is changed.
   /// This property has some small overhead in retrieval, so try to avoid evaluating it too often.
   /// </remarks>
-  public Track[] Tracks { get { Update(true); return tracks; } }
+  public ReadOnlyCollection<Track> Tracks { get { Update(true); return Array.AsReadOnly(tracks); } }
   /// <summary>Returns true if there's a CD in this CD-ROM drive.</summary>
   /// <value>A boolean indicating whether there's a CD in this CD-ROM drive.</value>
   public bool CDInDrive { get { CDStatus s = Status; return s!=CDStatus.TrayEmpty && s!=CDStatus.Error; } }

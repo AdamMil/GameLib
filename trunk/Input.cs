@@ -17,6 +17,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 using System;
+using System.Collections.ObjectModel;
 using GameLib.Interop.SDL;
 using GameLib.Events;
 
@@ -911,7 +912,7 @@ public sealed class Input
   /// returned array. This property cannot be used unless joystick support is enabled (by either
   /// <see cref="UseJoysticks"/> or <see cref="Initialize(bool)"/>).
   /// </remarks>
-  public static Joystick[] Joysticks { get { return joysticks; } }
+  public static ReadOnlyCollection<Joystick> Joysticks { get { return Array.AsReadOnly(joysticks); } }
 
   /// <summary>Enables or disables joystick support.</summary>
   /// <remarks>Joysticks cannot be used unless joystick support is enabled. The input system must be initialized

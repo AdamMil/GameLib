@@ -26,10 +26,14 @@ namespace GameLib.Interop.OggVorbis
 [System.Security.SuppressUnmanagedCodeSecurity()]
 internal sealed class Ogg
 { 
-  [CallConvCdecl] public unsafe delegate int  ReadHandler(byte* buf, int size, int maxnum);
-  [CallConvCdecl] public unsafe delegate int  SeekHandler(int offset, SeekType type);
-  [CallConvCdecl] public unsafe delegate int  TellHandler();
-  [CallConvCdecl] public unsafe delegate void CloseHandler();
+  [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+  public unsafe delegate int  ReadHandler(byte* buf, int size, int maxnum);
+  [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+  public unsafe delegate int  SeekHandler(int offset, SeekType type);
+  [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+  public unsafe delegate int  TellHandler();
+  [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+  public unsafe delegate void CloseHandler();
 
   #region Enums
   public enum SeekType : int

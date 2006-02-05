@@ -26,7 +26,8 @@ namespace GameLib.Interop.GLMixer
 public sealed class GLMixer
 { private GLMixer() { }
 
-  [CallConvCdecl] internal unsafe delegate void MixCallback(int* stream, uint samples, IntPtr context);
+  [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+  internal unsafe delegate void MixCallback(int* stream, uint samples, IntPtr context);
 
   [Flags]
   internal enum Format : ushort

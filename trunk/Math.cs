@@ -17,6 +17,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 using System;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Runtime.Serialization;
 
@@ -1080,7 +1081,7 @@ public struct Point
   public void Offset(double xd, double yd) { X+=xd; Y+=yd; }
   /// <summary>Converts this point to a <see cref="System.Drawing.Point"/>.</summary>
   /// <returns>A <see cref="System.Drawing.Point"/> containing approximately the same coordinates. The coordinates
-  /// will be rounded using <see cref="Math.Round"/> in order to convert them to integers.
+  /// will be rounded using <see cref="Math.Round(double)"/> in order to convert them to integers.
   /// </returns>
   public System.Drawing.Point ToPoint() { return new System.Drawing.Point((int)Math.Round(X), (int)Math.Round(Y)); }
   /// <summary>Converts this point to a <see cref="System.Drawing.PointF"/>.</summary>
@@ -1244,8 +1245,8 @@ public struct Line
   /// point is "inside" the line. You can envision it this way: if this line was one of the clipping lines defining
   /// a convex polygon, a point would be "outside" the line if it was on the side that would put it outside the
   /// polygon. The point would be inside the polygon if it was "inside" all of the lines defining it. If you simply
-  /// want the distance to the line, use <see cref="Math.Abs"/> to get the absolute value. If you simply want to know
-  /// which side of the line a point is on, use <see cref="WhichSide"/>, which is more efficient.
+  /// want the distance to the line, use <see cref="Math.Abs(double)"/> to get the absolute value. If you simply want
+  /// to know which side of the line a point is on, use <see cref="WhichSide"/>, which is more efficient.
   /// </returns>
   public double DistanceTo(Point point) { return Vector.CrossVector.Normal.DotProduct(point-Start); }
   /// <include file="documentation.xml" path="//Mathematics/Line/GetPoint/*"/>
@@ -1752,7 +1753,7 @@ public struct Rectangle
 #region Polygon
 /// <summary>This class represents a polygon.</summary>
 [Serializable]
-public class Polygon : ICloneable, ISerializable
+public sealed class Polygon : ICloneable, ISerializable
 { 
   /// <summary>Initializes this polygon with no points.</summary>
   public Polygon() { points=new Point[4]; }
@@ -1763,7 +1764,7 @@ public class Polygon : ICloneable, ISerializable
   public Polygon(Point p1, Point p2, Point p3) { points = new Point[3] { p1, p2, p3 }; length=3; }
   /// <summary>Initializes this polygon from an array of points.</summary>
   /// <param name="points">The array containing the points to use.</param>
-  public Polygon(Point[] points) : this(points.Length) { AddPoints(points); }
+  public Polygon(IList<Point> points) : this(points.Count) { AddPoints(points); }
   /// <summary>Initializes this polygon from an array of points.</summary>
   /// <param name="points">The array containing the points to use.</param>
   /// <param name="nPoints">The number of points to read from the array.</param>
@@ -1810,7 +1811,7 @@ public class Polygon : ICloneable, ISerializable
     set
     { if(value<length)
         throw new ArgumentOutOfRangeException("value", value, "The value cannot be set less than Length.");
-      if(value<3) value=3;
+      if(value<3) value = 3;
       if(value==points.Length) return;
       Point[] narr = new Point[value];
       Array.Copy(points, narr, length);
@@ -1852,7 +1853,10 @@ public class Polygon : ICloneable, ISerializable
   }
   /// <summary>Adds a list of points to the polygon.</summary>
   /// <param name="points">An array of points that will be added to the polygon.</param>
-  public void AddPoints(Point[] points) { AddPoints(points, points.Length); }
+  public void AddPoints(IList<Point> points)
+  { ResizeTo(length+points.Count);
+    for(int i=0,len=points.Count; i<len; i++) this.points[length++] = points[i];
+  }
   /// <summary>Adds a list of points to the polygon.</summary>
   /// <param name="points">An array of points.</param>
   /// <param name="nPoints">The number of points to read from the array.</param>
@@ -1866,7 +1870,7 @@ public class Polygon : ICloneable, ISerializable
   { if(length<3) throw new InvalidOperationException("Not a valid polygon [not enough points]!");
   }
   /// <summary>Removes all points from the polygon.</summary>
-  public void Clear() { length=0; }
+  public void Clear() { length = 0; }
   /// <summary>Determines whether this convex polygon contains the given point.</summary>
   /// <param name="point">The <see cref="Point"/> to test.</param>
   /// <returns>Returns true if the polygon contains the given point.</returns>
@@ -2135,7 +2139,7 @@ public class Polygon : ICloneable, ISerializable
     }
   }
   /// <summary>Sets the <see cref="Capacity"/> of the polygon to the actual number of points.</summary>
-  void TrimToSize() { Capacity = length; }
+  void TrimExcess() { Capacity = length; }
 
   int Clip(int index)
   { if(index<0) index += length;
@@ -2633,8 +2637,8 @@ public sealed class Matrix3
                       M20*v.X + M21*v.Y + M22*v.Z);
   }
 
-  public void Multiply(Vector[] vectors)
-  { for(int i=0; i<vectors.Length; i++) vectors[i] = Multiply(vectors[i]);
+  public void Multiply(IList<Vector> vectors)
+  { for(int i=0; i<vectors.Count; i++) vectors[i] = Multiply(vectors[i]);
   }
 
   public void Scale(double x, double y, double z) { M00*=x; M11*=y; M22*=z; }
@@ -2839,8 +2843,8 @@ public sealed class Matrix4
                       M20*v.X + M21*v.Y + M22*v.Z + M23);
   }
 
-  public void Multiply(Vector[] vectors)
-  { for(int i=0; i<vectors.Length; i++) vectors[i] = Multiply(vectors[i]);
+  public void Multiply(IList<Vector> vectors)
+  { for(int i=0; i<vectors.Count; i++) vectors[i] = Multiply(vectors[i]);
   }
 
   public void Scale(double x, double y, double z) { M00*=x; M11*=y; M22*=z; }
