@@ -43,13 +43,6 @@ internal sealed class Utility
   [DllImport(Config.GLUtilityImportPath, ExactSpelling=true, EntryPoint="GLU_ResetTimer", CallingConvention=CallingConvention.Cdecl)]
   public static extern void ResetTimer();
 
-  [DllImport(Config.GLUtilityImportPath, ExactSpelling=true, EntryPoint="GLU_Getch", CallingConvention=CallingConvention.Cdecl)]
-  public static extern char Getch();
-  [DllImport(Config.GLUtilityImportPath, ExactSpelling=true, EntryPoint="GLU_Getche", CallingConvention=CallingConvention.Cdecl)]
-  public static extern char Getche();
-  [DllImport(Config.GLUtilityImportPath, ExactSpelling=true, EntryPoint="GLU_KbHit", CallingConvention=CallingConvention.Cdecl)]
-  public static extern bool KbHit();
-
   [DllImport(Config.GLUtilityImportPath, ExactSpelling=true, EntryPoint="GLU_MemCopy", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern void MemCopy(void *src, void *dest, int length);
   [DllImport(Config.GLUtilityImportPath, ExactSpelling=true, EntryPoint="GLU_MemFill", CallingConvention=CallingConvention.Cdecl)]

@@ -24,7 +24,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // TODO: add a default font
 
 using System;
-using System.Collections;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Drawing;
 using GameLib.Events;
 using GameLib.Video;
@@ -496,36 +497,14 @@ public class Control
 
   #region ControlCollection
   /// <summary>This class provides a strongly-typed collection of <see cref="Control"/> objects.</summary>
-  public class ControlCollection : CollectionBase
-  { internal ControlCollection(Control parent) { this.parent=parent; }
-    /// <summary>
-    /// Gets the control specified by the index given.
-    /// </summary>
-    /// <param name="index">The zero-based index of the control to return.</param>
-    /// <exception cref="ArgumentOutOfRangeException">
-    /// <para><paramref name="index"/> is less than zero.</para>
-    /// <para>-or-</para>
-    /// <para><paramref name="index"/> is equal to or greater than <see cref="ICollection.Count"/>.</para>
-    /// </exception>
-    public Control this[int index] { get { return (Control)List[index]; } }
-    /// <summary>Adds a control as a new child of this control.</summary>
-    /// <param name="control">The control to add.</param>
-    /// <returns>The index at which the control was added to the collection.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="control"/> is null</exception>
-    /// <exception cref="ArgumentException"><paramref name="control"/> already belongs to another control (ie,
-    /// its <see cref="Control.Parent"/> property is not null).
-    /// </exception>
-    public int Add(Control control) { return List.Add(control); }
+  public class ControlCollection : Collection<Control>
+  { internal ControlCollection(Control parent) { this.parent = parent; }
     /// <summary>Adds several new child controls at once.</summary>
     /// <remarks>This method effectively calls <see cref="Add"/> on each member of <paramref name="controls"/>.
     /// See <see cref="Add"/> for more information on what occurs when this method is called.
     /// </remarks>
     /// <param name="controls">An array containing the controls to add.</param>
-    public void AddRange(params Control[] controls) { foreach(Control c in controls) List.Add(c); }
-    /// <summary>Returns the index of the specified child control within the collection.</summary>
-    /// <returns>If the control is found, the index of the control is returned. Otherwise, -1 is returned.</returns>
-    /// <param name="control">A reference to a control to search for.</param>
-    public int IndexOf(Control control) { return List.IndexOf(control); }
+    public void AddRange(params Control[] controls) { foreach(Control c in controls) Add(c); }
     /// <summary>Returns the index of the specified child control within the collection.</summary>
     /// <returns>If the control is found, the index of the control is returned. Otherwise, -1 is returned.</returns>
     /// <param name="name">The name of a control to search for. This does a case-sensitive comparison against the
@@ -566,22 +545,10 @@ public class Control
       }
       else return this[index];
     }
-    /// <summary>Adds a control as a new child of this control, inserting it at the specified index.</summary>
-    /// <param name="index">The index at which to add the control.</param>
-    /// <param name="control">The control to add.</param>
-    /// <exception cref="ArgumentNullException"><paramref name="control"/> is null</exception>
-    /// <exception cref="ArgumentException"><paramref name="control"/> already belongs to another control (ie,
-    /// its <see cref="Control.Parent"/> property is not null).
-    /// </exception>
-    public void Insert(int index, Control control) { List.Insert(index, control); }
-    /// <summary>Removes a child control.</summary>
-    /// <param name="control">A reference to the control to remove.</param>
-    /// <exception cref="ArgumentException"><paramref name="control"/> cannot be found in this collection.</exception>
-    public void Remove(Control control) { List.Remove(control); }
     /// <summary>Returns a value indicating whether the given control exists in this collection.</summary>
     /// <param name="control">The control to search for.</param>
     /// <returns>Returns true if the control was found and false otherwise.</returns>
-    public bool Contains(Control control) { return control.parent==parent; }
+    public new bool Contains(Control control) { return control.parent==parent; }
     /// <summary>Returns a value indicating whether the given control a child or descendant of this one.</summary>
     /// <param name="control">The control to search for.</param>
     /// <param name="deepSearch">If true, a recursive search is performed, searching descendants if the
@@ -617,33 +584,31 @@ public class Control
     /// </param>
     public bool Contains(string name, bool deepSearch) { return Find(name, deepSearch)!=null; }
 
-    internal ArrayList Array { get { return InnerList; } }
-
-    protected override void OnClear()
+    protected override void ClearItems()
     { foreach(Control c in this) c.SetParent(null);
-      base.OnClear();
+      base.ClearItems();
     }
-    protected override void OnInsert(int index, object value)
-    { Control control = (Control)value;
-      if(control==null) throw new ArgumentNullException("control");
+
+    protected override void InsertItem(int index, Control control)
+    { if(control==null) throw new ArgumentNullException("control");
       if(control.Parent!=null) throw new ArgumentException("Already belongs to a control!");
-      base.OnInsert(index, value);
-    }
-    protected override void OnInsertComplete(int index, object value)
-    { ((Control)value).SetParent(parent);
-      base.OnInsertComplete(index, value);
-    }
-    protected override void OnRemoveComplete(int index, object value)
-    { ((Control)value).SetParent(null);
-      base.OnRemoveComplete(index, value);
-    }
-    protected override void OnSetComplete(int index, object oldValue, object newValue)
-    { Control control = (Control)newValue;
-      if(control==null) throw new ArgumentNullException("control");
-      if(control.Parent!=null) throw new ArgumentException("Already belongs to a control!");
-      ((Control)oldValue).SetParent(null);
+      base.InsertItem(index, control);
       control.SetParent(parent);
-      base.OnSetComplete(index, oldValue, newValue);
+    }
+
+    protected override void RemoveItem(int index)
+    { Control control = this[index];
+      base.RemoveItem(index);
+      control.SetParent(null);
+    }
+
+    protected override void SetItem(int index, Control control)
+    { if(control==null) throw new ArgumentNullException("control");
+      if(control.Parent!=null) throw new ArgumentException("Already belongs to a control!");
+      Control oldControl = this[index];
+      base.SetItem(index, control);
+      oldControl.SetParent(null);
+      control.SetParent(parent);
     }
 
     Control parent;
@@ -1350,10 +1315,12 @@ public class Control
   /// <exception cref="InvalidOperationException">Thrown if this control has no parent.</exception>
   public void BringToFront()
   { AssertParent();
-    ArrayList list = parent.controls.Array;
-    if(list[list.Count-1]!=this)
-    { list.Remove(this);
-      list.Add(this);
+    ControlCollection controls = parent.controls;
+    if(controls[controls.Count-1]!=this)
+    { lockParent = true;
+      controls.Remove(this);
+      controls.Add(this);
+      lockParent = false;
       Invalidate();
     }
   }
@@ -1728,10 +1695,12 @@ public class Control
   /// <exception cref="InvalidOperationException">Thrown if this control has no parent.</exception>
   public void SendToBack()
   { AssertParent();
-    ArrayList list = parent.controls.Array;
-    if(list[0]!=this)
-    { list.Remove(this);
-      list.Insert(0, this);
+    ControlCollection controls = parent.controls;
+    if(controls[0]!=this)
+    { lockParent = true;
+      controls.Remove(this);
+      controls.Insert(0, this);
+      lockParent = false;
       parent.Invalidate(bounds);
     }
   }
@@ -2520,7 +2489,8 @@ public class Control
   }
 
   internal void SetParent(Control control)
-  { ValueChangedEventArgs ve = new ValueChangedEventArgs(parent);
+  { if(lockParent) return; // if we're manipulating the ControlCollection and don't want it changing our Parent, just return
+    ValueChangedEventArgs ve = new ValueChangedEventArgs(parent);
     ControlEventArgs ce = new ControlEventArgs(this);
     if(parent!=null)
     { DesktopControl desktop = parent.Desktop;
@@ -2610,7 +2580,7 @@ public class Control
   BorderStyle  border;
   DontDraw     dontDraw;
   ContentAlignment backImageAlign=ContentAlignment.TopLeft;
-  bool enabled=true, visible=true, mychange, keyPreview, pendingPaint, pendingLayout;
+  bool enabled=true, visible=true, mychange, keyPreview, pendingPaint, pendingLayout, lockParent;
 }
 #endregion
 
@@ -2716,7 +2686,7 @@ public class DesktopControl : ContainerControl, IDisposable
   }
 
   /// <summary>Gets the topmost modal control, or null if there are none.</summary>
-  public Control ModalWindow { get { return modal.Count==0 ? null : (Control)modal[modal.Count-1]; } }
+  public Control ModalWindow { get { return modal.Count==0 ? null : modal[modal.Count-1]; } }
 
   /// <summary>Gets or sets whether this desktop will process keyboard events.</summary>
   /// <remarks>If false, <see cref="ProcessEvent"/> will ignore events related to the keyboard.
@@ -3201,7 +3171,7 @@ public class DesktopControl : ContainerControl, IDisposable
   }
 
   internal Control capturing;
-  internal ArrayList modal = new ArrayList(4);
+  internal List<Control> modal = new List<Control>(4);
 
   #region Dispatchers
   bool DispatchKeyEvent(Control target, KeyEventArgs e)

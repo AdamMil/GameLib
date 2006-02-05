@@ -252,7 +252,7 @@ public sealed class OpenGL
 
   static string[] extensions;
   static int version;
-  static bool useNPOT=true;
+  static bool useNPOT = true;
 }
 #endregion
 

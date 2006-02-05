@@ -787,7 +787,7 @@ public sealed class Events
 
     lock(queue)
     { if(waiting) waiting=false;
-      if(queue.Count>0) return (Event)(remove ? queue.Dequeue() : queue.Peek());
+      if(queue.Count>0) return remove ? queue.Dequeue() : queue.Peek();
     }
 
     Event ret;
@@ -795,7 +795,7 @@ public sealed class Events
     if(timeout==Infinite)
     { ret = NextSDLEvent();
       lock(queue)
-      { if(ret==null) { waiting=false; return (Event)(remove ? queue.Dequeue() : queue.Peek()); }
+      { if(ret==null) { waiting=false; return remove ? queue.Dequeue() : queue.Peek(); }
         else if(!remove) QueueEvent(ret);
         return ret;
       }
@@ -807,7 +807,7 @@ public sealed class Events
       lock(queue)
       { if(ret!=null)
         { if(!remove) QueueEvent(ret);
-          if(waiting) { waiting=false; return (Event)(remove ? queue.Dequeue() : queue.Peek()); }
+          if(waiting) { waiting=false; return remove ? queue.Dequeue() : queue.Peek(); }
           return ret;
         }
       }
@@ -1056,7 +1056,7 @@ public sealed class Events
     queue.Enqueue(evt);
   }
 
-  static System.Collections.Queue queue = new System.Collections.Queue();
+  static System.Collections.Generic.Queue<Event> queue = new System.Collections.Generic.Queue<Event>();
   static UserEvent userEvent = new UserEventPushed();
   static uint initCount;
   static int  max=128;

@@ -17,7 +17,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 using System;
-using System.Collections;
+using System.Collections.Generic;
 using GameLib;
 using GameLib.Audio;
 using GameLib.CD;
@@ -307,7 +307,7 @@ class App
   }
   
   static void UpdateWorld()
-  { ArrayList segs=bullets.Count>0 ? new ArrayList(bullets.Count) : null;
+  { List<Line> segs = bullets.Count>0 ? new List<Line>(bullets.Count) : null;
 
     for(int bi=0; bi<bullets.Count; bi++)
     { Bullet b = (Bullet)bullets[bi];
@@ -354,7 +354,8 @@ class App
   }
   
   static SampleSource shot, exp;
-  static ArrayList asteroids = new ArrayList(), bullets = new ArrayList();
+  static List<Asteroid> asteroids = new List<Asteroid>();
+  static List<Bullet> bullets = new List<Bullet>();
   static Ship ship = new Ship();
   static double difficulty = 1.0f;
   static int lives = 3, score, playedDrive = -1;

@@ -43,17 +43,6 @@ public sealed class Utility
 
   /// <summary>This field provides a global random number generator.</summary>
   public static readonly Random Random = new Random();
-
-  /// <summary>This method converts a directory path into a consistent format.</summary>
-  /// <param name="path">A path to a directory.</param>
-  /// <returns>A path to the directory using '/' as the directory separation character and ending with a trailing
-  /// slash. For instance, passing "c:\code\test" returns "c:/code/test/".
-  /// </returns>
-  public static string NormalizeDir(string path)
-  { path = path.Replace('\\', '/');
-    if(path[path.Length-1] != '/') path += '/';
-    return path;
-  }
 }
 
 } // namespace GameLib

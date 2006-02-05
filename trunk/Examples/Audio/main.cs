@@ -51,7 +51,7 @@ class App
       }
       Console.WriteLine("6) Quit");
       Console.Write("Enter choice: ");
-      switch(GameLib.IO.IOH.Getche())
+      switch(Console.ReadKey().KeyChar)
       { case '1':
           if(Audio.Channels[0].Stopped) // if stopped, play ogg on channel 0
             ogg.Play(Audio.Infinite, Audio.Infinite, 0, 0);

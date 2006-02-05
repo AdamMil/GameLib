@@ -20,7 +20,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 // TODO: make System.Threading.Timer instances static (optimization)
 // TODO: evaluate usage of base.Handler() and e.Handled
 using System;
-using System.Collections;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Drawing;
 using GameLib.Fonts;
 using GameLib.Video;
@@ -1316,44 +1317,54 @@ public class TextBox : TextBoxBase
 // TODO: document
 public abstract class ListControl : ScrollableControl
 { protected ListControl() { items = new ItemCollection(this); }
-  protected ListControl(IEnumerable items) { this.items=new ItemCollection(this, items); OnListChanged(); }
+  protected ListControl(System.Collections.IEnumerable items)
+  { this.items = new ItemCollection(this, items);
+    OnListChanged();
+  }
 
   #region ItemCollection
-  public sealed class ItemCollection : CollectionBase
-  { public ItemCollection(ListControl list) { parent=list; }
-    public ItemCollection(ListControl list, IEnumerable items)
-    { parent=list;
-      foreach(object o in items) InnerList.Add(new Item(o));
+  public sealed class ItemCollection : System.Collections.CollectionBase
+  { public ItemCollection(ListControl parent)
+    { this.parent = parent;
+      list = new List<Item>();
+    }
+    public ItemCollection(ListControl parent, System.Collections.IEnumerable items)
+    { this.parent = parent;
+      list = new List<Item>();
+      foreach(object o in items) list.Add(new Item(o));
     }
 
-    public object this[int index] { get { return ((Item)InnerList[index]).Object; } }
+    public object this[int index] { get { return list[index].Object; } }
 
     public int Add(object item)
     { if(sorted)
       { int index = FindInsertionPoint(item);
-        List.Insert(index, new Item(item));
+        list.Insert(index, new Item(item));
         return index;
       }
-      else return List.Add(new Item(item));
+      else
+      { list.Add(new Item(item));
+        return list.Count-1;
+      }
     }
 
     public void AddRange(params object[] items)
-    { if(!sorted || items.Length>4)
-      { for(int i=0; i<items.Length; i++) InnerList.Add(new Item(items[i]));
-        if(sorted) InnerList.Sort(Comparer);
+    { if(!sorted || items.Length>3)
+      { for(int i=0; i<items.Length; i++) list.Add(new Item(items[i]));
+        if(sorted) list.Sort(Comparer);
       }
       else
         for(int i=0; i<items.Length; i++)
         { Item item = new Item(items[i]);
-          InnerList.Insert(FindInsertionPoint(item), item);
+          list.Insert(FindInsertionPoint(item), item);
         }
       Updated();
       parent.Invalidate(parent.ContentRect);
     }
 
-    public void AddRange(IEnumerable items)
-    { foreach(object o in items) InnerList.Add(new Item(o));
-      if(sorted) InnerList.Sort(Comparer);
+    public void AddRange(System.Collections.IEnumerable items)
+    { foreach(object o in items) list.Add(new Item(o));
+      if(sorted) list.Sort(Comparer);
       Updated();
       parent.Invalidate(parent.ContentRect);
     }
@@ -1362,21 +1373,21 @@ public abstract class ListControl : ScrollableControl
 
     public void Insert(int index, object item)
     { if(sorted) throw new InvalidOperationException("Can't insert into a sorted list. Use Add()");
-      else List.Insert(index, new Item(item));
+      else list.Insert(index, new Item(item));
     }
 
     public int IndexOf(object item)
     { if(sorted)
-      { int index = InnerList.BinarySearch(new Item(item), Comparer);
+      { int index = list.BinarySearch(new Item(item), Comparer);
         if(index<0) return -1;
-        string text=parent.GetObjectText(item);
+        string text = parent.GetObjectText(item);
         bool down=true, up=true;
-        for(int i=0,j,c=0,len=InnerList.Count; i<len; i++)
+        for(int i=0,j,c=0,len=list.Count; i<len; i++)
         { if(++c==4) c=0;
           if(down)
           { j=index-i;
             if(j >= 0)
-            { object o = ((Item)InnerList[j]).Object;
+            { object o = list[j].Object;
               if(o.Equals(item)) return j;
               if(c==0 && parent.GetObjectText(o)!=text)
               { down=false;
@@ -1384,11 +1395,11 @@ public abstract class ListControl : ScrollableControl
               }
             }
           }
-          
+
           if(up)
           { j=index+i+1;
             if(j<len)
-            { object o = ((Item)InnerList[j]).Object;
+            { object o = list[j].Object;
               if(o.Equals(item)) return j;
               if(c==0 && parent.GetObjectText(o)!=text)
               { up=false;
@@ -1398,31 +1409,28 @@ public abstract class ListControl : ScrollableControl
           }
         }
       }
-      else for(int i=0; i<InnerList.Count; i++) if(((Item)InnerList[i]).Object.Equals(item)) return i;
+      else for(int i=0; i<list.Count; i++) if(list[i].Object.Equals(item)) return i;
       return -1;
     }
 
     public void Remove(object item)
     { int index = IndexOf(item);
-      if(index!=-1) List.RemoveAt(index);
+      if(index!=-1) list.RemoveAt(index);
     }
 
     internal bool Sorted
     { get { return sorted; }
       set
       { if(value && !sorted)
-        { InnerList.Sort(Comparer);
+        { list.Sort(Comparer);
           Updated();
           parent.Invalidate(parent.ContentRect);
         }
-        sorted=value;
+        sorted = value;
       }
     }
 
     internal int Version { get { return version; } }
-    internal Item InnerGet(int index) { return (Item)InnerList[index]; }
-    internal ArrayList InnerGetList() { return InnerList; }
-    internal void InnerSet(int index, Item item) { InnerList[index]=item; }
     internal void Updated() { version++; parent.OnListChanged(); }
 
     protected override void OnClearComplete()
@@ -1442,10 +1450,10 @@ public abstract class ListControl : ScrollableControl
       parent.InvalidateItem(index);
     }
 
-    class TextComparer : IComparer
-    { public TextComparer(ListControl list) { this.list=list; }
-      public int Compare(object a, object b)
-      { return list.GetObjectText(((Item)a).Object).CompareTo(list.GetObjectText(((Item)b).Object));
+    sealed class TextComparer : IComparer<Item>
+    { public TextComparer(ListControl list) { this.list = list; }
+      public int Compare(Item a, Item b)
+      { return list.GetObjectText(a.Object).CompareTo(list.GetObjectText(b.Object));
       }
       ListControl list;
     }
@@ -1458,10 +1466,11 @@ public abstract class ListControl : ScrollableControl
     }
 
     int FindInsertionPoint(object item)
-    { int index = InnerList.BinarySearch(new Item(item), Comparer);
+    { int index = list.BinarySearch(new Item(item), Comparer);
       return index<0 ? ~index : index;
     }
 
+    internal List<Item> list;
     ListControl parent;
     TextComparer comparer;
     int  version;
@@ -1470,16 +1479,25 @@ public abstract class ListControl : ScrollableControl
   #endregion
 
   #region SelectedIndexCollection
-  public sealed class SelectedIndexCollection : ICollection
+  public sealed class SelectedIndexCollection : ICollection<int>
   { internal SelectedIndexCollection(ListControl list) { items=list.Items; version=items.Version-1; }
 
     #region IndexEnumerator
-    sealed class IndexEnumerator : IEnumerator
+    sealed class IndexEnumerator : IEnumerator<int>
     { public IndexEnumerator(SelectedIndexCollection indices)
       { this.indices=indices; count=indices.Count; version=indices.items.Version; index=-1;
       }
 
-      public object Current
+      public void Dispose() { indices = null; }
+
+      public int Current
+      { get
+        { if(index<0 || index>=count) throw new InvalidOperationException();
+          return current;
+        }
+      }
+
+      object System.Collections.IEnumerator.Current
       { get
         { if(index<0 || index>=count) throw new InvalidOperationException();
           return current;
@@ -1505,12 +1523,16 @@ public abstract class ListControl : ScrollableControl
 
     public int this[int index] { get { return Indices[index]; } }
     public int Count { get { return Indices.Length; } }
-    public bool   IsSynchronized { get { return false; } }
-    public object SyncRoot { get { return this; } }
+    public bool IsReadOnly { get { return true; } }
+
+    public void Add(int index) { throw new InvalidOperationException("SelectedIndexCollection is read only"); }
+    public void Clear() { throw new InvalidOperationException("SelectedIndexCollection is read only"); }
+    public bool Remove(int index) { throw new InvalidOperationException("SelectedIndexCollection is read only"); }
 
     public bool Contains(int index) { return IndexOf(index)!=-1; }
-    public void CopyTo(Array array, int index) { Indices.CopyTo(array, index); }
-    public IEnumerator GetEnumerator() { return new IndexEnumerator(this); }
+    public void CopyTo(int[] array, int index) { Indices.CopyTo(array, index); }
+    public IEnumerator<int> GetEnumerator() { return new IndexEnumerator(this); }
+    System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() { return new IndexEnumerator(this); }
     
     public int IndexOf(int index)
     { int[] array = Indices;
@@ -1521,13 +1543,10 @@ public abstract class ListControl : ScrollableControl
     internal int[] Indices
     { get
       { if(version!=items.Version)
-        { ArrayList list = items.InnerGetList();
-          ArrayList sel  = new ArrayList();
-          for(int i=0; i<list.Count; i++)
-          { Item it = (Item)list[i];
-            if(it.Is(ItemState.Selected)) sel.Add(i);
-          }
-          indices = (int[])sel.ToArray(typeof(int));
+        { List<Item> list = items.list;
+          List<int> sel  = new List<int>();
+          for(int i=0; i<list.Count; i++) if(list[i].Is(ItemState.Selected)) sel.Add(i);
+          indices = sel.ToArray();
           version = items.Version;
         }
         return indices;
@@ -1541,25 +1560,25 @@ public abstract class ListControl : ScrollableControl
   #endregion
 
   #region SelectedObjectCollection
-  public sealed class SelectedObjectCollection : ICollection
+  public sealed class SelectedObjectCollection : System.Collections.ICollection
   { internal SelectedObjectCollection(ListControl list) { this.list=list; indices=list.SelectedIndices; }
 
     #region ObjectEnumerator
-    sealed class ObjectEnumerator : IEnumerator
+    sealed class ObjectEnumerator : System.Collections.IEnumerator
     { public ObjectEnumerator(SelectedObjectCollection objs) { this.objs=objs; indices=objs.indices.GetEnumerator(); }
-      public object Current { get { return objs[(int)indices.Current]; } }
+      public object Current { get { return objs[indices.Current]; } }
       public bool MoveNext() { return indices.MoveNext(); }
       public void Reset() { indices.Reset(); }
 
       SelectedObjectCollection objs;
-      IEnumerator indices;
+      IEnumerator<int> indices;
     }
     #endregion
 
     public object this[int index] { get { return list.items[indices.Indices[index]]; } }
     public int Count { get { return indices.Indices.Length; } }
-    public bool IsSynchronized { get { return indices.IsSynchronized; } }
-    public object SyncRoot { get { return indices.SyncRoot; } }
+    public bool IsSynchronized { get { return false; } }
+    public object SyncRoot { get { return list; } }
 
     public bool Contains(object item) { return IndexOf(item)!=-1; }
     public void CopyTo(Array array, int index)
@@ -1572,7 +1591,7 @@ public abstract class ListControl : ScrollableControl
       return -1;
     }
 
-    public IEnumerator GetEnumerator() { return new ObjectEnumerator(this); }
+    public System.Collections.IEnumerator GetEnumerator() { return new ObjectEnumerator(this); }
 
     ListControl list;
     SelectedIndexCollection indices;
@@ -1617,9 +1636,9 @@ public abstract class ListControl : ScrollableControl
   { int[] indices = SelectedIndices.Indices;
     if(indices.Length>0)
     { for(int i=0; i<indices.Length; i++)
-      { Item it = items.InnerGet(indices[i]);
+      { Item it = items.list[indices[i]];
         it.State &= ~ItemState.Selected;
-        items.InnerSet(indices[i], it);
+        items.list[indices[i]] = it;
       }
       items.Updated();
       Invalidate(ContentRect);
@@ -1640,17 +1659,17 @@ public abstract class ListControl : ScrollableControl
 
   public string GetItemText(int index) { return GetObjectText(items[index]); }
 
-  public bool GetSelected(int index) { return Items.InnerGet(index).Is(ItemState.Selected); }
+  public bool GetSelected(int index) { return Items.list[index].Is(ItemState.Selected); }
   public void SetSelected(int index, bool selected) { SetSelected(index, selected, false); }
   public void SetSelected(int index, bool selected, bool deselectOthers)
-  { Item rit = items.InnerGet(index);
+  { Item rit = items.list[index];
     bool was = rit.Is(ItemState.Selected);
 
     if(deselectOthers) ClearSelected();
 
     if(selected) rit.State |= ItemState.Selected;
     else rit.State &= ~ItemState.Selected;
-    items.InnerSet(index, rit);
+    items.list[index] = rit;
 
     if(deselectOthers) Invalidate(ContentRect);
     else if(was!=selected) InvalidateItem(index);
@@ -1659,9 +1678,9 @@ public abstract class ListControl : ScrollableControl
   }
 
   public void ToggleSelected(int index)
-  { Item it = items.InnerGet(index);
+  { Item it = items.list[index];
     it.State ^= ItemState.Selected;
-    items.InnerSet(index, it);
+    items.list[index] = it;
     items.Updated();
     InvalidateItem(index);
   }
@@ -1698,7 +1717,7 @@ public enum SelectionMode { None, One, MultiSimple, MultiExtended }
 
 public abstract class ListBoxBase : ListControl
 { protected ListBoxBase() { Init(); }
-  protected ListBoxBase(IEnumerable items) : base(items) { Init(); }
+  protected ListBoxBase(System.Collections.IEnumerable items) : base(items) { Init(); }
   void Init()
   { cursor=bottom=-1; selMode=SelectionMode.One; selBack=SystemColors.Highlight; selFore=SystemColors.HighlightText;
     Padding=new RectOffset(1); Style|=ControlStyle.CanFocus; fixedHeight=true;
@@ -2042,10 +2061,10 @@ public abstract class ListBoxBase : ListControl
   { if(from==to) return;
     int add = to<from ? -1 : 1;
     while(true)
-    { Item it = Items.InnerGet(from);
+    { Item it = Items.list[from];
       if(selected) it.State |= ItemState.Selected;
       else it.State &= ~ItemState.Selected;
-      Items.InnerSet(from, it);
+      Items.list[from] = it;
       if(from==to) break;
       from+=add;
     }
@@ -2155,9 +2174,9 @@ public abstract class ListBoxBase : ListControl
 // TODO: optimize the scrolling so it doesn't redraw the entire box, but only the newly-uncovered portion
 public class ListBox : ListBoxBase
 { public ListBox() { Init(); }
-  public ListBox(ICollection items) : base(items) { Init(); }
-  public ListBox(IEnumerable items) : base(items) { Init(); }
-  public ListBox(params object[] items) : base((ICollection)items) { Init(); }
+  public ListBox(System.Collections.ICollection items) : base(items) { Init(); }
+  public ListBox(System.Collections.IEnumerable items) : base(items) { Init(); }
+  public ListBox(params object[] items) : base((System.Collections.ICollection)items) { Init(); }
   void Init() { BackColor=Color.White; BorderStyle=BorderStyle.FixedFlat; }
 
   public override Color BorderColor
@@ -2195,7 +2214,7 @@ public enum ComboBoxStyle { DropDown, DropDownList, Simple }
 
 public abstract class ComboBoxBase : ListControl
 { protected ComboBoxBase() { Init(); }
-  protected ComboBoxBase(IEnumerable items) : base(items) { Init(); }
+  protected ComboBoxBase(System.Collections.IEnumerable items) : base(items) { Init(); }
   void Init()
   { BorderStyle = BorderStyle.FixedThick|BorderStyle.Depressed;
     Padding = new RectOffset();
@@ -2420,7 +2439,7 @@ public abstract class ComboBoxBase : ListControl
 #region ComboBox
 public class ComboBox : ComboBoxBase
 { public ComboBox() { }
-  public ComboBox(IEnumerable items) : base(items) { }
+  public ComboBox(System.Collections.IEnumerable items) : base(items) { }
 
   protected override void OnBoxPress(bool down)
   { if(down!=this.down) { this.down=down; Invalidate(BoxRect); }
@@ -2615,47 +2634,35 @@ public abstract class MenuBarBase : Control
   }
 
   #region MenuCollection
-  /// <summary>This class provides a strongly-typed collection of <see cref="Control"/> objects.</summary>
-  public class MenuCollection : CollectionBase
-  { internal MenuCollection(MenuBarBase parent) { this.parent=parent; }
+  /// <summary>This class provides a strongly-typed collection of <see cref="MenuBase"/> objects.</summary>
+  public class MenuCollection : Collection<MenuBase>
+  { internal MenuCollection(MenuBarBase parent) { this.parent = parent; }
 
-    public MenuBase this[int index] { get { return (MenuBase)List[index]; } }
-
-    public int Add(MenuBase menu) { return List.Add(menu); }
-    public int IndexOf(MenuBase menu) { return List.IndexOf(menu); }
     public MenuBase Find(string text)
-    { foreach(MenuBase menu in List) if(menu.Text==text) return menu;
+    { foreach(MenuBase menu in this) if(menu.Text==text) return menu;
       return null;
     }
 
-    public void Insert(int index, MenuBase menu) { List.Insert(index, menu); }
-    public void Remove(MenuBase menu) { List.Remove(menu); }
+    protected override void ClearItems()
+    { base.ClearItems();
+      parent.Relayout();
+    }
 
-    protected override void OnClearComplete()
-    { parent.Relayout();
-      base.OnClearComplete();
+    protected override void InsertItem(int index, MenuBase item)
+    { if(item==null) throw new ArgumentNullException("menu", "Item cannot be null.");
+      base.InsertItem(index, item);
+      parent.Relayout();
     }
-    protected override void OnInsert(int index, object value)
-    { if(!(value is MenuBase))
-        throw new ArgumentException("Only classed derived from MenuBase are allowed in this collection");
-      base.OnInsert(index, value);
+
+    protected override void RemoveItem(int index)
+    { base.RemoveItem(index);
+      parent.Relayout();
     }
-    protected override void OnInsertComplete(int index, object value)
-    { parent.Relayout();
-      base.OnInsertComplete(index, value);
-    }
-    protected override void OnRemoveComplete(int index, object value)
-    { parent.Relayout();
-      base.OnRemoveComplete(index, value);
-    }
-    protected override void OnSet(int index, object oldValue, object newValue)
-    { if(!(newValue is MenuBase))
-        throw new ArgumentException("Only classed derived from MenuBase are allowed in this collection");
-      base.OnSet(index, oldValue, newValue);
-    }
-    protected override void OnSetComplete(int index, object oldValue, object newValue)
-    { parent.Relayout();
-      base.OnSetComplete(index, oldValue, newValue);
+
+    protected override void SetItem(int index, MenuBase item)
+    { if(item==null) throw new ArgumentNullException("menu", "Item cannot be null.");
+      base.SetItem(index, item);
+      parent.Relayout();
     }
 
     MenuBarBase parent;
