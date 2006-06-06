@@ -1,7 +1,7 @@
 /*
 GameLib is a library for developing games and other multimedia applications.
 http://www.adammil.net/
-Copyright (C) 2002-2005 Adam Milazzo
+Copyright (C) 2002-2006 Adam Milazzo
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -1721,21 +1721,26 @@ public class Client
   public SendFlag DefaultFlags { get { return defFlags; } set { defFlags=value; } }
 
   /// <include file="documentation.xml" path="//Network/Common/IsConnected/*"/>
-  public bool IsConnected { get { return link==null ? false : link.IsConnected; } }
+  public bool IsConnected
+  { get
+    { NetLink link = this.link;
+      return link==null ? false : link.IsConnected;
+    }
+  }
 
   /// <include file="documentation.xml" path="//Network/Common/LagAverage/*"/>
   public uint LagAverage
-  { get { AssertLink(); return link.LagAverage; }
-    set { AssertLink(); link.LagAverage=value; }
+  { get { return AssertLink().LagAverage; }
+    set { AssertLink().LagAverage=value; }
   }
   /// <include file="documentation.xml" path="//Network/Common/LagVariance/*"/>
   public uint LagVariance
-  { get { AssertLink(); return link.LagVariance; }
-    set { AssertLink(); link.LagVariance=value; }
+  { get { return AssertLink().LagVariance; }
+    set { AssertLink().LagVariance=value; }
   }
 
   /// <summary>Returns the remote endpoint to which the client is connected.</summary>
-  public IPEndPoint RemoteEndPoint { get { AssertLink(); return link.RemoteEndPoint; } }
+  public IPEndPoint RemoteEndPoint { get { return AssertLink().RemoteEndPoint; } }
 
   /// <summary>Connects to the given host and port.</summary>
   /// <param name="hostname">The name of the host to connect to.</param>
@@ -1912,7 +1917,12 @@ public class Client
     link.Send(data, index, length, flags, timeoutMs, orig);
   }
 
-  void AssertLink()   { if(link==null) throw new InvalidOperationException("Client is not connected"); }
+  NetLink AssertLink()
+  { NetLink link = this.link;
+    if(link==null) throw new InvalidOperationException("Client is not connected");
+    return link;
+  }
+
   void AssertClosed() { if(link!=null) throw new InvalidOperationException("Client is already connected"); }
 
   void ThreadFunc()

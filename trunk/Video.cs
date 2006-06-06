@@ -1,7 +1,7 @@
 /*
 GameLib is a library for developing games and other multimedia applications.
 http://www.adammil.net/
-Copyright (C) 2002-2005 Adam Milazzo
+Copyright (C) 2002-2006 Adam Milazzo
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -161,6 +161,15 @@ public sealed class PixelFormat
   /// out all the bits except the ones corresponding to the alpha channel.
   /// </remarks>
   public uint AlphaMask { get { return format.Amask; } set { format.Amask=value; } }
+
+  public override bool Equals(object obj)
+  { PixelFormat other = obj as PixelFormat;
+    return other!=null && IsCompatible(other);
+  }
+
+  public override int GetHashCode()
+  { return (int)(RedMask ^ GreenMask ^ BlueMask ^ AlphaMask) ^ Depth;
+  }
 
   /// <summary>Generates default channel masks for the current bit depth.</summary>
   /// <remarks>Calling this is equivalent to calling <see cref="GenerateDefaultMasks(bool)"/> and passing false.

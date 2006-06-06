@@ -1,7 +1,7 @@
 /*
 GameLib is a library for developing games and other multimedia applications.
 http://www.adammil.net/
-Copyright (C) 2002-2005 Adam Milazzo
+Copyright (C) 2002-2006 Adam Milazzo
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -38,23 +38,23 @@ namespace GameLib.Collections
 public sealed class PriorityQueue<T> : ICollection<T>
 { 
   /// <summary>Initializes a new, empty instance of the <see cref="PriorityQueue"/> class, with a default capacity and
-  /// using <see cref="Comparer<>.Default"/> to compare elements.
+  /// using <see cref="Comparer.Default"/> to compare elements.
   /// </summary>
   public PriorityQueue() : this(Comparer<T>.Default, 0) { }
   /// <summary>Initializes a new, empty instance of the <see cref="PriorityQueue"/> class, with the specified capacity
-  /// and using <see cref="Comparer<>.Default"/> to compare elements.
+  /// and using <see cref="Comparer.Default"/> to compare elements.
   /// </summary>
   /// <param name="capacity">The initial capacity of the queue.</param>
   public PriorityQueue(int capacity) : this(Comparer<T>.Default, capacity) { }
   /// <summary>Initializes a new, empty instance of the <see cref="PriorityQueue"/> class, with a default capacity
-  /// and using the specified <see cref="IComparer<>"/> to compare elements.
+  /// and using the specified <see cref="IComparer"/> to compare elements.
   /// </summary>
-  /// <param name="comparer">The <see cref="IComparer<>"/> that will be used to compare elements.</param>
+  /// <param name="comparer">The <see cref="IComparer"/> that will be used to compare elements.</param>
   public PriorityQueue(IComparer<T> comparer) : this(comparer, 0) { }
   /// <summary>Initializes a new, empty instance of the <see cref="PriorityQueue"/> class, with the specified capacity
   /// and using the given <see cref="IComparer"/> to compare elements.
   /// </summary>
-  /// <param name="comparer">The <see cref="IComparer<>"/> that will be used to compare elements.</param>
+  /// <param name="comparer">The <see cref="IComparer"/> that will be used to compare elements.</param>
   /// <param name="capacity">The initial capacity of the queue.</param>
   public PriorityQueue(IComparer<T> comparer, int capacity)
   { if(comparer==null) throw new ArgumentNullException("comparer");
@@ -120,7 +120,7 @@ public sealed class PriorityQueue<T> : ICollection<T>
   public int Count { get { return array.Count; } }
   /// <summary>Gets a value indicating whether access to the queue is read-only.</summary>
   /// <remarks>See the <see cref="ICollection.IsReadOnly"/> property for more information.
-  /// <seealso cref="ICollection<>.IsReadOnly"/>
+  /// <seealso cref="ICollection.IsReadOnly"/>
   /// </remarks>
   public bool IsReadOnly { get { return false; } }
 

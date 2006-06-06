@@ -1,7 +1,7 @@
 /*
 GameLib is a library for developing games and other multimedia applications.
 http://www.adammil.net/
-Copyright (C) 2002-2005 Adam Milazzo
+Copyright (C) 2002-2006 Adam Milazzo
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -957,10 +957,10 @@ public sealed class Events
 
   static unsafe Event PeekSDLEvent()
   { Event ret=null;
-    SDL.Event evt = new SDL.Event();
+    SDL.Event evt;
     do
     { unsafe
-      { if(SDL.PollEvent(ref evt)!=0)
+      { if(SDL.PollEvent(out evt)!=0)
         { ret = ConvertEvent(ref evt);
           if(!FilterEvent(ret)) ret=null;
         }
@@ -972,10 +972,10 @@ public sealed class Events
 
   static unsafe Event NextSDLEvent()
   { Event ret;
-    SDL.Event evt = new SDL.Event();
+    SDL.Event evt;
     while(true)
     { unsafe
-      { if(SDL.WaitEvent(ref evt)!=0)
+      { if(SDL.WaitEvent(out evt)!=0)
         { ret = ConvertEvent(ref evt);
           if(FilterEvent(ret)) return ret;
         }

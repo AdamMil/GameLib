@@ -1,7 +1,7 @@
 /*
 GameLib is a library for developing games and other multimedia applications.
 http://www.adammil.net/
-Copyright (C) 2002-2005 Adam Milazzo
+Copyright (C) 2002-2006 Adam Milazzo
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -366,7 +366,7 @@ internal sealed class SDL
   [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_RWFromFile", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern RWOps* RWFromFile(string file, string mode);
   [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_RWFromMem", CallingConvention=CallingConvention.Cdecl)]
-  public unsafe static extern RWOps* RWFromMem(byte[] mem, int size);
+  public unsafe static extern RWOps* RWFromMem(byte* mem, int size);
   #endregion
 
   #region Video
@@ -405,9 +405,9 @@ internal sealed class SDL
   [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_SetGamma", CallingConvention=CallingConvention.Cdecl)]
   public static extern int SetGamma(float red, float green, float blue);
   [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_GetGammaRamp", CallingConvention=CallingConvention.Cdecl)]
-  public static extern int GetGammaRamp(ushort[] red, ushort[] green, ushort[] blue);
+  public static extern int GetGammaRamp([Out] ushort[] red, [Out] ushort[] green, [Out] ushort[] blue);
   [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_SetGammaRamp", CallingConvention=CallingConvention.Cdecl)]
-  public static extern int SetGammaRamp(ushort[] red, ushort[] green, ushort[] blue);
+  public static extern int SetGammaRamp([In] ushort[] red, [In] ushort[] green, [In] ushort[] blue);
   [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_LockSurface", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern int LockSurface(Surface* surface);
   [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_UnlockSurface", CallingConvention=CallingConvention.Cdecl)]
@@ -432,7 +432,7 @@ internal sealed class SDL
 
   #region Audio
   [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_OpenAudio", CallingConvention=CallingConvention.Cdecl)]
-  public static extern int OpenAudio(ref AudioSpec desired, out AudioSpec obtained);
+  public static extern int OpenAudio([In] ref AudioSpec desired, out AudioSpec obtained);
   [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_PauseAudio", CallingConvention=CallingConvention.Cdecl)]
   public static extern void PauseAudio(int pause);
   [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_GetAudioStatus", CallingConvention=CallingConvention.Cdecl)]
@@ -440,7 +440,7 @@ internal sealed class SDL
   [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_BuildAudioCVT", CallingConvention=CallingConvention.Cdecl)]
   public static extern int BuildAudioCVT(out AudioCVT cvt, short src_format, byte src_channels, uint src_rate, short dst_format, byte dst_channels, uint dst_rate);
   [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_ConvertAudio", CallingConvention=CallingConvention.Cdecl)]
-  public static extern int ConvertAudio(ref AudioCVT cvt);
+  public static extern int ConvertAudio([In] [Out] ref AudioCVT cvt);
   [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_MixAudio", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern void MixAudio(byte* dst, byte* src, uint len, int volume);
   [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_LockAudio", CallingConvention=CallingConvention.Cdecl)]
@@ -453,11 +453,11 @@ internal sealed class SDL
 
   #region Events
   [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_PollEvent", CallingConvention=CallingConvention.Cdecl)]
-  public static extern int PollEvent(ref Event evt);
+  public static extern int PollEvent(out Event evt);
   [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_WaitEvent", CallingConvention=CallingConvention.Cdecl)]
-  public static extern int WaitEvent(ref Event evt);
+  public static extern int WaitEvent(out Event evt);
   [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_PushEvent", CallingConvention=CallingConvention.Cdecl)]
-  public static extern int PushEvent(ref Event evt);
+  public static extern int PushEvent([In] ref Event evt);
   #endregion
 
   #region Input
