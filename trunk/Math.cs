@@ -1,7 +1,7 @@
 /*
 GameLib is a library for developing games and other multimedia applications.
 http://www.adammil.net/
-Copyright (C) 2002-2005 Adam Milazzo
+Copyright (C) 2002-2006 Adam Milazzo
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -49,6 +49,61 @@ public sealed class GLMath
   /// <include file="documentation.xml" path="//Mathematics/GLMath/AngleBetween/*"/>
   public static double AngleBetween(System.Drawing.Point start, System.Drawing.Point end)
   { return (new TwoD.Point(end)-new TwoD.Point(start)).Angle;
+  }
+
+  /// <summary>Precalculates the sine and cosine factors used for rotation by a given angle, so that multiple points
+  /// can be rotated without recalculating the factors.
+  /// </summary>
+  /// <param name="angle">The angle to rotate by, in radians.</param>
+  /// <param name="sin">A variable that will be set to the sine factor.</param>
+  /// <param name="cos">A variable that will be set to the cosine factor.</param>
+  /// <remarks>These factors can be used with <see cref="Rotate"/> functions to rotate</remarks>
+  public static void GetRotationFactors(double angle, out double sin, out double cos)
+  {
+    sin = Math.Sin(angle);
+    cos = Math.Cos(angle);
+  }
+  
+  /// <summary>Rotates a 2D point using precalculated sine and cosine factors.</summary>
+  /// <param name="point">The <see cref="TwoD.Point"/> to rotate.</param>
+  /// <param name="sin">The precalculated sine factor.</param>
+  /// <param name="cos">The precalculated cosine factor.</param>
+  /// <returns>Returns the rotated point.</returns>
+  /// <remarks>The sine and cosine factors can be obtained from the <see cref="GetRotationFactors"/> function.</remarks>
+  public static TwoD.Point Rotate(TwoD.Point point, double sin, double cos)
+  {
+    return new TwoD.Point(point.X*cos - point.Y*sin, point.X*sin + point.Y*cos);
+  }
+
+  /// <summary>Rotates a 2D point in place using precalculated sine and cosine factors.</summary>
+  /// <param name="point">The <see cref="TwoD.Point"/> to rotate.</param>
+  /// <param name="sin">The precalculated sine factor.</param>
+  /// <param name="cos">The precalculated cosine factor.</param>
+  /// <remarks>The sine and cosine factors can be obtained from the <see cref="GetRotationFactors"/> function.</remarks>
+  public static void Rotate(ref TwoD.Point point, double sin, double cos)
+  {
+    point = new TwoD.Point(point.X*cos - point.Y*sin, point.X*sin + point.Y*cos);
+  }
+
+  /// <summary>Rotates a 2D vector using precalculated sine and cosine factors.</summary>
+  /// <param name="vector">The <see cref="TwoD.Vector"/> to rotate.</param>
+  /// <param name="sin">The precalculated sine factor.</param>
+  /// <param name="cos">The precalculated cosine factor.</param>
+  /// <returns>Returns the rotated vector.</returns>
+  /// <remarks>The sine and cosine factors can be obtained from the <see cref="GetRotationFactors"/> function.</remarks>
+  public static TwoD.Vector Rotate(TwoD.Vector vector, double sin, double cos)
+  {
+    return new TwoD.Vector(vector.X*cos - vector.Y*sin, vector.X*sin + vector.Y*cos);
+  }
+
+  /// <summary>Rotates a 2D vector in place using precalculated sine and cosine factors.</summary>
+  /// <param name="vector">The <see cref="TwoD.Vector"/> to rotate.</param>
+  /// <param name="sin">The precalculated sine factor.</param>
+  /// <param name="cos">The precalculated cosine factor.</param>
+  /// <remarks>The sine and cosine factors can be obtained from the <see cref="GetRotationFactors"/> function.</remarks>
+  public static void Rotate(ref TwoD.Vector vector, double sin, double cos)
+  {
+    vector = new TwoD.Vector(vector.X*cos - vector.Y*sin, vector.X*sin + vector.Y*cos);
   }
 
   /// <summary>Performs integer division that rounds towards lower numbers rather than towards zero.</summary>
@@ -952,6 +1007,16 @@ public struct Vector
   /// X and Y magnitudes of the vector.
   /// </param>
   public Vector(Point pt) { X=pt.X; Y=pt.Y; }
+  /// <summary>Initializes this vector from a <see cref="System.Drawing.Point"/>.</summary>
+  /// <param name="pt">A <see cref="System.Drawing.Point"/>. The point's X and Y coordinates will become the
+  /// corresponding X and Y magnitudes of the vector.
+  /// </param>
+  public Vector(System.Drawing.Point pt) { X=pt.X; Y=pt.Y; }
+  /// <summary>Initializes this vector from a <see cref="System.Drawing.Size"/>.</summary>
+  /// <param name="size">A <see cref="System.Drawing.Size"/>. The size's Width and Height respectively will become
+  /// the X and Y magnitudes of the vector.
+  /// </param>
+  public Vector(System.Drawing.Size size) { X=size.Width; Y=size.Height; }
 
   /// <summary>Calculates and returns the angle of the vector.</summary>
   /// <value>The angle of the vector, in radians.</value>
@@ -1596,6 +1661,7 @@ public struct Rectangle
     for(int i=0; i<4; i++) if(poly.ConvexContains(GetPoint(i))) return true;
     return false;
   }
+  public override bool Equals(object obj) { return obj is Rectangle && this==(Rectangle)obj; }
   /// <summary>Gets an edge of the rectangle.</summary>
   /// <param name="i">The index of the edge to retrieve (from 0 to 3).</param>
   /// <returns>The top, left, right, and bottom edges for respective values of <paramref name="i"/> from 0 to 3.</returns>
@@ -1737,6 +1803,14 @@ public struct Rectangle
   /// <returns></returns>
   public static Rectangle FromPoints(double x1, double y1, double x2, double y2)
   { return new Rectangle(new Point(x1, y1), new Point(x2, y2));
+  }
+
+  public static bool operator==(Rectangle a, Rectangle b)
+  { return a.X==b.X && a.Y==b.Y && a.Width==b.Width && a.Height==b.Height;
+  }
+
+  public static bool operator!=(Rectangle a, Rectangle b)
+  { return a.X!=b.X || a.Y!=b.Y || a.Width!=b.Width || a.Height!=b.Height;
   }
 
   /// <summary>The X coordinate of the top-left corner of the rectangle.</summary>

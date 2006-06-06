@@ -1,7 +1,7 @@
 /*
 GameLib is a library for developing games and other multimedia applications.
 http://www.adammil.net/
-Copyright (C) 2002-2005 Adam Milazzo
+Copyright (C) 2002-2006 Adam Milazzo
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -434,10 +434,12 @@ public sealed class Surface : IDisposable, IBlittable
   { get { return alpha; }
     set { if(UsingAlpha) SetSurfaceAlpha(value); else alpha=value; }
   }
+
   /// <summary>Gets/sets the color key for this surface.</summary>
   /// <value>The color considered transparent when blitting this surface.</value>
-  /// <remarks>The color key is used during blitting to mark source pixels as transparent. Source pixels matching
-  /// the color key will not be copied.
+  /// <remarks>The color will be mapped using <see cref="MapColor"/> to set the <see cref="RawColorKey"/> property.
+  /// The raw color key is then used during blitting to mark source pixels as transparent. Source pixels matching
+  /// the color key will not be processed.
   /// This property will not cause blits to respect the color key unless the color key is also enabled.
   /// The <see cref="UsingKey"/> property can be used to enable and disable the use of the color key. If this
   /// property is set to <see cref="Color.Transparent"/>,
@@ -448,6 +450,26 @@ public sealed class Surface : IDisposable, IBlittable
   public Color ColorKey
   { get { return key; }
     set { if(UsingKey) SetColorKey(value); else rawKey=MapColor(key=value); }
+  }
+
+  /// <summary>Gets/sets the raw color key for this surface.</summary>
+  /// <value>The pixel value considered transparent when blitting this surface.</value>
+  /// <remarks>The raw color key is used during blitting to mark source pixels as transparent. Source pixels matching
+  /// the color key will not be processed.
+  /// This property will not cause blits to respect the color key unless the color key is also enabled.
+  /// The <see cref="UsingKey"/> property can be used to enable and disable the use of the color key. The color key
+  /// will be ignored if the surface has an alpha channel. In that case, use the alpha channel to mark pixels as
+  /// transparent by setting the alpha value to zero (transparent).
+  /// </remarks>
+  public uint RawColorKey
+  { get { return rawKey; }
+    set
+    { if(UsingKey) SetColorKey(value);
+      else
+      { rawKey = value;
+        key    = MapColor(value);
+      }
+    }
   }
 
   /// <summary>Enables/disables the use of alpha blending during blit operations.</summary>
@@ -506,6 +528,8 @@ public sealed class Surface : IDisposable, IBlittable
   /// This method respects the <see cref="ClipRect"/> set on the surface.
   /// </remarks>
   public void Fill() { Fill(Bounds, MapColor(Color.Black)); }
+  /// <include file="documentation.xml" path="//Video/Surface/Fill/*[self::Rect]/*"/>
+  public void Fill(Rectangle rect) { Fill(rect, MapColor(Color.Black)); }
   /// <include file="documentation.xml" path="//Video/Surface/Fill/*[self::Whole or self::C]/*"/>
   public void Fill(Color color) { Fill(Bounds, MapColor(color)); }
   /// <include file="documentation.xml" path="//Video/Surface/Fill/*[self::Whole or self::R]/*"/>
@@ -678,8 +702,20 @@ public sealed class Surface : IDisposable, IBlittable
   /// if <paramref name="color"/> is <see cref="Color.Transparent"/> and true otherwise.
   /// </remarks>
   public unsafe void SetColorKey(Color color)
-  { rawKey = MapColor(key=color);
-    UsingKey = color!=Color.Transparent;
+  { key      = color;
+    rawKey   = MapColor(color);
+    UsingKey = color!=Color.Transparent; // relies on UsingKey to set the SDL key value
+  }
+
+  /// <summary>This method sets the color key and enables/disables transparent blitting.</summary>
+  /// <param name="color">The raw color value to set the color key to.</param>
+  /// <remarks>The raw color key is used during blitting to mark source pixels as transparent. Source pixels matching
+  /// the color key will not be processed. This method sets the color key and then sets <see cref="UsingKey"/> to true.
+  /// </remarks>
+  public unsafe void SetColorKey(uint color)
+  { rawKey   = color;
+    key      = MapColor(color);
+    UsingKey = true; // relies on UsingKey to set the SDL key value
   }
 
   /// <summary>This method sets the surface alpha and enables/disables alpha blending.</summary>

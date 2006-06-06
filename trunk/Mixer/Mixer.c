@@ -181,7 +181,7 @@ static void EightToSixteen(GLM_AudioCVT *cvt)
     }
     else /* 8bit unsigned to 16bit unsigned */
     { Uint16 *dest = (Uint16*)(cvt->buf+cvt->len*2-2);
-      Uint8   dv;
+      Uint16   dv;
       if(OPPEND(dfmt)) /* 8bit unsigned to 16bit unsigned OE */
         for(; i; i--)
         { dv = *src--<<8;
