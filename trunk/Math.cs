@@ -85,6 +85,30 @@ public sealed class GLMath
     point = new TwoD.Point(point.X*cos - point.Y*sin, point.X*sin + point.Y*cos);
   }
 
+  /// <summary>Rotates an array of points.</summary>
+  /// <param name="points">The array of <see cref="TwoD.Point"/> to rotate.</param>
+  /// <param name="start">The index at which to start rotating points.</param>
+  /// <param name="length">The number of points to rotate.</param>
+  /// <param name="angle">The angle by which to rotate the points, in radians.</param>
+  public static void Rotate(TwoD.Point[] points, int start, int length, double angle)
+  { if(angle == 0) return;
+    double sin, cos;
+    GetRotationFactors(angle, out sin, out cos);
+    Rotate(points, start, length, sin, cos);
+  }
+
+  /// <summary>Rotates an array of points.</summary>
+  /// <param name="points">The array of <see cref="TwoD.Point"/> to rotate.</param>
+  /// <param name="start">The index at which to start rotating points.</param>
+  /// <param name="length">The number of points to rotate.</param>
+  /// <param name="sin">The precalculated sine factor.</param>
+  /// <param name="cos">The precalculated cosine factor.</param>
+  /// <remarks>The sine and cosine factors can be obtained from the <see cref="GetRotationFactors"/> function.</remarks>
+  public static void Rotate(TwoD.Point[] points, int start, int length, double sin, double cos)
+  { for(int end=start+length; start<end; start++)
+      Rotate(ref points[start], sin, cos);
+  }
+
   /// <summary>Rotates a 2D vector using precalculated sine and cosine factors.</summary>
   /// <param name="vector">The <see cref="TwoD.Vector"/> to rotate.</param>
   /// <param name="sin">The precalculated sine factor.</param>
@@ -92,8 +116,7 @@ public sealed class GLMath
   /// <returns>Returns the rotated vector.</returns>
   /// <remarks>The sine and cosine factors can be obtained from the <see cref="GetRotationFactors"/> function.</remarks>
   public static TwoD.Vector Rotate(TwoD.Vector vector, double sin, double cos)
-  {
-    return new TwoD.Vector(vector.X*cos - vector.Y*sin, vector.X*sin + vector.Y*cos);
+  { return new TwoD.Vector(vector.X*cos - vector.Y*sin, vector.X*sin + vector.Y*cos);
   }
 
   /// <summary>Rotates a 2D vector in place using precalculated sine and cosine factors.</summary>
@@ -102,8 +125,31 @@ public sealed class GLMath
   /// <param name="cos">The precalculated cosine factor.</param>
   /// <remarks>The sine and cosine factors can be obtained from the <see cref="GetRotationFactors"/> function.</remarks>
   public static void Rotate(ref TwoD.Vector vector, double sin, double cos)
-  {
-    vector = new TwoD.Vector(vector.X*cos - vector.Y*sin, vector.X*sin + vector.Y*cos);
+  { vector = new TwoD.Vector(vector.X*cos - vector.Y*sin, vector.X*sin + vector.Y*cos);
+  }
+
+  /// <summary>Rotates an array of vectors.</summary>
+  /// <param name="vectors">The array of <see cref="TwoD.Vector"/> to rotate.</param>
+  /// <param name="start">The index at which to start rotating vectors.</param>
+  /// <param name="length">The number of vectors to rotate.</param>
+  /// <param name="angle">The angle by which to rotate the vectors, in radians.</param>
+  public static void Rotate(TwoD.Vector[] vectors, int start, int length, double angle)
+  { if(angle == 0) return;
+    double sin, cos;
+    GetRotationFactors(angle, out sin, out cos);
+    Rotate(vectors, start, length, sin, cos);
+  }
+
+  /// <summary>Rotates an array of vectors.</summary>
+  /// <param name="vectors">The array of <see cref="TwoD.Vector"/> to rotate.</param>
+  /// <param name="start">The index at which to start rotating vectors.</param>
+  /// <param name="length">The number of vectors to rotate.</param>
+  /// <param name="sin">The precalculated sine factor.</param>
+  /// <param name="cos">The precalculated cosine factor.</param>
+  /// <remarks>The sine and cosine factors can be obtained from the <see cref="GetRotationFactors"/> function.</remarks>
+  public static void Rotate(TwoD.Vector[] vectors, int start, int length, double sin, double cos)
+  { for(int end=start+length; start<end; start++)
+      Rotate(ref vectors[start], sin, cos);
   }
 
   /// <summary>Performs integer division that rounds towards lower numbers rather than towards zero.</summary>
@@ -1269,7 +1315,7 @@ public struct Line
   /// <param name="poly">A convex <see cref="Polygon"/> to which the line will be clipped.</param>
   /// <returns>The portion of the line inside the polygon, or an <see cref="Invalid"/> if there is no intersection.</returns>
   /// <remarks>This method has the effect of clipping the line (not a line segment) to a convex polygon.</remarks>
-  public Line ConvexIntersection(Polygon poly)
+  public Line ConvexLineIntersection(Polygon poly)
   { poly.AssertValid();
     Point start = Start, end = End;
     int sign = poly.IsClockwise() ? 1 : -1;
@@ -1293,13 +1339,13 @@ public struct Line
   /// <summary>Determines whether this line intersects the given convex polygon.</summary>
   /// <param name="poly">A convex <see cref="Polygon"/> to test for intersection.</param>
   /// <returns>True if this line intersects <paramref name="poly"/>.</returns>
-  public bool ConvexIntersects(Polygon poly) { return ConvexIntersection(poly).Valid; }
+  public bool ConvexLineIntersects(Polygon poly) { return ConvexLineIntersection(poly).Valid; }
   /// <summary>Determines whether this line segment intersects the given convex polygon.</summary>
   /// <param name="poly">A convex <see cref="Polygon"/> to test for intersection.</param>
   /// <returns>True if this line segment intersects <paramref name="poly"/>.</returns>
   public bool ConvexSegmentIntersects(Polygon poly)
   { if(poly.ConvexContains(Start) || poly.ConvexContains(End)) return true;
-    for(int i=0; i<poly.Length; i++) if(Intersects(poly.GetEdge(i))) return true;
+    for(int i=0; i<poly.Length; i++) if(SegmentIntersects(poly.GetEdge(i))) return true;
     return false;
   }
   /// <summary>Returns the signed distance from the line to a given point.</summary>
@@ -1351,7 +1397,7 @@ public struct Line
   /// <returns>The intersection point of the two line segments, or an invalid point if the segments do not intersect.
   /// You can check if the point is valid with <see cref="Point.Valid"/>.
   /// </returns>
-  public Point Intersection(Line segment)
+  public Point SegmentIntersection(Line segment)
   { Point p2 = End, p4 = segment.End;
     double d = (p4.Y-segment.Start.Y)*(p2.X-Start.X) - (p4.X-segment.Start.X)*(p2.Y-Start.Y), ua, ub;
     if(d==0) return Point.Invalid;
@@ -1364,7 +1410,7 @@ public struct Line
   /// <summary>Calculates the intersection of this line (not line segment) with a <see cref="Rectangle"/>.</summary>
   /// <param name="rect">The <see cref="Rectangle"/> to perform intersection with.</param>
   /// <returns>Returns the portion of the line that lies inside the rectangle.</returns>
-  public Line Intersection(Rectangle rect)
+  public Line LineIntersection(Rectangle rect)
   { double x2=rect.Right, y2=rect.Bottom;
     Point start=Start, end=End;
     int c, c2;
@@ -1435,11 +1481,21 @@ public struct Line
   /// <summary>Determines whether this line segments intersects the given line segment.</summary>
   /// <param name="segment">The line segment to test for intersection.</param>
   /// <returns>Returns true if this line segment intersects <paramref name="segment"/> and false otherwise.</returns>
-  public bool Intersects(Line segment) { return Intersection(segment).Valid; }
+  public bool SegmentIntersects(Line segment) { return SegmentIntersection(segment).Valid; }
   /// <summary>Determines whether this line intersects the given <see cref="Rectangle"/>.</summary>
   /// <param name="rect">The <see cref="Rectangle"/> to test for intersection.</param>
   /// <returns>Returns true if this line intersects <paramref name="rect"/> and false otherwise.</returns>
-  public bool Intersects(Rectangle rect) { return Intersection(rect).Valid; }
+  public bool LineIntersects(Rectangle rect) { return LineIntersection(rect).Valid; }
+  /// <summary>Determines whether this line segment intersects the given rectangle.</summary>
+  /// <param name="rect">The <see cref="Rectangle"/> to test for intersection.</param>
+  /// <returns>Returns true if this line segment intersects <paramref name="rect"/> and false otherwise.</returns>
+  public bool SegmentIntersects(Rectangle rect)
+  { // a line segment intersects a rectangle if either endpoint is contained in the rectangle, or the segment
+    // intersects any edge.
+    return rect.Contains(Start) || rect.Contains(End) ||
+           SegmentIntersects(rect.GetEdge(0)) || SegmentIntersects(rect.GetEdge(1)) ||
+           SegmentIntersects(rect.GetEdge(2)) || SegmentIntersects(rect.GetEdge(3));
+  }
   /// <summary>Determines which side of a line the given point is on.</summary>
   /// <param name="point">The <see cref="Point"/> to test.</param>
   /// <returns>A value indicating which side of the line the point is on. The value's sign indicates which side of
@@ -1500,24 +1556,60 @@ public struct Circle
   /// <param name="centerX">The X coordinate of the circle's center point.</param>
   /// <param name="centerY">The Y coordinate of the circle's center point.</param>
   /// <param name="radius">The radius of the circle.</param>
-  public Circle(double centerX, double centerY, double radius) { Center=new Point(centerX, centerY); Radius=radius; }
+  public Circle(double centerX, double centerY, double radius)
+  { Center      = new Point(centerX, centerY);
+    this.radius = radius;
+    radiusSqr   = radius * radius;
+  }
   /// <summary>Initializes this circle from a center point and a radius.</summary>
   /// <param name="center">The circle's center point.</param>
   /// <param name="radius">The radius of the circle.</param>
-  public Circle(Point center, double radius) { Center=center; Radius=radius; }
+  public Circle(Point center, double radius)
+  { Center      = center;
+    this.radius = radius;
+    radiusSqr   = radius * radius;
+  }
 
   /// <summary>Calculates and returns the area of the circle.</summary>
-  public double Area { get { return Radius*Radius*Math.PI; } }
+  public double Area { get { return RadiusSqr*Math.PI; } }
 
   /// <summary>Determines whether the given point is contained within the circle.</summary>
   /// <param name="point">The <see cref="Point"/> to test for containment.</param>
   /// <returns>Returns true if <paramref name="point"/> is contained within this circle.</returns>
-  public bool Contains(Point point) { return (point-Center).Length < Radius; }
+  public bool Contains(Point point) { return (point-Center).LengthSqr <= RadiusSqr; }
+  
+  /// <summary>Determines whether the given rectangle is completely contained within the circle.</summary>
+  /// <param name="rect">The <see cref="Rectangle"/> to test for containment.</param>
+  /// <returns>Returns true if <paramref name="rect"/> is contained within this circle.</returns>
+  public bool Contains(Rectangle rect)
+  { // a circle contains a rectangle if it contains all four corners
+    return Contains(rect.TopLeft) && Contains(rect.BottomRight) &&
+           Contains(new Point(rect.X, rect.Bottom)) && Contains(new Point(rect.Right, rect.Y));
+          
+  }
+
+  /// <summary>Returns true if the given rectangle intersects this circle.</summary>
+  /// <param name="rect">The <see cref="Rectangle"/> to check for intersection.</param>
+  /// <returns>True if <paramref name="rect"/> intersects this circle and false otherwise.</returns>
+  public bool Intersects(Rectangle rect) { return rect.Intersects(this); }
+
+  public double Radius
+  { get { return radius; }
+    set
+    { radius = value;
+      radiusSqr = value*value;
+    }
+  }
+  
+  public double RadiusSqr
+  { get { return radiusSqr; }
+  }
 
   /// <summary>The center point of this circle.</summary>
   public Point Center;
+
   /// <summary>The radius of this circle.</summary>
-  public double Radius;
+  public double radius, radiusSqr;
 }
 #endregion
 
@@ -1653,6 +1745,14 @@ public struct Rectangle
   /// <param name="rect">The rectangle to test for containment.</param>
   /// <returns>True if <paramref name="rect"/> is completely inside this rectangle and false otherwise.</returns>
   public bool Contains(Rectangle rect) { return Contains(rect.Location) && Contains(rect.BottomRight); }
+  /// <summary>Determines whether this rectangle completely contains the specified circle.</summary>
+  /// <param name="circle">The circle to test for containment.</param>
+  /// <returns>True if <paramref name="circle"/> is completely inside this rectangle and false otherwise.</returns>
+  public bool Contains(Circle circle)
+  { // if the left edge is to the left of the circle's left edge, and the top is above the circle's top edge, ...
+    return X+circle.Radius < circle.Center.X && Y+circle.Radius < circle.Center.Y &&
+           Right-circle.Center.X > circle.Radius && Bottom+circle.Center.Y > circle.Radius;
+  }
   /// <summary>Determines whether this rectangle intersects the given convex polygon.</summary>
   /// <param name="poly">A convex <see cref="Polygon"/> to test for intersection.</param>
   /// <returns>True if this rectangle intersects the given convex polygon and false otherwise.</returns>
@@ -1758,6 +1858,14 @@ public struct Rectangle
   public bool Intersects(Rectangle rect)
   { return Contains(rect.TopLeft) || Contains(rect.BottomRight) || rect.Contains(TopLeft) ||
            rect.Contains(BottomRight);
+  }
+  /// <summary>Returns true if the given circle intersects this rectangle.</summary>
+  /// <param name="circle">The <see cref="Circle"/> to check for intersection.</param>
+  /// <returns>True if <paramref name="circle"/> intersects this rectangle and false otherwise.</returns>
+  public bool Intersects(Circle circle)
+  { // if the left edge is to the left of the circle's right edge, and the top is above the circle's bottom edge, ...
+    return X-circle.Center.X   <= circle.Radius   && Y-circle.Center.Y    <= circle.Radius &&
+           Right+circle.Radius >= circle.Center.X && Bottom+circle.Radius >= circle.Center.Y;
   }
   /// <summary>Returns the union of this rectangle with the given rectangle.</summary>
   /// <param name="rect">The rectangle with which this rectangle will be combined.</param>
@@ -1892,6 +2000,10 @@ public sealed class Polygon : ICloneable, ISerializable
       points = narr;
     }
   }
+  /// <summary>Copies the points from this polygon into an array.</summary>
+  /// <param name="array">The array to copy into.</param>
+  /// <param name="index">The index at which to begin copying.</param>
+  public void CopyTo(Point[] array, int index) { Array.Copy(points, 0, array, index, length); }
   /// <summary>Gets the number of points in the polygon.</summary>
   public int Length { get { return length; } }
 
@@ -2121,6 +2233,35 @@ public sealed class Polygon : ICloneable, ISerializable
   { Polygon newPoly = new Polygon(length);
     for(int i=length-1; i>=0; i--) newPoly.AddPoint(points[i]);
     return newPoly;
+  }
+  /// <summary>Rotates the points in this polygon around the origin (0,0).</summary>
+  /// <param name="angle">The angle by which to rotate, in degrees.</param>
+  public void Rotate(double angle) { GLMath.Rotate(points, 0, length, angle); }
+  /// <summary>Returns a copy of this polygon, with the points rotated around the origin (0,0).</summary>
+  /// <param name="angle">The angle by which to rotate, in degrees.</param>
+  /// <returns>A copy of this polygon, with the points rotated.</returns>
+  public Polygon Rotated(double angle)
+  { Polygon poly = new Polygon(points, length);
+    poly.Rotate(angle);
+    return poly;
+  }
+  /// <summary>Scales the points in this polygon by the given factors.</summary>
+  /// <param name="xScale">The factor by which to multiply the X coordinates.</param>
+  /// <param name="yScale">The factor by which to multiply the Y coordinates.</param>
+  public void Scale(double xScale, double yScale)
+  { for(int i=0; i<length; i++)
+    { points[i].X *= xScale;
+      points[i].Y *= yScale;
+    }
+  }
+  /// <summary>Returns a copy of this polygon, with the points scaled by the given factors.</summary>
+  /// <param name="xScale">The factor by which to multiply the X coordinates.</param>
+  /// <param name="yScale">The factor by which to multiply the Y coordinates.</param>
+  /// <returns>A copy of this polygon, with the points scaled.</returns>
+  public Polygon Scaled(double xScale, double yScale)
+  { Polygon poly = new Polygon(points, length);
+    poly.Scale(xScale, yScale);
+    return poly;
   }
   /// <summary>Splits a non-convex polygon into convex polygons.</summary>
   /// <returns>An array of convex polygons that, together, make up the original polygon.</returns>
@@ -2543,7 +2684,7 @@ public struct Sphere
   /// <summary>Determines whether the given point is contained within the sphere.</summary>
   /// <param name="point">The <see cref="Point"/> to test for containment.</param>
   /// <returns>Returns true if <paramref name="point"/> is contained within this sphere.</returns>
-  public bool Contains(Point point) { return (point-Center).Length < Radius; }
+  public bool Contains(Point point) { return (point-Center).LengthSqr < Radius*Radius; }
 
   /// <summary>The center point of this sphere.</summary>
   public Point Center;
