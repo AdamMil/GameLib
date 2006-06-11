@@ -1245,6 +1245,9 @@ public sealed class GL
   public static extern void glClearAccum(float red, float green, float blue, float alpha);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glClearColor(float red, float green, float blue, float alpha);
+  public static void glClearColor(System.Drawing.Color color)
+  { glClearColor(color.R/255f, color.G/255f, color.B/255f, color.A/255f);
+  }
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glClearDepth(double depth);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
@@ -2330,6 +2333,7 @@ public sealed class GL
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glVertex2d(double x, double y);
   public static void glVertex2d(Mathematics.TwoD.Point pt) { glVertex2d(pt.X, pt.Y); }
+  public static void glVertex2d(Mathematics.TwoD.Vector vector) { glVertex2d(vector.X, vector.Y); }
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glVertex2dv(/*const*/ double *v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
@@ -2355,6 +2359,7 @@ public sealed class GL
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glVertex3d(double x, double y, double z);
   public static void glVertex3d(Mathematics.ThreeD.Point pt) { glVertex3d(pt.X, pt.Y, pt.Z); }
+  public static void glVertex3d(Mathematics.ThreeD.Vector vector) { glVertex3d(vector.X, vector.Y, vector.Z); }
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glVertex3dv(/*const*/ double *v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
