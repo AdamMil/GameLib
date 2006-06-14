@@ -42,114 +42,13 @@ public sealed class MathConst
 
 #region GLMath
 /// <summary>This class provides some helpful mathematical functions.</summary>
-public sealed class GLMath
-{ private GLMath() { }
+public static class GLMath
+{
   /// <include file="documentation.xml" path="//Mathematics/GLMath/AngleBetween/*"/>
   public static double AngleBetween(TwoD.Point start, TwoD.Point end) { return (end-start).Angle; }
   /// <include file="documentation.xml" path="//Mathematics/GLMath/AngleBetween/*"/>
   public static double AngleBetween(System.Drawing.Point start, System.Drawing.Point end)
   { return (new TwoD.Point(end)-new TwoD.Point(start)).Angle;
-  }
-
-  /// <summary>Precalculates the sine and cosine factors used for rotation by a given angle, so that multiple points
-  /// can be rotated without recalculating the factors.
-  /// </summary>
-  /// <param name="angle">The angle to rotate by, in radians.</param>
-  /// <param name="sin">A variable that will be set to the sine factor.</param>
-  /// <param name="cos">A variable that will be set to the cosine factor.</param>
-  /// <remarks>These factors can be used with <see cref="Rotate"/> functions to rotate</remarks>
-  public static void GetRotationFactors(double angle, out double sin, out double cos)
-  {
-    sin = Math.Sin(angle);
-    cos = Math.Cos(angle);
-  }
-  
-  /// <summary>Rotates a 2D point using precalculated sine and cosine factors.</summary>
-  /// <param name="point">The <see cref="TwoD.Point"/> to rotate.</param>
-  /// <param name="sin">The precalculated sine factor.</param>
-  /// <param name="cos">The precalculated cosine factor.</param>
-  /// <returns>Returns the rotated point.</returns>
-  /// <remarks>The sine and cosine factors can be obtained from the <see cref="GetRotationFactors"/> function.</remarks>
-  public static TwoD.Point Rotate(TwoD.Point point, double sin, double cos)
-  {
-    return new TwoD.Point(point.X*cos - point.Y*sin, point.X*sin + point.Y*cos);
-  }
-
-  /// <summary>Rotates a 2D point in place using precalculated sine and cosine factors.</summary>
-  /// <param name="point">The <see cref="TwoD.Point"/> to rotate.</param>
-  /// <param name="sin">The precalculated sine factor.</param>
-  /// <param name="cos">The precalculated cosine factor.</param>
-  /// <remarks>The sine and cosine factors can be obtained from the <see cref="GetRotationFactors"/> function.</remarks>
-  public static void Rotate(ref TwoD.Point point, double sin, double cos)
-  {
-    point = new TwoD.Point(point.X*cos - point.Y*sin, point.X*sin + point.Y*cos);
-  }
-
-  /// <summary>Rotates an array of points.</summary>
-  /// <param name="points">The array of <see cref="TwoD.Point"/> to rotate.</param>
-  /// <param name="start">The index at which to start rotating points.</param>
-  /// <param name="length">The number of points to rotate.</param>
-  /// <param name="angle">The angle by which to rotate the points, in radians.</param>
-  public static void Rotate(TwoD.Point[] points, int start, int length, double angle)
-  { if(angle == 0) return;
-    double sin, cos;
-    GetRotationFactors(angle, out sin, out cos);
-    Rotate(points, start, length, sin, cos);
-  }
-
-  /// <summary>Rotates an array of points.</summary>
-  /// <param name="points">The array of <see cref="TwoD.Point"/> to rotate.</param>
-  /// <param name="start">The index at which to start rotating points.</param>
-  /// <param name="length">The number of points to rotate.</param>
-  /// <param name="sin">The precalculated sine factor.</param>
-  /// <param name="cos">The precalculated cosine factor.</param>
-  /// <remarks>The sine and cosine factors can be obtained from the <see cref="GetRotationFactors"/> function.</remarks>
-  public static void Rotate(TwoD.Point[] points, int start, int length, double sin, double cos)
-  { for(int end=start+length; start<end; start++)
-      Rotate(ref points[start], sin, cos);
-  }
-
-  /// <summary>Rotates a 2D vector using precalculated sine and cosine factors.</summary>
-  /// <param name="vector">The <see cref="TwoD.Vector"/> to rotate.</param>
-  /// <param name="sin">The precalculated sine factor.</param>
-  /// <param name="cos">The precalculated cosine factor.</param>
-  /// <returns>Returns the rotated vector.</returns>
-  /// <remarks>The sine and cosine factors can be obtained from the <see cref="GetRotationFactors"/> function.</remarks>
-  public static TwoD.Vector Rotate(TwoD.Vector vector, double sin, double cos)
-  { return new TwoD.Vector(vector.X*cos - vector.Y*sin, vector.X*sin + vector.Y*cos);
-  }
-
-  /// <summary>Rotates a 2D vector in place using precalculated sine and cosine factors.</summary>
-  /// <param name="vector">The <see cref="TwoD.Vector"/> to rotate.</param>
-  /// <param name="sin">The precalculated sine factor.</param>
-  /// <param name="cos">The precalculated cosine factor.</param>
-  /// <remarks>The sine and cosine factors can be obtained from the <see cref="GetRotationFactors"/> function.</remarks>
-  public static void Rotate(ref TwoD.Vector vector, double sin, double cos)
-  { vector = new TwoD.Vector(vector.X*cos - vector.Y*sin, vector.X*sin + vector.Y*cos);
-  }
-
-  /// <summary>Rotates an array of vectors.</summary>
-  /// <param name="vectors">The array of <see cref="TwoD.Vector"/> to rotate.</param>
-  /// <param name="start">The index at which to start rotating vectors.</param>
-  /// <param name="length">The number of vectors to rotate.</param>
-  /// <param name="angle">The angle by which to rotate the vectors, in radians.</param>
-  public static void Rotate(TwoD.Vector[] vectors, int start, int length, double angle)
-  { if(angle == 0) return;
-    double sin, cos;
-    GetRotationFactors(angle, out sin, out cos);
-    Rotate(vectors, start, length, sin, cos);
-  }
-
-  /// <summary>Rotates an array of vectors.</summary>
-  /// <param name="vectors">The array of <see cref="TwoD.Vector"/> to rotate.</param>
-  /// <param name="start">The index at which to start rotating vectors.</param>
-  /// <param name="length">The number of vectors to rotate.</param>
-  /// <param name="sin">The precalculated sine factor.</param>
-  /// <param name="cos">The precalculated cosine factor.</param>
-  /// <remarks>The sine and cosine factors can be obtained from the <see cref="GetRotationFactors"/> function.</remarks>
-  public static void Rotate(TwoD.Vector[] vectors, int start, int length, double sin, double cos)
-  { for(int end=start+length; start<end; start++)
-      Rotate(ref vectors[start], sin, cos);
   }
 
   /// <summary>Performs integer division that rounds towards lower numbers rather than towards zero.</summary>
@@ -1039,6 +938,786 @@ public struct Fixed64 : IFormattable, IComparable, IConvertible
 namespace TwoD
 {
 
+#region Math2D
+/// <summary>This class contains general two-dimensional math functions, such as tests for containment and
+/// intersection of various primitives, finding intersection points and areas, and rotating points.
+/// </summary>
+public static class Math2D
+{
+  #region Contains
+  /// <summary>Determines if one circle fully contains another.</summary>
+  public static bool Contains(ref Circle outer, ref Circle inner)
+  {
+    // a circle A contains a circle B if a new circle centered around the A's center, but with a radius of
+    // A.Radius - B.Radius contains the B's center point.
+    double xd=outer.Center.X-inner.Center.X, yd=outer.Center.Y-inner.Center.Y, radius=outer.Radius-inner.Radius;
+    return xd*xd + yd*yd <= radius*radius;
+  }
+
+  /// <summary>Determines if a circle fully contains a given line segment.</summary>
+  public static bool Contains(ref Circle circle, ref Line segment)
+  {
+    // a circle contains a line segment if it contains both endpoints
+    if(Contains(ref circle, ref segment.Start))
+    {
+      Point endPoint = segment.End;
+      return Contains(ref circle, ref endPoint);
+    }
+    else
+    {
+      return false;
+    }
+  }
+
+  /// <summary>Determines if a circle contains a given point.</summary>
+  public static bool Contains(ref Circle circle, ref Point point)
+  {
+    // a circle contains a point if the distance from the point to the circle's center is less than or equal to
+    // the radius. we can square both sides of the comparison to eliminate the Math.Sqrt() operation on the left
+    double xd=point.X-circle.Center.X, yd=point.Y-circle.Center.Y;
+    return xd*xd + yd*yd <= circle.RadiusSqr;
+  }
+
+  /// <summary>Determines if a circle fully contains a given rectangle.</summary>
+  public static bool Contains(ref Circle circle, ref Rectangle rect)
+  {
+    // a circle contains a rectangle if it contains all four corners
+    Point point = rect.TopLeft;
+    if(!Contains(ref circle, ref point)) return false;
+    point.X += rect.Width; // top-right
+    if(!Contains(ref circle, ref point)) return false;
+    point.Y += rect.Height; // bottom-right
+    if(!Contains(ref circle, ref point)) return false;
+    point.X = rect.X; // bottom-left
+    return Contains(ref circle, ref point);
+  }
+
+  /// <summary>Determines if a circle fully contains a given possibly-concave polygon.</summary>
+  public static bool Contains(ref Circle circle, Polygon poly)
+  {
+    // a circle contains a polygon if it contains all the polygon's vertices
+    for(int i=poly.Length-1; i>=0; i--)
+    {
+      Point point = poly[i];
+      if(!Contains(ref circle, ref point)) return false;
+    }
+    return true;
+  }
+  
+  /// <summary>Determines if a rectangle fully contains a given circle.</summary>
+  public static bool Contains(ref Rectangle rect, ref Circle circle)
+  {
+    // a rectangle contains a circle if the rectangle with its width and height both shrunk by the circle's diameter
+    // contains the circle's center
+    return rect.X+circle.Radius <= circle.Center.X && rect.Y+circle.Radius <= circle.Center.Y &&
+           rect.Right-circle.Radius >= circle.Center.X && rect.Bottom-circle.Radius >= circle.Center.Y;
+  }
+
+  /// <summary>Determines if a rectangle fully contains a given line segment.</summary>
+  public static bool Contains(ref Rectangle rect, ref Line segment)
+  {
+    // a rectangle contains a line segment if it contains both endpoints
+    if(Contains(ref rect, ref segment.Start))
+    {
+      Point end = segment.End;
+      return Contains(ref rect, ref end);
+    }
+    else
+    {
+      return false;
+    }
+  }
+
+  /// <summary>Determines if a rectangle contains a given point.</summary>
+  public static bool Contains(ref Rectangle rect, ref Point point)
+  {
+    return point.X>=rect.X && point.Y>=rect.Y && point.X<=rect.Right && point.Y<=rect.Bottom;
+  }
+
+  /// <summary>Determines if one rectangle fully contains another.</summary>
+  public static bool Contains(ref Rectangle outer, ref Rectangle inner)
+  {
+    // a rectangle contains another if it contains both corners of the other.
+    Point point = inner.TopLeft;
+    if(!Contains(ref outer, ref point)) return false;
+    point = inner.BottomRight;
+    return Contains(ref outer, ref point);
+  }
+
+  /// <summary>Determines if a rectangle fully contains a given possibly-concave polygon.</summary>
+  public static bool Contains(ref Rectangle rect, Polygon poly)
+  {
+    // a rectangle contains a polygon if it contains all the polygon's vertices
+    for(int i=poly.Length-1; i>=0; i--)
+    {
+      Point point = poly[i];
+      if(!Contains(ref rect, ref point)) return false;
+    }
+    return true;
+  }
+  
+  /// <summary>Determines if a convex polygon fully contains a given circle.</summary>
+  public static bool Contains(Polygon convexPoly, ref Circle circle)
+  {
+    // a convex polygon contains a circle if it contains the center point and the distance from the circle's center to
+    // each bounding line is greater than or equal to the circle's radius.
+
+    if(convexPoly.Length < 3) return false; // degenerate polygons don't contain anything, we'll say.
+    
+    if(!Contains(convexPoly, ref circle.Center)) return false;
+
+    for(int i=convexPoly.Length; i>=0; i--)
+    {
+      Line edge = convexPoly.GetEdge(i);
+      // see Intersects(Circle, Line) for the explanation of the following
+      double scaledDist = edge.Vector.CrossVector.DotProduct(circle.Center - edge.Start);
+      if(circle.RadiusSqr*edge.LengthSqr < scaledDist*scaledDist) return false;
+    }
+    
+    return true;
+  }
+
+  /// <summary>Determines if a convex polygon fully contains a given line segment.</summary>
+  public static bool Contains(Polygon convexPoly, ref Line line)
+  {
+    // a convex polygon contains a line segment if it contains both endpoints
+    if(convexPoly.Length < 3) return false; // degenerate polygons don't contain anything, we'll say.
+    if(Contains(convexPoly, ref line.Start))
+    {
+      Point end = line.End;
+      return Contains(convexPoly, ref end);
+    }
+    else
+    {
+      return false;
+    }
+  }
+
+  /// <summary>Determines if a convex polygon contains a given point.</summary>
+  /// <remarks>The polygon can be defined clockwise or counter-clockwise, but must be a convex polygon. If the polygon
+  /// is not convex, the results of this method are undefined.
+  /// </remarks>
+  public static bool Contains(Polygon convexPoly, ref Point point)
+  {
+    // a convex polygon contains a point if the point is on the "inside" of every bounding line. see Line.WhichSide()
+    // for the meaning of "inside". we don't really know which side is the inside, because the polygon could be
+    // clockwise or counter-clockwise, but if the point is contained, it will consistently be on the same side of each
+    // line. if it's not contained, it will not be on the same side of each line.
+
+    if(convexPoly.Length < 3) return false; // degenerate polygons don't contain anything, we'll say.
+
+    bool pos=false, neg=false; // these variables track which sides of the lines we've seen the point on.
+    for(int i=convexPoly.Length-1; i>=0; i--)
+    {
+      double side = convexPoly.GetEdge(i).WhichSide(point);
+      if(side<0) // it was on the negative side.
+      {
+        if(pos) return false; // if it was previously on the positive side, then it's not contained.
+        neg = true; // mark it as having been on the negative side
+      }
+      else if(side>0) // it was on the positive side.
+      {
+        if(neg) return false; // if it was previously on the negative side, then it's not contained.
+        pos = true; // mark it as having been on the negative side.
+      }
+      else // otherwise, it was colinear with one of the edges. we'll count that as inside.
+      {
+        return true;
+      }
+    }
+
+    return true; // there was no disparity in the side of the lines that the point was on, so it's contained.
+  }
+
+  /// <summary>Determines if a convex polygon fully contains a given rectangle.</summary>
+  public static bool Contains(Polygon convexPoly, ref Rectangle rect)
+  {
+    // a convex polygon contains a rectangle if it contains each corner
+    if(convexPoly.Length < 3) return false; // degenerate polygons don't contain anything, we'll say.
+
+    Point point = rect.TopLeft;
+    if(!Contains(convexPoly, ref point)) return false;
+    point.X += rect.Width; // top-right
+    if(!Contains(convexPoly, ref point)) return false;
+    point.Y += rect.Height; // bottom-right
+    if(!Contains(convexPoly, ref point)) return false;
+    point.X = rect.X; // bottom-left
+    return Contains(convexPoly, ref point);
+  }
+  
+  /// <summary>Determines if a convex polygon fully contains a possibly-concave polygon.</summary>
+  public static bool Contains(Polygon convexPoly, Polygon poly)
+  {
+    // a convex polygon contains another polygon if it contains all the polygon's vertices.
+    if(convexPoly.Length < 3) return false; // degenerate polygons don't contain anything, we'll say.
+
+    for(int i=poly.Length-1; i>=0; i--)
+    {
+      Point point = poly[i];
+      if(!Contains(convexPoly, ref point)) return false;
+    }
+    return true;
+  }
+  #endregion
+
+  #region Intersects
+  /// <summary>Determines if two circles intersect.</summary>
+  public static bool Intersects(ref Circle a, ref Circle b)
+  {
+    // two circles intersect if the distance between their centers is less than or equal to the sum of their radii
+    double radius = a.Radius+b.Radius, xd = a.Center.X-b.Center.X, yd = a.Center.Y-b.Center.Y;
+    return xd*xd+yd*yd <= radius*radius;
+  }
+  
+  /// <summary>Determines if a circle intersects a line (not a line segment).</summary>
+  public static bool Intersects(ref Circle circle, ref Line line)
+  {
+    // a circle intersects a line if the distance from the center to the line is less than or equal to the radius
+    double scaledDist = line.Vector.CrossVector.DotProduct(circle.Center - line.Start);
+    // 'scaledDist' is the distance, scaled by the length of the line segment. normally, we'd check for:
+    // circle.Radius <= scaledDist / line.Length (1 mul, 1 add, 1 div, 1 sqrt). but mul both sides by line.Length:
+    // circle.Radius * line.Length <= scaledDist (2 mul, 1 add, 1 sqrt). and then square both sides:
+    // circle.RadiusSqr * line.LengthSqr <= scaledDist * scaledDist (4 mul, 1 add)
+    return circle.RadiusSqr * line.LengthSqr <= scaledDist * scaledDist;
+  }
+  
+  /// <summary>Determines if a circle intersects a line segment.</summary>
+  public static bool SegmentIntersects(ref Circle circle, ref Line segment)
+  {
+    // a circle intersects a line segment if the circle contains the point on the segment closest to its center
+    return circle.Contains(segment.ClosestPointOnSegment(circle.Center));
+  }
+  
+  /// <summary>Determines if a circle intersects a rectangle.</summary>
+  public static bool Intersects(ref Circle circle, ref Rectangle rect)
+  {
+    // a circle intersects a rectangle if it contains the point within the rectangle nearest the circle's center.
+    // if the rectangle is fully to the right of the circle's center, then the X distance from the center to the
+    // nearest point will simply be the distance between the rectangle's left edge and the circle's center. if the
+    // rectangle is fully on the left, the X distance to the nearest point is the distance between the circle's
+    // center and the rectangle's right edge. if neither of those are true, then the rectangle "straddles" the
+    // circle's center horizontally. in that case, the X distance to the nearest rectangle point is zero, because the
+    // circle definitely intersects the rectangle, at least horizontally. repeating the previous two checks
+    // vertically (top/bottom instead of left/right) yields the Y distance to the nearest point within the rectangle.
+    // then, we can use the simple check: Xdist^2 + Ydist^2 <= Radius^2
+    
+    double squaredDist, dist;
+
+    if(circle.Center.X < rect.X) // if the rectangle is fully on the right side of the circle center
+    {
+      dist = rect.X - circle.Center.X; // the X distance to the rectangle's left edge
+      squaredDist = dist * dist;       // accumulate the squared X distance
+    }
+    else
+    {
+      dist = rect.Right - circle.Center.X; // X distance to the rectangle's right edge
+      if(dist < 0) // if the rectangle is fully on the left side of the circle center
+      {
+        squaredDist = dist * dist; // accumulate the squared X distance
+      }
+      else
+      {
+        squaredDist = 0; // the rectangle intersects the circle horizontally
+      }
+    }
+
+    if(circle.Center.Y < rect.Y) // if the rectangle is fully below the circle's center
+    {
+      dist = rect.Y - circle.Center.Y; // the Y distance to the rectangle's top
+      squaredDist += dist * dist;      // accumulate the squared Y distance
+    }
+    else
+    {
+      dist = rect.Bottom - circle.Center.Y; // Y distance to the rectangle's bottom
+      if(dist < 0) // if the rectangle is fully above the circle's center
+      {
+        squaredDist += dist * dist; // accumulate the squared Y distance
+      }
+    }
+
+    return squaredDist <= circle.RadiusSqr; // Xdist^2 + Ydist^2 <= Radius^2
+  }
+  
+  /// <summary>Determines if a circle intersects a (possibly convex) polygon.</summary>
+  public static bool Intersects(ref Circle circle, Polygon poly)
+  {
+    // a circle intersects a polygon if it intersects any of the polygon's edges.
+    for(int i=poly.Length-1; i>=0; i--)
+    {
+      Line edge = poly.GetEdge(i);
+      if(SegmentIntersects(ref circle, ref edge)) return true;
+    }
+    return false;
+  }
+
+  /// <summary>Determines if two lines (not segments) intersect.</summary>
+  /// <remarks>This method can be used to determine if two lines are parallel. If the method returns false, they are
+  /// parallel.
+  /// </remarks>
+  public static bool Intersects(ref Line a, ref Line b)
+  {
+    // two lines intersect if they are not parallel. they are not parallel if they have different slopes.
+    // using the standard slope formula ("rise over run"), we get vector.Y / vector.X. but this runs into
+    // problems with divide-by-zero and performance, so we restructure the equation to use multiplication:
+    // aY/aX != bY/bX   multiply both sides by aX and bY:
+    // aY*bX != bY*aX
+    return a.Vector.Y*b.Vector.X != b.Vector.Y*a.Vector.X;
+  }
+
+  /// <summary>Determines if two line segments intersect.</summary>
+  public static bool SegmentIntersects(ref Line a, ref Line b)
+  {
+    // see SegmentIntersection(Line, Line) for the explanation.
+    double denominator = b.Vector.Y*a.Vector.X - b.Vector.X*a.Vector.Y; // calculate the denominator
+    if(denominator == 0) return false; // return false for parallel lines
+    double xd = a.Start.X-b.Start.X, yd = a.Start.Y-b.Start.Y; // these parts are the same in both equations
+    double Nv = (b.Vector.X*yd - b.Vector.Y*xd) / denominator; // calculate Na
+    if(Nv<0 || Nv>1) return false; // if Na lies outside 0-1, the intersection point is not on the 'a' segment
+    Nv = (a.Vector.X*yd - a.Vector.Y*xd) / denominator;        // calculate Nb
+    return Nv>=0 && Nv<=1; // if Nb lies outside 0-1, the intersection point is not on the 'b' segment either
+  }
+  
+  /// <summary>Returns information about the intersection of two lines, either of which can be infinite or a segment.</summary>
+  /// <returns>Returns a <see cref="LineIntersection"/> structure containing information about the intersection.</returns>
+  public static LineIntersection IntersectionInfo(ref Line a, ref Line b)
+  {
+    // see SegmentIntersection(Line, Line) for the explanation.
+    double denominator = b.Vector.Y*a.Vector.X - b.Vector.X*a.Vector.Y; // calculate the denominator
+    if(denominator == 0) return new LineIntersection(Point.Invalid, false, false); // return invalid for parallel lines
+
+    double xd = a.Start.X-b.Start.X, yd = a.Start.Y-b.Start.Y; // these parts are the same in both equations
+    double Na = (b.Vector.X*yd - b.Vector.Y*xd) / denominator; // calculate Na
+    double Nb = (a.Vector.X*yd - a.Vector.Y*xd) / denominator; // calculate Nb
+    return new LineIntersection(new Point(a.Start.X + a.Vector.X*Na, a.Start.Y + a.Vector.Y*Na),
+                                Na>=0 && Na<=1, Nb>=0 && Nb<=1);
+  }
+
+  /// <summary>Determines if a line (not a segment) intersects a rectangle.</summary>
+  public static bool Intersects(ref Line line, ref Rectangle rect)
+  {
+    // a line intersects a rectangle if it intersects any side.
+    for(int i=0; i<3; i++)
+    {
+      Line edge = rect.GetEdge(i);
+      if(IntersectionInfo(ref line, ref edge).OnSecond) return true;
+    }
+    return false;
+  }
+  
+  /// <summary>Determines if a line segment intersects a rectangle.</summary>
+  public static bool SegmentIntersects(ref Line segment, ref Rectangle rect)
+  {
+    return SegmentIntersection(ref segment, ref rect).Valid;
+  }
+  
+  /// <summary>Determines if a line (not a segment) intersects a possibly-concave polygon.</summary>
+  public static bool Intersects(ref Line line, Polygon poly)
+  {
+    // a line intersects a polygon if it intersects any of the polygon's edges
+    for(int i=poly.Length-1; i>=0; i--)
+    {
+      Line edge = poly.GetEdge(i);
+      if(IntersectionInfo(ref line, ref edge).OnSecond) return true;
+    }
+    return false;
+  }
+  
+  /// <summary>Determines if a line segment intersects a convex polygon.</summary>
+  public static bool SegmentIntersects(ref Line segment, Polygon convexPoly)
+  {
+    // a line segment intersects a polygon if the polygon contains both endpoints, or the segment intersects any edge.
+
+    // we only need to check one point to test for full containment
+    if(Contains(convexPoly, ref segment.Start)) return true;
+
+    for(int i=convexPoly.Length-1; i>=0; i--) // the polygon doesn't fully contain the segment, so test the edges
+    {
+      Line edge = convexPoly.GetEdge(i);
+      if(SegmentIntersects(ref segment, ref edge)) return true;
+    }
+    return false;
+  }
+  
+  /// <summary>Determines if two rectangles intersect.</summary>
+  public static bool Intersects(ref Rectangle a, ref Rectangle b)
+  {
+    // two rectangles A and B intersect if A's left edge is not to B's right, A's top is not below above B's bottom,
+    // A's right is not to B's left, and A's bottom is not above B's top.
+    return a.X <= b.Right && a.Y <= b.Bottom && a.Right >= b.X && a.Bottom >= b.Y;
+  }
+
+  /// <summary>Determines if a rectangle intersects a convex polygon.</summary>
+  public static bool Intersects(ref Rectangle rect, Polygon convexPoly)
+  {
+    // a rectangle intersects a convex polygon if all corners are contained inside the polygon, or any of the
+    // rectangle's edges intersect the polygon.
+
+    // we only need to check one corner to determine whether the rectangle is fully contained
+    Point topLeft = rect.TopLeft;
+    if(Contains(convexPoly, ref topLeft)) return true;
+
+    for(int i=0; i<3; i++) // if it's not fully contained, then at least one edge must intersect
+    {
+      Line edge = rect.GetEdge(i);
+      if(SegmentIntersects(ref edge, convexPoly)) return true;
+    }
+    
+    return false;
+  }
+
+  /// <summary>Determines if a convex polygon intersects another convex polygon.</summary>
+  public static bool Intersects(Polygon convexA, Polygon convexB)
+  {
+    // two convex polygons A and B intersect if B contains all of A's vertices, or any of A's edges intersects B
+
+    // we only need to check one vertex to determine whether A is fully contained
+    Point point = convexA[0];
+    if(Contains(convexB, ref point)) return true;
+
+    for(int i=convexA.Length-1; i>=0; i--) // if it's not fully contained, then at least one edge must intersect
+    {
+      Line edge = convexA.GetEdge(i);
+      if(SegmentIntersects(ref edge, convexB)) return true;
+    }
+    
+    return false;
+  }
+  #endregion
+
+  #region Intersection
+  /// <summary>Determines if and where two lines (not segments) intersect.</summary>
+  /// <remarks>If no intersection occurs, <see cref="Point.Invalid"/> will be returned.</remarks>
+  public static Point Intersection(ref Line a, ref Line b)
+  {
+    // see SegmentIntersection(Line, Line) for the explanation
+    double denominator = b.Vector.Y*a.Vector.X - b.Vector.X*a.Vector.Y; // calculate the denominator
+    if(denominator == 0) return Point.Invalid; // return false for parallel lines
+    double Na = (b.Vector.X*(a.Start.Y-b.Start.Y) - b.Vector.Y*(a.Start.X-b.Start.X)) / denominator; // calculate Na
+    return new Point(a.Start.X + a.Vector.X*Na, a.Start.Y + a.Vector.Y*Na);
+  }
+
+  /// <summary>Determines if and where two line segments intersect.</summary>
+  /// <remarks>If no intersection occurs, <see cref="Point.Invalid"/> will be returned.</remarks>
+  public static Point SegmentIntersection(ref Line a, ref Line b)
+  {
+    // line segments are represented as starting points and vectors. any point Pn on a line segment can be
+    // represented by Start + Vector*N where N is from 0 to 1. if we solve for Pa (a point on segment a) == Pb (a
+    // point on segment b), we get the following two formulas:
+    // a.Start.X + a.Vector.X * Na == b.Start.X + b.Vector.X * Nb and
+    // a.Start.Y + a.Vector.Y * Na == b.Start.Y + b.Vector.Y * Nb
+    // solving for Na and Nb produces:
+    // Na = (b.Vector.X*(a.Start.Y-b.Start.Y) - b.Vector.Y*(a.Start.X-b.Start.X)) /
+    //          (b.Vector.Y*a.Vector.X - b.Vector.X*a.Vector.Y)
+    // Nb = (a.Vector.X*(a.Start.Y-b.Start.Y) - a.Vector.Y*(a.Start.X-b.Start.X)) /
+    //          (b.Vector.Y*a.Vector.X - b.Vector.X*a.Vector.Y)
+    // note that they have the same denominator and the same a.Start.X-b.Start.X and a.Start.Y-b.Start.Y parts.
+    // if the denominator is zero, the lines are parallel. (See the line intersection method for an explanation of why)
+
+    double denominator = b.Vector.Y*a.Vector.X - b.Vector.X*a.Vector.Y; // calculate the denominator
+    if(denominator == 0) return Point.Invalid; // return false for parallel lines
+    double xd = a.Start.X-b.Start.X, yd = a.Start.Y-b.Start.Y; // these parts are the same in both equations
+    double Nv = (a.Vector.X*yd - a.Vector.Y*xd) / denominator; // calculate Nb
+    if(Nv<0 || Nv>1) return Point.Invalid; // if Nb lies outside 0-1, the intersection point is not on the 'b' segment
+    Nv = (b.Vector.X*yd - b.Vector.Y*xd) / denominator;        // calculate Na
+    if(Nv<0 || Nv>1) return Point.Invalid; // if Na lies outside 0-1, the intersection point is not on the 'a' segment
+    // the intersection point can be calculated from either segment if we have the appropriate value of N.
+    // since we have Na sitting in 'Nv', we'll use the 'a' vector.
+    return new Point(a.Start.X + a.Vector.X*Nv, a.Start.Y + a.Vector.Y*Nv);
+  }
+
+  /// <summary>Determines if and where a line (not segment) and a rectangle intersect.</summary>
+  /// <remarks>If no intersection occurs, <see cref="Line.Invalid"/> will be returned. If the line intersects only
+  /// tangentially, a degenerate (zero-length) line will be returned.
+  /// </remarks>
+  public static unsafe Line Intersection(ref Line line, ref Rectangle rect)
+  {
+    // a line intersects a rectangle if it intersects any of the edges.
+    Point* points  = stackalloc Point[2]; // allocate 2 points on the stack
+    int pointIndex = 0;
+    
+    for(int i=0; i<4 && pointIndex<2; i++)
+    {
+      Line edge = rect.GetEdge(0);
+      LineIntersection info = IntersectionInfo(ref line, ref edge);
+      if(info.OnSecond) points[pointIndex++] = info.Point; // if it intersected the edge, add the point to the list
+    }
+    
+    if(pointIndex == 0) // if no edges intersected, return an invalid line.
+    {
+      return Line.Invalid;
+    }
+    else if(pointIndex == 2) // if two points intersected, return the segment between them
+    {
+      return new Line(points[0], points[1]);
+    }
+    else // if one point intersected, return a degenerate (zero-length) line segment.
+    {
+      return new Line(points[0].X, points[0].Y, 0, 0);
+    }
+  }
+
+  /// <summary>Determines if and where a line (not segment) and a convex polygon intersect.</summary>
+  /// <remarks>If no intersection occurs, <see cref="Line.Invalid"/> will be returned. If the line intersects only
+  /// tangentially, a degenerate (zero-length) line will be returned.
+  /// </remarks>
+  public static unsafe Line Intersection(ref Line line, Polygon convexPoly)
+  {
+    // a line intersects a convex polygon if it intersects any of the edges.
+    Point* points  = stackalloc Point[2];
+    int pointIndex = 0;
+
+    // test the intersection of the line with each edge, or until we find two intersection points
+    for(int i=convexPoly.Length; i>=0 && pointIndex<2; i--)
+    {
+      Line edge = convexPoly.GetEdge(i);
+      LineIntersection info = IntersectionInfo(ref line, ref edge);
+      if(info.OnSecond) points[pointIndex++] = info.Point; // if the intersection was on the polygon edge
+    }
+
+    if(pointIndex == 0) // if no edges intersected, return an invalid line.
+    {
+      return Line.Invalid;
+    }
+    else if(pointIndex == 2) // if two points intersected, return the segment between them
+    {
+      return new Line(points[0], points[1]);
+    }
+    else // if one point intersected, return a degenerate (zero-length) line segment.
+    {
+      return new Line(points[0].X, points[0].Y, 0, 0);
+    }
+  }
+
+  /// <summary>Determines if and where a line segment and a rectangle intersect.</summary>
+  /// <remarks>If no intersection occurs, <see cref="Line.Invalid"/> will be returned. If the line intersects only
+  /// tangentially, a degenerate (zero-length) line will be returned.
+  /// </remarks>
+  public static Line SegmentIntersection(ref Line segment, ref Rectangle rect)
+  { 
+    // this is the Cohen-Sutherland algorithm line-clipping algorithm
+
+    double rectRight=rect.Right, rectBottom=rect.Bottom;
+    Point start=segment.Start, end=segment.End; // copy the segment points so as not to modify the input value
+    int startCode, endCode;
+
+    // 'startCode' is a bitfield:
+    // bit 0: segment starts above the rectangle
+    // bit 1: segment starts below the rectangle
+    // bit 2: segment starts to the left of the rectangle
+    // bit 3: segment starts to the right of the rectangle
+    // if c==0, the start point of the segment is within the rectangle
+    startCode = start.Y<rect.Y ? 1 : start.Y>rectBottom ? 2 : 0;
+    if(start.X < rect.X) startCode |= 4;
+    else if(start.X > rectRight) startCode |= 8;
+
+    // 'endCode' is a bitfield:
+    // bit 0: segment ends above the rectangle
+    // bit 1: segment ends below the rectangle
+    // bit 2: segment ends to the left of the rectangle
+    // bit 3: segment ends to the right of the rectangle
+    // if c2==0, the end point of the segment is within the rectangle
+    endCode = end.Y<rect.Y ? 1 : end.Y>rectBottom ? 2 : 0;
+    if(end.X < rect.X) endCode |= 4;
+    else if(end.X > rectRight) endCode |= 8;
+
+    while(true)
+    {
+      // if both points are within the rectangle, return the entire line.
+      if(startCode==0 && endCode==0) return new Line(start, end);
+      // if the segment can't possibly intersect the rectangle (eg, both the start and end are to the left of it),
+      // return invalid.
+      if((startCode&endCode) != 0) return Line.Invalid;
+
+      // for each endpoint, we can only clip in one direction each iteration, which is why the clipping statements use
+      // "else if" clauses.
+
+      if(startCode != 0) // if the start point is outside the rectangle, clip it to the rectangle.
+      { 
+        if((startCode&1) != 0) // if it starts above it, interpolate to clip the line against the line colinear with the top
+        {
+          start.X += (rect.Y-start.Y) * segment.Vector.X / segment.Vector.Y;
+          start.Y = rect.Y;
+        }
+        else if((startCode&2) != 0) // bottom
+        {
+          start.X -= (start.Y-rectBottom) * segment.Vector.X / segment.Vector.Y;
+          start.Y = rectBottom;
+        }
+        else if((startCode&4) != 0) // left
+        {
+          start.Y += (rect.X-start.X) * segment.Vector.Y / segment.Vector.X;
+          start.X = rect.X;
+        }
+        else // right
+        {
+          start.Y -= (start.X-rectRight) * segment.Vector.Y / segment.Vector.X;
+          start.X = rectRight;
+        }
+
+        // after clipping, check again.
+        startCode = start.Y<rect.Y ? 1 : start.Y>rectBottom ? 2 : 0;
+        if(start.X < rect.X) startCode |= 4;
+        else if(start.X > rectRight) startCode |= 8;
+      }
+
+      if(endCode != 0) // if the end point is outside the rectangle
+      { 
+        if((endCode&1) != 0) // if it starts above it, interpolate to clip the line against the line colinear with the top
+        { 
+          end.X += (rect.Y-end.Y) * segment.Vector.X / segment.Vector.Y;
+          end.Y = rect.Y;
+        }
+        else if((endCode&2) != 0) // bottom.
+        { 
+          end.X -= (end.Y-rectBottom) * segment.Vector.X / segment.Vector.Y;
+          end.Y = rectBottom;
+        }
+        else if((endCode&4) != 0) // left
+        { 
+          end.Y += (rect.X-end.X) * segment.Vector.Y / segment.Vector.X;
+          end.X = rect.X;
+        }
+        else // right
+        { 
+          end.Y -= (end.X-rectRight) * segment.Vector.Y / segment.Vector.X;
+          end.X = rectRight;
+        }
+
+        endCode = end.Y<rect.Y ? 1 : end.Y>rectBottom ? 2 : 0;
+        if(end.X < rect.X) endCode |= 4;
+        else if(end.X > rectRight) endCode |= 8;
+      }
+    }
+  }
+
+  /// <summary>Determines if and where a line segment and a convex polygon intersect.</summary>
+  /// <remarks>If no intersection occurs, <see cref="Line.Invalid"/> will be returned. If the line intersects only
+  /// tangentially, a degenerate (zero-length) line will be returned.
+  /// </remarks>
+  public static Line SegmentIntersection(ref Line segment, Polygon convexPoly)
+  {
+    Point start = segment.Start, end = segment.End; // copy the endpoints so as to not modify the input line
+    int sign = convexPoly.IsClockwise() ? 1 : -1; // determine which side of the bounding lines is "outside"
+
+    // for each polygon bounding line, clip the endpoints of the segment that lie "outside" the line to the line.
+    for(int i=convexPoly.Length; i>=0; i--)
+    {
+      Line edge = convexPoly.GetEdge(i);
+      bool startOutside = Math.Sign(edge.WhichSide(start)) == sign, // determine whether either of the endpoints are
+           endOutside   = Math.Sign(edge.WhichSide(end))   == sign; // "outside" the bounding line.
+      if(startOutside)
+      { if(endOutside) return Line.Invalid; // if both endpoints are outside the clipping line, there's no intersection
+        Line tempSegment = new Line(start, end); // construct a temporary line to hold the start-end segment
+        // we can use infinite line intersection because at this point one endpoint is outside and one is inside,
+        //so we know the segment intersects the bounding line
+        start = Intersection(ref edge, ref tempSegment);
+      }
+      else if(endOutside)
+      {
+        Line tempSegment = new Line(start, end); // construct a temporary line to hold the start-end segment
+        // we can use infinite line intersection because at this point one endpoint is outside and one is inside,
+        // so we know the segment intersects the bounding line
+        end = Intersection(ref edge, ref tempSegment);
+      }
+    }
+
+    return new Line(start, end);
+  }
+
+  /// <summary>Determines if and where two rectangles intersect.</summary>
+  /// <remarks>If no intersection occurs, a rectangle with a width and height of zero will be returned.</remarks>
+  public static Rectangle Intersection(ref Rectangle a, ref Rectangle b)
+  {
+    // for an explanation of these checks, see Intersects(Rectangle, Rectangle)
+    double bRight = b.Right;
+    if(a.X > bRight) goto noIntersection;
+    double bBottom = b.Bottom;
+    if(a.Y > bBottom) goto noIntersection;
+    double aRight = a.Right;
+    if(aRight < b.X) goto noIntersection;
+    double aBottom = a.Bottom;
+    if(aBottom < b.Y) goto noIntersection;
+
+    // they intersect, so return a new rectangle with the inward-most of each of the coordinates
+    return Rectangle.FromPoints(a.X < b.X ? b.X : a.X, a.Y < b.Y ? b.Y : a.Y,
+                                aRight < bRight ? aRight : bRight, aBottom < bBottom ? aBottom : bBottom);
+    noIntersection:
+    return new Rectangle(); // no intersection, so return an empty rectangle
+  }
+  #endregion
+
+  #region Rotation
+  /// <summary>Precalculates the sine and cosine factors used for rotation by a given angle, so that multiple points
+  /// can be rotated without recalculating the factors.
+  /// </summary>
+  /// <param name="angle">The angle to rotate by, in radians.</param>
+  /// <param name="sin">A variable that will be set to the sine factor.</param>
+  /// <param name="cos">A variable that will be set to the cosine factor.</param>
+  /// <remarks>These factors can be used with <see cref="Rotate"/> functions to rotate points and vertices.</remarks>
+  public static void GetRotationFactors(double angle, out double sin, out double cos)
+  {
+    sin = Math.Sin(angle);
+    cos = Math.Cos(angle);
+  }
+  
+  /// <summary>Rotates a 2D point using precalculated sine and cosine factors.</summary>
+  /// <remarks>The sine and cosine factors can be obtained from the <see cref="GetRotationFactors"/> function.</remarks>
+  public static TwoD.Point Rotate(TwoD.Point point, double sin, double cos)
+  {
+    return new TwoD.Point(point.X*cos - point.Y*sin, point.X*sin + point.Y*cos);
+  }
+
+  /// <summary>Rotates a 2D point in place using precalculated sine and cosine factors.</summary>
+  /// <remarks>The sine and cosine factors can be obtained from the <see cref="GetRotationFactors"/> function.</remarks>
+  public static void Rotate(ref TwoD.Point point, double sin, double cos)
+  {
+    point = new TwoD.Point(point.X*cos - point.Y*sin, point.X*sin + point.Y*cos);
+  }
+
+  /// <summary>Rotates an array of points.</summary>
+  /// <param name="points">The array of <see cref="TwoD.Point"/> to rotate.</param>
+  /// <param name="start">The index at which to start rotating points.</param>
+  /// <param name="length">The number of points to rotate.</param>
+  /// <param name="angle">The angle by which to rotate the points, in radians.</param>
+  public static void Rotate(TwoD.Point[] points, int start, int length, double angle)
+  { 
+    if(angle == 0) return;
+    double sin, cos;
+    GetRotationFactors(angle, out sin, out cos);
+    for(int end=start+length; start<end; start++)
+    {
+      Rotate(ref points[start], sin, cos);
+    }
+  }
+
+  /// <summary>Rotates a 2D vector using precalculated sine and cosine factors.</summary>
+  /// <remarks>The sine and cosine factors can be obtained from the <see cref="GetRotationFactors"/> function.</remarks>
+  public static TwoD.Vector Rotate(TwoD.Vector vector, double sin, double cos)
+  { return new TwoD.Vector(vector.X*cos - vector.Y*sin, vector.X*sin + vector.Y*cos);
+  }
+
+  /// <summary>Rotates a 2D vector in place using precalculated sine and cosine factors.</summary>
+  /// <remarks>The sine and cosine factors can be obtained from the <see cref="GetRotationFactors"/> function.</remarks>
+  public static void Rotate(ref TwoD.Vector vector, double sin, double cos)
+  { vector = new TwoD.Vector(vector.X*cos - vector.Y*sin, vector.X*sin + vector.Y*cos);
+  }
+
+  /// <summary>Rotates an array of vectors.</summary>
+  /// <param name="vectors">The array of <see cref="TwoD.Vector"/> to rotate.</param>
+  /// <param name="start">The index at which to start rotating vectors.</param>
+  /// <param name="length">The number of vectors to rotate.</param>
+  /// <param name="angle">The angle by which to rotate the vectors, in radians.</param>
+  public static void Rotate(TwoD.Vector[] vectors, int start, int length, double angle)
+  { if(angle == 0) return;
+    double sin, cos;
+    GetRotationFactors(angle, out sin, out cos);
+    for(int end=start+length; start<end; start++)
+      Rotate(ref vectors[start], sin, cos);
+  }
+  #endregion
+}
+#endregion
+
 #region Vector
 /// <summary>This structure represents a mathematical vector in two-dimensional space.</summary>
 [Serializable, StructLayout(LayoutKind.Sequential)]
@@ -1237,13 +1916,13 @@ public struct Point
 }
 #endregion
 
-#region Line
+#region LineIntersection
 /// <summary>This structure contains information about the intersection of two lines or line segments.</summary>
 /// <remarks>The structure is returned from some line intersection functions. If the intersection is not valid
 /// (ie, the lines given were parallel), the <see cref="Point"/> member will be invalid. You can use
 /// <see cref="GameLib.Mathematics.TwoD.Point.Valid"/> to check for this condition.
 /// </remarks>
-public struct LineIntersectInfo
+public struct LineIntersection
 { 
   /// <summary>Initializes this structure from an intersection point and information about where the intersection
   /// occurred.
@@ -1252,7 +1931,7 @@ public struct LineIntersectInfo
   /// </param>
   /// <param name="onFirst">This should be true if the intersection point lies on the first line segment.</param>
   /// <param name="onSecond">This should be true if the intersection point lies on the second line segment.</param>
-  public LineIntersectInfo(Point point, bool onFirst, bool onSecond)
+  public LineIntersection(Point point, bool onFirst, bool onSecond)
   { Point=point; OnFirst=onFirst; OnSecond=onSecond;
   }
   /// <summary>Determines whether the intersection point lies on both line segments.</summary>
@@ -1276,7 +1955,9 @@ public struct LineIntersectInfo
   /// </remarks>
   public bool OnSecond;
 }
+#endregion
 
+#region Line
 /// <summary>This structure represents a line or line segment.</summary>
 /// <remarks>The line is stored in parametric form, which means that it's stored as a point and a vector.</remarks>
 [Serializable]
@@ -1311,43 +1992,25 @@ public struct Line
   /// given the input. A line returned by such a function can be tested for validity using this property.
   /// </remarks>
   public bool Valid { get { return Start.Valid; } }
-  /// <summary>Returns the intersection of the line with a convex polygon.</summary>
-  /// <param name="poly">A convex <see cref="Polygon"/> to which the line will be clipped.</param>
-  /// <returns>The portion of the line inside the polygon, or an <see cref="Invalid"/> if there is no intersection.</returns>
-  /// <remarks>This method has the effect of clipping the line (not a line segment) to a convex polygon.</remarks>
-  public Line ConvexLineIntersection(Polygon poly)
-  { poly.AssertValid();
-    Point start = Start, end = End;
-    int sign = poly.IsClockwise() ? 1 : -1;
 
-    for(int i=0; i<poly.Length; i++)
-    { Line edge = poly.GetEdge(i);
-      bool sout = Math.Sign(edge.WhichSide(start))==sign, eout = Math.Sign(edge.WhichSide(end))==sign;
-      if(sout)
-      { if(eout) return Line.Invalid;
-        start = edge.LineIntersection(new Line(start, end));
-      }
-      else if(eout) end = edge.LineIntersection(new Line(start, end));
-    }
-    if(start==end) return Line.Invalid;
-    for(int i=0; i<poly.Length; i++)
-    { Line edge = poly.GetEdge(i);
-      if(Math.Sign(edge.WhichSide(start))==sign && Math.Sign(edge.WhichSide(end))==sign) return Line.Invalid;
-    }
-    return new Line(start, end);
+  /// <summary>Returns the point on the line segment closest to the given point.</summary>
+  public Point ClosestPointOnSegment(Point point)
+  {
+    // our line is represented as a vector from a starting point. get the vector from the starting point to 'point'
+    Vector pvect = point - Start;
+    double dot   = pvect.DotProduct(Vector); // get the dot product of the two vectors
+    // if it's negative, the vectors are pointing in roughly opposite directions, so we return the start point.
+    if(dot <= 0) return Start;
+    double lenSqr = LengthSqr;
+    // the dot product is ourLen * otherLen * cos(angle). if we compare dot >= ourLen * ourLen, it's the same as
+    // comparing otherLen * cos(angle) >= ourLen. the cosine times otherLen produces the place along our vector that
+    // a line perpendicular to us, intersecting 'point' would be. if that place is further than the length of our
+    // vector, it's beyond the end, so just return the end.
+    if(dot >= lenSqr) return End;
+    // dot/lenSqr is a value between 0 and 1 specifying the place along our vector
+    return Start + Vector * (dot/lenSqr);
   }
-  /// <summary>Determines whether this line intersects the given convex polygon.</summary>
-  /// <param name="poly">A convex <see cref="Polygon"/> to test for intersection.</param>
-  /// <returns>True if this line intersects <paramref name="poly"/>.</returns>
-  public bool ConvexLineIntersects(Polygon poly) { return ConvexLineIntersection(poly).Valid; }
-  /// <summary>Determines whether this line segment intersects the given convex polygon.</summary>
-  /// <param name="poly">A convex <see cref="Polygon"/> to test for intersection.</param>
-  /// <returns>True if this line segment intersects <paramref name="poly"/>.</returns>
-  public bool ConvexSegmentIntersects(Polygon poly)
-  { if(poly.ConvexContains(Start) || poly.ConvexContains(End)) return true;
-    for(int i=0; i<poly.Length; i++) if(SegmentIntersects(poly.GetEdge(i))) return true;
-    return false;
-  }
+
   /// <summary>Returns the signed distance from the line to a given point.</summary>
   /// <param name="point">The <see cref="Point"/> to find the distance to.</param>
   /// <returns>Returns the distance from the point to the nearest point on the line. The distance may be positive or
@@ -1365,137 +2028,115 @@ public struct Line
   { if(point<0 || point>1) throw new ArgumentOutOfRangeException("point", point, "must be 0 or 1");
     return point==0 ? Start : End;
   }
+  
+  /// <summary>Determines whether this line (not segment) intersects the given circle.</summary>
+  public bool Intersects(Circle circle)
+  {
+    return Math2D.Intersects(ref circle, ref this);
+  }
+
+  /// <summary>Determines whether this line segment intersects the given circle.</summary>
+  public bool SegmentIntersects(Circle circle)
+  {
+    return Math2D.SegmentIntersects(ref circle, ref this);
+  }
+
+  /// <summary>Determines whether this line (not segment) intersects the given line (not segment).</summary>
+  public bool Intersects(Line line)
+  {
+    return Math2D.Intersects(ref this, ref line);
+  }
+
+  /// <summary>Determines whether this line segments intersects the given line segment.</summary>
+  public bool SegmentIntersects(Line segment)
+  {
+    return Math2D.SegmentIntersects(ref this, ref segment);
+  }
+
+  /// <summary>Returns the intersection point of two lines (not segments).</summary>
+  /// <returns>The intersection point of the two lines, or an invalid point if the lines do not intersect.
+  /// You can check if the point is valid with <see cref="Point.Valid"/>.
+  /// </returns>
+  public Point Intersection(Line line)
+  { 
+    return Math2D.Intersection(ref this, ref line);
+  }
+
+  /// <summary>Returns the intersection point of two lines segments.</summary>
+  /// <returns>The intersection point of the two line segments, or an invalid point if the lines do not intersect.
+  /// You can check if the point is valid with <see cref="Point.Valid"/>.
+  /// </returns>
+  public Point SegmentIntersection(Line segment)
+  { 
+    return Math2D.Intersection(ref this, ref segment);
+  }
+
   /// <summary>Returns information about the intersection of this line or line segment with another line or line
   /// segment.
   /// </summary>
   /// <param name="line">The line or line segment to test for intersection.</param>
-  /// <returns>A <see cref="LineIntersectInfo"/> containing information about the intersection of the two
+  /// <returns>A <see cref="LineIntersection"/> containing information about the intersection of the two
   /// lines or line segments.
   /// </returns>
-  public LineIntersectInfo GetIntersection(Line line)
-  { Point p2 = End, p4 = line.End;
-    double d = (p4.Y-line.Start.Y)*(p2.X-Start.X) - (p4.X-line.Start.X)*(p2.Y-Start.Y), ua, ub;
-    if(d==0) return new LineIntersectInfo(Point.Invalid, false, false);
-    ua = ((p4.X-line.Start.X)*(Start.Y-line.Start.Y) - (p4.Y-line.Start.Y)*(Start.X-line.Start.X)) / d;
-    ub = ((p2.X-Start.X)*(Start.Y-line.Start.Y) - (p2.Y-Start.Y)*(Start.X-line.Start.X)) / d;
-    return new LineIntersectInfo(new Point(Start.X + Vector.X*ua, Start.Y + Vector.Y*ua), ua>=0&&ua<=1, ub>=0&&ub<=1);
+  public LineIntersection GetIntersectionInfo(Line line)
+  { 
+    return Math2D.IntersectionInfo(ref this, ref line);
   }
-  /// <summary>Returns the intersection point of two lines.</summary>
-  /// <param name="line">The other line.</param>
-  /// <returns>The intersection point of the two lines, or an invalid point if the lines do not intersect.
-  /// You can check if the point is valid with <see cref="Point.Valid"/>.
-  /// </returns>
-  public Point LineIntersection(Line line)
-  { Point p2 = End, p4 = line.End;
-    double d = (p4.Y-line.Start.Y)*(p2.X-Start.X) - (p4.X-line.Start.X)*(p2.Y-Start.Y);
-    if(d==0) return Point.Invalid;
-    d = ((p4.X-line.Start.X)*(Start.Y-line.Start.Y) - (p4.Y-line.Start.Y)*(Start.X-line.Start.X)) / d;
-    return new Point(Start.X + Vector.X*d, Start.Y + Vector.Y*d);
+
+  /// <summary>Determines whether this line (not segment) intersects the given <see cref="Rectangle"/>.</summary>
+  public bool Intersects(Rectangle rect)
+  {
+    return Math2D.Intersects(ref this, ref rect);
   }
-  /// <summary>Returns the intersection point of two line segments.</summary>
-  /// <param name="segment">The other line segmnt.</param>
-  /// <returns>The intersection point of the two line segments, or an invalid point if the segments do not intersect.
-  /// You can check if the point is valid with <see cref="Point.Valid"/>.
-  /// </returns>
-  public Point SegmentIntersection(Line segment)
-  { Point p2 = End, p4 = segment.End;
-    double d = (p4.Y-segment.Start.Y)*(p2.X-Start.X) - (p4.X-segment.Start.X)*(p2.Y-Start.Y), ua, ub;
-    if(d==0) return Point.Invalid;
-    ua = ((p4.X-segment.Start.X)*(Start.Y-segment.Start.Y) - (p4.Y-segment.Start.Y)*(Start.X-segment.Start.X)) / d;
-    if(ua<0 || ua>1) return Point.Invalid;
-    ub = ((p2.X-Start.X)*(Start.Y-segment.Start.Y) - (p2.Y-Start.Y)*(Start.X-segment.Start.X)) / d;
-    if(ub<0 || ub>1) return Point.Invalid;
-    return new Point(Start.X + Vector.X*ua, Start.Y + Vector.Y*ua);
-  }
-  /// <summary>Calculates the intersection of this line (not line segment) with a <see cref="Rectangle"/>.</summary>
-  /// <param name="rect">The <see cref="Rectangle"/> to perform intersection with.</param>
-  /// <returns>Returns the portion of the line that lies inside the rectangle.</returns>
-  public Line LineIntersection(Rectangle rect)
-  { double x2=rect.Right, y2=rect.Bottom;
-    Point start=Start, end=End;
-    int c, c2;
 
-    c = start.Y<rect.Y ? 1 : start.Y>y2 ? 2 : 0;
-    if(start.X<rect.X) c |= 4;
-    else if(start.X>x2) c |= 8;
-
-    c2 = end.Y<rect.Y ? 1 : end.Y>y2 ? 2 : 0;
-    if(end.X<rect.X) c2 |= 4;
-    else if(end.X>x2) c2 |= 8;
-
-    if(c==0 && c2==0) return new Line(start, end);
-    if((c&c2) != 0) return Line.Invalid;
-
-    if(c!=0)
-    { if((c&1)!=0)
-      { start.X += (rect.Y-start.Y) * Vector.X / Vector.Y;
-        start.Y = rect.Y;
-      }
-      else if((c&2)!=0)
-      { start.X -= (start.Y-y2) * Vector.X / Vector.Y;
-        start.Y = y2;
-      }
-      else if((c&4)!=0)
-      { start.Y += (rect.X-start.X) * Vector.Y / Vector.X;
-        start.X = rect.X;
-      }
-      else
-      { start.Y -= (start.X-x2) * Vector.Y / Vector.X;
-        start.X = x2;
-      }
-    }
-    if(c2!=0)
-    { if((c2&1)!=0)
-      { end.X += (rect.Y-end.Y) * Vector.X / Vector.Y;
-        end.Y = rect.Y;
-      }
-      else if((c2&2)!=0)
-      { end.X -= (end.Y-y2) * Vector.X / Vector.Y;
-        end.Y = y2;
-      }
-      else if((c2&4)!=0)
-      { end.Y += (rect.X-end.X) * Vector.Y / Vector.X;
-        end.X = rect.X;
-      }
-      else
-      { end.Y -= (end.X-x2) * Vector.Y / Vector.X;
-        end.X = x2;
-      }
-    }
-
-    c = start.Y<rect.Y ? 1 : start.Y>y2 ? 2 : 0;
-    if(start.X<rect.X) c |= 4;
-    else if(start.X>x2) c |= 8;
-
-    c2 = end.Y<rect.Y ? 1 : end.Y>y2 ? 2 : 0;
-    if(end.X<rect.X) c2 |= 4;
-    else if(end.X>x2) c2 |= 8;
-
-    if((c&c2) != 0) return Line.Invalid;
-    return new Line(start, end);
-  }
-  /// <summary>Determines whether this line intersects the given line.</summary>
-  /// <param name="line">The line to test for intersection.</param>
-  /// <returns>Returns true if this line intersects <paramref name="line"/> and false otherwise.</returns>
-  public bool LineIntersects(Line line) { return LineIntersection(line).Valid; }
-  /// <summary>Determines whether this line segments intersects the given line segment.</summary>
-  /// <param name="segment">The line segment to test for intersection.</param>
-  /// <returns>Returns true if this line segment intersects <paramref name="segment"/> and false otherwise.</returns>
-  public bool SegmentIntersects(Line segment) { return SegmentIntersection(segment).Valid; }
-  /// <summary>Determines whether this line intersects the given <see cref="Rectangle"/>.</summary>
-  /// <param name="rect">The <see cref="Rectangle"/> to test for intersection.</param>
-  /// <returns>Returns true if this line intersects <paramref name="rect"/> and false otherwise.</returns>
-  public bool LineIntersects(Rectangle rect) { return LineIntersection(rect).Valid; }
   /// <summary>Determines whether this line segment intersects the given rectangle.</summary>
-  /// <param name="rect">The <see cref="Rectangle"/> to test for intersection.</param>
-  /// <returns>Returns true if this line segment intersects <paramref name="rect"/> and false otherwise.</returns>
   public bool SegmentIntersects(Rectangle rect)
-  { // a line segment intersects a rectangle if either endpoint is contained in the rectangle, or the segment
-    // intersects any edge.
-    return rect.Contains(Start) || rect.Contains(End) ||
-           SegmentIntersects(rect.GetEdge(0)) || SegmentIntersects(rect.GetEdge(1)) ||
-           SegmentIntersects(rect.GetEdge(2)) || SegmentIntersects(rect.GetEdge(3));
+  { 
+    return Math2D.SegmentIntersects(ref this, ref rect);
   }
+
+  /// <summary>Returns the intersection of this line (not segment) with the given <see cref="Rectangle"/>.</summary>
+  /// <returns>The portion of the line inside the rectangle, or an <see cref="Invalid"/> if there is no intersection.</returns>
+  public Line Intersection(Rectangle rect)
+  {
+    return Math2D.Intersection(ref this, ref rect);
+  }
+
+  /// <summary>Returns the intersection of this line segment with the given <see cref="Rectangle"/>.</summary>
+  /// <returns>The portion of the line inside the rectangle, or an <see cref="Invalid"/> if there is no intersection.</returns>
+  public Line SegmentIntersection(Rectangle rect)
+  { 
+    return Math2D.SegmentIntersection(ref this, ref rect);
+  }
+
+  /// <summary>Determines whether this line (not segment) intersects the given possibly-concave polygon.</summary>
+  public bool Intersects(Polygon poly)
+  {
+    return Math2D.Intersects(ref this, poly);
+  }
+
+  /// <summary>Determines whether this line segment intersects the given convex polygon.</summary>
+  public bool SegmentIntersects(Polygon convexPoly)
+  { 
+    return Math2D.SegmentIntersects(ref this, convexPoly);
+  }
+
+  /// <summary>Returns the intersection of the line (not segment) with a convex polygon.</summary>
+  /// <returns>The portion of the line inside the polygon, or an <see cref="Invalid"/> if there is no intersection.</returns>
+  public Line Intersection(Polygon convexPoly)
+  {
+    return Math2D.Intersection(ref this, convexPoly);
+  }
+
+  /// <summary>Returns the intersection of the line segment with a convex polygon.</summary>
+  /// <returns>The portion of the line segment inside the polygon, or an <see cref="Invalid"/> if there is no
+  /// intersection.
+  /// </returns>
+  public Line SegmentIntersection(Polygon convexPoly)
+  {
+    return Math2D.SegmentIntersection(ref this, convexPoly);
+  }
+
   /// <summary>Determines which side of a line the given point is on.</summary>
   /// <param name="point">The <see cref="Point"/> to test.</param>
   /// <returns>A value indicating which side of the line the point is on. The value's sign indicates which side of
@@ -1557,59 +2198,90 @@ public struct Circle
   /// <param name="centerY">The Y coordinate of the circle's center point.</param>
   /// <param name="radius">The radius of the circle.</param>
   public Circle(double centerX, double centerY, double radius)
-  { Center      = new Point(centerX, centerY);
-    this.radius = radius;
-    radiusSqr   = radius * radius;
+  { Center = new Point(centerX, centerY);
+    Radius = radius;
   }
   /// <summary>Initializes this circle from a center point and a radius.</summary>
   /// <param name="center">The circle's center point.</param>
   /// <param name="radius">The radius of the circle.</param>
   public Circle(Point center, double radius)
-  { Center      = center;
-    this.radius = radius;
-    radiusSqr   = radius * radius;
+  { Center = center;
+    Radius = radius;
   }
 
   /// <summary>Calculates and returns the area of the circle.</summary>
   public double Area { get { return RadiusSqr*Math.PI; } }
 
-  /// <summary>Determines whether the given point is contained within the circle.</summary>
-  /// <param name="point">The <see cref="Point"/> to test for containment.</param>
-  /// <returns>Returns true if <paramref name="point"/> is contained within this circle.</returns>
-  public bool Contains(Point point) { return (point-Center).LengthSqr <= RadiusSqr; }
-  
-  /// <summary>Determines whether the given rectangle is completely contained within the circle.</summary>
-  /// <param name="rect">The <see cref="Rectangle"/> to test for containment.</param>
-  /// <returns>Returns true if <paramref name="rect"/> is contained within this circle.</returns>
-  public bool Contains(Rectangle rect)
-  { // a circle contains a rectangle if it contains all four corners
-    return Contains(rect.TopLeft) && Contains(rect.BottomRight) &&
-           Contains(new Point(rect.X, rect.Bottom)) && Contains(new Point(rect.Right, rect.Y));
-          
-  }
-
-  /// <summary>Returns true if the given rectangle intersects this circle.</summary>
-  /// <param name="rect">The <see cref="Rectangle"/> to check for intersection.</param>
-  /// <returns>True if <paramref name="rect"/> intersects this circle and false otherwise.</returns>
-  public bool Intersects(Rectangle rect) { return rect.Intersects(this); }
-
-  public double Radius
-  { get { return radius; }
-    set
-    { radius = value;
-      radiusSqr = value*value;
-    }
-  }
-  
   public double RadiusSqr
-  { get { return radiusSqr; }
+  {
+    get { return Radius * Radius; }
+  }
+
+  /// <summary>Determines whether the given circle is contained within this circle.</summary>
+  public bool Contains(Circle circle)
+  {
+    return Math2D.Contains(ref this, ref circle);
+  }
+
+  /// <summary>Determines whether the given line segment is contained within this circle.</summary>
+  public bool Contains(Line segment)
+  {
+    return Math2D.Contains(ref this, ref segment);
+  }
+
+  /// <summary>Determines whether the given point is fully contained within this circle.</summary>
+  public bool Contains(Point point)
+  {
+    return Math2D.Contains(ref this, ref point);
+  }
+  
+  /// <summary>Determines whether the given rectangle is fully contained within this circle.</summary>
+  public bool Contains(Rectangle rect)
+  {
+    return Math2D.Contains(ref this, ref rect);
+  }
+
+  /// <summary>Determines whether the given possibly-concave polygon is fully contained within this circle.</summary>
+  public bool Contains(Polygon poly)
+  {
+    return Math2D.Contains(ref this, poly);
+  }
+
+  /// <summary>Determines whether the given circle intersects this circle.</summary>
+  public bool Intersects(Circle circle)
+  {
+    return Math2D.Intersects(ref this, ref circle);
+  }
+  
+  /// <summary>Determines whether the given line (not segment) intersects this circle.</summary>
+  public bool Intersects(Line line)
+  {
+    return Math2D.Intersects(ref this, ref line);
+  }
+  
+  /// <summary>Determines whether the given line segment intersects this circle.</summary>
+  public bool SegmentIntersects(Line segment)
+  {
+    return Math2D.SegmentIntersects(ref this, ref segment);
+  }
+
+  /// <summary>Determines whether the given rectangle intersects this circle.</summary>
+  public bool Intersects(Rectangle rect)
+  {
+    return Math2D.Intersects(ref this, ref rect);
+  }
+  
+  /// <summary>Determines whether the given convex polygon intersects this circle.</summary>
+  public bool Intersects(Polygon convexPoly)
+  {
+    return Math2D.Intersects(ref this, convexPoly);
   }
 
   /// <summary>The center point of this circle.</summary>
   public Point Center;
-
+  
   /// <summary>The radius of this circle.</summary>
-  public double radius, radiusSqr;
+  public double Radius;
 }
 #endregion
 
@@ -1737,30 +2409,81 @@ public struct Rectangle
   { get { return new Point(X, Y); }
     set { X=value.X; Y=value.Y; }
   }
-  /// <summary>Determines whether the specified point lies within the rectangle.</summary>
-  /// <param name="point">The point to test for containment.</param>
-  /// <returns>True if the point is inside the rectangle and false otherwise.</returns>
-  public bool Contains(Point point) { return point.Y>=Y && point.Y<Bottom && point.X>=X && point.X<Right; }
-  /// <summary>Determines whether this rectangle completely contains the specified rectangle.</summary>
-  /// <param name="rect">The rectangle to test for containment.</param>
-  /// <returns>True if <paramref name="rect"/> is completely inside this rectangle and false otherwise.</returns>
-  public bool Contains(Rectangle rect) { return Contains(rect.Location) && Contains(rect.BottomRight); }
-  /// <summary>Determines whether this rectangle completely contains the specified circle.</summary>
-  /// <param name="circle">The circle to test for containment.</param>
-  /// <returns>True if <paramref name="circle"/> is completely inside this rectangle and false otherwise.</returns>
+
+  /// <summary>Determines whether the specified circle is fully contained within this rectangle.</summary>
   public bool Contains(Circle circle)
-  { // if the left edge is to the left of the circle's left edge, and the top is above the circle's top edge, ...
-    return X+circle.Radius < circle.Center.X && Y+circle.Radius < circle.Center.Y &&
-           Right-circle.Center.X > circle.Radius && Bottom+circle.Center.Y > circle.Radius;
+  {
+    return Math2D.Contains(ref this, ref circle);
   }
+
+  /// <summary>Determines whether the specified line segment is fully contained within this rectangle.</summary>
+  public bool Contains(Line segment)
+  {
+    return Math2D.Contains(ref this, ref segment);
+  }
+
+  /// <summary>Determines whether the specified point lies within the rectangle.</summary>
+  public bool Contains(Point point)
+  {
+    return Math2D.Contains(ref this, ref point);
+  }
+
+  /// <summary>Determines whether this rectangle completely contains the specified rectangle.</summary>
+  public bool Contains(Rectangle rect)
+  {
+    return Math2D.Contains(ref this, ref rect);
+  }
+
+  /// <summary>Determines whether the given possibly-concave polygon is completely contained within this rectangle.</summary>
+  public bool Contains(Polygon poly)
+  {
+    return Math2D.Contains(ref this, poly);
+  }
+
+  /// <summary>Determines whether the given circle intersects this rectangle.</summary>
+  public bool Intersects(Circle circle)
+  {
+    return Math2D.Intersects(ref circle, ref this);
+  }
+
+  /// <summary>Determines whether the given line (not segment) intersects this rectangle</summary>
+  public bool Intersects(Line line)
+  {
+    return Math2D.Intersects(ref line, ref this);
+  }
+
+  /// <summary>Determines whether the given line segment intersects this rectangle</summary>
+  public bool SegmentIntersects(Line segment)
+  {
+    return Math2D.SegmentIntersects(ref segment, ref this);
+  }
+
+  /// <summary>Determines whether the given rectangle intersects this one.</summary>
+  public bool Intersects(Rectangle rect)
+  {
+    return Math2D.Intersects(ref this, ref rect);
+  }
+
   /// <summary>Determines whether this rectangle intersects the given convex polygon.</summary>
-  /// <param name="poly">A convex <see cref="Polygon"/> to test for intersection.</param>
-  /// <returns>True if this rectangle intersects the given convex polygon and false otherwise.</returns>
-  public bool ConvexIntersects(Polygon poly)
-  { for(int i=0; i<poly.Length; i++) if(Contains(poly.GetPoint(i))) return true;
-    for(int i=0; i<4; i++) if(poly.ConvexContains(GetPoint(i))) return true;
-    return false;
+  public bool Intersects(Polygon convexPoly)
+  {
+    return Math2D.Intersects(ref this, convexPoly);
   }
+
+  /// <summary>Calculates the intersection of the given line (not segment) with this rectangle.</summary>
+  /// <returns>Returns the line clipped to this rectangle, or <see cref="Line.Invalid"/> if there was no intersection.</returns>
+  public Line Intersection(Line line)
+  {
+    return Math2D.Intersection(ref line, ref this);
+  }
+
+  /// <summary>Calculates the intersection of the given line segment with this rectangle.</summary>
+  /// <returns>Returns the line segment clipped to this rectangle, or <see cref="Line.Invalid"/> if there was no intersection.</returns>
+  public Line SegmentIntersection(Line segment)
+  {
+    return Math2D.SegmentIntersection(ref segment, ref this);
+  }
+
   public override bool Equals(object obj) { return obj is Rectangle && this==(Rectangle)obj; }
   /// <summary>Gets an edge of the rectangle.</summary>
   /// <param name="i">The index of the edge to retrieve (from 0 to 3).</param>
@@ -1812,35 +2535,8 @@ public struct Rectangle
   /// and height of zero).
   /// </remarks>
   public void Intersect(Rectangle rect)
-  { double x2=Right, ox2=rect.Right;
-    if(X<rect.X)
-    { if(x2<rect.X) goto abort;
-      X=rect.X;
-    }
-    else if(X>=ox2) goto abort;
-
-    if(x2>ox2)
-    { if(X>=ox2) goto abort;
-      Width -= ox2-x2;
-    }
-    else if(X<rect.X) goto abort;
-
-    double y2=Bottom, oy2=rect.Bottom;
-    if(Y<rect.Y)
-    { if(y2<rect.Y) goto abort;
-      Y=rect.Y;
-    }
-    else if(Y>=oy2) goto abort;
-
-    if(y2>oy2)
-    { if(Y>=oy2) goto abort;
-      Height -= oy2-y2;
-    }
-    else if(Y<rect.Y) goto abort;
-
-    return;
-    abort:
-    X=Y=Width=Height=0;
+  { 
+    this = Math2D.Intersection(ref this, ref rect);
   }
   /// <summary>Returns the intersection of this rectangle with the specified rectangle.</summary>
   /// <param name="rect">The rectangle to use for intersection.</param>
@@ -1848,24 +2544,8 @@ public struct Rectangle
   /// with a width and height of zero) if there is no intersection.
   /// </returns>
   public Rectangle Intersection(Rectangle rect)
-  { Rectangle ret = new Rectangle(X, Y, Width, Height);
-    ret.Intersect(rect);
-    return ret;
-  }
-  /// <summary>Returns true if the given rectangle intersects this one.</summary>
-  /// <param name="rect">The rectangle to test for intersection.</param>
-  /// <returns>True if the given rectangle intersects this one and false otherwise.</returns>
-  public bool Intersects(Rectangle rect)
-  { return Contains(rect.TopLeft) || Contains(rect.BottomRight) || rect.Contains(TopLeft) ||
-           rect.Contains(BottomRight);
-  }
-  /// <summary>Returns true if the given circle intersects this rectangle.</summary>
-  /// <param name="circle">The <see cref="Circle"/> to check for intersection.</param>
-  /// <returns>True if <paramref name="circle"/> intersects this rectangle and false otherwise.</returns>
-  public bool Intersects(Circle circle)
-  { // if the left edge is to the left of the circle's right edge, and the top is above the circle's bottom edge, ...
-    return X-circle.Center.X   <= circle.Radius   && Y-circle.Center.Y    <= circle.Radius &&
-           Right+circle.Radius >= circle.Center.X && Bottom+circle.Radius >= circle.Center.Y;
+  { 
+    return Math2D.Intersection(ref this, ref rect);
   }
   /// <summary>Returns the union of this rectangle with the given rectangle.</summary>
   /// <param name="rect">The rectangle with which this rectangle will be combined.</param>
@@ -2057,30 +2737,95 @@ public sealed class Polygon : ICloneable, ISerializable
   }
   /// <summary>Removes all points from the polygon.</summary>
   public void Clear() { length = 0; }
-  /// <summary>Determines whether this convex polygon contains the given point.</summary>
-  /// <param name="point">The <see cref="Point"/> to test.</param>
-  /// <returns>Returns true if the polygon contains the given point.</returns>
-  /// <remarks>The polygon can be defined clockwise or counter-clockwise, but must be a convex polygon. If the polygon
-  /// is not convex, the results of this method are undefined.
-  /// </remarks>
+
+  /// <summary>Returns true if the given circle is fully contained within this convex polygon.</summary>
+  /// <remarks>The result of calling this method on a nonconvex polygon is undefined.</remarks>
+  public bool ConvexContains(Circle circle)
+  {
+    return Math2D.Contains(this, ref circle);
+  }
+
+  /// <summary>Returns true if the given line segment is fully contained within this convex polygon.</summary>
+  /// <remarks>The result of calling this method on a nonconvex polygon is undefined.</remarks>
+  public bool ConvexContains(Line segment)
+  {
+    return Math2D.Contains(this, ref segment);
+  }
+
+  /// <summary>Returns true if the given point is contained within this convex polygon.</summary>
+  /// <remarks>The result of calling this method on a nonconvex polygon is undefined.</remarks>
   public bool ConvexContains(Point point)
-  { int  sign;
-    bool pos=false, neg=false;
-    for(int i=0; i<length; i++)
-    { sign = Math.Sign(GetEdge(i).WhichSide(point));
-      if(sign==-1) { if(pos) return false; neg=true; }
-      else if(sign==1) { if(neg) return false; pos=true; }
-      else return false;
-    }
-    return true;
+  {
+    return Math2D.Contains(this, ref point);
   }
-  /// <summary>Determines whether this convex polygon intersects the given convex polygon.</summary>
-  /// <param name="poly">A convex polygon to test for intersection.</param>
-  /// <returns>True if this polygon intersects with <paramref name="poly"/> and false otherwise.</returns>
-  public bool ConvexIntersects(Polygon poly)
-  { for(int i=0; i<length; i++) if(GetEdge(i).ConvexSegmentIntersects(poly)) return true;
-    return false;
+
+  /// <summary>Returns true if the given rectangle is fully contained within this convex polygon.</summary>
+  /// <remarks>The result of calling this method on a nonconvex polygon is undefined.</remarks>
+  public bool ConvexContains(Rectangle rect)
+  {
+    return Math2D.Contains(this, ref rect);
   }
+
+  /// <summary>Returns true if the given possibly-concave polygon is fully contained within this convex polygon.</summary>
+  /// <remarks>The result of calling this method on a nonconvex polygon is undefined.</remarks>
+  public bool ConvexContains(Polygon poly)
+  {
+    return Math2D.Contains(this, poly);
+  }
+
+  /// <summary>Determines whether the given circle intersects this convex polygon.</summary>
+  /// <remarks>The result of calling this method on a nonconvex polygon is undefined.</remarks>
+  public bool ConvexIntersects(Circle circle)
+  {
+    return Math2D.Intersects(ref circle, this);
+  }
+
+  /// <summary>Determines whether the given line (not segment) intersects this convex polygon.</summary>
+  /// <remarks>The result of calling this method on a nonconvex polygon is undefined.</remarks>
+  public bool ConvexIntersects(Line line)
+  {
+    return Math2D.Intersects(ref line, this);
+  }
+
+  /// <summary>Determines whether the given line segment intersects this convex polygon.</summary>
+  /// <remarks>The result of calling this method on a nonconvex polygon is undefined.</remarks>
+  public bool ConvexSegmentIntersects(Line segment)
+  {
+    return Math2D.Intersects(ref segment, this);
+  }
+
+  /// <summary>Determines whether the given rectangle intersects this convex polygon.</summary>
+  /// <remarks>The result of calling this method on a nonconvex polygon is undefined.</remarks>
+  public bool ConvexIntersects(Rectangle rect)
+  {
+    return Math2D.Intersects(ref rect, this);
+  }
+
+  /// <summary>Determines whether the given convex polygon intersects this convex polygon.</summary>
+  /// <remarks>The result of calling this method on a nonconvex polygon is undefined.</remarks>
+  public bool ConvexIntersects(Polygon convexPoly)
+  {
+    return Math2D.Intersects(this, convexPoly);
+  }
+
+  /// <summary>Calculates the intersection of the given line (not segment) with this convex polygon.</summary>
+  /// <returns>Returns the line clipped to the polygon, or <see cref="Line.Invalid"/> if there was no intersection.</returns>
+  /// <remarks>The result of calling this method on a nonconvex polygon is undefined.</remarks>
+  public Line ConvexIntersection(Line line)
+  {
+    return Math2D.Intersection(ref line, this);
+  }
+
+  /// <summary>Calculates the intersection of the given line segment with this convex polygon.</summary>
+  /// <returns>Returns the line segment clipped to the polygon, or <see cref="Line.Invalid"/> if there was no
+  /// intersection.
+  /// </returns>
+  /// <remarks>The result of calling this method on a nonconvex polygon is undefined.</remarks>
+  public Line ConvexSegmentIntersection(Line segment)
+  {
+    return Math2D.SegmentIntersection(ref segment, this);
+  }
+
   /// <summary>Calculates and returns the area of the polygon.</summary>
   /// <returns>The area of the polygon.</returns>
   public double GetArea()
@@ -2109,7 +2854,7 @@ public sealed class Polygon : ICloneable, ISerializable
   }
   /// <summary>Calculates and returns the polygon's centroid.</summary>
   /// <returns>The centroid of the polygon.</returns>
-  /// <remarks>The centroid of a polygon is its center of mass (assuming it has mass).</remarks>
+  /// <remarks>The centroid of a polygon is its center of mass (assuming it is uniformly dense).</remarks>
   public Point GetCentroid()
   { AssertValid();
     double area=0,x=0,y=0,d;
@@ -2236,7 +2981,7 @@ public sealed class Polygon : ICloneable, ISerializable
   }
   /// <summary>Rotates the points in this polygon around the origin (0,0).</summary>
   /// <param name="angle">The angle by which to rotate, in degrees.</param>
-  public void Rotate(double angle) { GLMath.Rotate(points, 0, length, angle); }
+  public void Rotate(double angle) { Math2D.Rotate(points, 0, length, angle); }
   /// <summary>Returns a copy of this polygon, with the points rotated around the origin (0,0).</summary>
   /// <param name="angle">The angle by which to rotate, in degrees.</param>
   /// <returns>A copy of this polygon, with the points rotated.</returns>
@@ -2305,7 +3050,7 @@ public sealed class Polygon : ICloneable, ISerializable
                 { if(edge==0) break;
                 }
                 else if(edge==sei || edge==sei-1) continue;
-                LineIntersectInfo lint = toExtend.GetIntersection(poly.GetEdge(sei));
+                LineIntersection lint = toExtend.GetIntersectionInfo(poly.GetEdge(sei));
                 // we don't want any points that are on the edge being extended (because it wouldn't be an extension)
                 // and we want to make sure the other point is actually on the line segment
                 if(!lint.Point.Valid || lint.OnFirst || !lint.OnSecond) continue;
