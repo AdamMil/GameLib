@@ -1241,7 +1241,11 @@ public static class Math2D
   /// <summary>Determines if a circle intersects a (possibly convex) polygon.</summary>
   public static bool Intersects(ref Circle circle, Polygon poly)
   {
-    // a circle intersects a polygon if it intersects any of the polygon's edges.
+    // a circle intersects a polygon if it intersects any of the polygon's edges or the circle's center point is within
+    // the polygon.
+
+    if(Contains(poly, ref circle.Center)) return true;
+
     for(int i=poly.Length-1; i>=0; i--)
     {
       Line edge = poly.GetEdge(i);
@@ -1327,7 +1331,7 @@ public static class Math2D
   {
     // a line segment intersects a polygon if the polygon contains both endpoints, or the segment intersects any edge.
 
-    // we only need to check one point to test for full containment
+    // we only need to check one point to test for intersection
     if(Contains(convexPoly, ref segment.Start)) return true;
 
     for(int i=convexPoly.Length-1; i>=0; i--) // the polygon doesn't fully contain the segment, so test the edges
@@ -1349,12 +1353,16 @@ public static class Math2D
   /// <summary>Determines if a rectangle intersects a convex polygon.</summary>
   public static bool Intersects(ref Rectangle rect, Polygon convexPoly)
   {
-    // a rectangle intersects a convex polygon if all corners are contained inside the polygon, or any of the
-    // rectangle's edges intersect the polygon.
+    // a rectangle intersects a convex polygon if all corners of either object are contained within the other, or any
+    // edges of either object intersect any edges of the other object.
 
-    // we only need to check one corner to determine whether the rectangle is fully contained
-    Point topLeft = rect.TopLeft;
-    if(Contains(convexPoly, ref topLeft)) return true;
+    if(convexPoly.Length == 0) return false;
+
+    // if one point of either is inside the other, there's intersection.
+    Point point = convexPoly[0];
+    if(Contains(ref rect, ref point)) return true;
+    point = rect.TopLeft;
+    if(Contains(convexPoly, ref point)) return true;
 
     for(int i=0; i<3; i++) // if it's not fully contained, then at least one edge must intersect
     {

@@ -603,14 +603,6 @@ public class VorbisSource : AudioSource
     }
   }
 
-  internal unsafe void CheckVorbisFile(Ogg.VorbisFile* vf)
-  { byte* p1 = *(byte**)((byte*)vf+656);
-    if(p1==null) return;
-    byte* p2 = *(byte**)((byte*)p1+4);
-    short chans = *(short*)((byte*)p2+4);
-    if(chans!=2) throw new Exception("it's fucked");
-  }
-
   public unsafe override int ReadBytes(byte[] buf, int index, int length)
   { BytesToFrames(length);
     fixed(byte* dest = buf)
@@ -638,9 +630,7 @@ public class VorbisSource : AudioSource
           }
         }
         else
-        { CheckVorbisFile(file);
-          read = Ogg.Read(file, dest+index, length, be, format.SampleSize, signed, out section);
-          CheckVorbisFile(file);
+        { read = Ogg.Read(file, dest+index, length, be, format.SampleSize, signed, out section);
           Ogg.Check(read);
           if(read==0) break;
         }
@@ -1324,6 +1314,7 @@ public class Audio
       reserved=value;
     }
   }
+
   public static ReadOnlyCollection<Channel> Channels { get { return Array.AsReadOnly(chans); } }
   public static PlayPolicy PlayPolicy { get { return playPolicy; } set { playPolicy=value; } }
   public static MixPolicy  MixPolicy  { get { return mixPolicy; } set { mixPolicy=value; } }
@@ -1339,7 +1330,6 @@ public class Audio
       throw new ArgumentException("Floating point format not supported by the underlying API.", "format");
 
     callback    = new GLMixer.MixCallback(FillBuffer);
-    Audio.chans = new Channel[0];
     groups      = new List<List<int>>();
     SDL.Initialize(SDL.InitFlag.Audio);
     init        = true;
@@ -1371,7 +1361,7 @@ public class Audio
         GLMixer.Quit();
         SDL.Deinitialize(SDL.InitFlag.Audio);
         callback = null;
-        chans    = null;
+        chans    = new Channel[0];
         groups   = null;
         init     = false;
       }
@@ -1755,7 +1745,7 @@ public class Audio
   static AudioFormat format;
   static FilterCollection filters, postFilters;
   static GLMixer.MixCallback callback;
-  static Channel[] chans;
+  static Channel[] chans = new Channel[0];
   static List<List<int>> groups;
   static int reserved;
   static PlayPolicy playPolicy = PlayPolicy.Fail;

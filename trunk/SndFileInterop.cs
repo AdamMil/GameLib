@@ -24,7 +24,7 @@ namespace GameLib.Interop.SndFile
 {
 
 [System.Security.SuppressUnmanagedCodeSecurity()]
-internal sealed class SF
+internal static class SF
 { 
   [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
   public unsafe delegate long LengthHandler(IntPtr context);
@@ -43,7 +43,8 @@ internal sealed class SF
   { public void* Length, Seek, Read, Write, Tell;
   }
 
-  [StructLayout(LayoutKind.Sequential, Pack=4)]
+  // specify size because C compilers pad to 8-byte boundaries if the struct contains any 8-byte members
+  [StructLayout(LayoutKind.Sequential, Size=32, Pack=4)]
   public struct Info
   { public bool Has(Format f) { return (format&f)==f; }
     public long   frames;

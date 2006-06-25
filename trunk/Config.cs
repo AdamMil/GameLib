@@ -31,7 +31,7 @@ public sealed class Config
   /// <summary>The <see cref="DllImportAttribute"/> path to the SDL_gfx library.</summary>
   public const string SDLGFXImportPath    = "sdlgfx";
   /// <summary>The <see cref="DllImportAttribute"/> path to the libsndfile library.</summary>
-  public const string SndFileImportPath   = "libsndfile";
+  public const string SndFileImportPath   = "libsndfile-1";
 
   #if WIN32
   /// <summary>The <see cref="DllImportAttribute"/> path to the SDL library.</summary>
