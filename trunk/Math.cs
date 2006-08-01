@@ -44,11 +44,20 @@ public sealed class MathConst
 /// <summary>This class provides some helpful mathematical functions.</summary>
 public static class GLMath
 {
-  /// <include file="documentation.xml" path="//Mathematics/GLMath/AngleBetween/*"/>
-  public static double AngleBetween(TwoD.Point start, TwoD.Point end) { return (end-start).Angle; }
-  /// <include file="documentation.xml" path="//Mathematics/GLMath/AngleBetween/*"/>
-  public static double AngleBetween(System.Drawing.Point start, System.Drawing.Point end)
-  { return (new TwoD.Point(end)-new TwoD.Point(start)).Angle;
+  /// <summary>Normalizes an angle to a value from 0 to 2pi (exclusive).</summary>
+  /// <param name="angle">The angle to normalize, in radians.</param>
+  public static double NormalizeAngle(double angle)
+  {
+    if(angle < 0)
+    {
+      do angle += Math.PI*2; while(angle < 0);
+    }
+    else if(angle >= Math.PI*2)
+    {
+      do angle -= Math.PI*2; while(angle >= Math.PI*2);
+    }
+
+    return angle;
   }
 
   /// <summary>Performs integer division that rounds towards lower numbers rather than towards zero.</summary>
@@ -944,6 +953,14 @@ namespace TwoD
 /// </summary>
 public static class Math2D
 {
+  /// <include file="documentation.xml" path="//Mathematics/GLMath/AngleBetween/*"/>
+  public static double AngleBetween(Point start, Point end) { return (end-start).Angle; }
+  /// <include file="documentation.xml" path="//Mathematics/GLMath/AngleBetween/*"/>
+  public static double AngleBetween(System.Drawing.Point start, System.Drawing.Point end)
+  {
+    return (new Point(end)-new Point(start)).Angle;
+  }
+
   #region Contains
   /// <summary>Determines if one circle fully contains another.</summary>
   public static bool Contains(ref Circle outer, ref Circle inner)
@@ -1120,10 +1137,7 @@ public static class Math2D
         if(neg) return false; // if it was previously on the negative side, then it's not contained.
         pos = true; // mark it as having been on the negative side.
       }
-      else // otherwise, it was colinear with one of the edges. we'll count that as inside.
-      {
-        return true;
-      }
+      // otherwise, it was colinear with one of the edges. we'll count that as inside.
     }
 
     return true; // there was no disparity in the side of the lines that the point was on, so it's contained.
@@ -1300,7 +1314,7 @@ public static class Math2D
   public static bool Intersects(ref Line line, ref Rectangle rect)
   {
     // a line intersects a rectangle if it intersects any side.
-    for(int i=0; i<3; i++)
+    for(int i=0; i<4; i++)
     {
       Line edge = rect.GetEdge(i);
       if(IntersectionInfo(ref line, ref edge).OnSecond) return true;
@@ -1354,7 +1368,7 @@ public static class Math2D
   public static bool Intersects(ref Rectangle rect, Polygon convexPoly)
   {
     // a rectangle intersects a convex polygon if all corners of either object are contained within the other, or any
-    // edges of either object intersect any edges of the other object.
+    // edge of either object intersect any edge of the other object.
 
     if(convexPoly.Length == 0) return false;
 
@@ -1364,7 +1378,7 @@ public static class Math2D
     point = rect.TopLeft;
     if(Contains(convexPoly, ref point)) return true;
 
-    for(int i=0; i<3; i++) // if it's not fully contained, then at least one edge must intersect
+    for(int i=0; i<4; i++) // if it's not fully contained, then at least one edge must intersect
     {
       Line edge = rect.GetEdge(i);
       if(SegmentIntersects(ref edge, convexPoly)) return true;
@@ -1823,8 +1837,9 @@ public struct Vector
   public static Vector operator-(Vector v) { return new Vector(-v.X, -v.Y); }
   public static Vector operator+(Vector a, Vector b) { return new Vector(a.X+b.X, a.Y+b.Y); }
   public static Vector operator-(Vector a, Vector b) { return new Vector(a.X-b.X, a.Y-b.Y); }
-  public static Vector operator*(Vector v, double f)  { return new Vector(v.X*f, v.Y*f); }
-  public static Vector operator/(Vector v, double f)  { return new Vector(v.X/f, v.Y/f); }
+  public static Vector operator*(Vector v, double f) { return new Vector(v.X*f, v.Y*f); }
+  public static Vector operator*(double f, Vector v) { return new Vector(v.X*f, v.Y*f); }
+  public static Vector operator/(Vector v, double f) { return new Vector(v.X/f, v.Y/f); }
 
   public static bool operator==(Vector a, Vector b) { return a.X==b.X && a.Y==b.Y; }
   public static bool operator!=(Vector a, Vector b) { return a.X!=b.X || a.Y!=b.Y; }
@@ -3249,8 +3264,9 @@ public struct Vector
   public static Vector operator-(Vector v) { return new Vector(-v.X, -v.Y, -v.Z); }
   public static Vector operator+(Vector a, Vector b) { return new Vector(a.X+b.X, a.Y+b.Y, a.Z+b.Z); }
   public static Vector operator-(Vector a, Vector b) { return new Vector(a.X-b.X, a.Y-b.Y, a.Z-b.Z); }
-  public static Vector operator*(Vector v, double f)   { return new Vector(v.X*f, v.Y*f, v.Z*f); }
-  public static Vector operator/(Vector v, double f)   { return new Vector(v.X/f, v.Y/f, v.Z/f); }
+  public static Vector operator*(Vector v, double f) { return new Vector(v.X*f, v.Y*f, v.Z*f); }
+  public static Vector operator*(double f, Vector v) { return new Vector(v.X*f, v.Y*f, v.Z*f); }
+  public static Vector operator/(Vector v, double f) { return new Vector(v.X/f, v.Y/f, v.Z/f); }
   public static bool   operator==(Vector a, Vector b) { return a.X==b.X && a.Y==b.Y && a.Z==b.Z; }
   public static bool   operator!=(Vector a, Vector b) { return a.X!=b.X || a.Y!=b.Y || a.Z!=b.Z; }
 

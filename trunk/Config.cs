@@ -78,6 +78,12 @@ public sealed class Config
   public const int EMSGSIZE     = 90;
   #endif
 
+  #if WIN32
+  public const CallingConvention GLUCallbackConvention = CallingConvention.StdCall;
+  #elif LINUX
+  public const CallingConvention GLUCallbackConvention = CallingConvention.Cdecl;
+  #endif
+
   // TODO: perhaps i should be using System.BitConverter.IsLittleEndian
   /// <summary>True if compiled for a big-endian system.</summary>
   /// <remarks>This value is controlled by the BIGENDIAN compile time declaration.</remarks>
