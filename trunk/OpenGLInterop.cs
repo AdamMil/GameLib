@@ -3053,6 +3053,7 @@ public sealed class GL
 }
 #endregion
 
+// TODO: add GLU objects (nurbs, quadrics)
 #region GLU
 /// <summary>This class provides access to the native, low-level GLU API. See the official GLU documentation for
 /// information regarding these methods.
@@ -3060,8 +3061,8 @@ public sealed class GL
 [System.Security.SuppressUnmanagedCodeSecurity()]
 public sealed class GLU
 { private GLU() { }
-  // TODO: add GLU objects (nurbs, etc)
 
+  #region General
   #region Enums & Constants
   public const uint GLU_VERSION    = 100800;
   public const uint GLU_EXTENSIONS = 100801;
@@ -3111,6 +3112,149 @@ public sealed class GLU
   public unsafe static extern int gluBuild2DMipmaps(uint target, int components, int width, int height, uint format, uint type, IntPtr data);
   [DllImport(Config.GLUImportPath, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern int gluBuild2DMipmaps(uint target, int components, int width, int height, uint format, uint type, [In] byte[] data);
+  #endregion
+  #endregion
+  
+  #region Tessellation
+  #region Constants
+  /* TessProperties */
+  public const uint GLU_TESS_WINDING_RULE           =100140;
+  public const uint GLU_TESS_BOUNDARY_ONLY          =100141;
+  public const uint GLU_TESS_TOLERANCE              =100142;
+  /* TessWinding */
+  public const uint GLU_TESS_WINDING_ODD            =100130;
+  public const uint GLU_TESS_WINDING_NONZERO        =100131;
+  public const uint GLU_TESS_WINDING_POSITIVE       =100132;
+  public const uint GLU_TESS_WINDING_NEGATIVE       =100133;
+  public const uint GLU_TESS_WINDING_ABS_GEQ_TWO    =100134;
+  /* TessCallback */
+  public const uint GLU_TESS_BEGIN          =100100;
+  public const uint GLU_TESS_VERTEX         =100101;
+  public const uint GLU_TESS_END            =100102;
+  public const uint GLU_TESS_ERROR          =100103;
+  public const uint GLU_TESS_EDGE_FLAG      =100104;
+  public const uint GLU_TESS_COMBINE        =100105;
+  public const uint GLU_TESS_BEGIN_DATA     =100106;
+  public const uint GLU_TESS_VERTEX_DATA    =100107;
+  public const uint GLU_TESS_END_DATA       =100108;
+  public const uint GLU_TESS_ERROR_DATA     =100109;
+  public const uint GLU_TESS_EDGE_FLAG_DATA =100110;
+  public const uint GLU_TESS_COMBINE_DATA   =100111;
+  /* TessError */
+  public const uint GLU_TESS_ERROR1     =100151;
+  public const uint GLU_TESS_ERROR2     =100152;
+  public const uint GLU_TESS_ERROR3     =100153;
+  public const uint GLU_TESS_ERROR4     =100154;
+  public const uint GLU_TESS_ERROR5     =100155;
+  public const uint GLU_TESS_ERROR6     =100156;
+  public const uint GLU_TESS_ERROR7     =100157;
+  public const uint GLU_TESS_ERROR8     =100158;
+
+  public const uint GLU_TESS_MISSING_BEGIN_POLYGON  =GLU_TESS_ERROR1;
+  public const uint GLU_TESS_MISSING_BEGIN_CONTOUR  =GLU_TESS_ERROR2;
+  public const uint GLU_TESS_MISSING_END_POLYGON    =GLU_TESS_ERROR3;
+  public const uint GLU_TESS_MISSING_END_CONTOUR    =GLU_TESS_ERROR4;
+  public const uint GLU_TESS_COORD_TOO_LARGE        =GLU_TESS_ERROR5;
+  public const uint GLU_TESS_NEED_COMBINE_CALLBACK  =GLU_TESS_ERROR6;
+  #endregion
+  
+  #region Delegates
+  [UnmanagedFunctionPointer(Config.GLUCallbackConvention)]
+  public delegate void GLUtessBeginProc(uint type);
+  [UnmanagedFunctionPointer(Config.GLUCallbackConvention)]
+  public delegate void GLUtessEdgeFlagProc(byte isBoundaryEdge);
+  [UnmanagedFunctionPointer(Config.GLUCallbackConvention)]
+  public delegate void GLUtessVertexProc(IntPtr vertex);
+  [UnmanagedFunctionPointer(Config.GLUCallbackConvention)]
+  public delegate void GLUtessEndProc();
+  [UnmanagedFunctionPointer(Config.GLUCallbackConvention)]
+  public delegate void GLUtessErrorProc(uint error);
+  [UnmanagedFunctionPointer(Config.GLUCallbackConvention)]
+  public unsafe delegate void GLUtessCombineProc(double* coords3, IntPtr* vertexContext4, float* weights4,
+                                                 out IntPtr newVertex);
+  [UnmanagedFunctionPointer(Config.GLUCallbackConvention)]
+  public delegate void GLUtessBeginDataProc(uint type, IntPtr context);
+  [UnmanagedFunctionPointer(Config.GLUCallbackConvention)]
+  public delegate void GLUtessEdgeFlagDataProc(byte isBoundaryEdge, IntPtr context);
+  [UnmanagedFunctionPointer(Config.GLUCallbackConvention)]
+  public delegate void GLUtessVertexDataProc(IntPtr vertex, IntPtr context);
+  [UnmanagedFunctionPointer(Config.GLUCallbackConvention)]
+  public delegate void GLUtessEndDataProc(IntPtr context);
+  [UnmanagedFunctionPointer(Config.GLUCallbackConvention)]
+  public delegate void GLUtessErrorDataProc(uint error, IntPtr context);
+  [UnmanagedFunctionPointer(Config.GLUCallbackConvention)]
+  public unsafe delegate void GLUtessCombineDataProc(double* coords3, IntPtr* vertexContext4, float* weights4,
+                                                     out IntPtr newVertex, IntPtr context);
+  #endregion
+
+  #region Imports
+  [DllImport(Config.GLUImportPath, CallingConvention=CallingConvention.Winapi)]
+  public static extern IntPtr gluNewTess();
+  [DllImport(Config.GLUImportPath, CallingConvention=CallingConvention.Winapi)]
+  public static extern void gluDeleteTess(IntPtr tessellator);
+  [DllImport(Config.GLUImportPath, CallingConvention=CallingConvention.Winapi)]
+  public static extern void gluTessBeginPolygon(IntPtr tessellator, IntPtr context);
+  public static void gluTessBeginPolygon(IntPtr tessellator) { gluTessBeginPolygon(tessellator, IntPtr.Zero); }
+  [DllImport(Config.GLUImportPath, CallingConvention=CallingConvention.Winapi)]
+  public static extern void gluTessBeginContour(IntPtr tessellator);
+  [DllImport(Config.GLUImportPath, CallingConvention=CallingConvention.Winapi)]
+  public unsafe static extern void gluTessVertex(IntPtr tessellator, double* coords3d, IntPtr context);
+  [DllImport(Config.GLUImportPath, CallingConvention=CallingConvention.Winapi)]
+  public static extern void gluTessEndContour(IntPtr tessellator);   
+  [DllImport(Config.GLUImportPath, CallingConvention=CallingConvention.Winapi)]
+  public static extern void gluTessEndPolygon(IntPtr tessellator);
+  [DllImport(Config.GLUImportPath, CallingConvention=CallingConvention.Winapi)]
+  public static extern void gluTessProperty(IntPtr tessellator, uint which, double value);
+  [DllImport(Config.GLUImportPath, CallingConvention=CallingConvention.Winapi)]
+  public static extern void gluTessNormal(IntPtr tessellator, double x, double y, double z);
+  public static void gluTessNormal(IntPtr tessellator, Mathematics.TwoD.Vector v)
+  { gluTessNormal(tessellator, v.X, v.Y, 0);
+  }
+  public static void gluTessNormal(IntPtr tessellator, Mathematics.ThreeD.Vector v)
+  { gluTessNormal(tessellator, v.X, v.Y, v.Z);
+  }
+  [DllImport(Config.GLUImportPath, CallingConvention=CallingConvention.Winapi)]
+  public static extern void gluTessCallback(IntPtr tessellator, uint which, Delegate callback);
+  public static void gluTessCallback(IntPtr tessellator, GLUtessBeginProc callback)
+  { gluTessCallback(tessellator, GLU_TESS_BEGIN, callback);
+  }
+  public static void gluTessCallback(IntPtr tessellator, GLUtessEdgeFlagProc callback)
+  { gluTessCallback(tessellator, GLU_TESS_EDGE_FLAG, callback);
+  }
+  public static void gluTessCallback(IntPtr tessellator, GLUtessVertexProc callback)
+  { gluTessCallback(tessellator, GLU_TESS_VERTEX, callback);
+  }
+  public static void gluTessCallback(IntPtr tessellator, GLUtessEndProc callback)
+  { gluTessCallback(tessellator, GLU_TESS_END, callback);
+  }
+  public static void gluTessCallback(IntPtr tessellator, GLUtessErrorProc callback)
+  { gluTessCallback(tessellator, GLU_TESS_ERROR, callback);
+  }
+  public static void gluTessCallback(IntPtr tessellator, GLUtessCombineProc callback)
+  { gluTessCallback(tessellator, GLU_TESS_COMBINE, callback);
+  }
+  public static void gluTessCallback(IntPtr tessellator, GLUtessBeginDataProc callback)
+  { gluTessCallback(tessellator, GLU_TESS_BEGIN_DATA, callback);
+  }
+  public static void gluTessCallback(IntPtr tessellator, GLUtessEdgeFlagDataProc callback)
+  { gluTessCallback(tessellator, GLU_TESS_EDGE_FLAG_DATA, callback);
+  }
+  public static void gluTessCallback(IntPtr tessellator, GLUtessVertexDataProc callback)
+  { gluTessCallback(tessellator, GLU_TESS_VERTEX_DATA, callback);
+  }
+  public static void gluTessCallback(IntPtr tessellator, GLUtessEndDataProc callback)
+  { gluTessCallback(tessellator, GLU_TESS_END_DATA, callback);
+  }
+  public static void gluTessCallback(IntPtr tessellator, GLUtessErrorDataProc callback)
+  { gluTessCallback(tessellator, GLU_TESS_ERROR_DATA, callback);
+  }
+  public static void gluTessCallback(IntPtr tessellator, GLUtessCombineDataProc callback)
+  { gluTessCallback(tessellator, GLU_TESS_COMBINE_DATA, callback);
+  }
+
+  [DllImport(Config.GLUImportPath, CallingConvention=CallingConvention.Winapi)]
+  public static extern void gluGetTessProperty(IntPtr tessellator, uint which, out double value);
+  #endregion
   #endregion
 }
 #endregion

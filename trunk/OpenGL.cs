@@ -39,27 +39,43 @@ public sealed class OpenGL
   { get { if(extensions==null) InitExtensions(); return extensions; }
   }
 
+  /// <summary>Returns true if the OpenGL implementation supports textures with dimensions that are not a power of two
+  /// in length.
+  /// </summary>
+  public static bool HasNonPowerOfTwoExtension
+  {
+    get { return HasExtension("GL_ARB_texture_non_power_of_two"); }
+  }
+
   /// <summary>Gets the OpenGL major version number.</summary>
   public static int VersionMajor { get { if(version==0) InitVersion(); return version>>16; } }
   /// <summary>Gets the OpenGL minor version number.</summary>
   public static int VersionMinor { get { if(version==0) InitVersion(); return version&0xFFFF; } }
 
-  /// <summary>Gets/sets whether or not this class will attempt to use the GL_ARB_texture_non_power_of_two extension,
-  /// if it exists.
-  /// </summary>
-  /// <remarks>The GL_ARB_texture_non_power_of_two extension can be used to create textures with dimensions that are
-  ///not powers of two in length. Setting this to true (the default) will allow this class (in particular, the
-  /// <see cref="TexImage2D"/> calls), to create textures with non-power-of-two dimensions. This can help save a lot
-  /// of video memory on cards that support it.
-  /// </remarks>
-  public static bool UseNPOTExtension { get { return useNPOT; } set { useNPOT=value; } }
+  /// <summary>Returns the size of the smallest texture capable of containing an image of the given size.</summary>
+  public static Size GetTextureSize(Size imageSize)
+  {
+    if(imageSize.Width <= 0 || imageSize.Height <= 0)
+    {
+      throw new ArgumentOutOfRangeException("imageSize", imageSize, "The image dimensions must be positive.");
+    }
+
+    if(HasNonPowerOfTwoExtension) { return imageSize; }
+    else
+    {
+      Size textureSize = new Size(1, 1);
+      while(textureSize.Width  < imageSize.Width)  textureSize.Width  *= 2;
+      while(textureSize.Height < imageSize.Height) textureSize.Height *= 2;
+      return textureSize;
+    }
+  }
 
   /// <summary>Returns true if OpenGL supports the given extension.</summary>
   /// <param name="name">The name of the extension to check for. This is case-sensitive.</param>
   /// <returns>True if OpenGL supports the given extension and false otherwise.</returns>
   public static bool HasExtension(string name)
   { if(extensions==null) InitExtensions();
-    return Array.BinarySearch(extensions, name)>=0;
+    return Array.BinarySearch(extensions, name) >= 0;
   }
 
   #region TexImage2D
@@ -106,23 +122,18 @@ public sealed class OpenGL
   public static bool TexImage2D(uint internalFormat, int level, int border, Surface surface, out Size texSize)
   { PixelFormat pf = surface.Format;
     uint format=0;
-    int nwidth, nheight, awidth=surface.Width-border*2, aheight=surface.Height-border*2;
+    int awidth=surface.Width-border*2, aheight=surface.Height-border*2;
     bool usingAlpha = surface.Depth==32 && surface.UsingAlpha || surface.UsingKey;
-    if(useNPOT && HasExtension("GL_ARB_texture_non_power_of_two")) { nwidth=awidth; nheight=aheight; }
-    else
-    { nwidth=nheight=1;
-      while(nwidth<awidth) nwidth<<=1;
-      while(nheight<aheight) nheight<<=1;
-    }
+
+    texSize = GetTextureSize(new Size(awidth, aheight));
 
     if(internalFormat==0) internalFormat = usingAlpha ? GL.GL_RGBA : GL.GL_RGB;
-    if(!WillTextureFit(internalFormat, level, border, nwidth, nheight))
+    if(!WillTextureFit(internalFormat, level, border, texSize.Width, texSize.Height))
     { texSize = new Size(0, 0);
       return false;
     }
-    texSize = new Size(nwidth, nheight);
 
-    if(awidth==nwidth && aheight==nheight && !surface.UsingKey && surface.Pitch==surface.Width*surface.Depth/8)
+    if(awidth==texSize.Width && aheight==texSize.Height && !surface.UsingKey && surface.Pitch==surface.Width*surface.Depth/8)
     { uint type = GL.GL_UNSIGNED_BYTE;
       bool hasPPE = VersionMinor>=2 && VersionMajor==1 || HasExtension("GL_EXT_packed_pixels") || VersionMajor>1;
       bool hasBGR = VersionMinor>=2 && VersionMajor==1 || HasExtension("EXT_bgra") || VersionMajor>1;
@@ -181,7 +192,8 @@ public sealed class OpenGL
     pf.RedMask=0xFF; pf.GreenMask=0xFF00; pf.BlueMask=0xFF0000; pf.AlphaMask=(pf.Depth==32 ? 0xFF000000 : 0);
     #endif
 
-    Surface temp = new Surface(nwidth+border*2, nheight+border*2, pf, pf.Depth==32 ? SurfaceFlag.SrcAlpha : 0);
+    Surface temp = new Surface(texSize.Width+border*2, texSize.Height+border*2, pf,
+                               pf.Depth==32 ? SurfaceFlag.SrcAlpha : 0);
     bool oua = surface.UsingAlpha;
     if(surface.Format.AlphaMask!=0 || surface.Alpha==255) surface.UsingAlpha=false;
     surface.Blit(temp, border, border);
@@ -252,7 +264,6 @@ public sealed class OpenGL
 
   static string[] extensions;
   static int version;
-  static bool useNPOT = true;
 }
 #endregion
 

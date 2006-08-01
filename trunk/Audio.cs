@@ -894,7 +894,7 @@ public class EqFilter : BiquadFilter
     base.Filter(channel, nchannel, input, output, samples, format);
   }
 
-  // http://www.harmony-central.com/Computer/Programming/Audio-EQ-Cookbook.txt
+  // http://www.musicdsp.org/files/Audio-EQ-Cookbook.txt
   void Recalculate()
   { changed=false;
     double A = (type==EqFilterType.Peaking || type==EqFilterType.LowShelf || type==EqFilterType.HighShelf)
