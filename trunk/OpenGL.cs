@@ -52,6 +52,59 @@ public sealed class OpenGL
   /// <summary>Gets the OpenGL minor version number.</summary>
   public static int VersionMinor { get { if(version==0) InitVersion(); return version&0xFFFF; } }
 
+  /// <summary>Duplicates pixels from the edges of the rectangular area to create a border.</summary>
+  /// <param name="surface">The surface that contains the source data, and into which the border will be created.</param>
+  /// <param name="textureArea">The area of the surface containing the image data. The border will be created in the
+  /// pixels adjacent to this rectangle.
+  /// </param>
+  /// <remarks>The purpose of this function is to allow you to use texture filtering with images that don't take up the
+  /// entire texture. Adding an extra border around the image ensures that there are no filter artifacts when the
+  /// filter algorithm reads pixels adjacent to the image. You do not need to reserve space for the border in the
+  /// surface. If no space is available to create a portion of the border, that portion will not be created.
+  /// <paramref name="textureArea"/> does need to reference a valid area of the surface, however.
+  /// </remarks>
+  public static void AddTextureBorder(Surface surface, Rectangle textureArea)
+  {
+    if(surface == null)
+    {
+      throw new ArgumentNullException();
+    }
+
+    if(Rectangle.Intersect(textureArea, surface.Bounds) != textureArea)
+    {
+      throw new ArgumentException("Texture area does not reference a valid area of the surface.");
+    }
+
+    surface.Lock();
+    unsafe
+    {
+      byte* data = (byte*)surface.Data;
+      int bytesPerPixel = surface.Format.Depth / 8;
+
+      if(textureArea.Top != 0) // if the rectangle isn't already at the top, add a border above the area
+      {
+        byte* topLeft = data + textureArea.Top*surface.Pitch + textureArea.Left*bytesPerPixel;
+        Unsafe.Copy(topLeft, topLeft - surface.Pitch, textureArea.Width * bytesPerPixel);
+      }
+      if(textureArea.Bottom != surface.Height) // same for the bottom
+      {
+        byte* bottomLeft = data + (textureArea.Bottom-1)*surface.Pitch + textureArea.Left*bytesPerPixel;
+        Unsafe.Copy(bottomLeft, bottomLeft + surface.Pitch, textureArea.Width * bytesPerPixel);
+      }
+      if(textureArea.Left != 0) // left
+      {
+        byte* topLeft = data + textureArea.Top*surface.Pitch + textureArea.Left*bytesPerPixel;
+        AddHorizontalBorder(topLeft, topLeft - bytesPerPixel, textureArea.Height, surface.Pitch, bytesPerPixel);
+      }
+      if(textureArea.Right != surface.Width) // right
+      {
+        byte* topRight = data + textureArea.Top*surface.Pitch + (textureArea.Right-1)*bytesPerPixel;
+        AddHorizontalBorder(topRight, topRight - bytesPerPixel, textureArea.Height, surface.Pitch, bytesPerPixel);
+      }
+    }
+    surface.Unlock();
+  }
+
   /// <summary>Returns the size of the smallest texture capable of containing an image of the given size.</summary>
   public static Size GetTextureSize(Size imageSize)
   {
@@ -133,6 +186,8 @@ public sealed class OpenGL
       return false;
     }
 
+    // TODO: be careful about alignment. see glPixelStore()
+
     if(awidth==texSize.Width && aheight==texSize.Height && !surface.UsingKey && surface.Pitch==surface.Width*surface.Depth/8)
     { uint type = GL.GL_UNSIGNED_BYTE;
       bool hasPPE = VersionMinor>=2 && VersionMajor==1 || HasExtension("GL_EXT_packed_pixels") || VersionMajor>1;
@@ -197,6 +252,7 @@ public sealed class OpenGL
     bool oua = surface.UsingAlpha;
     if(surface.Format.AlphaMask!=0 || surface.Alpha==255) surface.UsingAlpha=false;
     surface.Blit(temp, border, border);
+    // TODO: add border (not opengl border, but filter border)
     surface.UsingAlpha = oua;
     temp.Lock();
     try
@@ -260,6 +316,20 @@ public sealed class OpenGL
     int pos = str.IndexOf(' ');
     string[] bits = (pos==-1 ? str : str.Substring(0, pos)).Split('.');
     version = (int.Parse(bits[0])<<16) + int.Parse(bits[1]);
+  }
+
+  static unsafe void AddHorizontalBorder(byte* src, byte* dest, int pixels, int pitch, int bytesPerPixel)
+  {
+    for(int i=0; i<pixels; i++)
+    {
+      for(int j=0; j<bytesPerPixel; j++)
+      {
+        dest[j] = src[j];
+      }
+
+      src  += pitch;
+      dest += pitch;
+    }
   }
 
   static string[] extensions;

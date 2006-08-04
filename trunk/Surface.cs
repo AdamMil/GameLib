@@ -564,7 +564,7 @@ public sealed class Surface : IDisposable, IBlittable
   /// This method should not be called when either surface is locked.
   /// </remarks>
   public unsafe void Blit(Surface dest, int dx, int dy)
-  { SDL.Rect rect = new SDL.Rect(dx, dy);
+  { SDL.Rect rect = new SDL.Rect(dx, dy, Width, Height);
     SDL.Check(SDL.BlitSurface(surface, null, dest.surface, &rect));
   }
   /// <include file="documentation.xml" path="//Video/Surface/Blit/*[self::Part or self::Pt]/*"/>
@@ -629,7 +629,7 @@ public sealed class Surface : IDisposable, IBlittable
   /// </code>
   /// </remarks>
   public unsafe void Blit(Surface dest, Rectangle src, int dx, int dy)
-  { SDL.Rect srect = new SDL.Rect(src), drect = new SDL.Rect(dx, dy);
+  { SDL.Rect srect = new SDL.Rect(src), drect = new SDL.Rect(dx, dy, Width, Height);
     SDL.Check(SDL.BlitSurface(surface, &srect, dest.surface, &drect));
   }
 
