@@ -2001,9 +2001,13 @@ public sealed class GL
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glPopName();
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glPrioritizeTextures(int n, /*const*/ uint *textures, /*const*/ float* priorities);
-  public unsafe static void glPrioritizeTextures(uint[] textures, float[] priorities)
-  { fixed(uint* t=textures) fixed(float* p=priorities) glPrioritizeTextures(textures.Length, t, p);
+  public unsafe static extern void glPrioritizeTextures(int n, /*const*/ uint *textureIDs, /*const*/ float* priorities);
+  public unsafe static void glPrioritizeTextures(uint[] textureIDs, float[] priorities)
+  { fixed(uint* t=textureIDs) fixed(float* p=priorities) glPrioritizeTextures(textureIDs.Length, t, p);
+  }
+  public unsafe static void glPrioritizeTexture(uint textureID, float priority)
+  {
+    glPrioritizeTextures(1, &textureID, &priority);
   }
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glPushAttrib(uint mask);

@@ -138,6 +138,9 @@ internal sealed class SDL
     { X = (short)rect.X; Y = (short)rect.Y; Width = (ushort)rect.Width; Height = (ushort)rect.Height;
     }
     public Rect(int x, int y) { X=(short)x; Y=(short)y; Width=Height=1; }
+    public Rect(int x, int y, int width, int height)
+    { X=(short)x; Y=(short)y; Width=(ushort)width; Height=(ushort)height;
+    }
     public System.Drawing.Size Size { get { return new System.Drawing.Size(Width, Height); } }
     public System.Drawing.Rectangle ToRectangle() { return new System.Drawing.Rectangle(X, Y, Width, Height); }
     public override string ToString() { return ToRectangle().ToString(); }
