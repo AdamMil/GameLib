@@ -564,8 +564,8 @@ public sealed class Surface : IDisposable, IBlittable
   /// This method should not be called when either surface is locked.
   /// </remarks>
   public unsafe void Blit(Surface dest, int dx, int dy)
-  { SDL.Rect rect = new SDL.Rect(dx, dy, Width, Height);
-    SDL.Check(SDL.BlitSurface(surface, null, dest.surface, &rect));
+  { SDL.Rect drect = new SDL.Rect(dx, dy, Width, Height);
+    SDL.Check(SDL.BlitSurface(surface, null, dest.surface, &drect));
   }
   /// <include file="documentation.xml" path="//Video/Surface/Blit/*[self::Part or self::Pt]/*"/>
   /// <remarks>Calling this method is equivalent to calling <see cref="Blit(Surface,Rectangle,int,int)"/> and passing
@@ -629,7 +629,7 @@ public sealed class Surface : IDisposable, IBlittable
   /// </code>
   /// </remarks>
   public unsafe void Blit(Surface dest, Rectangle src, int dx, int dy)
-  { SDL.Rect srect = new SDL.Rect(src), drect = new SDL.Rect(dx, dy, Width, Height);
+  { SDL.Rect srect = new SDL.Rect(src), drect = new SDL.Rect(dx, dy, src.Width, src.Height);
     SDL.Check(SDL.BlitSurface(surface, &srect, dest.surface, &drect));
   }
 
@@ -990,12 +990,12 @@ public sealed class Surface : IDisposable, IBlittable
   }
 
   unsafe Bitmap BitmapFromData(int width, int height, int stride, System.Drawing.Imaging.PixelFormat format,
-                                         void* data)
+                               void* data)
   { return BitmapFromData(width, height, stride, stride, format, data);
   }
 
   unsafe Bitmap BitmapFromData(int width, int height, int row, int stride,
-                                         System.Drawing.Imaging.PixelFormat format, void* data)
+                               System.Drawing.Imaging.PixelFormat format, void* data)
   { Bitmap bmp = new Bitmap(width, height, format);
     System.Drawing.Imaging.BitmapData bd = bmp.LockBits(new Rectangle(0, 0, width, height),
                                                         System.Drawing.Imaging.ImageLockMode.WriteOnly, format);
