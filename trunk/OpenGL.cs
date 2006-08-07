@@ -81,25 +81,49 @@ public sealed class OpenGL
       byte* data = (byte*)surface.Data;
       int bytesPerPixel = surface.Format.Depth / 8;
 
-      if(textureArea.Top != 0) // if the rectangle isn't already at the top, add a border above the area
+      bool leftBorder = textureArea.Left != 0, rightBorder  = textureArea.Right  != surface.Width,
+           topBorder  = textureArea.Top  != 0, bottomBorder = textureArea.Bottom != surface.Height;
+
+      // add the edges
+      if(topBorder) // if the rectangle isn't already at the top, add a border above the area
       {
         byte* topLeft = data + textureArea.Top*surface.Pitch + textureArea.Left*bytesPerPixel;
         Unsafe.Copy(topLeft, topLeft - surface.Pitch, textureArea.Width * bytesPerPixel);
       }
-      if(textureArea.Bottom != surface.Height) // same for the bottom
+      if(bottomBorder) // etc
       {
         byte* bottomLeft = data + (textureArea.Bottom-1)*surface.Pitch + textureArea.Left*bytesPerPixel;
         Unsafe.Copy(bottomLeft, bottomLeft + surface.Pitch, textureArea.Width * bytesPerPixel);
       }
-      if(textureArea.Left != 0) // left
+      if(leftBorder)
       {
         byte* topLeft = data + textureArea.Top*surface.Pitch + textureArea.Left*bytesPerPixel;
         AddHorizontalBorder(topLeft, topLeft - bytesPerPixel, textureArea.Height, surface.Pitch, bytesPerPixel);
       }
-      if(textureArea.Right != surface.Width) // right
+      if(rightBorder)
       {
         byte* topRight = data + textureArea.Top*surface.Pitch + (textureArea.Right-1)*bytesPerPixel;
-        AddHorizontalBorder(topRight, topRight - bytesPerPixel, textureArea.Height, surface.Pitch, bytesPerPixel);
+        AddHorizontalBorder(topRight, topRight + bytesPerPixel, textureArea.Height, surface.Pitch, bytesPerPixel);
+      }
+
+      // now add the corners
+      if(topBorder && leftBorder) // top-left
+      {
+        surface.PutPixel(textureArea.X-1, textureArea.Y-1, surface.GetPixelRaw(textureArea.X, textureArea.Y));
+      }
+      if(topBorder && rightBorder) // top-right
+      {
+        surface.PutPixel(textureArea.Right, textureArea.Y-1, surface.GetPixelRaw(textureArea.Right-1, textureArea.Y));
+      }
+      if(bottomBorder && rightBorder) // bottom-right
+      {
+        surface.PutPixel(textureArea.Right, textureArea.Bottom,
+                         surface.GetPixelRaw(textureArea.Right-1, textureArea.Bottom-1));
+      }
+      if(bottomBorder && leftBorder) // bottom-left
+      {
+        surface.PutPixel(textureArea.X-1, textureArea.Bottom,
+                         surface.GetPixelRaw(textureArea.X, textureArea.Bottom-1));
       }
     }
     surface.Unlock();

@@ -1680,12 +1680,26 @@ public sealed class GL
   public static extern void glGetTexParameterfv(uint target, uint pname, [In] [Out] float[] parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glGetTexParameterfv(uint target, uint pname, out float parm);
+  public static float glGetTexParameterf(uint target, uint pname)
+  {
+    float value;
+    glGetTexParameterfv(target, pname, out value);
+    return value;
+  }
+
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glGetTexParameteriv(uint target, uint pname, int* parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glGetTexParameteriv(uint target, uint pname, [In] [Out] int[] parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glGetTexParameteriv(uint target, uint pname, out int parm);
+  public static int glGetTexParameteri(uint target, uint pname)
+  {
+    int value;
+    glGetTexParameteriv(target, pname, out value);
+    return value;
+  }
+
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glHint(uint target, uint mode);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
