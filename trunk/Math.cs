@@ -44,6 +44,19 @@ public sealed class MathConst
 /// <summary>This class provides some helpful mathematical functions.</summary>
 public static class GLMath
 {
+  /// <summary>Precalculates the sine and cosine factors used for rotation by a given angle, so that multiple points
+  /// can be rotated without recalculating the factors.
+  /// </summary>
+  /// <param name="angle">The angle to rotate by, in radians.</param>
+  /// <param name="sin">A variable that will be set to the sine factor.</param>
+  /// <param name="cos">A variable that will be set to the cosine factor.</param>
+  /// <remarks>These factors can be used with <see cref="Math2D.Rotate"/> functions to rotate points and vertices.</remarks>
+  public static void GetRotationFactors(double angle, out double sin, out double cos)
+  {
+    sin = Math.Sin(angle);
+    cos = Math.Cos(angle);
+  }
+
   /// <summary>Normalizes an angle to a value from 0 to 2pi (exclusive).</summary>
   /// <param name="angle">The angle to normalize, in radians.</param>
   public static double NormalizeAngle(double angle)
@@ -1669,28 +1682,15 @@ public static class Math2D
   #endregion
 
   #region Rotation
-  /// <summary>Precalculates the sine and cosine factors used for rotation by a given angle, so that multiple points
-  /// can be rotated without recalculating the factors.
-  /// </summary>
-  /// <param name="angle">The angle to rotate by, in radians.</param>
-  /// <param name="sin">A variable that will be set to the sine factor.</param>
-  /// <param name="cos">A variable that will be set to the cosine factor.</param>
-  /// <remarks>These factors can be used with <see cref="Rotate"/> functions to rotate points and vertices.</remarks>
-  public static void GetRotationFactors(double angle, out double sin, out double cos)
-  {
-    sin = Math.Sin(angle);
-    cos = Math.Cos(angle);
-  }
-  
   /// <summary>Rotates a 2D point using precalculated sine and cosine factors.</summary>
-  /// <remarks>The sine and cosine factors can be obtained from the <see cref="GetRotationFactors"/> function.</remarks>
+  /// <remarks>The sine and cosine factors can be obtained from the <see cref="GLMath.GetRotationFactors"/> function.</remarks>
   public static TwoD.Point Rotate(TwoD.Point point, double sin, double cos)
   {
     return new TwoD.Point(point.X*cos - point.Y*sin, point.X*sin + point.Y*cos);
   }
 
   /// <summary>Rotates a 2D point in place using precalculated sine and cosine factors.</summary>
-  /// <remarks>The sine and cosine factors can be obtained from the <see cref="GetRotationFactors"/> function.</remarks>
+  /// <remarks>The sine and cosine factors can be obtained from the <see cref="GLMath.GetRotationFactors"/> function.</remarks>
   public static void Rotate(ref TwoD.Point point, double sin, double cos)
   {
     point = new TwoD.Point(point.X*cos - point.Y*sin, point.X*sin + point.Y*cos);
@@ -1705,7 +1705,7 @@ public static class Math2D
   { 
     if(angle == 0) return;
     double sin, cos;
-    GetRotationFactors(angle, out sin, out cos);
+    GLMath.GetRotationFactors(angle, out sin, out cos);
     for(int end=start+length; start<end; start++)
     {
       Rotate(ref points[start], sin, cos);
@@ -1713,13 +1713,13 @@ public static class Math2D
   }
 
   /// <summary>Rotates a 2D vector using precalculated sine and cosine factors.</summary>
-  /// <remarks>The sine and cosine factors can be obtained from the <see cref="GetRotationFactors"/> function.</remarks>
+  /// <remarks>The sine and cosine factors can be obtained from the <see cref="GLMath.GetRotationFactors"/> function.</remarks>
   public static TwoD.Vector Rotate(TwoD.Vector vector, double sin, double cos)
   { return new TwoD.Vector(vector.X*cos - vector.Y*sin, vector.X*sin + vector.Y*cos);
   }
 
   /// <summary>Rotates a 2D vector in place using precalculated sine and cosine factors.</summary>
-  /// <remarks>The sine and cosine factors can be obtained from the <see cref="GetRotationFactors"/> function.</remarks>
+  /// <remarks>The sine and cosine factors can be obtained from the <see cref="GLMath.GetRotationFactors"/> function.</remarks>
   public static void Rotate(ref TwoD.Vector vector, double sin, double cos)
   { vector = new TwoD.Vector(vector.X*cos - vector.Y*sin, vector.X*sin + vector.Y*cos);
   }
@@ -1732,7 +1732,7 @@ public static class Math2D
   public static void Rotate(TwoD.Vector[] vectors, int start, int length, double angle)
   { if(angle == 0) return;
     double sin, cos;
-    GetRotationFactors(angle, out sin, out cos);
+    GLMath.GetRotationFactors(angle, out sin, out cos);
     for(int end=start+length; start<end; start++)
       Rotate(ref vectors[start], sin, cos);
   }
