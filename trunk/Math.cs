@@ -21,8 +21,6 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Runtime.Serialization;
 
-// TODO: once generics become available, implement some things in a type-generic fashion
-
 namespace GameLib.Mathematics
 {
 
@@ -2580,12 +2578,18 @@ public struct Rectangle
   }
   /// <summary>Sets this rectangle to the union of this rectangle with the given rectangle.</summary>
   /// <param name="rect">The rectangle with which this rectangle will be combined.</param>
-  /// <remarks>Sets this rectangle to the smallest rectangle that contains both this and <paramref name="rect"/>.</remarks>
+  /// <remarks>Sets this rectangle to the smallest rectangle that contains both this and <paramref name="rect"/>. If
+  /// <paramref name="rect"/> is an empty rectangle, there will be no effect.
+  /// </remarks>
   public void Unite(Rectangle rect)
-  { if(X>rect.X) { Width += X-rect.X; X=rect.X; }
-    if(Y>rect.Y) { Height += Y-rect.Y; Y=rect.Y; }
-    if(Right<rect.Right)   Width  += rect.Right-Right;
-    if(Bottom<rect.Bottom) Height += rect.Bottom-Bottom;
+  { 
+    if(rect.Width != 0 || rect.Height != 0) // uniting with an empty rectangle has no effect
+    {
+      if(X>rect.X) { Width += X-rect.X; X=rect.X; }
+      if(Y>rect.Y) { Height += Y-rect.Y; Y=rect.Y; }
+      if(Right<rect.Right)   Width  += rect.Right-Right;
+      if(Bottom<rect.Bottom) Height += rect.Bottom-Bottom;
+    }
   }
   /// <summary>Offsets this rectangle by the given amount.</summary>
   /// <param name="x">The amount to offset along the X axis.</param>
@@ -3035,14 +3039,15 @@ public sealed class Polygon : ICloneable, ISerializable
   /// <returns>An array of convex polygons that, together, make up the original polygon.</returns>
   /// <remarks>This method is only valid if the edges of the polygon do not overlap.</remarks>
   public Polygon[] Split()
-  { Polygon[] test = new Polygon[4], done = new Polygon[4];
+  { const double epsilon = 1e-20;
+  
+    Polygon[] test = new Polygon[4], done = new Polygon[4];
     int tlen=1, dlen=0;
 
     test[0] = new Polygon(points, length);
     do
     { for(int pi=0,len=tlen; pi<len; pi++)
       { Polygon poly = test[pi];
-
         if(--tlen>0) // remove the current polygon
         { test[pi] = test[tlen];
           if(tlen<len) { pi--; len--; }
@@ -3066,27 +3071,30 @@ public sealed class Polygon : ICloneable, ISerializable
             { Line toExtend = c.GetEdge(ei);
               int edge = ci-1+ei;
               for(int sei=0; sei<poly.length; sei++) // test the edge with the intersection of every other edge
-              { if(sei==0) // don't try to intersect adjacent edges
-                { if(edge==poly.Length-1) continue;
-                }
-                else if(sei==poly.Length-1)
-                { if(edge==0) break;
-                }
-                else if(edge==sei || edge==sei-1) continue;
+              {
+                if(edge==sei || edge==sei-1 || (sei==0 && edge==poly.Length-1)) continue; // don't try to intersect adjacent edges
+                else if(edge == 0 && sei == poly.Length-1) break;
                 LineIntersection lint = toExtend.GetIntersectionInfo(poly.GetEdge(sei));
                 // we don't want any points that are on the edge being extended (because it wouldn't be an extension)
                 // and we want to make sure the other point is actually on the line segment
-                if(!lint.Point.Valid || lint.OnFirst || !lint.OnSecond) continue;
+                if(lint.OnFirst || !lint.OnSecond || !lint.Point.Valid) continue;
                 ept = 0;
                 d  = lint.Point.DistanceSquaredTo(toExtend.GetPoint(0)); // find the shortest cut
                 d2 = lint.Point.DistanceSquaredTo(toExtend.GetPoint(1));
+                // if substantially no extension has occurred, don't consider it. we can't compare against zero because
+                // sometimes a very, very tiny extension occurs, and due to floating point inaccuracy, the algorithm
+                // enters an infinite loop. using an epsilon prevents the infinite loop but increases the false failure
+                // rate (when it throws an exception due to not being able to find any splits)
+                if(d  < epsilon) d  = double.MaxValue;
+                if(d2 < epsilon) d2 = double.MaxValue;
                 if(d2<d)   { d=d2; ept=1; } // 'ept' references which point gets moved to do the extension
                 if(d<dist) { dist=d; splitEdge=sei; extPoint=ept; splitPoint=lint.Point; }
               }
-              if(splitEdge!=-1) // if we could split it with this edge, do it. don't bother trying the other edge
+
+              if(splitEdge!=-1) // if we can split it with this edge, do it. don't bother trying the other edges
               { poly.InsertPoint(splitPoint, ++splitEdge); // insert the split point
                 Polygon new1 = new Polygon(), new2 = new Polygon();
-                int extended = poly.Clip(ci-1+ei+extPoint), other=poly.Clip(extended+(extPoint==0 ? 1 : -1));
+                int extended = poly.Clip(edge+extPoint), other=poly.Clip(extended+(extPoint==0 ? 1 : -1));
                 int npi = splitEdge;
                 if(extended>=splitEdge) { extended++; other++; }
                 // 'extended' is the point that was extended. 'other' is the other side of the edge being extended
