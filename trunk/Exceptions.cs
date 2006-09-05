@@ -103,7 +103,7 @@ public class OpenGLException : VideoException
 public class NoMoreTexturesException : OpenGLException
 { 
   /// <summary>Initializes this exception.</summary>
-  public NoMoreTexturesException() : base("GL refuses to create more textures!") { }
+  public NoMoreTexturesException() : base("GL refuses to create more textures! "+ Interop.OpenGL.GL.glGetError()) { }
 }
 
 /// <summary>This exception is thrown when OpenGL is will not create a texture because it would not fit in video

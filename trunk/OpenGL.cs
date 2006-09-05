@@ -200,7 +200,7 @@ public sealed class OpenGL
   { PixelFormat pf = surface.Format;
     uint format=0;
     int awidth=surface.Width-border*2, aheight=surface.Height-border*2;
-    bool usingAlpha = surface.Depth==32 && surface.UsingAlpha || surface.UsingKey;
+    bool usingAlpha = surface.UsingAlpha || surface.UsingKey;
 
     texSize = GetTextureSize(new Size(awidth, aheight));
 
@@ -275,6 +275,7 @@ public sealed class OpenGL
                                pf.Depth==32 ? SurfaceFlag.SrcAlpha : 0);
     bool oua = surface.UsingAlpha;
     if(surface.Format.AlphaMask!=0 || surface.Alpha==255) surface.UsingAlpha=false;
+
     surface.Blit(temp, border, border);
     // TODO: add border (not opengl border, but filter border)
     surface.UsingAlpha = oua;
@@ -500,11 +501,12 @@ public class GLTexture2D : IDisposable
   /// <returns>True if the texture could be loaded and false otherwise.</returns>
   public bool Load(uint internalFormat, int level, int border, Surface surface)
   { Unload();
-    uint tex, old;
-    GL.glGetIntegerv(GL.GL_TEXTURE_BINDING_2D, out old);
+
+    uint tex=0, old;
     GL.glGenTexture(out tex);
     if(tex==0) throw new NoMoreTexturesException();
 
+    GL.glGetIntegerv(GL.GL_TEXTURE_BINDING_2D, out old);
     GL.glBindTexture(GL.GL_TEXTURE_2D, tex);
     try
     { if(!OpenGL.TexImage2D(internalFormat, level, border, surface, out size))
