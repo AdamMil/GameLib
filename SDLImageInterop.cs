@@ -25,19 +25,25 @@ namespace GameLib.Interop.SDLImage
 
 [System.Security.SuppressUnmanagedCodeSecurity()]
 internal sealed class Image
-{ public class Type
-  { public const string BMP="BMP";
-    public const string PNM="PNM";
-    public const string XPM="XPM";
-    public const string XCF="XCF";
-    public const string PCX="PCX";
+{ 
+  public class Type
+  { 
+    public const string BMP="BMP";
     public const string GIF="GIF";
     public const string JPG="JPG";
-    public const string TIF="TIF";
-    public const string PNG="PNG";
     public const string LBM="LBM";
+    public const string PCX="PCX";
+    public const string PNG="PNG";
+    public const string PNM="PNM";
+    public const string TGA="TGA";
+    public const string TIF="TIF";
+    public const string XCF="XCF";
+    public const string XPM="XPM";
+    public const string XV ="XV";
+
     public static readonly string[] Types = new string[]
-    { BMP, PNM, XPM, XCF, PCX, GIF, JPG, TIF, PNG, LBM
+    { 
+      BMP, GIF, JPG, LBM, PCX, PNG, PNM, TGA, TIF, XCF, XPM, XV
     };
   }
 

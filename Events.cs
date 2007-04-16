@@ -289,13 +289,13 @@ public class KeyboardEvent : Event
   /// <returns>True if any of the given modifiers were in effect when the event occurred, and false
   /// otherwise.
   /// </returns>
-  public bool HasAnyMod(KeyMod mod) { return (Mods&mod)!=KeyMod.None; }
+  public bool HasAny(KeyMod mod) { return (Mods&mod)!=KeyMod.None; }
   /// <summary>Returns true if all of the given modifiers were in effect when the event occurred.</summary>
   /// <param name="mod">A set of <see cref="KeyMod"/> modifiers, ORed together.</param>
   /// <returns>True if all of the given modifiers were in effect when the event occurred, and false
   /// otherwise.
   /// </returns>
-  public bool HasAllMods(KeyMod mod) { return (Mods&mod)==mod; }
+  public bool HasAll(KeyMod mod) { return (Mods&mod)==mod; }
   /// <summary>Returns true if any of the given key modifiers were in effect when the event occurred, and no
   /// others.
   /// </summary>
@@ -307,7 +307,7 @@ public class KeyboardEvent : Event
   /// event occurred. To check whether all (instead of any) of the given key modifiers were in effect, and no others,
   /// simply compare the desired set of flags to see whether it equals <see cref="KeyMods"/>.
   /// </remarks>
-  public bool HasOnlyKeys(KeyMod mod)
+  public bool HasOnly(KeyMod mod)
   { KeyMod mods = KeyMods;
     return (mods&mod)!=KeyMod.None && (mods&~mod)==KeyMod.None;
   }

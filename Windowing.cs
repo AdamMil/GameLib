@@ -2933,7 +2933,7 @@ public class DesktopControl : ContainerControl, IDisposable
         else
         { KeyboardEvent ke = (KeyboardEvent)e;
           if(ke.Down && ke.Key==tab)
-          { TabToNext(ke.HasAnyMod(Input.KeyMod.Shift));
+          { TabToNext(ke.HasAny(Input.KeyMod.Shift));
             if(krTimer!=null)
             { heldKey = ke;
               krTimer.Change(krDelay, krRate);
@@ -3223,8 +3223,8 @@ public class DesktopControl : ContainerControl, IDisposable
       } while(fc.FocusedControl!=null);
     if(!DispatchKeyEvent(fc, e)) goto done;
     if(!e.Handled && e.KE.Down && e.KE.Key==tab &&
-       (e.KE.KeyMods==Input.KeyMod.None || e.KE.HasOnlyKeys(Input.KeyMod.Shift)))
-      TabToNext(e.KE.HasAnyMod(Input.KeyMod.Shift));
+       (e.KE.KeyMods==Input.KeyMod.None || e.KE.HasOnly(Input.KeyMod.Shift)))
+      TabToNext(e.KE.HasAny(Input.KeyMod.Shift));
     done:
     return !e.Handled;
   }
