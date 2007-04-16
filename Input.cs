@@ -489,12 +489,12 @@ public sealed class Keyboard
   /// <param name="mod">A set of <see cref="KeyMod"/> modifiers, ORed together.</param>
   /// <returns>True if any of the given modifiers are in effect, and false otherwise.</returns>
   /// <remarks>This methods requires <see cref="Input.ProcessEvent"/> to be called in order to work properly.</remarks>
-  public static bool HasAnyMod(KeyMod mod) { return (mods&mod)!=KeyMod.None; }
+  public static bool HasAny(KeyMod mod) { return (mods&mod)!=KeyMod.None; }
   /// <summary>Returns true if all of the given modifiers are in effect.</summary>
   /// <param name="mod">A set of <see cref="KeyMod"/> modifiers, ORed together.</param>
   /// <returns>True if all of the given modifiers are in effect, and false otherwise.</returns>
   /// <remarks>This methods requires <see cref="Input.ProcessEvent"/> to be called in order to work properly.</remarks>
-  public static bool HasAllMods(KeyMod mod) { return (mods&mod)==mod; }
+  public static bool HasAll(KeyMod mod) { return (mods&mod)==mod; }
   /// <summary>Returns true if any of the given key modifiers are in effect, and no others.</summary>
   /// <param name="mod">A set of <see cref="KeyMod"/> modifiers, ORed together.</param>
   /// <returns>True if any of the given key modifiers are in effect, and no others.</returns>
@@ -502,7 +502,7 @@ public sealed class Keyboard
   /// of the given key modifiers are in effect, and no others, simply compare the desired set of flags to see whether
   /// it equals <see cref="KeyMods"/>.
   /// </remarks>
-  public static bool HasOnlyKeys(KeyMod mod)
+  public static bool HasOnly(KeyMod mod)
   { KeyMod mods = KeyMods;
     return (mods&mod)!=KeyMod.None && (mods&~mod)==KeyMod.None;
   }

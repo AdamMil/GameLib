@@ -957,34 +957,34 @@ public abstract class TextBoxBase : Control
   protected internal override void OnKeyDown(KeyEventArgs e)
   { char c=e.KE.Char;
     if(e.KE.Key==Key.Left)
-    { if(e.KE.KeyMods==KeyMod.None || e.KE.HasOnlyKeys(KeyMod.Shift|KeyMod.Ctrl))
+    { if(e.KE.KeyMods==KeyMod.None || e.KE.HasOnly(KeyMod.Shift|KeyMod.Ctrl))
       { if(caret>0)
         { if(e.KE.KeyMods==KeyMod.None) Select(caret-1, 0);
-          else if(e.KE.HasOnlyKeys(KeyMod.Shift)) Select(caret-1, selectLen+1);
+          else if(e.KE.HasOnly(KeyMod.Shift)) Select(caret-1, selectLen+1);
           else
           { int pos = CtrlScan(-1);
-            if(e.KE.HasOnlyKeys(KeyMod.Ctrl)) Select(pos, 0);
+            if(e.KE.HasOnly(KeyMod.Ctrl)) Select(pos, 0);
             else if(selectLen<0) Select(pos, SelectionStart-pos);
             else Select(pos, SelectionEnd-pos);
           }
         }
-        else if(!e.KE.HasAnyMod(KeyMod.Shift)) SelectionLength=0;
+        else if(!e.KE.HasAny(KeyMod.Shift)) SelectionLength=0;
         e.Handled=true;
       }
     }
     else if(e.KE.Key==Key.Right)
-    { if(e.KE.KeyMods==KeyMod.None || e.KE.HasOnlyKeys(KeyMod.Shift|KeyMod.Ctrl))
+    { if(e.KE.KeyMods==KeyMod.None || e.KE.HasOnly(KeyMod.Shift|KeyMod.Ctrl))
       { if(caret<Text.Length)
         { if(e.KE.KeyMods==KeyMod.None) Select(caret+1, 0);
-          else if(e.KE.HasOnlyKeys(KeyMod.Shift)) Select(caret+1, selectLen-1);
+          else if(e.KE.HasOnly(KeyMod.Shift)) Select(caret+1, selectLen-1);
           else
           { int pos = CtrlScan(1);
-            if(e.KE.HasOnlyKeys(KeyMod.Ctrl)) Select(pos, 0);
+            if(e.KE.HasOnly(KeyMod.Ctrl)) Select(pos, 0);
             else if(selectLen<0) Select(pos, SelectionStart-pos);
             else Select(pos, SelectionEnd-pos);
           }
         }
-        else if(!e.KE.HasAnyMod(KeyMod.Shift)) SelectionLength=0;
+        else if(!e.KE.HasAny(KeyMod.Shift)) SelectionLength=0;
         e.Handled=true;
       }
     }
@@ -998,7 +998,7 @@ public abstract class TextBoxBase : Control
         }
         e.Handled=true;
       }
-      else if(e.KE.HasOnlyKeys(KeyMod.Ctrl))
+      else if(e.KE.HasOnly(KeyMod.Ctrl))
       { if(caret>0 && selectLen==0)
         { int end=caret, pos=CtrlScan(-1);
           Modified=true;
@@ -1008,8 +1008,8 @@ public abstract class TextBoxBase : Control
         e.Handled=true;
       }
     }
-    else if(e.KE.Key==Key.Delete && !e.KE.HasAnyMod(KeyMod.Shift) && !readOnly)
-    { if(e.KE.KeyMods==KeyMod.None || e.KE.HasOnlyKeys(KeyMod.Ctrl))
+    else if(e.KE.Key==Key.Delete && !e.KE.HasAny(KeyMod.Shift) && !readOnly)
+    { if(e.KE.KeyMods==KeyMod.None || e.KE.HasOnly(KeyMod.Ctrl))
       { if(selectLen!=0) { Modified=true; SelectedText=""; }
         else if(caret<Text.Length)
         { Modified=true;
@@ -1025,7 +1025,7 @@ public abstract class TextBoxBase : Control
     }
     else if(e.KE.Key==Key.Home)
     { if(e.KE.KeyMods==KeyMod.None) { Select(0, 0); e.Handled=true; }
-      else if(e.KE.HasOnlyKeys(KeyMod.Shift))
+      else if(e.KE.HasOnly(KeyMod.Shift))
       { if(selectLen<0) Select(0, SelectionStart);
         else Select(0, SelectionEnd);
         e.Handled=true;
@@ -1033,17 +1033,17 @@ public abstract class TextBoxBase : Control
     }
     else if(e.KE.Key==Key.End)
     { if(e.KE.KeyMods==KeyMod.None) { Select(Text.Length, 0); e.Handled=true; }
-      else if(e.KE.HasOnlyKeys(KeyMod.Shift))
+      else if(e.KE.HasOnly(KeyMod.Shift))
       { if(selectLen<0) Select(Text.Length, SelectionStart-Text.Length);
         else Select(Text.Length, SelectionEnd-Text.Length);
         e.Handled=true;
       }
     }
-    else if(e.KE.HasOnlyKeys(KeyMod.Ctrl) && (c=='C'-64 || e.KE.Key==Key.Insert))
+    else if(e.KE.HasOnly(KeyMod.Ctrl) && (c=='C'-64 || e.KE.Key==Key.Insert))
     { Copy();
       e.Handled=true;
     }
-    else if(c=='X'-64 && e.KE.HasOnlyKeys(KeyMod.Ctrl) || e.KE.Key==Key.Delete && e.KE.HasOnlyKeys(KeyMod.Shift))
+    else if(c=='X'-64 && e.KE.HasOnly(KeyMod.Ctrl) || e.KE.Key==Key.Delete && e.KE.HasOnly(KeyMod.Shift))
     { if(selectLen!=0)
       { Modified=true;
         if(readOnly) Copy();
@@ -1051,7 +1051,7 @@ public abstract class TextBoxBase : Control
       }
       e.Handled=true;
     }
-    else if(c=='V'-64 && e.KE.HasOnlyKeys(KeyMod.Ctrl) || e.KE.Key==Key.Insert && e.KE.HasOnlyKeys(KeyMod.Shift) &&
+    else if(c=='V'-64 && e.KE.HasOnly(KeyMod.Ctrl) || e.KE.Key==Key.Insert && e.KE.HasOnly(KeyMod.Shift) &&
             !readOnly)
     { if(maxLength==-1 || Text.Length<maxLength)
       { Modified=true;
@@ -1063,7 +1063,7 @@ public abstract class TextBoxBase : Control
       }
       e.Handled=true;
     }
-    else if(c=='A'-64 && e.KE.HasOnlyKeys(KeyMod.Ctrl)) { SelectAll(); e.Handled=true; }
+    else if(c=='A'-64 && e.KE.HasOnly(KeyMod.Ctrl)) { SelectAll(); e.Handled=true; }
   }
 
   protected internal override void OnCustomEvent(Events.WindowEvent e)
@@ -1935,7 +1935,7 @@ public abstract class ListBoxBase : ListControl
   }
 
   protected internal override void OnKeyPress(KeyEventArgs e)
-  { if(!e.KE.HasAnyMod(KeyMod.Alt))
+  { if(!e.KE.HasAny(KeyMod.Alt))
     { char c = e.KE.Char;
       if(c<=26) c += (char)64;
       int next=FindChar(c, CursorPosition+1);
@@ -1959,7 +1959,7 @@ public abstract class ListBoxBase : ListControl
     { int index = PointToItem(e.CE.Point);
       Capture   = e.Handled = mouseDown = true;
 
-      bool ctrl = Keyboard.HasAnyMod(KeyMod.Ctrl), shift=Keyboard.HasAnyMod(KeyMod.Shift);
+      bool ctrl = Keyboard.HasAny(KeyMod.Ctrl), shift=Keyboard.HasAny(KeyMod.Shift);
       selecting = (!ctrl && selMode!=SelectionMode.MultiSimple) || index<0 || !GetSelected(index);
 
       if(selMode==SelectionMode.One)
@@ -2087,8 +2087,8 @@ public abstract class ListBoxBase : ListControl
   void DragTo(int index, KeyEventArgs e)
   { if(index!=CursorPosition)
     { bool shift, ctrl;
-      if(e!=null) { shift=e.KE.HasAnyMod(KeyMod.Shift); ctrl=e.KE.HasAnyMod(KeyMod.Ctrl); }
-      else { shift=Keyboard.HasAnyMod(KeyMod.Shift); ctrl=Keyboard.HasAnyMod(KeyMod.Ctrl); }
+      if(e!=null) { shift=e.KE.HasAny(KeyMod.Shift); ctrl=e.KE.HasAny(KeyMod.Ctrl); }
+      else { shift=Keyboard.HasAny(KeyMod.Shift); ctrl=Keyboard.HasAny(KeyMod.Ctrl); }
 
       if(selMode!=SelectionMode.None && (mouseDown || selMode!=SelectionMode.MultiSimple && (!ctrl || shift)))
       { if(selMode==SelectionMode.One) SelectedIndex = index;
@@ -3356,7 +3356,7 @@ public class Form : FormBase
   }
   
   protected internal override void OnKeyDown(KeyEventArgs e)
-  { if(!e.Handled && e.KE.Key==Key.F4 && e.KE.HasOnlyKeys(KeyMod.Ctrl)) // close the window when Ctrl-F4 is pressed
+  { if(!e.Handled && e.KE.Key==Key.F4 && e.KE.HasOnly(KeyMod.Ctrl)) // close the window when Ctrl-F4 is pressed
     { Close();
       e.Handled=true;
     }
