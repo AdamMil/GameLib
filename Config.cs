@@ -26,17 +26,17 @@ namespace GameLib
 public static class Config
 { 
   /// <summary>The <see cref="DllImportAttribute"/> path to the SDL_image library.</summary>
-  public const string SDLImageImportPath  = "SDL_image";
+  public const string SdlImageImportPath  = "SDL_image";
   /// <summary>The <see cref="DllImportAttribute"/> path to the SDL_gfx library.</summary>
-  public const string SDLGFXImportPath    = "sdlgfx";
+  public const string SdlGfxImportPath    = "sdlgfx";
   /// <summary>The <see cref="DllImportAttribute"/> path to the libsndfile library.</summary>
   public const string SndFileImportPath   = "libsndfile-1";
 
-  #if WIN32
+  #if WINDOWS
   /// <summary>The <see cref="DllImportAttribute"/> path to the SDL library.</summary>
-  public const string SDLImportPath       = "SDL";
+  public const string SdlImportPath       = "SDL";
   /// <summary>The <see cref="DllImportAttribute"/> path to the SDL_ttf library.</summary>
-  public const string SDLTTFImportPath    = "SDL_ttf";
+  public const string SdlTTFImportPath    = "SDL_ttf";
   /// <summary>The <see cref="DllImportAttribute"/> path to the GameLib Mixer library.</summary>
   public const string GLMixerImportPath   = "Mixer";
   /// <summary>The <see cref="DllImportAttribute"/> path to the GameLib Utility library.</summary>
@@ -46,12 +46,12 @@ public static class Config
   /// <summary>The <see cref="DllImportAttribute"/> path to the OpenGL library.</summary>
   public const string OpenGLImportPath    = "opengl32";
   /// <summary>The <see cref="DllImportAttribute"/> path to the GLU library.</summary>
-  public const string GLUImportPath       = "glu32";
+  public const string GluImportPath       = "glu32";
   #elif LINUX
   /// <summary>The <see cref="DllImportAttribute"/> path to the SDL library.</summary>
-  public const string SDLImportPath       = "libSDL-1.2.so.0";
+  public const string SdlImportPath       = "libSDL-1.2.so.0";
   /// <summary>The <see cref="DllImportAttribute"/> path to the SDL_ttf library.</summary>
-  public const string SDLTTFImportPath    = "libSDL_ttf-2.0.so.0";
+  public const string SdlTTFImportPath    = "libSDL_ttf-2.0.so.0";
   /// <summary>The <see cref="DllImportAttribute"/> path to the GameLib Mixer library.</summary>
   public const string GLMixerImportPath   = "libGameLibMixer.so";
   /// <summary>The <see cref="DllImportAttribute"/> path to the GameLib Utility library.</summary>
@@ -61,11 +61,11 @@ public static class Config
   /// <summary>The <see cref="DllImportAttribute"/> path to the OpenGL library.</summary>
   public const string OpenGLImportPath   = "opengl";
   /// <summary>The <see cref="DllImportAttribute"/> path to the GLU library.</summary>
-  public const string GLUImportPath      = "glu";
+  public const string GluImportPath      = "glu";
   #endif
 
   // TODO: mono might emulate winsock's replies, so we need to check these under mono/linux and mono/win32
-  #if WIN32
+  #if WINDOWS
   /// <summary>The system constant for the EWOULDBLOCK error.</summary>
   public const int EWOULDBLOCK  = 10035;
   /// <summary>The system constant for the EMSGSIZE error.</summary>
@@ -77,10 +77,10 @@ public static class Config
   public const int EMSGSIZE     = 90;
   #endif
 
-  #if WIN32
-  public const CallingConvention GLUCallbackConvention = CallingConvention.StdCall;
+  #if WINDOWS
+  public const CallingConvention GluCallbackConvention = CallingConvention.StdCall;
   #elif LINUX
-  public const CallingConvention GLUCallbackConvention = CallingConvention.Cdecl;
+  public const CallingConvention GluCallbackConvention = CallingConvention.Cdecl;
   #endif
 
   // TODO: perhaps i should be using System.BitConverter.IsLittleEndian

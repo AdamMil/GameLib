@@ -277,7 +277,7 @@ namespace Asteroids
 
     static void Deinitialize()
     {
-      if(playedDrive!=-1) CD.Drives[playedDrive].Stop();
+      if(playedDrive != -1) CD.Drives[playedDrive].Stop();
       Audio.Deinitialize();
       Video.Deinitialize();
       foreach(Drive d in CD.Drives) d.Stop();
@@ -302,7 +302,7 @@ namespace Asteroids
       Audio.AllocateChannels(8);
       // if there's a music cd in the drive, use it
       foreach(Drive d in CD.Drives) if(d.Status==CDStatus.Playing) goto cdmusic;
-      for(int i=0; i<CD.Drives.Length; i++)
+      for(int i=0; i<CD.Drives.Count; i++)
         if(CD.Drives[i].CDInDrive)
           foreach(Track t in CD.Drives[i].Tracks)
             if(t.Type==TrackType.Audio)

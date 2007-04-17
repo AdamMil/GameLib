@@ -38,7 +38,9 @@ namespace GameLib.Interop
 /// </para>
 /// </remarks>
 // HACK: get a function pointer for a delegate
-[StructLayout(LayoutKind.Explicit, Size=4)] // TODO: make this work on systems where a pointer is not 4 bytes
+// TODO: make this work on systems where a pointer is not 4 bytes
+// TODO: see if this is even necessary...
+[StructLayout(LayoutKind.Explicit, Size=4)]
 public sealed class DelegateMarshaller
 { 
   /// <summary>Initializes this class from a delegate.</summary>

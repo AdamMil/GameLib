@@ -34,12 +34,12 @@
     <CheckForOverflowUnderflow>false</CheckForOverflowUnderflow>
     <ConfigurationOverrideFile>
     </ConfigurationOverrideFile>
-    <DefineConstants>DEBUG;TRACE;WIN32</DefineConstants>
+    <DefineConstants>TRACE;DEBUG;WINDOWS</DefineConstants>
     <DocumentationFile>bin\Debug\GameLib.xml</DocumentationFile>
     <DebugSymbols>true</DebugSymbols>
     <FileAlignment>4096</FileAlignment>
     <NoStdLib>false</NoStdLib>
-    <NoWarn>1591,0419,1574</NoWarn>
+    <NoWarn>419,1591</NoWarn>
     <Optimize>false</Optimize>
     <RegisterForComInterop>false</RegisterForComInterop>
     <RemoveIntegerChecks>false</RemoveIntegerChecks>
@@ -56,12 +56,13 @@
     <CheckForOverflowUnderflow>false</CheckForOverflowUnderflow>
     <ConfigurationOverrideFile>
     </ConfigurationOverrideFile>
-    <DefineConstants>TRACE;WIN32</DefineConstants>
+    <DefineConstants>TRACE;WINDOWS</DefineConstants>
     <DocumentationFile>bin\Release\GameLib.xml</DocumentationFile>
     <DebugSymbols>false</DebugSymbols>
     <FileAlignment>4096</FileAlignment>
     <NoStdLib>false</NoStdLib>
-    <NoWarn>1591,0419,1574</NoWarn>
+    <NoWarn>
+    </NoWarn>
     <Optimize>true</Optimize>
     <RegisterForComInterop>false</RegisterForComInterop>
     <RemoveIntegerChecks>false</RemoveIntegerChecks>
@@ -77,12 +78,13 @@
     <CheckForOverflowUnderflow>false</CheckForOverflowUnderflow>
     <ConfigurationOverrideFile>
     </ConfigurationOverrideFile>
-    <DefineConstants>TRACE;WIN32</DefineConstants>
+    <DefineConstants>TRACE;WINDOWS</DefineConstants>
     <DocumentationFile>bin\Profile\GameLib.xml</DocumentationFile>
     <DebugSymbols>true</DebugSymbols>
     <FileAlignment>4096</FileAlignment>
     <NoStdLib>false</NoStdLib>
-    <NoWarn>1591,0419,1574</NoWarn>
+    <NoWarn>
+    </NoWarn>
     <Optimize>true</Optimize>
     <RegisterForComInterop>false</RegisterForComInterop>
     <RemoveIntegerChecks>false</RemoveIntegerChecks>
@@ -160,9 +162,6 @@
     <Compile Include="OpenGLInterop.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="PriorityQueue.cs">
-      <SubType>Code</SubType>
-    </Compile>
     <Compile Include="PSD.cs">
       <SubType>Code</SubType>
     </Compile>
@@ -198,6 +197,12 @@
     <None Include="README" />
     <Content Include="documentation.xml" />
     <Content Include="TODO" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\AdamMil.net\Collections\AdamMil.Collections.csproj">
+      <Project>{D9724C65-C54A-4671-BA0B-40B0B38464DD}</Project>
+      <Name>AdamMil.Collections</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

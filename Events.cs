@@ -218,7 +218,7 @@ public abstract class UserEvent : Event
 { 
   /// <summary>Initializes this event.</summary>
   /// <remarks>This constructor sets <see cref="Event.Type"/> to <see cref="EventType.UserDefined"/>.</remarks>
-  public UserEvent() : base(EventType.UserDefined) { }
+  protected UserEvent() : base(EventType.UserDefined) { }
 }
 
 /// <summary>This event occurs when an unhandled exception is thrown in a worker thread.</summary>
@@ -555,7 +555,8 @@ public abstract class WindowEvent : Event
   /// <see cref="Forms.Control.OnCustomEvent"/> handler.
   /// </param>
   /// <remarks>This constructor sets <see cref="SubType"/> to <see cref="MessageType.Custom"/>.</remarks>
-  public WindowEvent(GameLib.Forms.Control control) : this(control, MessageType.Custom) { }
+  protected WindowEvent(GameLib.Forms.Control control) : this(control, MessageType.Custom) { }
+  
   internal WindowEvent(GameLib.Forms.Control control, MessageType subType) : base(EventType.Window)
   { if(control==null) throw new ArgumentNullException("control");
     Control=control; this.subType=subType;

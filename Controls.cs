@@ -272,7 +272,8 @@ public class Label : LabelBase
 
 #region ButtonBase
 public abstract class ButtonBase : LabelBase
-{ public ButtonBase()
+{ 
+  protected ButtonBase()
   { BorderStyle=BorderStyle.FixedThick; Style|=ControlStyle.Clickable|ControlStyle.CanFocus;
     autoPress=true;
   }
@@ -336,9 +337,13 @@ public abstract class ButtonBase : LabelBase
 
 #region Button
 public class Button : ButtonBase
-{ public Button()
-  { ImageAlign=TextAlign=ContentAlignment.MiddleCenter; alwaysUse=false; DontDraw|=DontDraw.Border;
+{ 
+  public Button()
+  { 
+    ImageAlign = TextAlign = ContentAlignment.MiddleCenter;
+    DontDraw  |= DontDraw.Border;
   }
+
   public Button(string text) : this() { Text=text; }
 
   public bool AlwaysUsePressed { get { return alwaysUse; } set { alwaysUse=value; } }
@@ -394,7 +399,8 @@ public class Button : ButtonBase
 
 #region CheckBoxBase
 public abstract class CheckBoxBase : ButtonBase
-{ public CheckBoxBase() { TextAlign=ContentAlignment.MiddleRight; }
+{ 
+  protected CheckBoxBase() { TextAlign=ContentAlignment.MiddleRight; }
 
   public bool Checked
   { get { return value; }
@@ -506,7 +512,8 @@ public class CheckBox : CheckBoxBase
 #region ScrollBarBase
 // TODO: make sure Minimum can be greater than Maximum
 public abstract class ScrollBarBase : Control, IDisposable
-{ public ScrollBarBase()
+{ 
+  protected ScrollBarBase()
   { Style = ControlStyle.Clickable|ControlStyle.Draggable|ControlStyle.CanFocus;
     ClickRepeatDelay = 300;
     DragThreshold    = 4;
@@ -671,12 +678,18 @@ public abstract class ScrollBarBase : Control, IDisposable
     base.OnDragEnd(e);
   }
   protected internal override void OnCustomEvent(Events.WindowEvent e)
-  { if(e is ClickRepeat) switch(((ClickRepeat)e).Place)
-    { case Place.Down: OnDown(EventArgs.Empty); break;
-      case Place.PageDown: OnPageDown(EventArgs.Empty); break;
-      case Place.PageUp: OnPageUp(EventArgs.Empty); break;
-      case Place.Up: OnUp(EventArgs.Empty); break;
-      default: base.OnCustomEvent(e); break;
+  {
+    ClickRepeat cr = e as ClickRepeat;
+    if(cr != null)
+    {
+      switch(cr.Place)
+      {
+        case Place.Down: OnDown(EventArgs.Empty); break;
+        case Place.PageDown: OnPageDown(EventArgs.Empty); break;
+        case Place.PageUp: OnPageUp(EventArgs.Empty); break;
+        case Place.Up: OnUp(EventArgs.Empty); break;
+        default: base.OnCustomEvent(e); break;
+      }
     }
   }
   protected internal override void OnKeyDown(KeyEventArgs e)
@@ -719,7 +732,7 @@ public abstract class ScrollBarBase : Control, IDisposable
   }
   #endregion
 
-  protected void Dispose(bool finalizing)
+  protected virtual void Dispose(bool finalizing)
   { if(crTimer!=null)
     { crTimer.Dispose();
       crTimer=null;
@@ -820,7 +833,8 @@ public class ScrollBar : ScrollBarBase
 #region TextBoxBase
 // TODO: support multi-line editing
 public abstract class TextBoxBase : Control
-{ public TextBoxBase()
+{ 
+  protected TextBoxBase()
   { Style=ControlStyle.CanFocus;
     BackColor=SystemColors.Window; ForeColor=SystemColors.WindowText;
   }
@@ -880,7 +894,7 @@ public abstract class TextBoxBase : Control
 
   public bool MultiLine
   { get { return false; }
-    set { if(value) throw new NotImplementedException("MultiLine text boxes not implemented"); }
+    set { if(value) throw new NotImplementedException("MultiLine text boxes are not implemented"); }
   }
 
   public bool ReadOnly { get { return readOnly; } set { readOnly=value; } }
@@ -1121,8 +1135,6 @@ public abstract class TextBoxBase : Control
     return i<0 ? 0 : i;
   }
 
-  bool IsPunctuation(char c) { return char.IsPunctuation(c) || char.IsSymbol(c); }
-
   int  caret, selectLen, maxLength=-1;
   bool hideSelection=true, modified, wordWrap, selectOnFocus=true, readOnly;
 
@@ -1149,7 +1161,8 @@ public abstract class TextBoxBase : Control
   protected static bool CaretOn { get { return caretOn; } set { caretOn=value; } }
 
   static TextBoxBase WithCaret
-  { get { return withCaret; }
+  { 
+    get { return withCaret; }
     set
     { if(withCaret!=value)
       { if(withCaret!=null) withCaret.Invalidate(withCaret.ContentRect);
@@ -1166,6 +1179,8 @@ public abstract class TextBoxBase : Control
   }
 
   static void DoFlash(TextBoxBase tb) { Events.Events.PushEvent(new CaretFlashEvent(tb)); }
+
+  static bool IsPunctuation(char c) { return char.IsPunctuation(c) || char.IsSymbol(c); }
 
   static System.Threading.Timer caretTimer;
   static TextBoxBase withCaret;
@@ -1319,7 +1334,8 @@ public class TextBox : TextBoxBase
 // TODO: implement multi-column list boxes
 // TODO: document
 public abstract class ListControl : ScrollableControl
-{ protected ListControl() { items = new ItemCollection(this); }
+{ 
+  protected ListControl() { items = new ItemCollection(this); }
   protected ListControl(System.Collections.IEnumerable items)
   { this.items = new ItemCollection(this, items);
     OnListChanged();
@@ -1450,10 +1466,10 @@ public abstract class ListControl : ScrollableControl
 
     public bool Contains(object item) { return IndexOf(item)!=-1; }
 
-    public void CopyTo(Array array, int index)
+    public void CopyTo(object[] array, int index)
     {
       if(index < 0 || index+Count > array.Length) throw new ArgumentOutOfRangeException();
-      foreach(Item item in list) array.SetValue(item.Object, index++);
+      foreach(Item item in list) array[index++] = item.Object;
     }
 
     public System.Collections.IEnumerator GetEnumerator()
@@ -1534,6 +1550,12 @@ public abstract class ListControl : ScrollableControl
       stateVersion++;
       parent.OnListChanged();
       parent.Invalidate(parent.ContentRect);
+    }
+
+    void System.Collections.ICollection.CopyTo(Array array, int index)
+    {
+      if(index < 0 || index+Count > array.Length) throw new ArgumentOutOfRangeException();
+      foreach(Item item in list) array.SetValue(item.Object, index++);
     }
 
     void OnUpdated()
@@ -1680,17 +1702,25 @@ public abstract class ListControl : ScrollableControl
     public object SyncRoot { get { return list; } }
 
     public bool Contains(object item) { return IndexOf(item)!=-1; }
-    public void CopyTo(Array array, int index)
-    { int[] indices = this.indices.Indices;
-      for(int i=0; i<indices.Length; i++) array.SetValue(list.items[indices[i]], i+index);
-    }
     public int IndexOf(object item)
     { int[] indices = this.indices.Indices;
       for(int i=0; i<indices.Length; i++) if(list.items[indices[i]]==item) return i;
       return -1;
     }
 
+    public void CopyTo(object[] array, int index)
+    {
+      int[] indices = this.indices.Indices;
+      for(int i=0; i<indices.Length; i++) array[i+index] = list.items[indices[i]];
+    }
+
     public System.Collections.IEnumerator GetEnumerator() { return new ObjectEnumerator(this); }
+
+    void System.Collections.ICollection.CopyTo(Array array, int index)
+    {
+      int[] indices = this.indices.Indices;
+      for(int i=0; i<indices.Length; i++) array.SetValue(list.items[indices[i]], i+index);
+    }
 
     ListControl list;
     SelectedIndexCollection indices;
@@ -1815,7 +1845,8 @@ public abstract class ListControl : ScrollableControl
 public enum SelectionMode { None, One, MultiSimple, MultiExtended }
 
 public abstract class ListBoxBase : ListControl
-{ protected ListBoxBase() { Init(); }
+{ 
+  protected ListBoxBase() { Init(); }
   protected ListBoxBase(System.Collections.IEnumerable items) : base(items) { Init(); }
   void Init()
   { cursor=bottom=-1; selMode=SelectionMode.One; selBack=SystemColors.Highlight; selFore=SystemColors.HighlightText;
@@ -1974,6 +2005,7 @@ public abstract class ListBoxBase : ListControl
   }
 
   protected int GetTopIndex() { return GetTopIndex(Items.Count-1); }
+
   protected int GetTopIndex(int bottom)
   { if(fixedHeight)
     { if(Items.Count==0) return 0;
@@ -2241,12 +2273,11 @@ public abstract class ListBoxBase : ListControl
     { scrolling=true;
       if(scroll==null) scroll = new ScrollEvent(this);
       staticScroll = scroll;
-      DesktopControl desktop = Desktop;
       scrollTimer.Change(25, 25);
     }
   }
   
-  void StopScrolling()
+  static void StopScrolling()
   { if(scrolling)
     { scrollTimer.Change(System.Threading.Timeout.Infinite, System.Threading.Timeout.Infinite);
       scrolling=false;
@@ -2312,7 +2343,8 @@ public class ListBox : ListBoxBase
 public enum ComboBoxStyle { DropDown, DropDownList, Simple }
 
 public abstract class ComboBoxBase : ListControl
-{ protected ComboBoxBase() { Init(); }
+{ 
+  protected ComboBoxBase() { Init(); }
   protected ComboBoxBase(System.Collections.IEnumerable items) : base(items) { Init(); }
   void Init()
   { BorderStyle = BorderStyle.FixedThick|BorderStyle.Depressed;
@@ -2560,7 +2592,8 @@ public class ComboBox : ComboBoxBase
 // TODO: allow the hotkey letter to be underlined
 #region MenuItemBase
 public abstract class MenuItemBase : Control
-{ public MenuItemBase() { BackColor = SystemColors.Menu; ForeColor = SystemColors.MenuText; }
+{ 
+  protected MenuItemBase() { BackColor = SystemColors.Menu; ForeColor = SystemColors.MenuText; }
 
   public bool AllowKeyRepeat { get { return keyRepeat; } set { keyRepeat=value; } }
   public KeyCombo GlobalHotKey { get { return globalHotKey; } set { globalHotKey=value; } }
@@ -2582,7 +2615,8 @@ public abstract class MenuItemBase : Control
 #region MenuBase
 // TODO: add arrow key support
 public abstract class MenuBase : ContainerControl
-{ public MenuBase()
+{ 
+  protected MenuBase()
   { Style |= ControlStyle.Clickable|ControlStyle.CanFocus|ControlStyle.DontLayout;
     BackColor = SystemColors.Menu;
     ForeColor = SystemColors.MenuText;
@@ -2693,7 +2727,9 @@ public abstract class MenuBase : ContainerControl
   }
 
   protected internal override void OnCustomEvent(Events.WindowEvent e)
-  { if(e is ItemClickedEvent) Click(((ItemClickedEvent)e).Item);
+  {
+    ItemClickedEvent ice = e as ItemClickedEvent;
+    if(ice != null) Click(ice.Item);
     base.OnCustomEvent(e);
   }
 
@@ -2725,7 +2761,8 @@ public abstract class MenuBase : ContainerControl
 
 #region MenuBarBase
 public abstract class MenuBarBase : Control
-{ public MenuBarBase()
+{ 
+  protected MenuBarBase()
   { Style |= ControlStyle.Clickable;
     BackColor = SystemColors.Menu;
     ForeColor = SystemColors.MenuText;
@@ -2747,9 +2784,9 @@ public abstract class MenuBarBase : Control
       parent.Relayout();
     }
 
-    protected override void InsertItem(int index, MenuBase item)
-    { if(item==null) throw new ArgumentNullException("menu", "Item cannot be null.");
-      base.InsertItem(index, item);
+    protected override void InsertItem(int index, MenuBase menu)
+    { if(menu==null) throw new ArgumentNullException("menu", "Item cannot be null.");
+      base.InsertItem(index, menu);
       parent.Relayout();
     }
 
@@ -2758,9 +2795,9 @@ public abstract class MenuBarBase : Control
       parent.Relayout();
     }
 
-    protected override void SetItem(int index, MenuBase item)
-    { if(item==null) throw new ArgumentNullException("menu", "Item cannot be null.");
-      base.SetItem(index, item);
+    protected override void SetItem(int index, MenuBase menu)
+    { if(menu==null) throw new ArgumentNullException("menu", "Item cannot be null.");
+      base.SetItem(index, menu);
       parent.Relayout();
     }
 
@@ -2823,7 +2860,7 @@ public abstract class MenuBarBase : Control
       }
       if(open!=-1)
       { DesktopControl desktop = Desktop;
-        e.CE.Point = desktop.WindowToChild(WindowToAncestor(e.CE.Point, desktop), buttons[open].Menu);
+        e.CE.Point = Control.WindowToChild(WindowToAncestor(e.CE.Point, desktop), buttons[open].Menu);
         buttons[open].Menu.OnMouseUp(e);
       }
       done:
@@ -3101,7 +3138,8 @@ public class MenuBar : MenuBarBase
 // TODO: make TAB start tabbing through child controls
 public enum ButtonClicked { None, Abort, Cancel, Ignore, No, Ok, Retry, Yes }
 public abstract class FormBase : ContainerControl
-{ public FormBase()
+{ 
+  protected FormBase()
   { Style |= ControlStyle.CanFocus|ControlStyle.Draggable;
     ForeColor=SystemColors.ControlText; BackColor=SystemColors.Control;
     DragThreshold=3;
@@ -3109,7 +3147,8 @@ public abstract class FormBase : ContainerControl
 
   #region TitleBarBase
   public abstract class TitleBarBase : ContainerControl
-  { public TitleBarBase(FormBase parent)
+  { 
+    protected TitleBarBase(FormBase parent)
     { Style    |= ControlStyle.Draggable|ControlStyle.DontLayout;
       BackColor = SystemColors.InactiveCaption;
       ForeColor = SystemColors.InactiveCaptionText;
@@ -3565,16 +3604,24 @@ public sealed class MessageBox : Form
   }
 
   protected internal override void OnKeyPress(KeyEventArgs e)
-  { if(!e.Handled)
+  {
+    if(!e.Handled)
+    {
       foreach(Control c in Controls)
-        if(c is ButtonBase)
-        { ButtonBase button = (ButtonBase)c;
+      {
+        ButtonBase button = c as ButtonBase;
+        if(button != null)
+        {
           if(char.ToUpper(button.Text[0])==char.ToUpper(e.KE.Char))
-          { button.PerformClick();
+          {
+            button.PerformClick();
             e.Handled = true;
             break;
           }
         }
+      }
+    }
+
     base.OnKeyPress(e);
   }
 

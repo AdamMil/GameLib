@@ -270,7 +270,7 @@ public static class OpenGL
     #endif
 
     Surface temp = new Surface(texSize.Width+border*2, texSize.Height+border*2, pf,
-                               pf.Depth==32 ? SurfaceFlag.SrcAlpha : 0);
+                               pf.Depth==32 ? SurfaceFlag.SourceAlpha : 0);
     bool oua = surface.UsingAlpha;
     if(surface.Format.AlphaMask!=0 || surface.Alpha==255) surface.UsingAlpha=false;
 
@@ -444,7 +444,7 @@ public class GLTexture2D : IDisposable
   public bool Initialized { get { return texture!=0; } }
 
   /// <summary>Gets the OpenGL texture ID of this texture, or zero if no texture is loaded.</summary>
-  public int TextureID { get { return texture; } }
+  public int TextureId { get { return texture; } }
 
   /// <summary>Gets the height of the texture in pixels.</summary>
   /// <remarks>The size of the image may differ from the size of the texture because most OpenGL implementations

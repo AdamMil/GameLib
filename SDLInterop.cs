@@ -348,210 +348,210 @@ internal static class SDL
   #endregion
 
   #region General
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_Init", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_Init", CallingConvention=CallingConvention.Cdecl)]
   private static extern int Init(InitFlag flags);
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_InitSubSystem", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_InitSubSystem", CallingConvention=CallingConvention.Cdecl)]
   private static extern int InitSubSystem(InitFlag systems);
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_QuitSubSystem", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_QuitSubSystem", CallingConvention=CallingConvention.Cdecl)]
   private static extern void QuitSubSystem(InitFlag systems);
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_Quit", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_Quit", CallingConvention=CallingConvention.Cdecl)]
   private static extern void Quit();
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_WasInit", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_WasInit", CallingConvention=CallingConvention.Cdecl)]
   public static extern uint WasInit(InitFlag systems);
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_GetError", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_GetError", CallingConvention=CallingConvention.Cdecl)]
   public static extern string GetError();
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_ClearError", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_ClearError", CallingConvention=CallingConvention.Cdecl)]
   public static extern void ClearError();
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_GetTicks", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_GetTicks", CallingConvention=CallingConvention.Cdecl)]
   public static extern uint GetTicks();
 
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_RWFromFile", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_RWFromFile", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern RWOps* RWFromFile(string file, string mode);
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_RWFromMem", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_RWFromMem", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern RWOps* RWFromMem(byte* mem, int size);
   #endregion
 
   #region Video
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_VideoModeOK", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_VideoModeOK", CallingConvention=CallingConvention.Cdecl)]
   public static extern int VideoModeOK(int width, int height, int depth, uint flags);
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_GetVideoInfo", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_GetVideoInfo", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern VideoInfo* GetVideoInfo();
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_SetVideoMode", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_SetVideoMode", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern Surface* SetVideoMode(int width, int height, int depth, uint flags);
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_FreeSurface", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_FreeSurface", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern void FreeSurface(Surface* surface);
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_Flip", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_Flip", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern int Flip(Surface* screen);
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_UpdateRect", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_UpdateRect", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern int UpdateRect(Surface* screen, int x, int y, int width, int height);
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_UpdateRects", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_UpdateRects", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern int UpdateRects(Surface* screen, uint numRects, Rect* rects);
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_FillRect", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_FillRect", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern int FillRect(Surface* surface, ref Rect rect, uint color);
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_MapRGBA", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_MapRGBA", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern uint MapRGBA(PixelFormat* format, byte r, byte g, byte b, byte a);
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_GetRGBA", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_GetRGBA", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern void GetRGBA(uint pixel, PixelFormat* format, out byte r, out byte g, out byte b, out byte a);
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_ShowCursor", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_ShowCursor", CallingConvention=CallingConvention.Cdecl)]
   public static extern int ShowCursor(int toggle);
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_WarpMouse", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_WarpMouse", CallingConvention=CallingConvention.Cdecl)]
   public static extern void WarpMouse(ushort x, ushort y);
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_CreateRGBSurface", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_CreateRGBSurface", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern Surface* CreateRGBSurface(uint flags, int width, int height, int depth, uint Rmask, uint Gmask, uint Bmask, uint Amask);
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_UpperBlit", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_UpperBlit", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern int BlitSurface(Surface* src, Rect* srcrect, Surface* dest, Rect* destrect);
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_GetVideoSurface", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_GetVideoSurface", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern Surface* GetVideoSurface();
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_SetPalette", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_SetPalette", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern int SetPalette(Surface* surface, uint flags, Color* colors, int firstColor, int numColors);
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_SetGamma", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_SetGamma", CallingConvention=CallingConvention.Cdecl)]
   public static extern int SetGamma(float red, float green, float blue);
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_GetGammaRamp", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_GetGammaRamp", CallingConvention=CallingConvention.Cdecl)]
   public static extern int GetGammaRamp([Out] ushort[] red, [Out] ushort[] green, [Out] ushort[] blue);
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_SetGammaRamp", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_SetGammaRamp", CallingConvention=CallingConvention.Cdecl)]
   public static extern int SetGammaRamp([In] ushort[] red, [In] ushort[] green, [In] ushort[] blue);
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_LockSurface", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_LockSurface", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern int LockSurface(Surface* surface);
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_UnlockSurface", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_UnlockSurface", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern void UnlockSurface(Surface* surface);
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_SetColorKey", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_SetColorKey", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern int SetColorKey(Surface* surface, uint flag, uint key);
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_SetClipRect", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_SetClipRect", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern void SetClipRect(Surface* surface, ref Rect rect);
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_GetClipRect", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_GetClipRect", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern void GetClipRect(Surface* surface, ref Rect rect);
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_DisplayFormat", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_DisplayFormat", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern Surface* DisplayFormat(Surface* surface);
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_DisplayFormatAlpha", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_DisplayFormatAlpha", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern Surface* DisplayFormatAlpha(Surface* surface);
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_ConvertSurface", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_ConvertSurface", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern Surface* ConvertSurface(Surface* src, PixelFormat* format, uint flags);
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_SetAlpha", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_SetAlpha", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern int SetAlpha(Surface* src, uint flag, byte alpha);
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_ListModes", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_ListModes", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern Rect** ListModes(PixelFormat* format, uint flags);
   #endregion
 
   #region Audio
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_OpenAudio", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_OpenAudio", CallingConvention=CallingConvention.Cdecl)]
   public static extern int OpenAudio([In] ref AudioSpec desired, out AudioSpec obtained);
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_PauseAudio", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_PauseAudio", CallingConvention=CallingConvention.Cdecl)]
   public static extern void PauseAudio(int pause);
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_GetAudioStatus", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_GetAudioStatus", CallingConvention=CallingConvention.Cdecl)]
   public static extern AudioStatus GetAudioStatus();
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_BuildAudioCVT", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_BuildAudioCVT", CallingConvention=CallingConvention.Cdecl)]
   public static extern int BuildAudioCVT(out AudioCVT cvt, short src_format, byte src_channels, uint src_rate, short dst_format, byte dst_channels, uint dst_rate);
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_ConvertAudio", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_ConvertAudio", CallingConvention=CallingConvention.Cdecl)]
   public static extern int ConvertAudio([In] [Out] ref AudioCVT cvt);
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_MixAudio", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_MixAudio", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern void MixAudio(byte* dst, byte* src, uint len, int volume);
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_LockAudio", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_LockAudio", CallingConvention=CallingConvention.Cdecl)]
   public static extern void LockAudio();
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_UnlockAudio", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_UnlockAudio", CallingConvention=CallingConvention.Cdecl)]
   public static extern void UnlockAudio();
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_CloseAudio", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_CloseAudio", CallingConvention=CallingConvention.Cdecl)]
   public static extern void CloseAudio();
   #endregion
 
   #region Events
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_PollEvent", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_PollEvent", CallingConvention=CallingConvention.Cdecl)]
   public static extern int PollEvent(out Event evt);
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_WaitEvent", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_WaitEvent", CallingConvention=CallingConvention.Cdecl)]
   public static extern int WaitEvent(out Event evt);
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_PushEvent", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_PushEvent", CallingConvention=CallingConvention.Cdecl)]
   public static extern int PushEvent([In] ref Event evt);
   #endregion
 
   #region Input
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_EnableUNICODE", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_EnableUNICODE", CallingConvention=CallingConvention.Cdecl)]
   public static extern int EnableUNICODE(int enable);
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_EnableKeyRepeat", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_EnableKeyRepeat", CallingConvention=CallingConvention.Cdecl)]
   public static extern int EnableKeyRepeat(int delay, int interval);
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_GetKeyState", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_GetKeyState", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern byte* GetKeyState(int* numkeys);
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_GetKeyState", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_GetKeyState", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern byte* GetKeyState(out int numkeys);
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_GetModState", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_GetModState", CallingConvention=CallingConvention.Cdecl)]
   public static extern KeyMod GetModState();
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_GetMouseState", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_GetMouseState", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern byte GetMouseState(int* x, int* y);
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_GetMouseState", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_GetMouseState", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern byte GetMouseState(out int x, out int y);
   #endregion
 
   #region Window manager
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_WM_SetCaption", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_WM_SetCaption", CallingConvention=CallingConvention.Cdecl)]
   public static extern void WM_SetCaption(string title, string icon);
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_WM_GetCaption", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_WM_GetCaption", CallingConvention=CallingConvention.Cdecl)]
   public static extern void WM_GetCaption(out string title, out string icon);
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_WM_SetIcon", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_WM_SetIcon", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern void WM_SetIcon(Surface* icon, byte* mask);
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_WM_IconifyWindow", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_WM_IconifyWindow", CallingConvention=CallingConvention.Cdecl)]
   public static extern int WM_IconifyWindow();
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_WM_GrabInput", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_WM_GrabInput", CallingConvention=CallingConvention.Cdecl)]
   public static extern GrabMode WM_GrabInput(GrabMode mode);
   #endregion
 
   #region Joysticks
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_JoystickEventState", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_JoystickEventState", CallingConvention=CallingConvention.Cdecl)]
   public static extern void JoystickEventState(JoystickMode mode);
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_NumJoysticks", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_NumJoysticks", CallingConvention=CallingConvention.Cdecl)]
   public static extern int NumJoysticks();
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_JoystickName", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_JoystickName", CallingConvention=CallingConvention.Cdecl)]
   public static extern string JoystickName(int index);
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_JoystickOpen", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_JoystickOpen", CallingConvention=CallingConvention.Cdecl)]
   public static extern IntPtr JoystickOpen(int index);
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_JoystickUpdate", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_JoystickUpdate", CallingConvention=CallingConvention.Cdecl)]
   public static extern void JoystickUpdate();
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_JoystickNumAxes", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_JoystickNumAxes", CallingConvention=CallingConvention.Cdecl)]
   public static extern int JoystickNumAxes(IntPtr joystick);
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_JoystickNumBalls", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_JoystickNumBalls", CallingConvention=CallingConvention.Cdecl)]
   public static extern int JoystickNumBalls(IntPtr joystick);
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_JoystickNumHats", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_JoystickNumHats", CallingConvention=CallingConvention.Cdecl)]
   public static extern int JoystickNumHats(IntPtr joystick);
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_JoystickNumButtons", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_JoystickNumButtons", CallingConvention=CallingConvention.Cdecl)]
   public static extern int JoystickNumButtons(IntPtr joystick);
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_JoystickGetAxis", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_JoystickGetAxis", CallingConvention=CallingConvention.Cdecl)]
   public static extern int JoystickGetAxis(IntPtr joystick, int axis);
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_JoystickGetButton", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_JoystickGetButton", CallingConvention=CallingConvention.Cdecl)]
   public static extern byte JoystickGetButton(IntPtr joystick, int button);
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_JoystickGetHat", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_JoystickGetHat", CallingConvention=CallingConvention.Cdecl)]
   public static extern HatPos JoystickGetHat(IntPtr joystick, int hat);
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_JoystickClose", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_JoystickClose", CallingConvention=CallingConvention.Cdecl)]
   public static extern void JoystickClose(IntPtr joystick);
   #endregion
 
   #region OpenGL
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_GL_SwapBuffers", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_GL_SwapBuffers", CallingConvention=CallingConvention.Cdecl)]
   public static extern void SwapBuffers();
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_GL_SetAttribute", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_GL_SetAttribute", CallingConvention=CallingConvention.Cdecl)]
   public static extern int SetAttribute(Attribute attribute, int value);
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_GL_GetAttribute", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_GL_GetAttribute", CallingConvention=CallingConvention.Cdecl)]
   public static extern int GetAttribute(Attribute attribute, out int value);
   #endregion
 
   #region CDROM
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_CDNumDrives", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_CDNumDrives", CallingConvention=CallingConvention.Cdecl)]
   public static extern int CDNumDrives();
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_CDName", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_CDName", CallingConvention=CallingConvention.Cdecl)]
   public static extern string CDName(int drive);
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_CDOpen", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_CDOpen", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern CD* CDOpen(int drive);
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_CDStatus", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_CDStatus", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern CDStatus GetCDStatus(CD* cdrom);
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_CDPlay", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_CDPlay", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern int CDPlay(CD* cdrom, int start, int length);
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_CDPlayTracks", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_CDPlayTracks", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern int CDPlayTracks(CD* cdrom, int startTrack, int startFrame, int numTracks, int numFrames);
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_CDPause", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_CDPause", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern int CDPause(CD* cdrom);
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_CDResume", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_CDResume", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern int CDResume(CD* cdrom);
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_CDStop", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_CDStop", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern int CDStop(CD* cdrom);
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_CDEject", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_CDEject", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern int CDEject(CD* cdrom);
-  [DllImport(Config.SDLImportPath, ExactSpelling=true, EntryPoint="SDL_CDClose", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImportPath, ExactSpelling=true, EntryPoint="SDL_CDClose", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern void CDClose(CD* cdrom);
   #endregion
 
@@ -611,7 +611,7 @@ internal static class SDL
 #region StreamRWOps class
 internal class StreamRWOps : StreamCallbackSource
 { public StreamRWOps(Stream stream) : this(stream, true) { }
-  public unsafe StreamRWOps(Stream stream, bool autoClose) : base(stream, true)
+  public unsafe StreamRWOps(Stream stream, bool autoClose) : base(stream, autoClose)
   { seek  = new DelegateMarshaller(new SDL.SeekHandler(OnSeek));
     read  = new DelegateMarshaller(new SDL.ReadHandler(OnRead));
     write = new DelegateMarshaller(new SDL.WriteHandler(OnWrite));
@@ -633,7 +633,7 @@ internal class StreamRWOps : StreamCallbackSource
 
 internal class SeekableStreamRWOps : StreamRWOps
 { public SeekableStreamRWOps(Stream stream) : this(stream, true) { }
-  public SeekableStreamRWOps(Stream stream, bool autoClose) : base(stream, true)
+  public SeekableStreamRWOps(Stream stream, bool autoClose) : base(stream, autoClose)
   { if(!stream.CanSeek) throw new ArgumentException("stream must be seekable", "stream");
   }
 }

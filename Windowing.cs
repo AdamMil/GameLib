@@ -500,9 +500,6 @@ public class Control
   public class ControlCollection : Collection<Control>
   { internal ControlCollection(Control parent) { this.parent = parent; }
     /// <summary>Adds several new child controls at once.</summary>
-    /// <remarks>This method effectively calls <see cref="Add"/> on each member of <paramref name="controls"/>.
-    /// See <see cref="Add"/> for more information on what occurs when this method is called.
-    /// </remarks>
     /// <param name="controls">An array containing the controls to add.</param>
     public void AddRange(params Control[] controls) { foreach(Control c in controls) Add(c); }
     /// <summary>Returns the index of the specified child control within the collection.</summary>
@@ -1584,7 +1581,7 @@ public class Control
   /// <param name="child">The child whose control coordinates the point will be converted to.</param>
   /// <returns>The converted point, in the control coordinates of the specified child.</returns>
   /// <remarks>If <paramref name="child"/> is not a child of this control, the results are undefined.</remarks>
-  public Point WindowToChild(Point windowPoint, Control child)
+  public static Point WindowToChild(Point windowPoint, Control child)
   { windowPoint.X -= child.bounds.X; windowPoint.Y -= child.bounds.Y;
     return windowPoint;
   }
@@ -1594,7 +1591,7 @@ public class Control
   /// <param name="child">The child whose control coordinates the rectangle will be converted to.</param>
   /// <returns>The converted rectangle, in the control coordinates of the specified child.</returns>
   /// <remarks>If <paramref name="child"/> is not a child of this control, the results are undefined.</remarks>
-  public Rectangle WindowToChild(Rectangle windowRect, Control child)
+  public static Rectangle WindowToChild(Rectangle windowRect, Control child)
   { windowRect.X -= child.bounds.X; windowRect.Y -= child.bounds.Y;
     return windowRect;
   }
@@ -2636,7 +2633,7 @@ public class DesktopControl : ContainerControl, IDisposable
     get { return dcDelay; } 
     set
     {
-      if(value < 0) throw new ArgumentOutOfRangeException();
+      if(value < 0) throw new ArgumentOutOfRangeException("DoubleClickDelay", "cannot be negative");
       dcDelay=value; 
     } 
   }
@@ -2664,7 +2661,7 @@ public class DesktopControl : ContainerControl, IDisposable
     set
     { 
       if(value==krDelay) return;
-      if(value < 0) throw new ArgumentOutOfRangeException();
+      if(value < 0) throw new ArgumentOutOfRangeException("KeyRepeatDelay", "cannot be negative");
       krDelay=value;
       if(value==0 && krTimer!=null)
       { krTimer.Change(System.Threading.Timeout.Infinite, System.Threading.Timeout.Infinite);
@@ -2878,7 +2875,7 @@ public class DesktopControl : ContainerControl, IDisposable
             entered[enteredLen++] = c;
             c.OnMouseEnter(eventArgs);
           }
-          at = p.WindowToChild(at, c);
+          at = Control.WindowToChild(at, c);
           if((focus==AutoFocus.OverSticky || focus==AutoFocus.Over) && c.CanFocus && passModal) c.Focus();
           ei++;
           p = c;
@@ -2924,8 +2921,11 @@ public class DesktopControl : ContainerControl, IDisposable
       #endregion
       #region Keyboard
       else if(keys && e.Type==EventType.Keyboard)
-      { if(FocusedControl!=null || KeyPreview)
-        { KeyEventArgs ea = new KeyEventArgs((KeyboardEvent)e);
+      {
+        KeyboardEvent ke = (KeyboardEvent)e;
+        if(FocusedControl!=null || KeyPreview)
+        { 
+          KeyEventArgs ea = new KeyEventArgs(ke);
           ea.KE.Mods = Input.Keyboard.Mods;
           keyProcessing=true;
           if(heldKey!=null) heldKey.Mods = ea.KE.Mods;
@@ -2941,7 +2941,7 @@ public class DesktopControl : ContainerControl, IDisposable
           return true;
         }
         else
-        { KeyboardEvent ke = (KeyboardEvent)e;
+        { 
           if(ke.Down && ke.Key==tab)
           { TabToNext(ke.HasAny(Input.KeyMod.Shift));
             if(krTimer!=null)
@@ -2967,7 +2967,7 @@ public class DesktopControl : ContainerControl, IDisposable
         { c = p.GetChildAtPoint(at);
           if(c==null) break;
           if(!passModal && c==modal[modal.Count-1]) passModal=true;
-          at = p.WindowToChild(at, c);
+          at = Control.WindowToChild(at, c);
           if(focus==AutoFocus.Click && ea.CE.Down && c.CanFocus && passModal && !ea.CE.MouseWheel) c.Focus();
           p = c;
         }
@@ -3130,7 +3130,7 @@ public class DesktopControl : ContainerControl, IDisposable
 
   /// <summary>Frees resources used by this class.</summary>
   /// <param name="finalizing">Should be true if this method is called from a destructor and false otherwise.</param>
-  protected void Dispose(bool finalizing)
+  protected virtual void Dispose(bool finalizing)
   { if(init)
     { Video.Video.ModeChanged -= modeChanged;
       modeChanged = null;
@@ -3184,7 +3184,7 @@ public class DesktopControl : ContainerControl, IDisposable
   internal List<Control> modal = new List<Control>(4);
 
   #region Dispatchers
-  bool DispatchKeyEvent(Control target, KeyEventArgs e)
+  static bool DispatchKeyEvent(Control target, KeyEventArgs e)
   { if(e.KE.Down)
     { target.OnKeyDown(e);
       if(e.Handled) return false;
@@ -3342,10 +3342,10 @@ public enum BorderStyle
   /// <summary>A border that signifies that the control can be resized by dragging its edges.</summary>
   Resizeable=4,
   /// <summary>A mask that selects the type of the border (eg, flat, 3d, thick, etc).</summary>
-  TypeMask=15,
+  TypeMask=7,
 
   /// <summary>A flag that indicates that the border is depressed rather than raised.</summary>
-  Depressed=16,
+  Depressed=8,
 };
 
 public static class Helpers

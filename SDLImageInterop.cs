@@ -26,32 +26,33 @@ namespace GameLib.Interop.SDLImage
 [System.Security.SuppressUnmanagedCodeSecurity()]
 internal static class Image
 { 
-  public class Type
+  public static class Type
   { 
-    public const string BMP="BMP";
-    public const string GIF="GIF";
-    public const string JPG="JPG";
-    public const string LBM="LBM";
-    public const string PCX="PCX";
-    public const string PNG="PNG";
-    public const string PNM="PNM";
-    public const string TGA="TGA";
-    public const string TIF="TIF";
-    public const string XCF="XCF";
-    public const string XPM="XPM";
-    public const string XV ="XV";
-
+    public const string Bmp  = "BMP";
+    public const string Gif  = "GIF";
+    public const string Jpeg = "JPG";
+    public const string Lbm  = "LBM";
+    public const string Pcx  = "PCX";
+    public const string Png  = "PNG";
+    public const string Pnm  = "PNM";
+    public const string Tga  = "TGA";
+    public const string Tiff = "TIF";
+    public const string Xcf  = "XCF";
+    public const string Xpm  = "XPM";
+    public const string Xv   = "XV";
+    
+    // NOTE: These items must be in the same order as the ImageType enum items.
     public static readonly string[] Types = new string[]
     { 
-      BMP, GIF, JPG, LBM, PCX, PNG, PNM, TGA, TIF, XCF, XPM, XV
+      Bmp, Gif, Jpeg, Lbm, Pcx, Png, Pnm, Tga, Tiff, Xcf, Xpm, Xv
     };
   }
 
-	[DllImport(Config.SDLImageImportPath, ExactSpelling=true, EntryPoint="IMG_Load", CallingConvention=CallingConvention.Cdecl)]
+	[DllImport(Config.SdlImageImportPath, ExactSpelling=true, EntryPoint="IMG_Load", CallingConvention=CallingConvention.Cdecl)]
 	public unsafe static extern SDL.SDL.Surface* Load(string file);
-	[DllImport(Config.SDLImageImportPath, ExactSpelling=true, EntryPoint="IMG_Load_RW", CallingConvention=CallingConvention.Cdecl)]
+	[DllImport(Config.SdlImageImportPath, ExactSpelling=true, EntryPoint="IMG_Load_RW", CallingConvention=CallingConvention.Cdecl)]
 	public unsafe static extern SDL.SDL.Surface* Load_RW(SDL.SDL.RWOps* ops, int freesrc);
-  [DllImport(Config.SDLImageImportPath, ExactSpelling=true, EntryPoint="IMG_LoadTyped_RW", CallingConvention=CallingConvention.Cdecl)]
+  [DllImport(Config.SdlImageImportPath, ExactSpelling=true, EntryPoint="IMG_LoadTyped_RW", CallingConvention=CallingConvention.Cdecl)]
 	public unsafe static extern SDL.SDL.Surface* LoadTyped_RW(SDL.SDL.RWOps* ops, int freesrc, string type);
 }
 

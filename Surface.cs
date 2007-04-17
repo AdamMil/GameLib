@@ -46,29 +46,34 @@ public interface IBlittable
 
 /// <summary>An enum of image formats used when saving and loading images.</summary>
 public enum ImageType
-{ 
+{
+  // NOTE: The initial items must be in the same order as the interop enumeration!
   /// <summary>Windows bitmap (.BMP) format.</summary>
-  BMP,
-  /// <summary>Portable PixMap, Portable GreyMap, and Portable PixMap formats.</summary>
-  PNM,
-  /// <summary>XPicMap format.</summary>
-  XPM,
-  /// <summary>GIMP native format.</summary>
-  XCF,
-  /// <summary>PC Paintbrush format.</summary>
-  PCX,
+  Bmp,
   /// <summary>GIF (Graphics Interchange Format).</summary>
-  GIF,
+  Gif,
   /// <summary>JPEG (Joint Photographic Experts Group) format.</summary>
-  JPG,
-  /// <summary>TIFF (Tagged Image File Format).</summary>
-  TIF,
-  /// <summary>PNG (Portable Network Graphics) format.</summary>
-  PNG,
+  Jpeg,
   /// <summary>Deluxe Paint .LBM format.</summary>
-  LBM,
+  Lbm,
+  /// <summary>PC Paintbrush format.</summary>
+  Pcx,
+  /// <summary>PNG (Portable Network Graphics) format.</summary>
+  Png,
+  /// <summary>Portable PixMap, Portable GreyMap, and Portable PixMap formats.</summary>
+  Pnm,
+  /// <summary>TARGA (Truevision Advanced Raster Graphics Adapter).</summary>
+  Tga,
+  /// <summary>TIFF (Tagged Image File Format).</summary>
+  Tiff,
+  /// <summary>GIMP native format.</summary>
+  Xcf,
+  /// <summary>XPicMap format.</summary>
+  Xpm,
+
+  // Note: The rest don't have to be in any particular order.
   /// <summary>Adobe Photoshop .PSD format.</summary>
-  PSD
+  Psd
 }
 
 [Flags]
@@ -83,12 +88,12 @@ public enum SurfaceFlag
   /// acceleration cannot be used and the surface is stored in system memory and it contains blocks of solid
   /// color and does not change often. This flag is not to be used when setting the video mode.
   /// </remarks>
-  RLE = (int)SDL.VideoFlag.RLEAccel,
+  RunLengthEncoding = (int)SDL.VideoFlag.RLEAccel,
   /// <summary>When blitted, the surface will use alpha blending.</summary>
   /// <remarks>This flag is not to be used when setting the video mode, and only makes sense for surfaces
   /// that contain an alpha channel or use a surface alpha.
   /// </remarks>
-  SrcAlpha = (int)SDL.VideoFlag.SrcAlpha,
+  SourceAlpha = (int)SDL.VideoFlag.SrcAlpha,
 
   /* surfaces and mode setting */
   /// <summary>Asynchronous blits will be used if possible.</summary>
@@ -96,15 +101,12 @@ public enum SurfaceFlag
   /// immediately if possible, setting up the blit to happen in the background. This may slow down blitting on
   /// single CPU machines, but may provide a speed increase on SMP systems.
   /// </remarks>
-  AsyncBlit = (int)SDL.VideoFlag.AsyncBlit,
+  AsyncronousBlit = (int)SDL.VideoFlag.AsyncBlit,
   /// <summary>The surface will be stored in video memory if possible.</summary>
   /// <remarks>When setting the video mode, this flag indicates that a video mode which allows hardware surfaces
   /// is desired.
   /// </remarks>
   Hardware = (int)SDL.VideoFlag.HWSurface,
-  /// <summary>The surface will be stored in system memory.</summary>
-  /// <remarks>This flag can be used in the creation of any surface.</remarks>
-  Software = (int)SDL.VideoFlag.SWSurface,
 
   /* mode setting only */
   /// <summary>Enables double buffering for the display surface.</summary>
@@ -159,7 +161,7 @@ public sealed class Surface : IDisposable, IBlittable
 
   /// <include file="documentation.xml" path="//Video/Surface/Cons/FromBmp/*"/>
   /// <param name="flags">The <see cref="SurfaceFlag">flags</see> to use when initializing this
-  /// surface. The <see cref="SurfaceFlag.SrcAlpha"/> flag is automatically set if the bitmap contains an alpha
+  /// surface. The <see cref="SurfaceFlag.SourceAlpha"/> flag is automatically set if the bitmap contains an alpha
   /// channel. You may want to use <see cref="CloneDisplay"/> to convert the surface
   /// into something that matches the display surface, for efficiency.
   /// </param>
@@ -196,7 +198,7 @@ public sealed class Surface : IDisposable, IBlittable
     PixelFormat pf = new PixelFormat(depth);
     if(depth==32) { pf.AlphaMask=0xFF; pf.RedMask=0xFF00; pf.GreenMask=0xFF0000; pf.BlueMask=0xFF000000; }
 
-    InitFromFormat(bitmap.Width, bitmap.Height, pf, depth==32 ? flags|SurfaceFlag.SrcAlpha : flags);
+    InitFromFormat(bitmap.Width, bitmap.Height, pf, depth==32 ? flags|SurfaceFlag.SourceAlpha : flags);
     System.Drawing.Imaging.BitmapData data = bitmap.LockBits(new Rectangle(0, 0, bitmap.Width, bitmap.Height),
                                                              System.Drawing.Imaging.ImageLockMode.ReadOnly, format);
     try
@@ -209,7 +211,7 @@ public sealed class Surface : IDisposable, IBlittable
         Unlock();
       }
     }
-    catch { Dispose(); }
+    catch { Dispose(); throw; }
     finally { bitmap.UnlockBits(data); }
   }
 
@@ -226,7 +228,7 @@ public sealed class Surface : IDisposable, IBlittable
   /// <see cref="PixelFormat.GenerateDefaultMasks"/> for more information).
   /// </remarks>
   public Surface(int width, int height, int depth, SurfaceFlag flags)
-  { InitFromFormat(width, height, new PixelFormat(depth, (flags&SurfaceFlag.SrcAlpha)!=0), flags);
+  { InitFromFormat(width, height, new PixelFormat(depth, (flags&SurfaceFlag.SourceAlpha)!=0), flags);
   }
 
   /// <include file="documentation.xml" path="//Video/Surface/Cons/FromFormat/*"/>
@@ -263,7 +265,7 @@ public sealed class Surface : IDisposable, IBlittable
   /// into something that matches the display surface, for efficiency.
   /// </remarks>
   public unsafe Surface(string filename, ImageType type)
-  { if(type==ImageType.PSD) InitFromSurface(PSDCodec.ReadComposite(filename));
+  { if(type==ImageType.Psd) InitFromSurface(PSDCodec.ReadComposite(filename));
     else
     { SDL.RWOps* ops = SDL.RWFromFile(filename, "rb");
       if(ops==null) throw new System.IO.FileNotFoundException("The file could not be opened", filename);
@@ -325,7 +327,7 @@ public sealed class Surface : IDisposable, IBlittable
   /// surface into something that matches the display surface, for efficiency.
   /// </remarks>
   public unsafe Surface(System.IO.Stream stream, ImageType type, bool autoClose)
-  { if(type==ImageType.PSD) InitFromSurface(PSDCodec.ReadComposite(stream, autoClose));
+  { if(type==ImageType.Psd) InitFromSurface(PSDCodec.ReadComposite(stream, autoClose));
     else
     { SeekableStreamRWOps ss = new SeekableStreamRWOps(stream, autoClose);
       fixed(SDL.RWOps* ops = &ss.ops)
@@ -499,8 +501,8 @@ public sealed class Surface : IDisposable, IBlittable
     }
   }
 
-  /// <summary>Enables/disables use of RLE encoding.</summary>
-  /// <value>A boolean indicating whether RLE encoding is in use.</value>
+  /// <summary>Enables/disables use of run length encoding.</summary>
+  /// <value>A boolean indicating whether run length encoding is in use.</value>
   /// <remarks>Run-length encoded surfaces can be used to speed up blitting in the rare case that hardware
   /// acceleration cannot be used and the surface is stored in system memory and it contains blocks of solid
   /// color and does not change often.
@@ -921,13 +923,13 @@ public sealed class Surface : IDisposable, IBlittable
   public void Save(Stream stream, ImageType type)
   { Bitmap bitmap=null;
     switch(type)
-    { case ImageType.PCX: WritePCX(stream); break;
-      case ImageType.PSD: PSDCodec.WritePSD(this, stream); break;
-      case ImageType.BMP: (bitmap=ToBitmap(true)).Save(stream, System.Drawing.Imaging.ImageFormat.Bmp);  break;
-      case ImageType.GIF: (bitmap=ToBitmap(true)).Save(stream, System.Drawing.Imaging.ImageFormat.Gif);  break;
-      case ImageType.JPG: (bitmap=ToBitmap(true)).Save(stream, System.Drawing.Imaging.ImageFormat.Jpeg); break;
-      case ImageType.PNG: (bitmap=ToBitmap(true)).Save(stream, System.Drawing.Imaging.ImageFormat.Png);  break;
-      case ImageType.TIF: (bitmap=ToBitmap(true)).Save(stream, System.Drawing.Imaging.ImageFormat.Tiff); break;
+    { case ImageType.Pcx: WritePCX(stream); break;
+      case ImageType.Psd: PSDCodec.WritePSD(this, stream); break;
+      case ImageType.Bmp: (bitmap=ToBitmap(true)).Save(stream, System.Drawing.Imaging.ImageFormat.Bmp);  break;
+      case ImageType.Gif: (bitmap=ToBitmap(true)).Save(stream, System.Drawing.Imaging.ImageFormat.Gif);  break;
+      case ImageType.Jpeg: (bitmap=ToBitmap(true)).Save(stream, System.Drawing.Imaging.ImageFormat.Jpeg); break;
+      case ImageType.Png: (bitmap=ToBitmap(true)).Save(stream, System.Drawing.Imaging.ImageFormat.Png);  break;
+      case ImageType.Tiff: (bitmap=ToBitmap(true)).Save(stream, System.Drawing.Imaging.ImageFormat.Tiff); break;
       default: throw new NotImplementedException();
     }
     if(bitmap!=null) bitmap.Dispose();
@@ -966,9 +968,9 @@ public sealed class Surface : IDisposable, IBlittable
   /// <summary>Writes the image as a JPEG using the given quality level.</summary>
   /// <param name="filename">The path to the file into which the image will be saved.</param>
   /// <param name="quality">The image quality of the compression, from 0 (worst) to 100 (best).</param>
-  public void SaveJPEG(string filename, int quality)
+  public void SaveJpeg(string filename, int quality)
   { Stream stream = new FileStream(filename, FileMode.Create, FileAccess.Write);
-    try { SaveJPEG(stream, quality); }
+    try { SaveJpeg(stream, quality); }
     finally { stream.Close(); }
   }
 
@@ -978,10 +980,10 @@ public sealed class Surface : IDisposable, IBlittable
   /// </param>
   /// <param name="quality">The image quality of the compression, from 0 (worst) to 100 (best).</param>
   /// <exception cref="ArgumentOutOfRangeException">Thrown if quality is less than 0 or greater than 100.</exception>
-  public void SaveJPEG(Stream stream, int quality)
+  public void SaveJpeg(Stream stream, int quality)
   { if(quality<0 || quality>100) throw new ArgumentOutOfRangeException("quality", quality, "must be from 0-100");
     foreach(System.Drawing.Imaging.ImageCodecInfo codec in System.Drawing.Imaging.ImageCodecInfo.GetImageEncoders())
-      if(codec.MimeType.ToLower()=="image/jpeg")
+      if(codec.MimeType.Equals("image/jpeg", StringComparison.OrdinalIgnoreCase))
       { System.Drawing.Imaging.EncoderParameters parms = new System.Drawing.Imaging.EncoderParameters(1);
         parms.Param[0] =
           new System.Drawing.Imaging.EncoderParameter(System.Drawing.Imaging.Encoder.Quality, (long)quality);
@@ -1006,13 +1008,13 @@ public sealed class Surface : IDisposable, IBlittable
     Init();
   }
 
-  unsafe Bitmap BitmapFromData(int width, int height, int stride, System.Drawing.Imaging.PixelFormat format,
+  static unsafe Bitmap BitmapFromData(int width, int height, int stride, System.Drawing.Imaging.PixelFormat format,
                                void* data)
   { return BitmapFromData(width, height, stride, stride, format, data);
   }
 
-  unsafe Bitmap BitmapFromData(int width, int height, int row, int stride,
-                               System.Drawing.Imaging.PixelFormat format, void* data)
+  static unsafe Bitmap BitmapFromData(int width, int height, int row, int stride,
+                                      System.Drawing.Imaging.PixelFormat format, void* data)
   { Bitmap bmp = new Bitmap(width, height, format);
     System.Drawing.Imaging.BitmapData bd = bmp.LockBits(new Rectangle(0, 0, width, height),
                                                         System.Drawing.Imaging.ImageLockMode.WriteOnly, format);

@@ -46,7 +46,7 @@ public static class GLMixer
   }
 
   [StructLayout(LayoutKind.Sequential, Pack=4)]
-  public unsafe struct AudioCVT
+  public unsafe struct AudioConversion
   { public void CalcLenCvt() { lenCvt=(int)((long)len*lenMul/lenDiv); }
 
     public byte*  buf;
@@ -68,11 +68,11 @@ public static class GLMixer
   internal static extern void SetMixVolume(ushort volume);
 
   [DllImport(Config.GLMixerImportPath, ExactSpelling=true, EntryPoint="GLM_ConvertAcc", CallingConvention=CallingConvention.Cdecl)]
-  public unsafe static extern int ConvertAcc(void* dest, int* src, uint samples, ushort destFormat);
+  public unsafe static extern int ConvertAccumulator(void* dest, int* src, uint samples, ushort destFormat);
   [DllImport(Config.GLMixerImportPath, ExactSpelling=true, EntryPoint="GLM_SetupCVT", CallingConvention=CallingConvention.Cdecl)]
-  public static extern int SetupCVT(ref AudioCVT cvt);
+  public static extern int SetupConversion(ref AudioConversion cvt);
   [DllImport(Config.GLMixerImportPath, ExactSpelling=true, EntryPoint="GLM_Convert", CallingConvention=CallingConvention.Cdecl)]
-  public static extern int Convert(ref AudioCVT cvt);
+  public static extern int Convert(ref AudioConversion cvt);
 
   [DllImport(Config.GLMixerImportPath, ExactSpelling=true, EntryPoint="GLM_Copy", CallingConvention=CallingConvention.Cdecl)]
   public unsafe static extern int Copy(int* dest, int* src, uint samples);

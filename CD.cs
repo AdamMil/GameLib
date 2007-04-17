@@ -71,8 +71,28 @@ public struct Track
   /// <value>The <see cref="TrackType"/> of this track.</value>
   public TrackType Type { get { return type; } }
 
+  public override bool Equals(object obj)
+  {
+    return obj is Track ? this == (Track)obj : false;
+  }
+
+  public override int GetHashCode()
+  {
+    return (number<<16) | ((int)type<<24) | length ^ start;
+  }
+
   int number, length, start;
   TrackType type;
+
+  public static bool operator==(Track a, Track b)
+  {
+    return a.number == b.number && a.length == b.length && a.start == b.start && a.type == b.type;
+  }
+
+  public static bool operator!=(Track a, Track b)
+  {
+    return !(a == b);
+  }
 }
 
 /// <summary>This class represents a CD-ROM drive.</summary>
@@ -237,8 +257,7 @@ public static class CD
 
   /// <summary>Gets an array of CD-ROM drives.</summary>
   /// <value>A <see cref="Drive"/> array holding the available drives.</value>
-  /// <remarks>This property is invalid if <see cref="Initialize"/> has not been called.</remarks>
-  public static Drive[] Drives { get { return drives; } }
+  public static ReadOnlyCollection<Drive> Drives { get { return roDrives; } }
 
   /// <summary>Initializes the CD-ROM subsystem.</summary>
   /// <remarks>This method can be called multiple times. The <see cref="Deinitialize"/> method should be called the
@@ -249,6 +268,7 @@ public static class CD
     { SDL.Initialize(SDL.InitFlag.CDRom);
       drives = new Drive[SDL.CDNumDrives()];
       for(int i=0; i<drives.Length; i++) drives[i] = new Drive(i);
+      roDrives = new ReadOnlyCollection<Drive>(drives);
     }
   }
 
@@ -260,7 +280,8 @@ public static class CD
   { if(initCount==0) throw new InvalidOperationException("Deinitialize called too many times!");
     if(--initCount==0)
     { for(int i=0; i<drives.Length; i++) drives[i].Dispose();
-      drives = null;
+      roDrives = null;
+      drives   = null;
       SDL.Deinitialize(SDL.InitFlag.CDRom);
     }
   }
@@ -277,6 +298,7 @@ public static class CD
   /// </remarks>
   public static int SecondsToFrames(double seconds) { return (int)Math.Ceiling(seconds*FramesPerSecond); }
 
+  static ReadOnlyCollection<Drive> roDrives;
   static Drive[] drives;
   static uint initCount;
 }

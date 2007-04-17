@@ -315,6 +315,16 @@ public struct KeyCombo
   /// </remarks>
   public bool Valid { get { return Char!=0 || Key!=Key.None; } }
 
+  public override bool Equals(object obj)
+  {
+    return obj is KeyCombo ? this == (KeyCombo)obj : false;
+  }
+
+  public override int GetHashCode()
+  {
+    return ((int)Char<<16) | (int)Key ^ (int)KeyMods;
+  }
+
   /// <summary>Checks whether this key combination matches the given keyboard event.</summary>
   /// <param name="e">The keyboard event to check against.</param>
   /// <returns>True if the event matches this key combination and false otherwise.</returns>
@@ -422,6 +432,16 @@ public struct KeyCombo
   /// </remarks>
   public char Char;
 
+  public static bool operator==(KeyCombo a, KeyCombo b)
+  {
+    return a.Char == b.Char && a.Key == b.Key && a.KeyMods == b.KeyMods;
+  }
+
+  public static bool operator!=(KeyCombo a, KeyCombo b)
+  {
+    return a.Char != b.Char || a.Key != b.Key || a.KeyMods != b.KeyMods;
+  }
+
   static KeyMod[] masks = new KeyMod[] { KeyMod.Shift, KeyMod.Ctrl, KeyMod.Alt, KeyMod.Meta };
 }
 
@@ -462,6 +482,7 @@ public static class Keyboard
 { 
   /// <summary>Occurs when a keyboard key is pressed or released.</summary>
   /// <remarks>This event is raised by the <see cref="Input.ProcessEvent"/> method.</remarks>
+  // TODO: I think this should be an event.
   public static KeyEventHandler KeyEvent;
 
   /// <summary>Gets the current set of key modifiers that are depressed.</summary>
@@ -872,7 +893,7 @@ public sealed class Joystick : IDisposable
     if(JoyButton!=null) JoyButton(this, e);
   }
 
-  void Dispose(bool deconstructor)
+  void Dispose(bool finalizing)
   { unsafe
     { if(joystick.ToPointer()!=null)
       { SDL.JoystickClose(joystick);
