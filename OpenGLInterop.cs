@@ -1,7 +1,7 @@
 /*
 GameLib is a library for developing games and other multimedia applications.
 http://www.adammil.net/
-Copyright (C) 2002-2006 Adam Milazzo
+Copyright (C) 2002-2007 Adam Milazzo
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -28,84 +28,83 @@ namespace GameLib.Interop.OpenGL
 /// </summary>
 /// <remarks>This class currently supports OpenGL through version 1.3.</remarks>
 [System.Security.SuppressUnmanagedCodeSecurity()]
-public sealed class GL
-{ private GL() { }
-
+public static class GL
+{ 
   #region OpenGL 1.1
   #region Flags, Enums, Defines, etc
   #region AccumOp
-  public const uint GL_ACCUM                          =0x0100;
-  public const uint GL_LOAD                           =0x0101;
-  public const uint GL_RETURN                         =0x0102;
-  public const uint GL_MULT                           =0x0103;
-  public const uint GL_ADD                            =0x0104;
+  public const int GL_ACCUM                          =0x0100;
+  public const int GL_LOAD                           =0x0101;
+  public const int GL_RETURN                         =0x0102;
+  public const int GL_MULT                           =0x0103;
+  public const int GL_ADD                            =0x0104;
   #endregion
 
   #region AlphaFunction
-  public const uint GL_NEVER                          =0x0200;
-  public const uint GL_LESS                           =0x0201;
-  public const uint GL_EQUAL                          =0x0202;
-  public const uint GL_LEQUAL                         =0x0203;
-  public const uint GL_GREATER                        =0x0204;
-  public const uint GL_NOTEQUAL                       =0x0205;
-  public const uint GL_GEQUAL                         =0x0206;
-  public const uint GL_ALWAYS                         =0x0207;
+  public const int GL_NEVER                          =0x0200;
+  public const int GL_LESS                           =0x0201;
+  public const int GL_EQUAL                          =0x0202;
+  public const int GL_LEQUAL                         =0x0203;
+  public const int GL_GREATER                        =0x0204;
+  public const int GL_NOTEQUAL                       =0x0205;
+  public const int GL_GEQUAL                         =0x0206;
+  public const int GL_ALWAYS                         =0x0207;
   #endregion
 
   #region AttribMask
-  public const uint GL_CURRENT_BIT                    =0x00000001;
-  public const uint GL_POINT_BIT                      =0x00000002;
-  public const uint GL_LINE_BIT                       =0x00000004;
-  public const uint GL_POLYGON_BIT                    =0x00000008;
-  public const uint GL_POLYGON_STIPPLE_BIT            =0x00000010;
-  public const uint GL_PIXEL_MODE_BIT                 =0x00000020;
-  public const uint GL_LIGHTING_BIT                   =0x00000040;
-  public const uint GL_FOG_BIT                        =0x00000080;
-  public const uint GL_DEPTH_BUFFER_BIT               =0x00000100;
-  public const uint GL_ACCUM_BUFFER_BIT               =0x00000200;
-  public const uint GL_STENCIL_BUFFER_BIT             =0x00000400;
-  public const uint GL_VIEWPORT_BIT                   =0x00000800;
-  public const uint GL_TRANSFORM_BIT                  =0x00001000;
-  public const uint GL_ENABLE_BIT                     =0x00002000;
-  public const uint GL_COLOR_BUFFER_BIT               =0x00004000;
-  public const uint GL_HINT_BIT                       =0x00008000;
-  public const uint GL_EVAL_BIT                       =0x00010000;
-  public const uint GL_LIST_BIT                       =0x00020000;
-  public const uint GL_TEXTURE_BIT                    =0x00040000;
-  public const uint GL_SCISSOR_BIT                    =0x00080000;
-  public const uint GL_ALL_ATTRIB_BITS                =0x000fffff;
+  public const int GL_CURRENT_BIT                    =0x00000001;
+  public const int GL_POINT_BIT                      =0x00000002;
+  public const int GL_LINE_BIT                       =0x00000004;
+  public const int GL_POLYGON_BIT                    =0x00000008;
+  public const int GL_POLYGON_STIPPLE_BIT            =0x00000010;
+  public const int GL_PIXEL_MODE_BIT                 =0x00000020;
+  public const int GL_LIGHTING_BIT                   =0x00000040;
+  public const int GL_FOG_BIT                        =0x00000080;
+  public const int GL_DEPTH_BUFFER_BIT               =0x00000100;
+  public const int GL_ACCUM_BUFFER_BIT               =0x00000200;
+  public const int GL_STENCIL_BUFFER_BIT             =0x00000400;
+  public const int GL_VIEWPORT_BIT                   =0x00000800;
+  public const int GL_TRANSFORM_BIT                  =0x00001000;
+  public const int GL_ENABLE_BIT                     =0x00002000;
+  public const int GL_COLOR_BUFFER_BIT               =0x00004000;
+  public const int GL_HINT_BIT                       =0x00008000;
+  public const int GL_EVAL_BIT                       =0x00010000;
+  public const int GL_LIST_BIT                       =0x00020000;
+  public const int GL_TEXTURE_BIT                    =0x00040000;
+  public const int GL_SCISSOR_BIT                    =0x00080000;
+  public const int GL_ALL_ATTRIB_BITS                =0x000fffff;
   #endregion
 
   #region BeginMode
-  public const uint GL_POINTS                         =0x0000;
-  public const uint GL_LINES                          =0x0001;
-  public const uint GL_LINE_LOOP                      =0x0002;
-  public const uint GL_LINE_STRIP                     =0x0003;
-  public const uint GL_TRIANGLES                      =0x0004;
-  public const uint GL_TRIANGLE_STRIP                 =0x0005;
-  public const uint GL_TRIANGLE_FAN                   =0x0006;
-  public const uint GL_QUADS                          =0x0007;
-  public const uint GL_QUAD_STRIP                     =0x0008;
-  public const uint GL_POLYGON                        =0x0009;
+  public const int GL_POINTS                         =0x0000;
+  public const int GL_LINES                          =0x0001;
+  public const int GL_LINE_LOOP                      =0x0002;
+  public const int GL_LINE_STRIP                     =0x0003;
+  public const int GL_TRIANGLES                      =0x0004;
+  public const int GL_TRIANGLE_STRIP                 =0x0005;
+  public const int GL_TRIANGLE_FAN                   =0x0006;
+  public const int GL_QUADS                          =0x0007;
+  public const int GL_QUAD_STRIP                     =0x0008;
+  public const int GL_POLYGON                        =0x0009;
   #endregion
 
   #region BlendingFactorDest
-  public const uint GL_ZERO                           =0;
-  public const uint GL_ONE                            =1;
-  public const uint GL_SRC_COLOR                      =0x0300;
-  public const uint GL_ONE_MINUS_SRC_COLOR            =0x0301;
-  public const uint GL_SRC_ALPHA                      =0x0302;
-  public const uint GL_ONE_MINUS_SRC_ALPHA            =0x0303;
-  public const uint GL_DST_ALPHA                      =0x0304;
-  public const uint GL_ONE_MINUS_DST_ALPHA            =0x0305;
+  public const int GL_ZERO                           =0;
+  public const int GL_ONE                            =1;
+  public const int GL_SRC_COLOR                      =0x0300;
+  public const int GL_ONE_MINUS_SRC_COLOR            =0x0301;
+  public const int GL_SRC_ALPHA                      =0x0302;
+  public const int GL_ONE_MINUS_SRC_ALPHA            =0x0303;
+  public const int GL_DST_ALPHA                      =0x0304;
+  public const int GL_ONE_MINUS_DST_ALPHA            =0x0305;
   #endregion
 
   #region BlendingFactorSrc
   /*      GL_ZERO */
   /*      GL_ONE */
-  public const uint GL_DST_COLOR                      =0x0306;
-  public const uint GL_ONE_MINUS_DST_COLOR            =0x0307;
-  public const uint GL_SRC_ALPHA_SATURATE             =0x0308;
+  public const int GL_DST_COLOR                      =0x0306;
+  public const int GL_ONE_MINUS_DST_COLOR            =0x0307;
+  public const int GL_SRC_ALPHA_SATURATE             =0x0308;
   /*      GL_SRC_ALPHA */
   /*      GL_ONE_MINUS_SRC_ALPHA */
   /*      GL_DST_ALPHA */
@@ -113,8 +112,8 @@ public sealed class GL
   #endregion
 
   #region Boolean
-  public const uint GL_TRUE                           =1;
-  public const uint GL_FALSE                          =0;
+  public const int GL_TRUE                           =1;
+  public const int GL_FALSE                          =0;
   #endregion
 
   #region ClearBufferMask
@@ -134,12 +133,12 @@ public sealed class GL
   #endregion
 
   #region ClipPlaneName
-  public const uint GL_CLIP_PLANE0                    =0x3000;
-  public const uint GL_CLIP_PLANE1                    =0x3001;
-  public const uint GL_CLIP_PLANE2                    =0x3002;
-  public const uint GL_CLIP_PLANE3                    =0x3003;
-  public const uint GL_CLIP_PLANE4                    =0x3004;
-  public const uint GL_CLIP_PLANE5                    =0x3005;
+  public const int GL_CLIP_PLANE0                    =0x3000;
+  public const int GL_CLIP_PLANE1                    =0x3001;
+  public const int GL_CLIP_PLANE2                    =0x3002;
+  public const int GL_CLIP_PLANE3                    =0x3003;
+  public const int GL_CLIP_PLANE4                    =0x3004;
+  public const int GL_CLIP_PLANE5                    =0x3005;
   #endregion
 
   #region ColorMaterialFace
@@ -174,17 +173,17 @@ public sealed class GL
   #endregion
 
   #region DataType
-  public const uint GL_BYTE                           =0x1400;
-  public const uint GL_UNSIGNED_BYTE                  =0x1401;
-  public const uint GL_SHORT                          =0x1402;
-  public const uint GL_UNSIGNED_SHORT                 =0x1403;
-  public const uint GL_INT                            =0x1404;
-  public const uint GL_UNSIGNED_INT                   =0x1405;
-  public const uint GL_FLOAT                          =0x1406;
-  public const uint GL_2_BYTES                        =0x1407;
-  public const uint GL_3_BYTES                        =0x1408;
-  public const uint GL_4_BYTES                        =0x1409;
-  public const uint GL_DOUBLE                         =0x140A;
+  public const int GL_BYTE                           =0x1400;
+  public const int GL_UNSIGNED_BYTE                  =0x1401;
+  public const int GL_SHORT                          =0x1402;
+  public const int GL_UNSIGNED_SHORT                 =0x1403;
+  public const int GL_INT                            =0x1404;
+  public const int GL_UNSIGNED_INT                   =0x1405;
+  public const int GL_FLOAT                          =0x1406;
+  public const int GL_2_BYTES                        =0x1407;
+  public const int GL_3_BYTES                        =0x1408;
+  public const int GL_4_BYTES                        =0x1409;
+  public const int GL_DOUBLE                         =0x140A;
   #endregion
 
   #region DepthFunction
@@ -199,20 +198,20 @@ public sealed class GL
   #endregion
 
   #region DrawBufferMode
-  public const uint GL_NONE                           =0;
-  public const uint GL_FRONT_LEFT                     =0x0400;
-  public const uint GL_FRONT_RIGHT                    =0x0401;
-  public const uint GL_BACK_LEFT                      =0x0402;
-  public const uint GL_BACK_RIGHT                     =0x0403;
-  public const uint GL_FRONT                          =0x0404;
-  public const uint GL_BACK                           =0x0405;
-  public const uint GL_LEFT                           =0x0406;
-  public const uint GL_RIGHT                          =0x0407;
-  public const uint GL_FRONT_AND_BACK                 =0x0408;
-  public const uint GL_AUX0                           =0x0409;
-  public const uint GL_AUX1                           =0x040A;
-  public const uint GL_AUX2                           =0x040B;
-  public const uint GL_AUX3                           =0x040C;
+  public const int GL_NONE                           =0;
+  public const int GL_FRONT_LEFT                     =0x0400;
+  public const int GL_FRONT_RIGHT                    =0x0401;
+  public const int GL_BACK_LEFT                      =0x0402;
+  public const int GL_BACK_RIGHT                     =0x0403;
+  public const int GL_FRONT                          =0x0404;
+  public const int GL_BACK                           =0x0405;
+  public const int GL_LEFT                           =0x0406;
+  public const int GL_RIGHT                          =0x0407;
+  public const int GL_FRONT_AND_BACK                 =0x0408;
+  public const int GL_AUX0                           =0x0409;
+  public const int GL_AUX1                           =0x040A;
+  public const int GL_AUX2                           =0x040B;
+  public const int GL_AUX3                           =0x040C;
   #endregion
 
   #region Enable
@@ -285,38 +284,38 @@ public sealed class GL
   #endregion
 
   #region ErrorCode
-  public const uint GL_NO_ERROR                       =0;
-  public const uint GL_INVALID_ENUM                   =0x0500;
-  public const uint GL_INVALID_VALUE                  =0x0501;
-  public const uint GL_INVALID_OPERATION              =0x0502;
-  public const uint GL_STACK_OVERFLOW                 =0x0503;
-  public const uint GL_STACK_UNDERFLOW                =0x0504;
-  public const uint GL_OUT_OF_MEMORY                  =0x0505;
+  public const int GL_NO_ERROR                       =0;
+  public const int GL_INVALID_ENUM                   =0x0500;
+  public const int GL_INVALID_VALUE                  =0x0501;
+  public const int GL_INVALID_OPERATION              =0x0502;
+  public const int GL_STACK_OVERFLOW                 =0x0503;
+  public const int GL_STACK_UNDERFLOW                =0x0504;
+  public const int GL_OUT_OF_MEMORY                  =0x0505;
   #endregion
 
   #region FeedBackMode
-  public const uint GL_2D                             =0x0600;
-  public const uint GL_3D                             =0x0601;
-  public const uint GL_3D_COLOR                       =0x0602;
-  public const uint GL_3D_COLOR_TEXTURE               =0x0603;
-  public const uint GL_4D_COLOR_TEXTURE               =0x0604;
+  public const int GL_2D                             =0x0600;
+  public const int GL_3D                             =0x0601;
+  public const int GL_3D_COLOR                       =0x0602;
+  public const int GL_3D_COLOR_TEXTURE               =0x0603;
+  public const int GL_4D_COLOR_TEXTURE               =0x0604;
   #endregion
 
   #region FeedBackToken
-  public const uint GL_PASS_THROUGH_TOKEN             =0x0700;
-  public const uint GL_POINT_TOKEN                    =0x0701;
-  public const uint GL_LINE_TOKEN                     =0x0702;
-  public const uint GL_POLYGON_TOKEN                  =0x0703;
-  public const uint GL_BITMAP_TOKEN                   =0x0704;
-  public const uint GL_DRAW_PIXEL_TOKEN               =0x0705;
-  public const uint GL_COPY_PIXEL_TOKEN               =0x0706;
-  public const uint GL_LINE_RESET_TOKEN               =0x0707;
+  public const int GL_PASS_THROUGH_TOKEN             =0x0700;
+  public const int GL_POINT_TOKEN                    =0x0701;
+  public const int GL_LINE_TOKEN                     =0x0702;
+  public const int GL_POLYGON_TOKEN                  =0x0703;
+  public const int GL_BITMAP_TOKEN                   =0x0704;
+  public const int GL_DRAW_PIXEL_TOKEN               =0x0705;
+  public const int GL_COPY_PIXEL_TOKEN               =0x0706;
+  public const int GL_LINE_RESET_TOKEN               =0x0707;
   #endregion
 
   #region FogMode
   /*      GL_LINEAR */
-  public const uint GL_EXP                            =0x0800;
-  public const uint GL_EXP2                           =0x0801;
+  public const int GL_EXP                            =0x0800;
+  public const int GL_EXP2                           =0x0801;
   #endregion
 
   #region FogParameter
@@ -329,14 +328,14 @@ public sealed class GL
   #endregion
 
   #region FrontFaceDirection
-  public const uint GL_CW                             =0x0900;
-  public const uint GL_CCW                            =0x0901;
+  public const int GL_CW                             =0x0900;
+  public const int GL_CCW                            =0x0901;
   #endregion
 
   #region GetMapTarget
-  public const uint GL_COEFF                          =0x0A00;
-  public const uint GL_ORDER                          =0x0A01;
-  public const uint GL_DOMAIN                         =0x0A02;
+  public const int GL_COEFF                          =0x0A00;
+  public const int GL_ORDER                          =0x0A01;
+  public const int GL_DOMAIN                         =0x0A02;
   #endregion
 
   #region GetPixelMap
@@ -362,215 +361,215 @@ public sealed class GL
   #endregion
 
   #region GetTarget
-  public const uint GL_CURRENT_COLOR                  =0x0B00;
-  public const uint GL_CURRENT_INDEX                  =0x0B01;
-  public const uint GL_CURRENT_NORMAL                 =0x0B02;
-  public const uint GL_CURRENT_TEXTURE_COORDS         =0x0B03;
-  public const uint GL_CURRENT_RASTER_COLOR           =0x0B04;
-  public const uint GL_CURRENT_RASTER_INDEX           =0x0B05;
-  public const uint GL_CURRENT_RASTER_TEXTURE_COORDS  =0x0B06;
-  public const uint GL_CURRENT_RASTER_POSITION        =0x0B07;
-  public const uint GL_CURRENT_RASTER_POSITION_VALID  =0x0B08;
-  public const uint GL_CURRENT_RASTER_DISTANCE        =0x0B09;
-  public const uint GL_POINT_SMOOTH                   =0x0B10;
-  public const uint GL_POINT_SIZE                     =0x0B11;
-  public const uint GL_POINT_SIZE_RANGE               =0x0B12;
-  public const uint GL_POINT_SIZE_GRANULARITY         =0x0B13;
-  public const uint GL_LINE_SMOOTH                    =0x0B20;
-  public const uint GL_LINE_WIDTH                     =0x0B21;
-  public const uint GL_LINE_WIDTH_RANGE               =0x0B22;
-  public const uint GL_LINE_WIDTH_GRANULARITY         =0x0B23;
-  public const uint GL_LINE_STIPPLE                   =0x0B24;
-  public const uint GL_LINE_STIPPLE_PATTERN           =0x0B25;
-  public const uint GL_LINE_STIPPLE_REPEAT            =0x0B26;
-  public const uint GL_LIST_MODE                      =0x0B30;
-  public const uint GL_MAX_LIST_NESTING               =0x0B31;
-  public const uint GL_LIST_BASE                      =0x0B32;
-  public const uint GL_LIST_INDEX                     =0x0B33;
-  public const uint GL_POLYGON_MODE                   =0x0B40;
-  public const uint GL_POLYGON_SMOOTH                 =0x0B41;
-  public const uint GL_POLYGON_STIPPLE                =0x0B42;
-  public const uint GL_EDGE_FLAG                      =0x0B43;
-  public const uint GL_CULL_FACE                      =0x0B44;
-  public const uint GL_CULL_FACE_MODE                 =0x0B45;
-  public const uint GL_FRONT_FACE                     =0x0B46;
-  public const uint GL_LIGHTING                       =0x0B50;
-  public const uint GL_LIGHT_MODEL_LOCAL_VIEWER       =0x0B51;
-  public const uint GL_LIGHT_MODEL_TWO_SIDE           =0x0B52;
-  public const uint GL_LIGHT_MODEL_AMBIENT            =0x0B53;
-  public const uint GL_SHADE_MODEL                    =0x0B54;
-  public const uint GL_COLOR_MATERIAL_FACE            =0x0B55;
-  public const uint GL_COLOR_MATERIAL_PARAMETER       =0x0B56;
-  public const uint GL_COLOR_MATERIAL                 =0x0B57;
-  public const uint GL_FOG                            =0x0B60;
-  public const uint GL_FOG_INDEX                      =0x0B61;
-  public const uint GL_FOG_DENSITY                    =0x0B62;
-  public const uint GL_FOG_START                      =0x0B63;
-  public const uint GL_FOG_END                        =0x0B64;
-  public const uint GL_FOG_MODE                       =0x0B65;
-  public const uint GL_FOG_COLOR                      =0x0B66;
-  public const uint GL_DEPTH_RANGE                    =0x0B70;
-  public const uint GL_DEPTH_TEST                     =0x0B71;
-  public const uint GL_DEPTH_WRITEMASK                =0x0B72;
-  public const uint GL_DEPTH_CLEAR_VALUE              =0x0B73;
-  public const uint GL_DEPTH_FUNC                     =0x0B74;
-  public const uint GL_ACCUM_CLEAR_VALUE              =0x0B80;
-  public const uint GL_STENCIL_TEST                   =0x0B90;
-  public const uint GL_STENCIL_CLEAR_VALUE            =0x0B91;
-  public const uint GL_STENCIL_FUNC                   =0x0B92;
-  public const uint GL_STENCIL_VALUE_MASK             =0x0B93;
-  public const uint GL_STENCIL_FAIL                   =0x0B94;
-  public const uint GL_STENCIL_PASS_DEPTH_FAIL        =0x0B95;
-  public const uint GL_STENCIL_PASS_DEPTH_PASS        =0x0B96;
-  public const uint GL_STENCIL_REF                    =0x0B97;
-  public const uint GL_STENCIL_WRITEMASK              =0x0B98;
-  public const uint GL_MATRIX_MODE                    =0x0BA0;
-  public const uint GL_NORMALIZE                      =0x0BA1;
-  public const uint GL_VIEWPORT                       =0x0BA2;
-  public const uint GL_MODELVIEW_STACK_DEPTH          =0x0BA3;
-  public const uint GL_PROJECTION_STACK_DEPTH         =0x0BA4;
-  public const uint GL_TEXTURE_STACK_DEPTH            =0x0BA5;
-  public const uint GL_MODELVIEW_MATRIX               =0x0BA6;
-  public const uint GL_PROJECTION_MATRIX              =0x0BA7;
-  public const uint GL_TEXTURE_MATRIX                 =0x0BA8;
-  public const uint GL_ATTRIB_STACK_DEPTH             =0x0BB0;
-  public const uint GL_CLIENT_ATTRIB_STACK_DEPTH      =0x0BB1;
-  public const uint GL_ALPHA_TEST                     =0x0BC0;
-  public const uint GL_ALPHA_TEST_FUNC                =0x0BC1;
-  public const uint GL_ALPHA_TEST_REF                 =0x0BC2;
-  public const uint GL_DITHER                         =0x0BD0;
-  public const uint GL_BLEND_DST                      =0x0BE0;
-  public const uint GL_BLEND_SRC                      =0x0BE1;
-  public const uint GL_BLEND                          =0x0BE2;
-  public const uint GL_LOGIC_OP_MODE                  =0x0BF0;
-  public const uint GL_INDEX_LOGIC_OP                 =0x0BF1;
-  public const uint GL_COLOR_LOGIC_OP                 =0x0BF2;
-  public const uint GL_AUX_BUFFERS                    =0x0C00;
-  public const uint GL_DRAW_BUFFER                    =0x0C01;
-  public const uint GL_READ_BUFFER                    =0x0C02;
-  public const uint GL_SCISSOR_BOX                    =0x0C10;
-  public const uint GL_SCISSOR_TEST                   =0x0C11;
-  public const uint GL_INDEX_CLEAR_VALUE              =0x0C20;
-  public const uint GL_INDEX_WRITEMASK                =0x0C21;
-  public const uint GL_COLOR_CLEAR_VALUE              =0x0C22;
-  public const uint GL_COLOR_WRITEMASK                =0x0C23;
-  public const uint GL_INDEX_MODE                     =0x0C30;
-  public const uint GL_RGBA_MODE                      =0x0C31;
-  public const uint GL_DOUBLEBUFFER                   =0x0C32;
-  public const uint GL_STEREO                         =0x0C33;
-  public const uint GL_RENDER_MODE                    =0x0C40;
-  public const uint GL_PERSPECTIVE_CORRECTION_HINT    =0x0C50;
-  public const uint GL_POINT_SMOOTH_HINT              =0x0C51;
-  public const uint GL_LINE_SMOOTH_HINT               =0x0C52;
-  public const uint GL_POLYGON_SMOOTH_HINT            =0x0C53;
-  public const uint GL_FOG_HINT                       =0x0C54;
-  public const uint GL_TEXTURE_GEN_S                  =0x0C60;
-  public const uint GL_TEXTURE_GEN_T                  =0x0C61;
-  public const uint GL_TEXTURE_GEN_R                  =0x0C62;
-  public const uint GL_TEXTURE_GEN_Q                  =0x0C63;
-  public const uint GL_PIXEL_MAP_I_TO_I               =0x0C70;
-  public const uint GL_PIXEL_MAP_S_TO_S               =0x0C71;
-  public const uint GL_PIXEL_MAP_I_TO_R               =0x0C72;
-  public const uint GL_PIXEL_MAP_I_TO_G               =0x0C73;
-  public const uint GL_PIXEL_MAP_I_TO_B               =0x0C74;
-  public const uint GL_PIXEL_MAP_I_TO_A               =0x0C75;
-  public const uint GL_PIXEL_MAP_R_TO_R               =0x0C76;
-  public const uint GL_PIXEL_MAP_G_TO_G               =0x0C77;
-  public const uint GL_PIXEL_MAP_B_TO_B               =0x0C78;
-  public const uint GL_PIXEL_MAP_A_TO_A               =0x0C79;
-  public const uint GL_PIXEL_MAP_I_TO_I_SIZE          =0x0CB0;
-  public const uint GL_PIXEL_MAP_S_TO_S_SIZE          =0x0CB1;
-  public const uint GL_PIXEL_MAP_I_TO_R_SIZE          =0x0CB2;
-  public const uint GL_PIXEL_MAP_I_TO_G_SIZE          =0x0CB3;
-  public const uint GL_PIXEL_MAP_I_TO_B_SIZE          =0x0CB4;
-  public const uint GL_PIXEL_MAP_I_TO_A_SIZE          =0x0CB5;
-  public const uint GL_PIXEL_MAP_R_TO_R_SIZE          =0x0CB6;
-  public const uint GL_PIXEL_MAP_G_TO_G_SIZE          =0x0CB7;
-  public const uint GL_PIXEL_MAP_B_TO_B_SIZE          =0x0CB8;
-  public const uint GL_PIXEL_MAP_A_TO_A_SIZE          =0x0CB9;
-  public const uint GL_UNPACK_SWAP_BYTES              =0x0CF0;
-  public const uint GL_UNPACK_LSB_FIRST               =0x0CF1;
-  public const uint GL_UNPACK_ROW_LENGTH              =0x0CF2;
-  public const uint GL_UNPACK_SKIP_ROWS               =0x0CF3;
-  public const uint GL_UNPACK_SKIP_PIXELS             =0x0CF4;
-  public const uint GL_UNPACK_ALIGNMENT               =0x0CF5;
-  public const uint GL_PACK_SWAP_BYTES                =0x0D00;
-  public const uint GL_PACK_LSB_FIRST                 =0x0D01;
-  public const uint GL_PACK_ROW_LENGTH                =0x0D02;
-  public const uint GL_PACK_SKIP_ROWS                 =0x0D03;
-  public const uint GL_PACK_SKIP_PIXELS               =0x0D04;
-  public const uint GL_PACK_ALIGNMENT                 =0x0D05;
-  public const uint GL_MAP_COLOR                      =0x0D10;
-  public const uint GL_MAP_STENCIL                    =0x0D11;
-  public const uint GL_INDEX_SHIFT                    =0x0D12;
-  public const uint GL_INDEX_OFFSET                   =0x0D13;
-  public const uint GL_RED_SCALE                      =0x0D14;
-  public const uint GL_RED_BIAS                       =0x0D15;
-  public const uint GL_ZOOM_X                         =0x0D16;
-  public const uint GL_ZOOM_Y                         =0x0D17;
-  public const uint GL_GREEN_SCALE                    =0x0D18;
-  public const uint GL_GREEN_BIAS                     =0x0D19;
-  public const uint GL_BLUE_SCALE                     =0x0D1A;
-  public const uint GL_BLUE_BIAS                      =0x0D1B;
-  public const uint GL_ALPHA_SCALE                    =0x0D1C;
-  public const uint GL_ALPHA_BIAS                     =0x0D1D;
-  public const uint GL_DEPTH_SCALE                    =0x0D1E;
-  public const uint GL_DEPTH_BIAS                     =0x0D1F;
-  public const uint GL_MAX_EVAL_ORDER                 =0x0D30;
-  public const uint GL_MAX_LIGHTS                     =0x0D31;
-  public const uint GL_MAX_CLIP_PLANES                =0x0D32;
-  public const uint GL_MAX_TEXTURE_SIZE               =0x0D33;
-  public const uint GL_MAX_PIXEL_MAP_TABLE            =0x0D34;
-  public const uint GL_MAX_ATTRIB_STACK_DEPTH         =0x0D35;
-  public const uint GL_MAX_MODELVIEW_STACK_DEPTH      =0x0D36;
-  public const uint GL_MAX_NAME_STACK_DEPTH           =0x0D37;
-  public const uint GL_MAX_PROJECTION_STACK_DEPTH     =0x0D38;
-  public const uint GL_MAX_TEXTURE_STACK_DEPTH        =0x0D39;
-  public const uint GL_MAX_VIEWPORT_DIMS              =0x0D3A;
-  public const uint GL_MAX_CLIENT_ATTRIB_STACK_DEPTH  =0x0D3B;
-  public const uint GL_SUBPIXEL_BITS                  =0x0D50;
-  public const uint GL_INDEX_BITS                     =0x0D51;
-  public const uint GL_RED_BITS                       =0x0D52;
-  public const uint GL_GREEN_BITS                     =0x0D53;
-  public const uint GL_BLUE_BITS                      =0x0D54;
-  public const uint GL_ALPHA_BITS                     =0x0D55;
-  public const uint GL_DEPTH_BITS                     =0x0D56;
-  public const uint GL_STENCIL_BITS                   =0x0D57;
-  public const uint GL_ACCUM_RED_BITS                 =0x0D58;
-  public const uint GL_ACCUM_GREEN_BITS               =0x0D59;
-  public const uint GL_ACCUM_BLUE_BITS                =0x0D5A;
-  public const uint GL_ACCUM_ALPHA_BITS               =0x0D5B;
-  public const uint GL_NAME_STACK_DEPTH               =0x0D70;
-  public const uint GL_AUTO_NORMAL                    =0x0D80;
-  public const uint GL_MAP1_COLOR_4                   =0x0D90;
-  public const uint GL_MAP1_INDEX                     =0x0D91;
-  public const uint GL_MAP1_NORMAL                    =0x0D92;
-  public const uint GL_MAP1_TEXTURE_COORD_1           =0x0D93;
-  public const uint GL_MAP1_TEXTURE_COORD_2           =0x0D94;
-  public const uint GL_MAP1_TEXTURE_COORD_3           =0x0D95;
-  public const uint GL_MAP1_TEXTURE_COORD_4           =0x0D96;
-  public const uint GL_MAP1_VERTEX_3                  =0x0D97;
-  public const uint GL_MAP1_VERTEX_4                  =0x0D98;
-  public const uint GL_MAP2_COLOR_4                   =0x0DB0;
-  public const uint GL_MAP2_INDEX                     =0x0DB1;
-  public const uint GL_MAP2_NORMAL                    =0x0DB2;
-  public const uint GL_MAP2_TEXTURE_COORD_1           =0x0DB3;
-  public const uint GL_MAP2_TEXTURE_COORD_2           =0x0DB4;
-  public const uint GL_MAP2_TEXTURE_COORD_3           =0x0DB5;
-  public const uint GL_MAP2_TEXTURE_COORD_4           =0x0DB6;
-  public const uint GL_MAP2_VERTEX_3                  =0x0DB7;
-  public const uint GL_MAP2_VERTEX_4                  =0x0DB8;
-  public const uint GL_MAP1_GRID_DOMAIN               =0x0DD0;
-  public const uint GL_MAP1_GRID_SEGMENTS             =0x0DD1;
-  public const uint GL_MAP2_GRID_DOMAIN               =0x0DD2;
-  public const uint GL_MAP2_GRID_SEGMENTS             =0x0DD3;
-  public const uint GL_TEXTURE_1D                     =0x0DE0;
-  public const uint GL_TEXTURE_2D                     =0x0DE1;
-  public const uint GL_FEEDBACK_BUFFER_POINTER        =0x0DF0;
-  public const uint GL_FEEDBACK_BUFFER_SIZE           =0x0DF1;
-  public const uint GL_FEEDBACK_BUFFER_TYPE           =0x0DF2;
-  public const uint GL_SELECTION_BUFFER_POINTER       =0x0DF3;
-  public const uint GL_SELECTION_BUFFER_SIZE          =0x0DF4;
+  public const int GL_CURRENT_COLOR                  =0x0B00;
+  public const int GL_CURRENT_INDEX                  =0x0B01;
+  public const int GL_CURRENT_NORMAL                 =0x0B02;
+  public const int GL_CURRENT_TEXTURE_COORDS         =0x0B03;
+  public const int GL_CURRENT_RASTER_COLOR           =0x0B04;
+  public const int GL_CURRENT_RASTER_INDEX           =0x0B05;
+  public const int GL_CURRENT_RASTER_TEXTURE_COORDS  =0x0B06;
+  public const int GL_CURRENT_RASTER_POSITION        =0x0B07;
+  public const int GL_CURRENT_RASTER_POSITION_VALID  =0x0B08;
+  public const int GL_CURRENT_RASTER_DISTANCE        =0x0B09;
+  public const int GL_POINT_SMOOTH                   =0x0B10;
+  public const int GL_POINT_SIZE                     =0x0B11;
+  public const int GL_POINT_SIZE_RANGE               =0x0B12;
+  public const int GL_POINT_SIZE_GRANULARITY         =0x0B13;
+  public const int GL_LINE_SMOOTH                    =0x0B20;
+  public const int GL_LINE_WIDTH                     =0x0B21;
+  public const int GL_LINE_WIDTH_RANGE               =0x0B22;
+  public const int GL_LINE_WIDTH_GRANULARITY         =0x0B23;
+  public const int GL_LINE_STIPPLE                   =0x0B24;
+  public const int GL_LINE_STIPPLE_PATTERN           =0x0B25;
+  public const int GL_LINE_STIPPLE_REPEAT            =0x0B26;
+  public const int GL_LIST_MODE                      =0x0B30;
+  public const int GL_MAX_LIST_NESTING               =0x0B31;
+  public const int GL_LIST_BASE                      =0x0B32;
+  public const int GL_LIST_INDEX                     =0x0B33;
+  public const int GL_POLYGON_MODE                   =0x0B40;
+  public const int GL_POLYGON_SMOOTH                 =0x0B41;
+  public const int GL_POLYGON_STIPPLE                =0x0B42;
+  public const int GL_EDGE_FLAG                      =0x0B43;
+  public const int GL_CULL_FACE                      =0x0B44;
+  public const int GL_CULL_FACE_MODE                 =0x0B45;
+  public const int GL_FRONT_FACE                     =0x0B46;
+  public const int GL_LIGHTING                       =0x0B50;
+  public const int GL_LIGHT_MODEL_LOCAL_VIEWER       =0x0B51;
+  public const int GL_LIGHT_MODEL_TWO_SIDE           =0x0B52;
+  public const int GL_LIGHT_MODEL_AMBIENT            =0x0B53;
+  public const int GL_SHADE_MODEL                    =0x0B54;
+  public const int GL_COLOR_MATERIAL_FACE            =0x0B55;
+  public const int GL_COLOR_MATERIAL_PARAMETER       =0x0B56;
+  public const int GL_COLOR_MATERIAL                 =0x0B57;
+  public const int GL_FOG                            =0x0B60;
+  public const int GL_FOG_INDEX                      =0x0B61;
+  public const int GL_FOG_DENSITY                    =0x0B62;
+  public const int GL_FOG_START                      =0x0B63;
+  public const int GL_FOG_END                        =0x0B64;
+  public const int GL_FOG_MODE                       =0x0B65;
+  public const int GL_FOG_COLOR                      =0x0B66;
+  public const int GL_DEPTH_RANGE                    =0x0B70;
+  public const int GL_DEPTH_TEST                     =0x0B71;
+  public const int GL_DEPTH_WRITEMASK                =0x0B72;
+  public const int GL_DEPTH_CLEAR_VALUE              =0x0B73;
+  public const int GL_DEPTH_FUNC                     =0x0B74;
+  public const int GL_ACCUM_CLEAR_VALUE              =0x0B80;
+  public const int GL_STENCIL_TEST                   =0x0B90;
+  public const int GL_STENCIL_CLEAR_VALUE            =0x0B91;
+  public const int GL_STENCIL_FUNC                   =0x0B92;
+  public const int GL_STENCIL_VALUE_MASK             =0x0B93;
+  public const int GL_STENCIL_FAIL                   =0x0B94;
+  public const int GL_STENCIL_PASS_DEPTH_FAIL        =0x0B95;
+  public const int GL_STENCIL_PASS_DEPTH_PASS        =0x0B96;
+  public const int GL_STENCIL_REF                    =0x0B97;
+  public const int GL_STENCIL_WRITEMASK              =0x0B98;
+  public const int GL_MATRIX_MODE                    =0x0BA0;
+  public const int GL_NORMALIZE                      =0x0BA1;
+  public const int GL_VIEWPORT                       =0x0BA2;
+  public const int GL_MODELVIEW_STACK_DEPTH          =0x0BA3;
+  public const int GL_PROJECTION_STACK_DEPTH         =0x0BA4;
+  public const int GL_TEXTURE_STACK_DEPTH            =0x0BA5;
+  public const int GL_MODELVIEW_MATRIX               =0x0BA6;
+  public const int GL_PROJECTION_MATRIX              =0x0BA7;
+  public const int GL_TEXTURE_MATRIX                 =0x0BA8;
+  public const int GL_ATTRIB_STACK_DEPTH             =0x0BB0;
+  public const int GL_CLIENT_ATTRIB_STACK_DEPTH      =0x0BB1;
+  public const int GL_ALPHA_TEST                     =0x0BC0;
+  public const int GL_ALPHA_TEST_FUNC                =0x0BC1;
+  public const int GL_ALPHA_TEST_REF                 =0x0BC2;
+  public const int GL_DITHER                         =0x0BD0;
+  public const int GL_BLEND_DST                      =0x0BE0;
+  public const int GL_BLEND_SRC                      =0x0BE1;
+  public const int GL_BLEND                          =0x0BE2;
+  public const int GL_LOGIC_OP_MODE                  =0x0BF0;
+  public const int GL_INDEX_LOGIC_OP                 =0x0BF1;
+  public const int GL_COLOR_LOGIC_OP                 =0x0BF2;
+  public const int GL_AUX_BUFFERS                    =0x0C00;
+  public const int GL_DRAW_BUFFER                    =0x0C01;
+  public const int GL_READ_BUFFER                    =0x0C02;
+  public const int GL_SCISSOR_BOX                    =0x0C10;
+  public const int GL_SCISSOR_TEST                   =0x0C11;
+  public const int GL_INDEX_CLEAR_VALUE              =0x0C20;
+  public const int GL_INDEX_WRITEMASK                =0x0C21;
+  public const int GL_COLOR_CLEAR_VALUE              =0x0C22;
+  public const int GL_COLOR_WRITEMASK                =0x0C23;
+  public const int GL_INDEX_MODE                     =0x0C30;
+  public const int GL_RGBA_MODE                      =0x0C31;
+  public const int GL_DOUBLEBUFFER                   =0x0C32;
+  public const int GL_STEREO                         =0x0C33;
+  public const int GL_RENDER_MODE                    =0x0C40;
+  public const int GL_PERSPECTIVE_CORRECTION_HINT    =0x0C50;
+  public const int GL_POINT_SMOOTH_HINT              =0x0C51;
+  public const int GL_LINE_SMOOTH_HINT               =0x0C52;
+  public const int GL_POLYGON_SMOOTH_HINT            =0x0C53;
+  public const int GL_FOG_HINT                       =0x0C54;
+  public const int GL_TEXTURE_GEN_S                  =0x0C60;
+  public const int GL_TEXTURE_GEN_T                  =0x0C61;
+  public const int GL_TEXTURE_GEN_R                  =0x0C62;
+  public const int GL_TEXTURE_GEN_Q                  =0x0C63;
+  public const int GL_PIXEL_MAP_I_TO_I               =0x0C70;
+  public const int GL_PIXEL_MAP_S_TO_S               =0x0C71;
+  public const int GL_PIXEL_MAP_I_TO_R               =0x0C72;
+  public const int GL_PIXEL_MAP_I_TO_G               =0x0C73;
+  public const int GL_PIXEL_MAP_I_TO_B               =0x0C74;
+  public const int GL_PIXEL_MAP_I_TO_A               =0x0C75;
+  public const int GL_PIXEL_MAP_R_TO_R               =0x0C76;
+  public const int GL_PIXEL_MAP_G_TO_G               =0x0C77;
+  public const int GL_PIXEL_MAP_B_TO_B               =0x0C78;
+  public const int GL_PIXEL_MAP_A_TO_A               =0x0C79;
+  public const int GL_PIXEL_MAP_I_TO_I_SIZE          =0x0CB0;
+  public const int GL_PIXEL_MAP_S_TO_S_SIZE          =0x0CB1;
+  public const int GL_PIXEL_MAP_I_TO_R_SIZE          =0x0CB2;
+  public const int GL_PIXEL_MAP_I_TO_G_SIZE          =0x0CB3;
+  public const int GL_PIXEL_MAP_I_TO_B_SIZE          =0x0CB4;
+  public const int GL_PIXEL_MAP_I_TO_A_SIZE          =0x0CB5;
+  public const int GL_PIXEL_MAP_R_TO_R_SIZE          =0x0CB6;
+  public const int GL_PIXEL_MAP_G_TO_G_SIZE          =0x0CB7;
+  public const int GL_PIXEL_MAP_B_TO_B_SIZE          =0x0CB8;
+  public const int GL_PIXEL_MAP_A_TO_A_SIZE          =0x0CB9;
+  public const int GL_UNPACK_SWAP_BYTES              =0x0CF0;
+  public const int GL_UNPACK_LSB_FIRST               =0x0CF1;
+  public const int GL_UNPACK_ROW_LENGTH              =0x0CF2;
+  public const int GL_UNPACK_SKIP_ROWS               =0x0CF3;
+  public const int GL_UNPACK_SKIP_PIXELS             =0x0CF4;
+  public const int GL_UNPACK_ALIGNMENT               =0x0CF5;
+  public const int GL_PACK_SWAP_BYTES                =0x0D00;
+  public const int GL_PACK_LSB_FIRST                 =0x0D01;
+  public const int GL_PACK_ROW_LENGTH                =0x0D02;
+  public const int GL_PACK_SKIP_ROWS                 =0x0D03;
+  public const int GL_PACK_SKIP_PIXELS               =0x0D04;
+  public const int GL_PACK_ALIGNMENT                 =0x0D05;
+  public const int GL_MAP_COLOR                      =0x0D10;
+  public const int GL_MAP_STENCIL                    =0x0D11;
+  public const int GL_INDEX_SHIFT                    =0x0D12;
+  public const int GL_INDEX_OFFSET                   =0x0D13;
+  public const int GL_RED_SCALE                      =0x0D14;
+  public const int GL_RED_BIAS                       =0x0D15;
+  public const int GL_ZOOM_X                         =0x0D16;
+  public const int GL_ZOOM_Y                         =0x0D17;
+  public const int GL_GREEN_SCALE                    =0x0D18;
+  public const int GL_GREEN_BIAS                     =0x0D19;
+  public const int GL_BLUE_SCALE                     =0x0D1A;
+  public const int GL_BLUE_BIAS                      =0x0D1B;
+  public const int GL_ALPHA_SCALE                    =0x0D1C;
+  public const int GL_ALPHA_BIAS                     =0x0D1D;
+  public const int GL_DEPTH_SCALE                    =0x0D1E;
+  public const int GL_DEPTH_BIAS                     =0x0D1F;
+  public const int GL_MAX_EVAL_ORDER                 =0x0D30;
+  public const int GL_MAX_LIGHTS                     =0x0D31;
+  public const int GL_MAX_CLIP_PLANES                =0x0D32;
+  public const int GL_MAX_TEXTURE_SIZE               =0x0D33;
+  public const int GL_MAX_PIXEL_MAP_TABLE            =0x0D34;
+  public const int GL_MAX_ATTRIB_STACK_DEPTH         =0x0D35;
+  public const int GL_MAX_MODELVIEW_STACK_DEPTH      =0x0D36;
+  public const int GL_MAX_NAME_STACK_DEPTH           =0x0D37;
+  public const int GL_MAX_PROJECTION_STACK_DEPTH     =0x0D38;
+  public const int GL_MAX_TEXTURE_STACK_DEPTH        =0x0D39;
+  public const int GL_MAX_VIEWPORT_DIMS              =0x0D3A;
+  public const int GL_MAX_CLIENT_ATTRIB_STACK_DEPTH  =0x0D3B;
+  public const int GL_SUBPIXEL_BITS                  =0x0D50;
+  public const int GL_INDEX_BITS                     =0x0D51;
+  public const int GL_RED_BITS                       =0x0D52;
+  public const int GL_GREEN_BITS                     =0x0D53;
+  public const int GL_BLUE_BITS                      =0x0D54;
+  public const int GL_ALPHA_BITS                     =0x0D55;
+  public const int GL_DEPTH_BITS                     =0x0D56;
+  public const int GL_STENCIL_BITS                   =0x0D57;
+  public const int GL_ACCUM_RED_BITS                 =0x0D58;
+  public const int GL_ACCUM_GREEN_BITS               =0x0D59;
+  public const int GL_ACCUM_BLUE_BITS                =0x0D5A;
+  public const int GL_ACCUM_ALPHA_BITS               =0x0D5B;
+  public const int GL_NAME_STACK_DEPTH               =0x0D70;
+  public const int GL_AUTO_NORMAL                    =0x0D80;
+  public const int GL_MAP1_COLOR_4                   =0x0D90;
+  public const int GL_MAP1_INDEX                     =0x0D91;
+  public const int GL_MAP1_NORMAL                    =0x0D92;
+  public const int GL_MAP1_TEXTURE_COORD_1           =0x0D93;
+  public const int GL_MAP1_TEXTURE_COORD_2           =0x0D94;
+  public const int GL_MAP1_TEXTURE_COORD_3           =0x0D95;
+  public const int GL_MAP1_TEXTURE_COORD_4           =0x0D96;
+  public const int GL_MAP1_VERTEX_3                  =0x0D97;
+  public const int GL_MAP1_VERTEX_4                  =0x0D98;
+  public const int GL_MAP2_COLOR_4                   =0x0DB0;
+  public const int GL_MAP2_INDEX                     =0x0DB1;
+  public const int GL_MAP2_NORMAL                    =0x0DB2;
+  public const int GL_MAP2_TEXTURE_COORD_1           =0x0DB3;
+  public const int GL_MAP2_TEXTURE_COORD_2           =0x0DB4;
+  public const int GL_MAP2_TEXTURE_COORD_3           =0x0DB5;
+  public const int GL_MAP2_TEXTURE_COORD_4           =0x0DB6;
+  public const int GL_MAP2_VERTEX_3                  =0x0DB7;
+  public const int GL_MAP2_VERTEX_4                  =0x0DB8;
+  public const int GL_MAP1_GRID_DOMAIN               =0x0DD0;
+  public const int GL_MAP1_GRID_SEGMENTS             =0x0DD1;
+  public const int GL_MAP2_GRID_DOMAIN               =0x0DD2;
+  public const int GL_MAP2_GRID_SEGMENTS             =0x0DD3;
+  public const int GL_TEXTURE_1D                     =0x0DE0;
+  public const int GL_TEXTURE_2D                     =0x0DE1;
+  public const int GL_FEEDBACK_BUFFER_POINTER        =0x0DF0;
+  public const int GL_FEEDBACK_BUFFER_SIZE           =0x0DF1;
+  public const int GL_FEEDBACK_BUFFER_TYPE           =0x0DF2;
+  public const int GL_SELECTION_BUFFER_POINTER       =0x0DF3;
+  public const int GL_SELECTION_BUFFER_SIZE          =0x0DF4;
   /*      GL_TEXTURE_BINDING_1D */
   /*      GL_TEXTURE_BINDING_2D */
   /*      GL_VERTEX_ARRAY */
@@ -602,11 +601,11 @@ public sealed class GL
   /*      GL_TEXTURE_MIN_FILTER */
   /*      GL_TEXTURE_WRAP_S */
   /*      GL_TEXTURE_WRAP_T */
-  public const uint GL_TEXTURE_WIDTH                  =0x1000;
-  public const uint GL_TEXTURE_HEIGHT                 =0x1001;
-  public const uint GL_TEXTURE_INTERNAL_FORMAT        =0x1003;
-  public const uint GL_TEXTURE_BORDER_COLOR           =0x1004;
-  public const uint GL_TEXTURE_BORDER                 =0x1005;
+  public const int GL_TEXTURE_WIDTH                  =0x1000;
+  public const int GL_TEXTURE_HEIGHT                 =0x1001;
+  public const int GL_TEXTURE_INTERNAL_FORMAT        =0x1003;
+  public const int GL_TEXTURE_BORDER_COLOR           =0x1004;
+  public const int GL_TEXTURE_BORDER                 =0x1005;
   /*      GL_TEXTURE_RED_SIZE */
   /*      GL_TEXTURE_GREEN_SIZE */
   /*      GL_TEXTURE_BLUE_SIZE */
@@ -618,9 +617,9 @@ public sealed class GL
   #endregion
 
   #region HintMode
-  public const uint GL_DONT_CARE                      =0x1100;
-  public const uint GL_FASTEST                        =0x1101;
-  public const uint GL_NICEST                         =0x1102;
+  public const int GL_DONT_CARE                      =0x1100;
+  public const int GL_FASTEST                        =0x1101;
+  public const int GL_NICEST                         =0x1102;
   #endregion
 
   #region HintTarget
@@ -646,27 +645,27 @@ public sealed class GL
   #endregion
 
   #region LightName
-  public const uint GL_LIGHT0                         =0x4000;
-  public const uint GL_LIGHT1                         =0x4001;
-  public const uint GL_LIGHT2                         =0x4002;
-  public const uint GL_LIGHT3                         =0x4003;
-  public const uint GL_LIGHT4                         =0x4004;
-  public const uint GL_LIGHT5                         =0x4005;
-  public const uint GL_LIGHT6                         =0x4006;
-  public const uint GL_LIGHT7                         =0x4007;
+  public const int GL_LIGHT0                         =0x4000;
+  public const int GL_LIGHT1                         =0x4001;
+  public const int GL_LIGHT2                         =0x4002;
+  public const int GL_LIGHT3                         =0x4003;
+  public const int GL_LIGHT4                         =0x4004;
+  public const int GL_LIGHT5                         =0x4005;
+  public const int GL_LIGHT6                         =0x4006;
+  public const int GL_LIGHT7                         =0x4007;
   #endregion
 
   #region LightParameter
-  public const uint GL_AMBIENT                        =0x1200;
-  public const uint GL_DIFFUSE                        =0x1201;
-  public const uint GL_SPECULAR                       =0x1202;
-  public const uint GL_POSITION                       =0x1203;
-  public const uint GL_SPOT_DIRECTION                 =0x1204;
-  public const uint GL_SPOT_EXPONENT                  =0x1205;
-  public const uint GL_SPOT_CUTOFF                    =0x1206;
-  public const uint GL_CONSTANT_ATTENUATION           =0x1207;
-  public const uint GL_LINEAR_ATTENUATION             =0x1208;
-  public const uint GL_QUADRATIC_ATTENUATION          =0x1209;
+  public const int GL_AMBIENT                        =0x1200;
+  public const int GL_DIFFUSE                        =0x1201;
+  public const int GL_SPECULAR                       =0x1202;
+  public const int GL_POSITION                       =0x1203;
+  public const int GL_SPOT_DIRECTION                 =0x1204;
+  public const int GL_SPOT_EXPONENT                  =0x1205;
+  public const int GL_SPOT_CUTOFF                    =0x1206;
+  public const int GL_CONSTANT_ATTENUATION           =0x1207;
+  public const int GL_LINEAR_ATTENUATION             =0x1208;
+  public const int GL_QUADRATIC_ATTENUATION          =0x1209;
   #endregion
 
   #region InterleavedArrays
@@ -687,8 +686,8 @@ public sealed class GL
   #endregion
 
   #region ListMode
-  public const uint GL_COMPILE                        =0x1300;
-  public const uint GL_COMPILE_AND_EXECUTE            =0x1301;
+  public const int GL_COMPILE                        =0x1300;
+  public const int GL_COMPILE_AND_EXECUTE            =0x1301;
   #endregion
 
   #region ListNameType
@@ -705,22 +704,22 @@ public sealed class GL
   #endregion
 
   #region LogicOp
-  public const uint GL_CLEAR                          =0x1500;
-  public const uint GL_AND                            =0x1501;
-  public const uint GL_AND_REVERSE                    =0x1502;
-  public const uint GL_COPY                           =0x1503;
-  public const uint GL_AND_INVERTED                   =0x1504;
-  public const uint GL_NOOP                           =0x1505;
-  public const uint GL_XOR                            =0x1506;
-  public const uint GL_OR                             =0x1507;
-  public const uint GL_NOR                            =0x1508;
-  public const uint GL_EQUIV                          =0x1509;
-  public const uint GL_INVERT                         =0x150A;
-  public const uint GL_OR_REVERSE                     =0x150B;
-  public const uint GL_COPY_INVERTED                  =0x150C;
-  public const uint GL_OR_INVERTED                    =0x150D;
-  public const uint GL_NAND                           =0x150E;
-  public const uint GL_SET                            =0x150F;
+  public const int GL_CLEAR                          =0x1500;
+  public const int GL_AND                            =0x1501;
+  public const int GL_AND_REVERSE                    =0x1502;
+  public const int GL_COPY                           =0x1503;
+  public const int GL_AND_INVERTED                   =0x1504;
+  public const int GL_NOOP                           =0x1505;
+  public const int GL_XOR                            =0x1506;
+  public const int GL_OR                             =0x1507;
+  public const int GL_NOR                            =0x1508;
+  public const int GL_EQUIV                          =0x1509;
+  public const int GL_INVERT                         =0x150A;
+  public const int GL_OR_REVERSE                     =0x150B;
+  public const int GL_COPY_INVERTED                  =0x150C;
+  public const int GL_OR_INVERTED                    =0x150D;
+  public const int GL_NAND                           =0x150E;
+  public const int GL_SET                            =0x150F;
   #endregion
 
   #region MapTarget
@@ -751,19 +750,19 @@ public sealed class GL
   #endregion
 
   #region MaterialParameter
-  public const uint GL_EMISSION                       =0x1600;
-  public const uint GL_SHININESS                      =0x1601;
-  public const uint GL_AMBIENT_AND_DIFFUSE            =0x1602;
-  public const uint GL_COLOR_INDEXES                  =0x1603;
+  public const int GL_EMISSION                       =0x1600;
+  public const int GL_SHININESS                      =0x1601;
+  public const int GL_AMBIENT_AND_DIFFUSE            =0x1602;
+  public const int GL_COLOR_INDEXES                  =0x1603;
   /*      GL_AMBIENT */
   /*      GL_DIFFUSE */
   /*      GL_SPECULAR */
   #endregion
 
   #region MatrixMode
-  public const uint GL_MODELVIEW                      =0x1700;
-  public const uint GL_PROJECTION                     =0x1701;
-  public const uint GL_TEXTURE                        =0x1702;
+  public const int GL_MODELVIEW                      =0x1700;
+  public const int GL_PROJECTION                     =0x1701;
+  public const int GL_TEXTURE                        =0x1702;
   #endregion
 
   #region MeshMode1
@@ -786,23 +785,23 @@ public sealed class GL
   #endregion
 
   #region PixelCopyType
-  public const uint GL_COLOR                          =0x1800;
-  public const uint GL_DEPTH                          =0x1801;
-  public const uint GL_STENCIL                        =0x1802;
+  public const int GL_COLOR                          =0x1800;
+  public const int GL_DEPTH                          =0x1801;
+  public const int GL_STENCIL                        =0x1802;
   #endregion
 
   #region PixelFormat
-  public const uint GL_COLOR_INDEX                    =0x1900;
-  public const uint GL_STENCIL_INDEX                  =0x1901;
-  public const uint GL_DEPTH_COMPONENT                =0x1902;
-  public const uint GL_RED                            =0x1903;
-  public const uint GL_GREEN                          =0x1904;
-  public const uint GL_BLUE                           =0x1905;
-  public const uint GL_ALPHA                          =0x1906;
-  public const uint GL_RGB                            =0x1907;
-  public const uint GL_RGBA                           =0x1908;
-  public const uint GL_LUMINANCE                      =0x1909;
-  public const uint GL_LUMINANCE_ALPHA                =0x190A;
+  public const int GL_COLOR_INDEX                    =0x1900;
+  public const int GL_STENCIL_INDEX                  =0x1901;
+  public const int GL_DEPTH_COMPONENT                =0x1902;
+  public const int GL_RED                            =0x1903;
+  public const int GL_GREEN                          =0x1904;
+  public const int GL_BLUE                           =0x1905;
+  public const int GL_ALPHA                          =0x1906;
+  public const int GL_RGB                            =0x1907;
+  public const int GL_RGBA                           =0x1908;
+  public const int GL_LUMINANCE                      =0x1909;
+  public const int GL_LUMINANCE_ALPHA                =0x190A;
   #endregion
 
   #region PixelMap
@@ -851,7 +850,7 @@ public sealed class GL
   #endregion
 
   #region PixelType
-  public const uint GL_BITMAP                         =0x1A00;
+  public const int GL_BITMAP                         =0x1A00;
   /*      GL_BYTE */
   /*      GL_UNSIGNED_BYTE */
   /*      GL_SHORT */
@@ -862,9 +861,9 @@ public sealed class GL
   #endregion
 
   #region PolygonMode
-  public const uint GL_POINT                          =0x1B00;
-  public const uint GL_LINE                           =0x1B01;
-  public const uint GL_FILL                           =0x1B02;
+  public const int GL_POINT                          =0x1B00;
+  public const int GL_LINE                           =0x1B01;
+  public const int GL_FILL                           =0x1B02;
   #endregion
 
   #region ReadBufferMode
@@ -883,14 +882,14 @@ public sealed class GL
   #endregion
 
   #region RenderingMode
-  public const uint GL_RENDER                         =0x1C00;
-  public const uint GL_FEEDBACK                       =0x1C01;
-  public const uint GL_SELECT                         =0x1C02;
+  public const int GL_RENDER                         =0x1C00;
+  public const int GL_FEEDBACK                       =0x1C01;
+  public const int GL_SELECT                         =0x1C02;
   #endregion
 
   #region ShadingModel
-  public const uint GL_FLAT                           =0x1D00;
-  public const uint GL_SMOOTH                         =0x1D01;
+  public const int GL_FLAT                           =0x1D00;
+  public const int GL_SMOOTH                         =0x1D01;
   #endregion
 
   #region StencilFunction
@@ -906,25 +905,25 @@ public sealed class GL
 
   #region StencilOp
   /*      GL_ZERO */
-  public const uint GL_KEEP                           =0x1E00;
-  public const uint GL_REPLACE                        =0x1E01;
-  public const uint GL_INCR                           =0x1E02;
-  public const uint GL_DECR                           =0x1E03;
+  public const int GL_KEEP                           =0x1E00;
+  public const int GL_REPLACE                        =0x1E01;
+  public const int GL_INCR                           =0x1E02;
+  public const int GL_DECR                           =0x1E03;
   /*      GL_INVERT */
   #endregion
 
   #region StringName
-  public const uint GL_VENDOR                         =0x1F00;
-  public const uint GL_RENDERER                       =0x1F01;
-  public const uint GL_VERSION                        =0x1F02;
-  public const uint GL_EXTENSIONS                     =0x1F03;
+  public const int GL_VENDOR                         =0x1F00;
+  public const int GL_RENDERER                       =0x1F01;
+  public const int GL_VERSION                        =0x1F02;
+  public const int GL_EXTENSIONS                     =0x1F03;
   #endregion
 
   #region TextureCoordName
-  public const uint GL_S                              =0x2000;
-  public const uint GL_T                              =0x2001;
-  public const uint GL_R                              =0x2002;
-  public const uint GL_Q                              =0x2003;
+  public const int GL_S                              =0x2000;
+  public const int GL_T                              =0x2001;
+  public const int GL_R                              =0x2002;
+  public const int GL_Q                              =0x2003;
   #endregion
 
   #region TexCoordPointerType
@@ -935,52 +934,52 @@ public sealed class GL
   #endregion
 
   #region TextureEnvMode
-  public const uint GL_MODULATE                       =0x2100;
-  public const uint GL_DECAL                          =0x2101;
+  public const int GL_MODULATE                       =0x2100;
+  public const int GL_DECAL                          =0x2101;
   /*      GL_BLEND */
   /*      GL_REPLACE */
   #endregion
 
   #region TextureEnvParameter
-  public const uint GL_TEXTURE_ENV_MODE               =0x2200;
-  public const uint GL_TEXTURE_ENV_COLOR              =0x2201;
+  public const int GL_TEXTURE_ENV_MODE               =0x2200;
+  public const int GL_TEXTURE_ENV_COLOR              =0x2201;
   #endregion
 
   #region TextureEnvTarget
-  public const uint GL_TEXTURE_ENV                    =0x2300;
+  public const int GL_TEXTURE_ENV                    =0x2300;
   #endregion
 
   #region TextureGenMode
-  public const uint GL_EYE_LINEAR                     =0x2400;
-  public const uint GL_OBJECT_LINEAR                  =0x2401;
-  public const uint GL_SPHERE_MAP                     =0x2402;
+  public const int GL_EYE_LINEAR                     =0x2400;
+  public const int GL_OBJECT_LINEAR                  =0x2401;
+  public const int GL_SPHERE_MAP                     =0x2402;
   #endregion
 
   #region TextureGenParameter
-  public const uint GL_TEXTURE_GEN_MODE               =0x2500;
-  public const uint GL_OBJECT_PLANE                   =0x2501;
-  public const uint GL_EYE_PLANE                      =0x2502;
+  public const int GL_TEXTURE_GEN_MODE               =0x2500;
+  public const int GL_OBJECT_PLANE                   =0x2501;
+  public const int GL_EYE_PLANE                      =0x2502;
   #endregion
 
   #region TextureMagFilter
-  public const uint GL_NEAREST                        =0x2600;
-  public const uint GL_LINEAR                         =0x2601;
+  public const int GL_NEAREST                        =0x2600;
+  public const int GL_LINEAR                         =0x2601;
   #endregion
 
   #region TextureMinFilter
   /*      GL_NEAREST */
   /*      GL_LINEAR */
-  public const uint GL_NEAREST_MIPMAP_NEAREST         =0x2700;
-  public const uint GL_LINEAR_MIPMAP_NEAREST          =0x2701;
-  public const uint GL_NEAREST_MIPMAP_LINEAR          =0x2702;
-  public const uint GL_LINEAR_MIPMAP_LINEAR           =0x2703;
+  public const int GL_NEAREST_MIPMAP_NEAREST         =0x2700;
+  public const int GL_LINEAR_MIPMAP_NEAREST          =0x2701;
+  public const int GL_NEAREST_MIPMAP_LINEAR          =0x2702;
+  public const int GL_LINEAR_MIPMAP_LINEAR           =0x2703;
   #endregion
 
   #region TextureParameterName
-  public const uint GL_TEXTURE_MAG_FILTER             =0x2800;
-  public const uint GL_TEXTURE_MIN_FILTER             =0x2801;
-  public const uint GL_TEXTURE_WRAP_S                 =0x2802;
-  public const uint GL_TEXTURE_WRAP_T                 =0x2803;
+  public const int GL_TEXTURE_MAG_FILTER             =0x2800;
+  public const int GL_TEXTURE_MIN_FILTER             =0x2801;
+  public const int GL_TEXTURE_WRAP_S                 =0x2802;
+  public const int GL_TEXTURE_WRAP_T                 =0x2803;
   /*      GL_TEXTURE_BORDER_COLOR */
   /*      GL_TEXTURE_PRIORITY */
   #endregion
@@ -993,8 +992,8 @@ public sealed class GL
   #endregion
 
   #region TextureWrapMode
-  public const uint GL_CLAMP  =0x2900;
-  public const uint GL_REPEAT =0x2901;
+  public const int GL_CLAMP  =0x2900;
+  public const int GL_REPEAT =0x2901;
   #endregion
 
   #region VertexPointerType
@@ -1005,242 +1004,255 @@ public sealed class GL
   #endregion
 
   #region ClientAttribMask
-  public const uint GL_CLIENT_PIXEL_STORE_BIT         =0x00000001;
-  public const uint GL_CLIENT_VERTEX_ARRAY_BIT        =0x00000002;
-  public const uint GL_CLIENT_ALL_ATTRIB_BITS         =0xffffffff;
+  public const int GL_CLIENT_PIXEL_STORE_BIT         =0x00000001;
+  public const int GL_CLIENT_VERTEX_ARRAY_BIT        =0x00000002;
+  public const int GL_CLIENT_ALL_ATTRIB_BITS         =unchecked((int)0xffffffff);
   #endregion
 
   #region polygon_offset
-  public const uint GL_POLYGON_OFFSET_FACTOR          =0x8038;
-  public const uint GL_POLYGON_OFFSET_UNITS           =0x2A00;
-  public const uint GL_POLYGON_OFFSET_POINT           =0x2A01;
-  public const uint GL_POLYGON_OFFSET_LINE            =0x2A02;
-  public const uint GL_POLYGON_OFFSET_FILL            =0x8037;
+  public const int GL_POLYGON_OFFSET_FACTOR          =0x8038;
+  public const int GL_POLYGON_OFFSET_UNITS           =0x2A00;
+  public const int GL_POLYGON_OFFSET_POINT           =0x2A01;
+  public const int GL_POLYGON_OFFSET_LINE            =0x2A02;
+  public const int GL_POLYGON_OFFSET_FILL            =0x8037;
   #endregion
 
   #region texture
-  public const uint GL_ALPHA4                         =0x803B;
-  public const uint GL_ALPHA8                         =0x803C;
-  public const uint GL_ALPHA12                        =0x803D;
-  public const uint GL_ALPHA16                        =0x803E;
-  public const uint GL_LUMINANCE4                     =0x803F;
-  public const uint GL_LUMINANCE8                     =0x8040;
-  public const uint GL_LUMINANCE12                    =0x8041;
-  public const uint GL_LUMINANCE16                    =0x8042;
-  public const uint GL_LUMINANCE4_ALPHA4              =0x8043;
-  public const uint GL_LUMINANCE6_ALPHA2              =0x8044;
-  public const uint GL_LUMINANCE8_ALPHA8              =0x8045;
-  public const uint GL_LUMINANCE12_ALPHA4             =0x8046;
-  public const uint GL_LUMINANCE12_ALPHA12            =0x8047;
-  public const uint GL_LUMINANCE16_ALPHA16            =0x8048;
-  public const uint GL_INTENSITY                      =0x8049;
-  public const uint GL_INTENSITY4                     =0x804A;
-  public const uint GL_INTENSITY8                     =0x804B;
-  public const uint GL_INTENSITY12                    =0x804C;
-  public const uint GL_INTENSITY16                    =0x804D;
-  public const uint GL_R3_G3_B2                       =0x2A10;
-  public const uint GL_RGB4                           =0x804F;
-  public const uint GL_RGB5                           =0x8050;
-  public const uint GL_RGB8                           =0x8051;
-  public const uint GL_RGB10                          =0x8052;
-  public const uint GL_RGB12                          =0x8053;
-  public const uint GL_RGB16                          =0x8054;
-  public const uint GL_RGBA2                          =0x8055;
-  public const uint GL_RGBA4                          =0x8056;
-  public const uint GL_RGB5_A1                        =0x8057;
-  public const uint GL_RGBA8                          =0x8058;
-  public const uint GL_RGB10_A2                       =0x8059;
-  public const uint GL_RGBA12                         =0x805A;
-  public const uint GL_RGBA16                         =0x805B;
-  public const uint GL_TEXTURE_RED_SIZE               =0x805C;
-  public const uint GL_TEXTURE_GREEN_SIZE             =0x805D;
-  public const uint GL_TEXTURE_BLUE_SIZE              =0x805E;
-  public const uint GL_TEXTURE_ALPHA_SIZE             =0x805F;
-  public const uint GL_TEXTURE_LUMINANCE_SIZE         =0x8060;
-  public const uint GL_TEXTURE_INTENSITY_SIZE         =0x8061;
-  public const uint GL_PROXY_TEXTURE_1D               =0x8063;
-  public const uint GL_PROXY_TEXTURE_2D               =0x8064;
+  public const int GL_ALPHA4                         =0x803B;
+  public const int GL_ALPHA8                         =0x803C;
+  public const int GL_ALPHA12                        =0x803D;
+  public const int GL_ALPHA16                        =0x803E;
+  public const int GL_LUMINANCE4                     =0x803F;
+  public const int GL_LUMINANCE8                     =0x8040;
+  public const int GL_LUMINANCE12                    =0x8041;
+  public const int GL_LUMINANCE16                    =0x8042;
+  public const int GL_LUMINANCE4_ALPHA4              =0x8043;
+  public const int GL_LUMINANCE6_ALPHA2              =0x8044;
+  public const int GL_LUMINANCE8_ALPHA8              =0x8045;
+  public const int GL_LUMINANCE12_ALPHA4             =0x8046;
+  public const int GL_LUMINANCE12_ALPHA12            =0x8047;
+  public const int GL_LUMINANCE16_ALPHA16            =0x8048;
+  public const int GL_INTENSITY                      =0x8049;
+  public const int GL_INTENSITY4                     =0x804A;
+  public const int GL_INTENSITY8                     =0x804B;
+  public const int GL_INTENSITY12                    =0x804C;
+  public const int GL_INTENSITY16                    =0x804D;
+  public const int GL_R3_G3_B2                       =0x2A10;
+  public const int GL_RGB4                           =0x804F;
+  public const int GL_RGB5                           =0x8050;
+  public const int GL_RGB8                           =0x8051;
+  public const int GL_RGB10                          =0x8052;
+  public const int GL_RGB12                          =0x8053;
+  public const int GL_RGB16                          =0x8054;
+  public const int GL_RGBA2                          =0x8055;
+  public const int GL_RGBA4                          =0x8056;
+  public const int GL_RGB5_A1                        =0x8057;
+  public const int GL_RGBA8                          =0x8058;
+  public const int GL_RGB10_A2                       =0x8059;
+  public const int GL_RGBA12                         =0x805A;
+  public const int GL_RGBA16                         =0x805B;
+  public const int GL_TEXTURE_RED_SIZE               =0x805C;
+  public const int GL_TEXTURE_GREEN_SIZE             =0x805D;
+  public const int GL_TEXTURE_BLUE_SIZE              =0x805E;
+  public const int GL_TEXTURE_ALPHA_SIZE             =0x805F;
+  public const int GL_TEXTURE_LUMINANCE_SIZE         =0x8060;
+  public const int GL_TEXTURE_INTENSITY_SIZE         =0x8061;
+  public const int GL_PROXY_TEXTURE_1D               =0x8063;
+  public const int GL_PROXY_TEXTURE_2D               =0x8064;
   #endregion
 
   #region texture_object
-  public const uint GL_TEXTURE_PRIORITY               =0x8066;
-  public const uint GL_TEXTURE_RESIDENT               =0x8067;
-  public const uint GL_TEXTURE_BINDING_1D             =0x8068;
-  public const uint GL_TEXTURE_BINDING_2D             =0x8069;
+  public const int GL_TEXTURE_PRIORITY               =0x8066;
+  public const int GL_TEXTURE_RESIDENT               =0x8067;
+  public const int GL_TEXTURE_BINDING_1D             =0x8068;
+  public const int GL_TEXTURE_BINDING_2D             =0x8069;
   #endregion
 
   #region vertex_array
-  public const uint GL_VERTEX_ARRAY                   =0x8074;
-  public const uint GL_NORMAL_ARRAY                   =0x8075;
-  public const uint GL_COLOR_ARRAY                    =0x8076;
-  public const uint GL_INDEX_ARRAY                    =0x8077;
-  public const uint GL_TEXTURE_COORD_ARRAY            =0x8078;
-  public const uint GL_EDGE_FLAG_ARRAY                =0x8079;
-  public const uint GL_VERTEX_ARRAY_SIZE              =0x807A;
-  public const uint GL_VERTEX_ARRAY_TYPE              =0x807B;
-  public const uint GL_VERTEX_ARRAY_STRIDE            =0x807C;
-  public const uint GL_NORMAL_ARRAY_TYPE              =0x807E;
-  public const uint GL_NORMAL_ARRAY_STRIDE            =0x807F;
-  public const uint GL_COLOR_ARRAY_SIZE               =0x8081;
-  public const uint GL_COLOR_ARRAY_TYPE               =0x8082;
-  public const uint GL_COLOR_ARRAY_STRIDE             =0x8083;
-  public const uint GL_INDEX_ARRAY_TYPE               =0x8085;
-  public const uint GL_INDEX_ARRAY_STRIDE             =0x8086;
-  public const uint GL_TEXTURE_COORD_ARRAY_SIZE       =0x8088;
-  public const uint GL_TEXTURE_COORD_ARRAY_TYPE       =0x8089;
-  public const uint GL_TEXTURE_COORD_ARRAY_STRIDE     =0x808A;
-  public const uint GL_EDGE_FLAG_ARRAY_STRIDE         =0x808C;
-  public const uint GL_VERTEX_ARRAY_POINTER           =0x808E;
-  public const uint GL_NORMAL_ARRAY_POINTER           =0x808F;
-  public const uint GL_COLOR_ARRAY_POINTER            =0x8090;
-  public const uint GL_INDEX_ARRAY_POINTER            =0x8091;
-  public const uint GL_TEXTURE_COORD_ARRAY_POINTER    =0x8092;
-  public const uint GL_EDGE_FLAG_ARRAY_POINTER        =0x8093;
-  public const uint GL_V2F                            =0x2A20;
-  public const uint GL_V3F                            =0x2A21;
-  public const uint GL_C4UB_V2F                       =0x2A22;
-  public const uint GL_C4UB_V3F                       =0x2A23;
-  public const uint GL_C3F_V3F                        =0x2A24;
-  public const uint GL_N3F_V3F                        =0x2A25;
-  public const uint GL_C4F_N3F_V3F                    =0x2A26;
-  public const uint GL_T2F_V3F                        =0x2A27;
-  public const uint GL_T4F_V4F                        =0x2A28;
-  public const uint GL_T2F_C4UB_V3F                   =0x2A29;
-  public const uint GL_T2F_C3F_V3F                    =0x2A2A;
-  public const uint GL_T2F_N3F_V3F                    =0x2A2B;
-  public const uint GL_T2F_C4F_N3F_V3F                =0x2A2C;
-  public const uint GL_T4F_C4F_N3F_V4F                =0x2A2D;
+  public const int GL_VERTEX_ARRAY                   =0x8074;
+  public const int GL_NORMAL_ARRAY                   =0x8075;
+  public const int GL_COLOR_ARRAY                    =0x8076;
+  public const int GL_INDEX_ARRAY                    =0x8077;
+  public const int GL_TEXTURE_COORD_ARRAY            =0x8078;
+  public const int GL_EDGE_FLAG_ARRAY                =0x8079;
+  public const int GL_VERTEX_ARRAY_SIZE              =0x807A;
+  public const int GL_VERTEX_ARRAY_TYPE              =0x807B;
+  public const int GL_VERTEX_ARRAY_STRIDE            =0x807C;
+  public const int GL_NORMAL_ARRAY_TYPE              =0x807E;
+  public const int GL_NORMAL_ARRAY_STRIDE            =0x807F;
+  public const int GL_COLOR_ARRAY_SIZE               =0x8081;
+  public const int GL_COLOR_ARRAY_TYPE               =0x8082;
+  public const int GL_COLOR_ARRAY_STRIDE             =0x8083;
+  public const int GL_INDEX_ARRAY_TYPE               =0x8085;
+  public const int GL_INDEX_ARRAY_STRIDE             =0x8086;
+  public const int GL_TEXTURE_COORD_ARRAY_SIZE       =0x8088;
+  public const int GL_TEXTURE_COORD_ARRAY_TYPE       =0x8089;
+  public const int GL_TEXTURE_COORD_ARRAY_STRIDE     =0x808A;
+  public const int GL_EDGE_FLAG_ARRAY_STRIDE         =0x808C;
+  public const int GL_VERTEX_ARRAY_POINTER           =0x808E;
+  public const int GL_NORMAL_ARRAY_POINTER           =0x808F;
+  public const int GL_COLOR_ARRAY_POINTER            =0x8090;
+  public const int GL_INDEX_ARRAY_POINTER            =0x8091;
+  public const int GL_TEXTURE_COORD_ARRAY_POINTER    =0x8092;
+  public const int GL_EDGE_FLAG_ARRAY_POINTER        =0x8093;
+  public const int GL_V2F                            =0x2A20;
+  public const int GL_V3F                            =0x2A21;
+  public const int GL_C4UB_V2F                       =0x2A22;
+  public const int GL_C4UB_V3F                       =0x2A23;
+  public const int GL_C3F_V3F                        =0x2A24;
+  public const int GL_N3F_V3F                        =0x2A25;
+  public const int GL_C4F_N3F_V3F                    =0x2A26;
+  public const int GL_T2F_V3F                        =0x2A27;
+  public const int GL_T4F_V4F                        =0x2A28;
+  public const int GL_T2F_C4UB_V3F                   =0x2A29;
+  public const int GL_T2F_C3F_V3F                    =0x2A2A;
+  public const int GL_T2F_N3F_V3F                    =0x2A2B;
+  public const int GL_T2F_C4F_N3F_V3F                =0x2A2C;
+  public const int GL_T4F_C4F_N3F_V4F                =0x2A2D;
   #endregion
 
   #region Extensions
-  public const uint GL_EXT_vertex_array               =1;
-  public const uint GL_EXT_bgra                       =1;
-  public const uint GL_EXT_paletted_texture           =1;
-  public const uint GL_WIN_swap_hint                  =1;
-  public const uint GL_WIN_draw_range_elements        =1;
-  // public const uint GL_WIN_phong_shading              1
-  // public const uint GL_WIN_specular_fog               1
+  public const int GL_EXT_vertex_array               =1;
+  public const int GL_EXT_bgra                       =1;
+  public const int GL_EXT_paletted_texture           =1;
+  public const int GL_WIN_swap_hint                  =1;
+  public const int GL_WIN_draw_range_elements        =1;
+  // public const int GL_WIN_phong_shading              1
+  // public const int GL_WIN_specular_fog               1
   #endregion
 
   #region EXT_vertex_array
-  public const uint GL_VERTEX_ARRAY_EXT               =0x8074;
-  public const uint GL_NORMAL_ARRAY_EXT               =0x8075;
-  public const uint GL_COLOR_ARRAY_EXT                =0x8076;
-  public const uint GL_INDEX_ARRAY_EXT                =0x8077;
-  public const uint GL_TEXTURE_COORD_ARRAY_EXT        =0x8078;
-  public const uint GL_EDGE_FLAG_ARRAY_EXT            =0x8079;
-  public const uint GL_VERTEX_ARRAY_SIZE_EXT          =0x807A;
-  public const uint GL_VERTEX_ARRAY_TYPE_EXT          =0x807B;
-  public const uint GL_VERTEX_ARRAY_STRIDE_EXT        =0x807C;
-  public const uint GL_VERTEX_ARRAY_COUNT_EXT         =0x807D;
-  public const uint GL_NORMAL_ARRAY_TYPE_EXT          =0x807E;
-  public const uint GL_NORMAL_ARRAY_STRIDE_EXT        =0x807F;
-  public const uint GL_NORMAL_ARRAY_COUNT_EXT         =0x8080;
-  public const uint GL_COLOR_ARRAY_SIZE_EXT           =0x8081;
-  public const uint GL_COLOR_ARRAY_TYPE_EXT           =0x8082;
-  public const uint GL_COLOR_ARRAY_STRIDE_EXT         =0x8083;
-  public const uint GL_COLOR_ARRAY_COUNT_EXT          =0x8084;
-  public const uint GL_INDEX_ARRAY_TYPE_EXT           =0x8085;
-  public const uint GL_INDEX_ARRAY_STRIDE_EXT         =0x8086;
-  public const uint GL_INDEX_ARRAY_COUNT_EXT          =0x8087;
-  public const uint GL_TEXTURE_COORD_ARRAY_SIZE_EXT   =0x8088;
-  public const uint GL_TEXTURE_COORD_ARRAY_TYPE_EXT   =0x8089;
-  public const uint GL_TEXTURE_COORD_ARRAY_STRIDE_EXT =0x808A;
-  public const uint GL_TEXTURE_COORD_ARRAY_COUNT_EXT  =0x808B;
-  public const uint GL_EDGE_FLAG_ARRAY_STRIDE_EXT     =0x808C;
-  public const uint GL_EDGE_FLAG_ARRAY_COUNT_EXT      =0x808D;
-  public const uint GL_VERTEX_ARRAY_POINTER_EXT       =0x808E;
-  public const uint GL_NORMAL_ARRAY_POINTER_EXT       =0x808F;
-  public const uint GL_COLOR_ARRAY_POINTER_EXT        =0x8090;
-  public const uint GL_INDEX_ARRAY_POINTER_EXT        =0x8091;
-  public const uint GL_TEXTURE_COORD_ARRAY_POINTER_EXT =0x8092;
-  public const uint GL_EDGE_FLAG_ARRAY_POINTER_EXT    =0x8093;
-  public const uint GL_DOUBLE_EXT                     =GL_DOUBLE;
+  public const int GL_VERTEX_ARRAY_EXT               =0x8074;
+  public const int GL_NORMAL_ARRAY_EXT               =0x8075;
+  public const int GL_COLOR_ARRAY_EXT                =0x8076;
+  public const int GL_INDEX_ARRAY_EXT                =0x8077;
+  public const int GL_TEXTURE_COORD_ARRAY_EXT        =0x8078;
+  public const int GL_EDGE_FLAG_ARRAY_EXT            =0x8079;
+  public const int GL_VERTEX_ARRAY_SIZE_EXT          =0x807A;
+  public const int GL_VERTEX_ARRAY_TYPE_EXT          =0x807B;
+  public const int GL_VERTEX_ARRAY_STRIDE_EXT        =0x807C;
+  public const int GL_VERTEX_ARRAY_COUNT_EXT         =0x807D;
+  public const int GL_NORMAL_ARRAY_TYPE_EXT          =0x807E;
+  public const int GL_NORMAL_ARRAY_STRIDE_EXT        =0x807F;
+  public const int GL_NORMAL_ARRAY_COUNT_EXT         =0x8080;
+  public const int GL_COLOR_ARRAY_SIZE_EXT           =0x8081;
+  public const int GL_COLOR_ARRAY_TYPE_EXT           =0x8082;
+  public const int GL_COLOR_ARRAY_STRIDE_EXT         =0x8083;
+  public const int GL_COLOR_ARRAY_COUNT_EXT          =0x8084;
+  public const int GL_INDEX_ARRAY_TYPE_EXT           =0x8085;
+  public const int GL_INDEX_ARRAY_STRIDE_EXT         =0x8086;
+  public const int GL_INDEX_ARRAY_COUNT_EXT          =0x8087;
+  public const int GL_TEXTURE_COORD_ARRAY_SIZE_EXT   =0x8088;
+  public const int GL_TEXTURE_COORD_ARRAY_TYPE_EXT   =0x8089;
+  public const int GL_TEXTURE_COORD_ARRAY_STRIDE_EXT =0x808A;
+  public const int GL_TEXTURE_COORD_ARRAY_COUNT_EXT  =0x808B;
+  public const int GL_EDGE_FLAG_ARRAY_STRIDE_EXT     =0x808C;
+  public const int GL_EDGE_FLAG_ARRAY_COUNT_EXT      =0x808D;
+  public const int GL_VERTEX_ARRAY_POINTER_EXT       =0x808E;
+  public const int GL_NORMAL_ARRAY_POINTER_EXT       =0x808F;
+  public const int GL_COLOR_ARRAY_POINTER_EXT        =0x8090;
+  public const int GL_INDEX_ARRAY_POINTER_EXT        =0x8091;
+  public const int GL_TEXTURE_COORD_ARRAY_POINTER_EXT =0x8092;
+  public const int GL_EDGE_FLAG_ARRAY_POINTER_EXT    =0x8093;
+  public const int GL_DOUBLE_EXT                     =GL_DOUBLE;
   #endregion
 
   #region EXT_bgra
-  public const uint GL_BGR_EXT                        =0x80E0;
-  public const uint GL_BGRA_EXT                       =0x80E1;
+  public const int GL_BGR_EXT                        =0x80E0;
+  public const int GL_BGRA_EXT                       =0x80E1;
   #endregion
 
   #region EXT_paletted_texture
-  public const uint GL_COLOR_TABLE_FORMAT_EXT         =0x80D8;
-  public const uint GL_COLOR_TABLE_WIDTH_EXT          =0x80D9;
-  public const uint GL_COLOR_TABLE_RED_SIZE_EXT       =0x80DA;
-  public const uint GL_COLOR_TABLE_GREEN_SIZE_EXT     =0x80DB;
-  public const uint GL_COLOR_TABLE_BLUE_SIZE_EXT      =0x80DC;
-  public const uint GL_COLOR_TABLE_ALPHA_SIZE_EXT     =0x80DD;
-  public const uint GL_COLOR_TABLE_LUMINANCE_SIZE_EXT =0x80DE;
-  public const uint GL_COLOR_TABLE_INTENSITY_SIZE_EXT =0x80DF;
+  public const int GL_COLOR_TABLE_FORMAT_EXT         =0x80D8;
+  public const int GL_COLOR_TABLE_WIDTH_EXT          =0x80D9;
+  public const int GL_COLOR_TABLE_RED_SIZE_EXT       =0x80DA;
+  public const int GL_COLOR_TABLE_GREEN_SIZE_EXT     =0x80DB;
+  public const int GL_COLOR_TABLE_BLUE_SIZE_EXT      =0x80DC;
+  public const int GL_COLOR_TABLE_ALPHA_SIZE_EXT     =0x80DD;
+  public const int GL_COLOR_TABLE_LUMINANCE_SIZE_EXT =0x80DE;
+  public const int GL_COLOR_TABLE_INTENSITY_SIZE_EXT =0x80DF;
 
-  public const uint GL_COLOR_INDEX1_EXT               =0x80E2;
-  public const uint GL_COLOR_INDEX2_EXT               =0x80E3;
-  public const uint GL_COLOR_INDEX4_EXT               =0x80E4;
-  public const uint GL_COLOR_INDEX8_EXT               =0x80E5;
-  public const uint GL_COLOR_INDEX12_EXT              =0x80E6;
-  public const uint GL_COLOR_INDEX16_EXT              =0x80E7;
+  public const int GL_COLOR_INDEX1_EXT               =0x80E2;
+  public const int GL_COLOR_INDEX2_EXT               =0x80E3;
+  public const int GL_COLOR_INDEX4_EXT               =0x80E4;
+  public const int GL_COLOR_INDEX8_EXT               =0x80E5;
+  public const int GL_COLOR_INDEX12_EXT              =0x80E6;
+  public const int GL_COLOR_INDEX16_EXT              =0x80E7;
   #endregion
 
   #region WIN_draw_range_elements
-  public const uint GL_MAX_ELEMENTS_VERTICES_WIN      =0x80E8;
-  public const uint GL_MAX_ELEMENTS_INDICES_WIN       =0x80E9;
+  public const int GL_MAX_ELEMENTS_VERTICES_WIN      =0x80E8;
+  public const int GL_MAX_ELEMENTS_INDICES_WIN       =0x80E9;
   #endregion
 
   #region WIN_phong_shading
-  public const uint GL_PHONG_WIN                      =0x80EA;
-  public const uint GL_PHONG_HINT_WIN                 =0x80EB;
+  public const int GL_PHONG_WIN                      =0x80EA;
+  public const int GL_PHONG_HINT_WIN                 =0x80EB;
   #endregion
 
   #region WIN_specular_fog
-  public const uint GL_FOG_SPECULAR_TEXTURE_WIN       =0x80EC;
+  public const int GL_FOG_SPECULAR_TEXTURE_WIN       =0x80EC;
   #endregion
 
   #region For compatibility with OpenGL v1.0
-  public const uint GL_LOGIC_OP =GL_INDEX_LOGIC_OP;
-  public const uint GL_TEXTURE_COMPONENTS =GL_TEXTURE_INTERNAL_FORMAT;
+  public const int GL_LOGIC_OP =GL_INDEX_LOGIC_OP;
+  public const int GL_TEXTURE_COMPONENTS =GL_TEXTURE_INTERNAL_FORMAT;
   #endregion
   #endregion
 
   #region Imports
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glAccum(uint op, float value);
+  public static extern void glAccum(int op, float value);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glAlphaFunc(uint func, float refval);
+  public static extern void glAlphaFunc(int func, float refval);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern byte glAreTexturesResident(int n, /*const*/ uint *textures, byte *residences);
-  public unsafe static byte glAreTexturesResident(uint[] textures, byte[] residences)
-  { fixed(uint* t=textures) fixed(byte* r=residences) return glAreTexturesResident(textures.Length, t, r);
+  public unsafe static extern byte glAreTexturesResident(int n, /*const*/ int *textures, byte *residences);
+  public unsafe static byte glAreTexturesResident(int[] textures, byte[] residences)
+  { fixed(int* t=textures) fixed(byte* r=residences) return glAreTexturesResident(textures.Length, t, r);
   }
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glArrayElement(int i);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glBegin(uint mode);
+  public static extern void glBegin(int mode);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glBindTexture(uint target, uint texture);
+  public static extern void glBindTexture(int target, int texture);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glBitmap(int width, int height, float xorig, float yorig, float xmove, float ymove, /*const*/ byte *bitmap);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glBlendFunc(uint sfactor, uint dfactor);
+  public static extern void glBlendFunc(int sfactor, int dfactor);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glCallList(uint list);
+  public static extern void glCallList(int list);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glCallLists(int n, uint type, /*const*/ void* lists);
-  public unsafe static void glCallLists(int n, sbyte *lists)  { glCallLists(n, GL_BYTE, lists); }
-  public unsafe static void glCallLists(int n, byte *lists)   { glCallLists(n, GL_UNSIGNED_BYTE, lists); }
-  public unsafe static void glCallLists(int n, short *lists)  { glCallLists(n, GL_SHORT, lists); }
-  public unsafe static void glCallLists(int n, ushort *lists) { glCallLists(n, GL_UNSIGNED_SHORT, lists); }
-  public unsafe static void glCallLists(int n, int *lists)    { glCallLists(n, GL_INT, lists); }
-  public unsafe static void glCallLists(int n, uint *lists)   { glCallLists(n, GL_UNSIGNED_INT, lists); }
-  public unsafe static void glCallLists(int n, float *lists)   { glCallLists(n, GL_FLOAT, lists); }
-  public unsafe static void glCallLists(sbyte[] lists)  { fixed(sbyte* p=lists) glCallLists(lists.Length, GL_BYTE, p); }
+  public unsafe static extern void glCallLists(int n, int type, /*const*/ void* lists);
+  [CLSCompliant(false)]
+  public unsafe static void glCallLists(int n, sbyte* lists) { glCallLists(n, GL_BYTE, lists); }
+  [CLSCompliant(false)]
+  public unsafe static void glCallLists(int n, byte* lists) { glCallLists(n, GL_UNSIGNED_BYTE, lists); }
+  [CLSCompliant(false)]
+  public unsafe static void glCallLists(int n, short* lists) { glCallLists(n, GL_SHORT, lists); }
+  [CLSCompliant(false)]
+  public unsafe static void glCallLists(int n, ushort* lists) { glCallLists(n, GL_UNSIGNED_SHORT, lists); }
+  [CLSCompliant(false)]
+  public unsafe static void glCallLists(int n, int* lists) { glCallLists(n, GL_INT, lists); }
+  [CLSCompliant(false)]
+  public unsafe static void glCallLists(int n, uint* lists) { glCallLists(n, GL_UNSIGNED_INT, lists); }
+  [CLSCompliant(false)]
+  public unsafe static void glCallLists(int n, float* lists) { glCallLists(n, GL_FLOAT, lists); }
+  [CLSCompliant(false)]
+  public unsafe static void glCallLists(sbyte[] lists) { fixed(sbyte* p=lists) glCallLists(lists.Length, GL_BYTE, p); }
   public unsafe static void glCallLists(byte[] lists)   { fixed(byte* p=lists) glCallLists(lists.Length, GL_UNSIGNED_BYTE, p); }
   public unsafe static void glCallLists(short[] lists)  { fixed(short* p=lists) glCallLists(lists.Length, GL_SHORT, p); }
+  [CLSCompliant(false)]
   public unsafe static void glCallLists(ushort[] lists) { fixed(ushort* p=lists) glCallLists(lists.Length, GL_UNSIGNED_SHORT, p); }
   public unsafe static void glCallLists(int[] lists)    { fixed(int* p=lists) glCallLists(lists.Length, GL_INT, p); }
-  public unsafe static void glCallLists(uint[] lists)   { fixed(uint* p=lists) glCallLists(lists.Length, GL_UNSIGNED_INT, p); }
+  [CLSCompliant(false)]
+  public unsafe static void glCallLists(uint[] lists) { fixed(uint* p=lists) glCallLists(lists.Length, GL_UNSIGNED_INT, p); }
   public unsafe static void glCallLists(float[] lists)  { fixed(float* p=lists) glCallLists(lists.Length, GL_FLOAT, p); }
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glClear(uint mask);
+  public static extern void glClear(int mask);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glClearAccum(float red, float green, float blue, float alpha);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
@@ -1254,104 +1266,133 @@ public sealed class GL
   public static extern void glClearIndex(float c);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glClearStencil(int s);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glClipPlane(uint plane, /*const*/ double *equation);
+  public unsafe static extern void glClipPlane(int plane, /*const*/ double *equation);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glClipPlane(uint plane, /*const*/ double[] equation);
+  public static extern void glClipPlane(int plane, /*const*/ double[] equation);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glColor3b(sbyte red, sbyte green, sbyte blue);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glColor3bv(/*const*/ sbyte *v);
+  public unsafe static extern void glColor3bv(/*const*/ sbyte* v);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glColor3bv([In] sbyte[] v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glColor3d(double red, double green, double blue);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glColor3dv(/*const*/ double *v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glColor3dv([In] double[] v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glColor3f(float red, float green, float blue);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glColor3fv(/*const*/ float *v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glColor3fv([In] float[] v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glColor3i(int red, int green, int blue);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glColor3iv(/*const*/ int *v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glColor3iv([In] int[] v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glColor3s(short red, short green, short blue);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glColor3sv(/*const*/ short *v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glColor3sv([In] short[] v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glColor3ub(byte red, byte green, byte blue);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glColor3ubv(/*const*/ byte *v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glColor3ubv([In] byte[] v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
+  [CLSCompliant(false)]
   public static extern void glColor3ui(uint red, uint green, uint blue);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glColor3uiv(/*const*/ uint *v);
+  [CLSCompliant(false)]
+  public unsafe static extern void glColor3uiv(/*const*/ uint* v);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glColor3uiv([In] uint[] v);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glColor3us(ushort red, ushort green, ushort blue);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glColor3usv(/*const*/ ushort *v);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glColor3usv([In] ushort[] v);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glColor4b(sbyte red, sbyte green, sbyte blue, sbyte alpha);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glColor4bv(/*const*/ sbyte *v);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glColor4bv([In] sbyte[] v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glColor4d(double red, double green, double blue, double alpha);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glColor4dv(/*const*/ double *v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glColor4dv([In] double[] v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glColor4f(float red, float green, float blue, float alpha);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glColor4fv(/*const*/ float *v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glColor4fv([In] float[] v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glColor4i(int red, int green, int blue, int alpha);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glColor4iv(/*const*/ int *v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glColor4iv([In] int[] v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glColor4s(short red, short green, short blue, short alpha);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glColor4sv(/*const*/ short *v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glColor4sv([In] short[] v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glColor4ub(byte red, byte green, byte blue, byte alpha);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glColor4ubv(/*const*/ byte *v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glColor4ubv([In] byte[] v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
+  [CLSCompliant(false)]
   public static extern void glColor4ui(uint red, uint green, uint blue, uint alpha);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glColor4uiv(/*const*/ uint *v);
+  public unsafe static extern void glColor4uiv(/*const*/ uint* v);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glColor4uiv([In] uint[] v);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glColor4us(ushort red, ushort green, ushort blue, ushort alpha);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glColor4usv(/*const*/ ushort *v);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glColor4usv([In] ushort[] v);
   public static void glColor(System.Drawing.Color c) { glColor4ub(c.R, c.G, c.B, c.A); }
@@ -1359,341 +1400,396 @@ public sealed class GL
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glColorMask(byte red, byte green, byte blue, byte alpha);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glColorMaterial(uint face, uint mode);
+  public static extern void glColorMaterial(int face, int mode);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glColorPointer(int size, uint type, int stride, /*const*/ void* pointer);
+  public unsafe static extern void glColorPointer(int size, int type, int stride, /*const*/ void* pointer);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glCopyPixels(int x, int y, int width, int height, uint type);
+  public static extern void glCopyPixels(int x, int y, int width, int height, int type);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glCopyTexImage1D(uint target, int level, uint internalformat, int x, int y, int width, int border);
+  public static extern void glCopyTexImage1D(int target, int level, int internalformat, int x, int y, int width, int border);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glCopyTexImage2D(uint target, int level, uint internalformat, int x, int y, int width, int height, int border);
+  public static extern void glCopyTexImage2D(int target, int level, int internalformat, int x, int y, int width, int height, int border);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glCopyTexSubImage1D(uint target, int level, int xoffset, int x, int y, int width);
+  public static extern void glCopyTexSubImage1D(int target, int level, int xoffset, int x, int y, int width);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glCopyTexSubImage2D(uint target, int level, int xoffset, int yoffset, int x, int y, int width, int height);
+  public static extern void glCopyTexSubImage2D(int target, int level, int xoffset, int yoffset, int x, int y, int width, int height);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glCullFace(uint mode);
+  public static extern void glCullFace(int mode);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glDeleteLists(uint list, int range);
+  public static extern void glDeleteLists(int list, int range);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glDeleteTextures(int n, /*const*/ uint *textures);
-  public unsafe static void glDeleteTextures([In] uint[] textures)
-  { fixed(uint* p=textures) glDeleteTextures(textures.Length, p);
+  public unsafe static extern void glDeleteTextures(int n, /*const*/ int *textures);
+  public unsafe static void glDeleteTextures([In] int[] textures)
+  { fixed(int* p=textures) glDeleteTextures(textures.Length, p);
   }
-  public unsafe static void glDeleteTexture(uint texture) { glDeleteTextures(1, &texture); }
+  public unsafe static void glDeleteTexture(int texture) { glDeleteTextures(1, &texture); }
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glDepthFunc(uint func);
+  public static extern void glDepthFunc(int func);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glDepthMask(byte flag);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glDepthRange(double zNear, double zFar);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glDisable(uint cap);
+  public static extern void glDisable(int cap);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glDisableClientState(uint array);
+  public static extern void glDisableClientState(int array);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glDrawArrays(uint mode, int first, int count);
+  public static extern void glDrawArrays(int mode, int first, int count);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glDrawBuffer(uint mode);
+  public static extern void glDrawBuffer(int mode);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glDrawElements(uint mode, int count, uint type, /*const*/ void* indices);
-  public unsafe static void glDrawElements(uint mode, int count, /*const*/ byte *indices)
+  public unsafe static extern void glDrawElements(int mode, int count, int type, /*const*/ void* indices);
+  [CLSCompliant(false)]
+  public unsafe static void glDrawElements(int mode, int count, /*const*/ byte* indices)
   { glDrawElements(mode, count, GL_UNSIGNED_BYTE, indices);
   }
-  public unsafe static void glDrawElements(uint mode, int count, /*const*/ ushort *indices)
+  [CLSCompliant(false)]
+  public unsafe static void glDrawElements(int mode, int count, /*const*/ ushort* indices)
   { glDrawElements(mode, count, GL_UNSIGNED_SHORT, indices);
   }
-  public unsafe static void glDrawElements(uint mode, int count, /*const*/ uint *indices)
+  [CLSCompliant(false)]
+  public unsafe static void glDrawElements(int mode, int count, /*const*/ uint* indices)
   { glDrawElements(mode, count, GL_UNSIGNED_INT, indices);
   }
-  public unsafe static void glDrawElements(uint mode, byte[] indices)
+  public unsafe static void glDrawElements(int mode, byte[] indices)
   { fixed(byte* p=indices) glDrawElements(mode, indices.Length, GL_UNSIGNED_BYTE, p);
   }
-  public unsafe static void glDrawElements(uint mode, ushort[] indices)
+  [CLSCompliant(false)]
+  public unsafe static void glDrawElements(int mode, ushort[] indices)
   { fixed(ushort* p=indices) glDrawElements(mode, indices.Length, GL_UNSIGNED_SHORT, p);
   }
-  public unsafe static void glDrawElements(uint mode, uint[] indices)
+  [CLSCompliant(false)]
+  public unsafe static void glDrawElements(int mode, uint[] indices)
   { fixed(uint* p=indices) glDrawElements(mode, indices.Length, GL_UNSIGNED_INT, p);
   }
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glDrawPixels(int width, int height, uint format, uint type, /*const*/ void* pixels);
+  public unsafe static extern void glDrawPixels(int width, int height, int format, int type, /*const*/ void* pixels);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glDrawPixels(int width, int height, uint format, uint type, /*const*/ IntPtr pixels);
+  public unsafe static extern void glDrawPixels(int width, int height, int format, int type, /*const*/ IntPtr pixels);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glDrawPixels(int width, int height, uint format, uint type, /*const*/ byte[] pixels);
+  public unsafe static extern void glDrawPixels(int width, int height, int format, int type, /*const*/ byte[] pixels);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glEdgeFlag(byte flag);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glEdgeFlagPointer(int stride, /*const*/ byte* pointer);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glEdgeFlagPointer(int stride, [In] byte[] pointer);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glEdgeFlagv(/*const*/ byte *flag);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glEnable(uint cap);
+  public static extern void glEnable(int cap);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glEnableClientState(uint array);
+  public static extern void glEnableClientState(int array);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glEnd();
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glEndList();
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glEvalCoord1d(double u);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glEvalCoord1dv(/*const*/ double *u);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glEvalCoord1f(float u);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glEvalCoord1fv(/*const*/ float *u);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glEvalCoord1fv([In] ref float u);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glEvalCoord2d(double u, double v);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glEvalCoord2dv(/*const*/ double *u);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glEvalCoord2dv([In] double[] u);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glEvalCoord2f(float u, float v);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glEvalCoord2fv(/*const*/ float *u);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glEvalCoord2fv([In] float[] u);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glEvalMesh1(uint mode, int i1, int i2);
+  public static extern void glEvalMesh1(int mode, int i1, int i2);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glEvalMesh2(uint mode, int i1, int i2, int j1, int j2);
+  public static extern void glEvalMesh2(int mode, int i1, int i2, int j1, int j2);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glEvalPoint1(int i);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glEvalPoint2(int i, int j);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glFeedbackBuffer(int size, uint type, float *buffer);
+  public unsafe static extern void glFeedbackBuffer(int size, int type, float *buffer);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glFinish();
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glFlush();
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glFogf(uint pname, float param);
+  public static extern void glFogf(int pname, float param);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glFogfv(uint pname, /*const*/ float* parms);
+  public unsafe static extern void glFogfv(int pname, /*const*/ float* parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glFogfv(uint pname, [In] float[] parms);
+  public static extern void glFogfv(int pname, [In] float[] parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glFogi(uint pname, int param);
+  public static extern void glFogi(int pname, int param);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glFogiv(uint pname, /*const*/ int* parms);
+  public unsafe static extern void glFogiv(int pname, /*const*/ int* parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glFogiv(uint pname, [In] int[] parms);
+  public static extern void glFogiv(int pname, [In] int[] parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glFrontFace(uint mode);
+  public static extern void glFrontFace(int mode);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glFrustum(double left, double right, double bottom, double top, double zNear, double zFar);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern uint glGenLists(int range);
+  public static extern int glGenLists(int range);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glGenTextures(int n, uint *textures);
-  public unsafe static void glGenTextures(uint[] textures)
-  { fixed(uint* p=textures) glGenTextures(textures.Length, p);
+  public unsafe static extern void glGenTextures(int n, int *textures);
+  public unsafe static void glGenTextures(int[] textures)
+  { fixed(int* p=textures) glGenTextures(textures.Length, p);
   }
-  public unsafe static void glGenTextures(uint[] textures, int length)
-  { fixed(uint* p=textures) glGenTextures(length, p);
+  public unsafe static void glGenTextures(int[] textures, int length)
+  { fixed(int* p=textures) glGenTextures(length, p);
   }
-  public unsafe static void glGenTextures(uint[] textures, int index, int length)
-  { fixed(uint* p=textures) glGenTextures(length, p+index);
+  public unsafe static void glGenTextures(int[] textures, int index, int length)
+  { fixed(int* p=textures) glGenTextures(length, p+index);
   }
-  public unsafe static void glGenTexture(out uint texture) { fixed(uint* tp=&texture) glGenTextures(1, tp); }
+  public unsafe static void glGenTexture(out int texture) { fixed(int* tp=&texture) glGenTextures(1, tp); }
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glGetBooleanv(uint pname, byte* parms);
+  public unsafe static extern void glGetBooleanv(int pname, byte* parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glGetBooleanv(uint pname, [In] [Out] byte[] parms);
+  public static extern void glGetBooleanv(int pname, [In] [Out] byte[] parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glGetBooleanv(uint pname, out byte parm);
-  public static byte glGetBooleanv(uint pname) { unsafe { byte v; glGetBooleanv(pname, &v); return v; } }
+  public static extern void glGetBooleanv(int pname, out byte parm);
+  public static byte glGetBooleanv(int pname) { unsafe { byte v; glGetBooleanv(pname, &v); return v; } }
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glGetClipPlane(uint plane, double *equation);
+  public unsafe static extern void glGetClipPlane(int plane, double *equation);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glGetClipPlane(uint plane, [In] [Out] double[] equation);
+  public static extern void glGetClipPlane(int plane, [In] [Out] double[] equation);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glGetDoublev(uint pname, double* parms);
+  public unsafe static extern void glGetDoublev(int pname, double* parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glGetDoublev(uint pname, [In] [Out] double[] parms);
+  public static extern void glGetDoublev(int pname, [In] [Out] double[] parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glGetDoublev(uint pname, out double parm);
-  public static double glGetDoublev(uint pname) { unsafe { double v; glGetDoublev(pname, &v); return v; } }
+  public static extern void glGetDoublev(int pname, out double parm);
+  public static double glGetDoublev(int pname) { unsafe { double v; glGetDoublev(pname, &v); return v; } }
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern uint glGetError();
+  public static extern int glGetError();
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glGetFloatv(uint pname, float* parms);
+  public unsafe static extern void glGetFloatv(int pname, float* parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glGetFloatv(uint pname, [In] [Out] float[] parms);
+  public static extern void glGetFloatv(int pname, [In] [Out] float[] parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glGetFloatv(uint pname, out float parm);
-  public static float glGetFloatv(uint pname) { unsafe { float v; glGetFloatv(pname, &v); return v; } }
+  public static extern void glGetFloatv(int pname, out float parm);
+  public static float glGetFloatv(int pname) { unsafe { float v; glGetFloatv(pname, &v); return v; } }
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glGetIntegerv(uint pname, int* parms);
+  public unsafe static extern void glGetIntegerv(int pname, int* parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glGetIntegerv(uint pname, [In] [Out] int[] parms);
+  public static extern void glGetIntegerv(int pname, [In] [Out] int[] parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glGetIntegerv(uint pname, out int parm);
+  public static extern void glGetIntegerv(int pname, out int parm);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glGetIntegerv(uint pname, uint* parms);
+  public unsafe static extern void glGetIntegerv(int pname, uint* parms);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glGetIntegerv(uint pname, [In] [Out] uint[] parms);
+  public static extern void glGetIntegerv(int pname, [In] [Out] uint[] parms);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glGetIntegerv(uint pname, out uint parm);
-  public static int glGetIntegerv(uint pname) { unsafe { int v; glGetIntegerv(pname, &v); return v; } }
+  public static extern void glGetIntegerv(int pname, out uint parm);
+  public static int glGetIntegerv(int pname) { unsafe { int v; glGetIntegerv(pname, &v); return v; } }
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glGetLightfv(uint light, uint pname, float* parms);
+  public unsafe static extern void glGetLightfv(int light, int pname, float* parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glGetLightfv(uint light, uint pname, [In] [Out] float[] parms);
+  public static extern void glGetLightfv(int light, int pname, [In] [Out] float[] parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glGetLightfv(uint light, uint pname, out float parm);
-  public static float glGetLightfv(uint light, uint pname) { unsafe { float v; glGetLightfv(light, pname, &v); return v; } }
+  public static extern void glGetLightfv(int light, int pname, out float parm);
+  public static float glGetLightfv(int light, int pname) { unsafe { float v; glGetLightfv(light, pname, &v); return v; } }
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glGetLightiv(uint light, uint pname, int* parms);
+  [CLSCompliant(false)]
+  public unsafe static extern void glGetLightiv(int light, int pname, int* parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glGetLightiv(uint light, uint pname, [In] [Out] int[] parms);
+  public static extern void glGetLightiv(int light, int pname, [In] [Out] int[] parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glGetLightiv(uint light, uint pname, out int parm);
-  public static int glGetLightiv(uint light, uint pname)
+  public static extern void glGetLightiv(int light, int pname, out int parm);
+  public static int glGetLightiv(int light, int pname)
   { unsafe { int v; glGetLightiv(light, pname, &v); return v; }
   }
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glGetMapdv(uint target, uint query, double *v);
+  public unsafe static extern void glGetMapdv(int target, int query, double *v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glGetMapdv(uint target, uint query, [In] [Out] double[] v);
-  public static double glGetMapdv(uint target, uint query)
+  public static extern void glGetMapdv(int target, int query, [In] [Out] double[] v);
+  public static double glGetMapdv(int target, int query)
   { unsafe { double v; glGetMapdv(target, query, &v); return v; }
   }
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glGetMapfv(uint target, uint query, float *v);
+  public unsafe static extern void glGetMapfv(int target, int query, float *v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glGetMapfv(uint target, uint query, [In] [Out] float[] v);
-  public static float glGetMapfv(uint target, uint query, uint pname)
+  public static extern void glGetMapfv(int target, int query, [In] [Out] float[] v);
+  public static float glGetMapfv(int target, int query, int pname)
   { unsafe { float v; glGetMapfv(target, query, &v); return v; }
   }
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glGetMapiv(uint target, uint query, int *v);
+  public unsafe static extern void glGetMapiv(int target, int query, int *v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glGetMapiv(uint target, uint query, [In] [Out] int[] v);
-  public static int glGetMapiv(uint target, uint query)
+  public static extern void glGetMapiv(int target, int query, [In] [Out] int[] v);
+  public static int glGetMapiv(int target, int query)
   { unsafe { int v; glGetMapiv(target, query, &v); return v; }
   }
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glGetMaterialfv(uint face, uint pname, float* parms);
+  public unsafe static extern void glGetMaterialfv(int face, int pname, float* parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glGetMaterialfv(uint face, uint pname, [In] [Out] float[] parms);
+  public static extern void glGetMaterialfv(int face, int pname, [In] [Out] float[] parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glGetMaterialfv(uint face, uint pname, out float parm);
-  public static float glGetMaterialfv(uint face, uint pname)
+  public static extern void glGetMaterialfv(int face, int pname, out float parm);
+  public static float glGetMaterialfv(int face, int pname)
   { unsafe { float v; glGetMaterialfv(face, pname, &v); return v; } }
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glGetMaterialiv(uint face, uint pname, int* parms);
+  public unsafe static extern void glGetMaterialiv(int face, int pname, int* parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glGetMaterialiv(uint face, uint pname, [In] [Out] int[] parms);
+  public static extern void glGetMaterialiv(int face, int pname, [In] [Out] int[] parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glGetMaterialiv(uint face, uint pname, out int parm);
-  public static int glGetMaterialiv(uint face, uint pname)
+  public static extern void glGetMaterialiv(int face, int pname, out int parm);
+  public static int glGetMaterialiv(int face, int pname)
   { unsafe { int v; glGetMaterialiv(face, pname, &v); return v; }
   }
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glGetPixelMapfv(uint map, float *values);
+  public unsafe static extern void glGetPixelMapfv(int map, float *values);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glGetPixelMapfv(uint map, [In] [Out] float[] values);
-  public static float glGetPixelMapfv(uint map) { unsafe { float v; glGetPixelMapfv(map, &v); return v; } }
+  public static extern void glGetPixelMapfv(int map, [In] [Out] float[] values);
+  public static float glGetPixelMapfv(int map) { unsafe { float v; glGetPixelMapfv(map, &v); return v; } }
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glGetPixelMapuiv(uint map, uint *values);
+  [CLSCompliant(false)]
+  public unsafe static extern void glGetPixelMapuiv(int map, uint* values);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glGetPixelMapuiv(uint map, [In] [Out] uint[] values);
-  public static uint glGetPixelMapuiv(uint map) { unsafe { uint v; glGetPixelMapuiv(map, &v); return v; } }
+  [CLSCompliant(false)]
+  public static extern void glGetPixelMapuiv(int map, [In] [Out] uint[] values);
+  [CLSCompliant(false)]
+  public static uint glGetPixelMapuiv(int map) { unsafe { uint v; glGetPixelMapuiv(map, &v); return v; } }
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glGetPixelMapusv(uint map, ushort *values);
+  public unsafe static extern void glGetPixelMapusv(int map, ushort *values);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glGetPixelMapusv(uint map, [In] [Out] ushort[] values);
-  public static uint glGetPixelMapusv(uint map) { unsafe { ushort v; glGetPixelMapusv(map, &v); return v; } }
+  public static extern void glGetPixelMapusv(int map, [In] [Out] ushort[] values);
+  [CLSCompliant(false)]
+  public static ushort glGetPixelMapusv(int map) { unsafe { ushort v; glGetPixelMapusv(map, &v); return v; } }
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glGetPointerv(uint pname, void** parms);
+  public unsafe static extern void glGetPointerv(int pname, void** parms);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glGetPointerv(uint pname, [In] [Out] void*[] parms);
+  public unsafe static extern void glGetPointerv(int pname, [In] [Out] void*[] parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glGetPointerv(uint pname, out void* parms);
-  public unsafe static void* glGetPointerv(uint pname) { void* v; glGetPointerv(pname, &v); return v; }
+  [CLSCompliant(false)]
+  public unsafe static extern void glGetPointerv(int pname, out void* parms);
+  [CLSCompliant(false)]
+  public unsafe static void* glGetPointerv(int pname) { void* v; glGetPointerv(pname, &v); return v; }
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
+  [CLSCompliant(false)]
   public unsafe static extern void glGetPolygonStipple(byte *mask);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glGetPolygonStipple([In] [Out] byte[] mask);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern string glGetString(uint name);
+  public static extern string glGetString(int name);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glGetTexEnvfv(uint target, uint pname, float* parms);
+  public unsafe static extern void glGetTexEnvfv(int target, int pname, float* parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glGetTexEnvfv(uint target, uint pname, [In] [Out] float[] parms);
+  public static extern void glGetTexEnvfv(int target, int pname, [In] [Out] float[] parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glGetTexEnvfv(uint target, uint pname, out float parm);
+  public unsafe static extern void glGetTexEnvfv(int target, int pname, out float parm);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glGetTexEnviv(uint target, uint pname, int* parms);
+  public unsafe static extern void glGetTexEnviv(int target, int pname, int* parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glGetTexEnviv(uint target, uint pname, [In] [Out] int[] parms);
+  public static extern void glGetTexEnviv(int target, int pname, [In] [Out] int[] parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glGetTexEnviv(uint target, uint pname, out int parm);
+  public static extern void glGetTexEnviv(int target, int pname, out int parm);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glGetTexGendv(uint coord, uint pname, double* parms);
+  public unsafe static extern void glGetTexGendv(int coord, int pname, double* parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glGetTexGendv(uint coord, uint pname, [In] [Out] double[] parms);
+  public static extern void glGetTexGendv(int coord, int pname, [In] [Out] double[] parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glGetTexGendv(uint coord, uint pname, out double parm);
+  public static extern void glGetTexGendv(int coord, int pname, out double parm);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glGetTexGenfv(uint coord, uint pname, float* parms);
+  public unsafe static extern void glGetTexGenfv(int coord, int pname, float* parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glGetTexGenfv(uint coord, uint pname, [In] [Out] float[] parms);
+  public static extern void glGetTexGenfv(int coord, int pname, [In] [Out] float[] parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glGetTexGenfv(uint coord, uint pname, out float parm);
+  public static extern void glGetTexGenfv(int coord, int pname, out float parm);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glGetTexGeniv(uint coord, uint pname, int* parms);
+  public unsafe static extern void glGetTexGeniv(int coord, int pname, int* parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glGetTexGeniv(uint coord, uint pname, [In] [Out] int[] parms);
+  public static extern void glGetTexGeniv(int coord, int pname, [In] [Out] int[] parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glGetTexGeniv(uint coord, uint pname, out int parm);
+  public static extern void glGetTexGeniv(int coord, int pname, out int parm);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glGetTexImage(uint target, int level, uint format, uint type, void* pixels);
+  public unsafe static extern void glGetTexImage(int target, int level, int format, int type, void* pixels);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glGetTexImage(uint target, int level, uint format, uint type, IntPtr pixels);
+  public unsafe static extern void glGetTexImage(int target, int level, int format, int type, IntPtr pixels);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glGetTexImage(uint target, int level, uint format, uint type, [In] [Out] byte[] pixels);
+  public unsafe static extern void glGetTexImage(int target, int level, int format, int type, [In] [Out] byte[] pixels);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glGetTexLevelParameterfv(uint target, int level, uint pname, float* parms);
+  public unsafe static extern void glGetTexLevelParameterfv(int target, int level, int pname, float* parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glGetTexLevelParameterfv(uint target, int level, uint pname, [In] [Out] float[] parms);
+  public static extern void glGetTexLevelParameterfv(int target, int level, int pname, [In] [Out] float[] parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glGetTexLevelParameterfv(uint target, int level, uint pname, out float parm);
+  public static extern void glGetTexLevelParameterfv(int target, int level, int pname, out float parm);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glGetTexLevelParameteriv(uint target, int level, uint pname, int* parms);
+  public unsafe static extern void glGetTexLevelParameteriv(int target, int level, int pname, int* parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glGetTexLevelParameteriv(uint target, int level, uint pname, [In] [Out] int[] parms);
+  public static extern void glGetTexLevelParameteriv(int target, int level, int pname, [In] [Out] int[] parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glGetTexLevelParameteriv(uint target, int level, uint pname, out int parm);
+  public static extern void glGetTexLevelParameteriv(int target, int level, int pname, out int parm);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glGetTexParameterfv(uint target, uint pname, float* parms);
+  public unsafe static extern void glGetTexParameterfv(int target, int pname, float* parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glGetTexParameterfv(uint target, uint pname, [In] [Out] float[] parms);
+  public static extern void glGetTexParameterfv(int target, int pname, [In] [Out] float[] parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glGetTexParameterfv(uint target, uint pname, out float parm);
-  public static float glGetTexParameterf(uint target, uint pname)
+  public static extern void glGetTexParameterfv(int target, int pname, out float parm);
+  public static float glGetTexParameterf(int target, int pname)
   {
     float value;
     glGetTexParameterfv(target, pname, out value);
     return value;
   }
-
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glGetTexParameteriv(uint target, uint pname, int* parms);
+  public unsafe static extern void glGetTexParameteriv(int target, int pname, int* parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glGetTexParameteriv(uint target, uint pname, [In] [Out] int[] parms);
+  public static extern void glGetTexParameteriv(int target, int pname, [In] [Out] int[] parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glGetTexParameteriv(uint target, uint pname, out int parm);
-  public static int glGetTexParameteri(uint target, uint pname)
+  public static extern void glGetTexParameteriv(int target, int pname, out int parm);
+  public static int glGetTexParameteri(int target, int pname)
   {
     int value;
     glGetTexParameteriv(target, pname, out value);
@@ -1701,20 +1797,25 @@ public sealed class GL
   }
 
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glHint(uint target, uint mode);
+  public static extern void glHint(int target, int mode);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glIndexMask(uint mask);
+  public static extern void glIndexMask(int mask);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glIndexPointer(uint type, int stride, /*const*/ void* pointer);
+  public unsafe static extern void glIndexPointer(int type, int stride, /*const*/ void* pointer);
+  [CLSCompliant(false)]
   public unsafe static void glIndexPointer(int stride, /*const*/ short* pointer)
   { glIndexPointer(GL_SHORT, stride, pointer);
   }
+  [CLSCompliant(false)]
   public unsafe static void glIndexPointer(int stride, /*const*/ int* pointer)
   { glIndexPointer(GL_INT, stride, pointer);
   }
+  [CLSCompliant(false)]
   public unsafe static void glIndexPointer(int stride, /*const*/ float* pointer)
   { glIndexPointer(GL_FLOAT, stride, pointer);
   }
+  [CLSCompliant(false)]
   public unsafe static void glIndexPointer(int stride, /*const*/ double* pointer)
   { glIndexPointer(GL_DOUBLE, stride, pointer);
   }
@@ -1732,55 +1833,62 @@ public sealed class GL
   }
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glIndexd(double c);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glIndexdv(/*const*/ double *c);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glIndexf(float c);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glIndexfv(/*const*/ float *c);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glIndexi(int c);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glIndexiv(/*const*/ int *c);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glIndexs(short c);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glIndexsv(/*const*/ short *c);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glIndexub(byte c);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glIndexubv(/*const*/ byte *c);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glInitNames();
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void interleavedArrays(uint format, int stride, /*const*/ void* pointer);
+  public unsafe static extern void interleavedArrays(int format, int stride, /*const*/ void* pointer);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern byte glIsEnabled(uint cap);
+  public static extern byte glIsEnabled(int cap);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern byte glIsList(uint list);
+  public static extern byte glIsList(int list);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern byte glIsTexture(uint texture);
+  public static extern byte glIsTexture(int texture);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glLightModelf(uint pname, float param);
+  public static extern void glLightModelf(int pname, float param);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glLightModelfv(uint pname, /*const*/ float* parms);
+  public unsafe static extern void glLightModelfv(int pname, /*const*/ float* parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glLightModelfv(uint pname, [In] float[] parms);
+  public static extern void glLightModelfv(int pname, [In] float[] parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glLightModeli(uint pname, int param);
+  public static extern void glLightModeli(int pname, int param);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glLightModeli(uint pname, uint param);
+  public unsafe static extern void glLightModeliv(int pname, /*const*/ int* parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glLightModeliv(uint pname, /*const*/ int* parms);
+  public static extern void glLightModeliv(int pname, int[] parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glLightModeliv(uint pname, int[] parms);
+  public static extern void glLightf(int light, int pname, float param);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glLightf(uint light, uint pname, float param);
+  public unsafe static extern void glLightfv(int light, int pname, /*const*/ float* parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glLightfv(uint light, uint pname, /*const*/ float* parms);
-  [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glLightfv(uint light, uint pname, [In] float[] parms);
-  public unsafe static void glLightPosition(uint light, float x, float y, float z, float w)
+  public static extern void glLightfv(int light, int pname, [In] float[] parms);
+  public unsafe static void glLightPosition(int light, float x, float y, float z, float w)
   { float* p = stackalloc float[4];
     p[0] = x;
     p[1] = y;
@@ -1788,7 +1896,7 @@ public sealed class GL
     p[3] = w;
     glLightfv(light, GL_POSITION, p);
   }
-  public unsafe static void glLightPosition(uint light, Mathematics.ThreeD.Point pt, float w)
+  public unsafe static void glLightPosition(int light, Mathematics.ThreeD.Point pt, float w)
   { float* p = stackalloc float[4];
     p[0] = (float)pt.X;
     p[1] = (float)pt.Y;
@@ -1796,7 +1904,7 @@ public sealed class GL
     p[3] = w;
     glLightfv(light, GL_POSITION, p);
   }
-  public unsafe static void glLightColor(uint light, uint pname, System.Drawing.Color c)
+  public unsafe static void glLightColor(int light, int pname, System.Drawing.Color c)
   { float* p = stackalloc float[4];
     p[0] = c.R/255f;
     p[1] = c.G/255f;
@@ -1804,7 +1912,7 @@ public sealed class GL
     p[3] = c.A/255f;
     glLightfv(light, pname, p);
   }
-  public unsafe static void glLightColor(uint light, uint pname, float r, float g, float b, float a)
+  public unsafe static void glLightColor(int light, int pname, float r, float g, float b, float a)
   { float* p = stackalloc float[4];
     p[0] = r;
     p[1] = g;
@@ -1813,49 +1921,57 @@ public sealed class GL
     glLightfv(light, pname, p);
   }
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glLighti(uint light, uint pname, int param);
+  public static extern void glLighti(int light, int pname, int param);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glLightiv(uint light, uint pname, /*const*/ int* parms);
+  public unsafe static extern void glLightiv(int light, int pname, /*const*/ int* parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glLightiv(uint light, uint pname, [In] int[] parms);
+  public static extern void glLightiv(int light, int pname, [In] int[] parms);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glLineStipple(int factor, ushort pattern);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glLineWidth(float width);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glListBase(uint offset);
+  public static extern void glListBase(int offset);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glLoadIdentity();
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glLoadMatrixd(/*const*/ double *m);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glLoadMatrixd([In] double[] m);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glLoadMatrixf(/*const*/ float *m);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glLoadMatrixf([In] float[] m);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glLoadName(uint name);
+  public static extern void glLoadName(int name);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glLogicOp(uint opcode);
+  public static extern void glLogicOp(int opcode);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glMap1d(uint target, double u1, double u2, int stride, int order, /*const*/ double* points);
-  public unsafe static void glMap1d(uint target, double u1, double u2, int stride, double[] points)
+  public unsafe static extern void glMap1d(int target, double u1, double u2, int stride, int order, /*const*/ double* points);
+  public unsafe static void glMap1d(int target, double u1, double u2, int stride, double[] points)
   { fixed(double* p=points) glMap1d(target, u1, u2, stride, points.Length, p);
   }
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glMap1f(uint target, float u1, float u2, int stride, int order, /*const*/ float* points);
-  public unsafe static void glMap1f(uint target, float u1, float u2, int stride, float[] points)
+  public unsafe static extern void glMap1f(int target, float u1, float u2, int stride, int order, /*const*/ float* points);
+  public unsafe static void glMap1f(int target, float u1, float u2, int stride, float[] points)
   { fixed(float* p=points) glMap1f(target, u1, u2, stride, points.Length, p);
   }
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glMap2d(uint target, double u1, double u2, int ustride, int uorder, double v1, double v2, int vstride, int vorder, /*const*/ double* points);
+  public unsafe static extern void glMap2d(int target, double u1, double u2, int ustride, int uorder, double v1, double v2, int vstride, int vorder, /*const*/ double* points);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glMap2d(uint target, double u1, double u2, int ustride, int uorder, double v1, double v2, int vstride, int vorder, double[] points);
+  public static extern void glMap2d(int target, double u1, double u2, int ustride, int uorder, double v1, double v2, int vstride, int vorder, double[] points);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glMap2f(uint target, float u1, float u2, int ustride, int uorder, float v1, float v2, int vstride, int vorder, /*const*/ float* points);
+  public unsafe static extern void glMap2f(int target, float u1, float u2, int ustride, int uorder, float v1, float v2, int vstride, int vorder, /*const*/ float* points);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glMap2f(uint target, float u1, float u2, int ustride, int uorder, float v1, float v2, int vstride, int vorder, float[] points);
+  public static extern void glMap2f(int target, float u1, float u2, int ustride, int uorder, float v1, float v2, int vstride, int vorder, float[] points);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glMapGrid1d(int un, double u1, double u2);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
@@ -1865,10 +1981,11 @@ public sealed class GL
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glMapGrid2f(int un, float u1, float u2, int vn, float v1, float v2);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glMaterialf(uint face, uint pname, float param);
+  public static extern void glMaterialf(int face, int pname, float param);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glMaterialfv(uint face, uint pname, /*const*/ float* parms);
-  public unsafe static void glMaterialColor(uint face, uint pname, System.Drawing.Color c)
+  public unsafe static extern void glMaterialfv(int face, int pname, /*const*/ float* parms);
+  public unsafe static void glMaterialColor(int face, int pname, System.Drawing.Color c)
   { float* p = stackalloc float[4];
     p[0] = c.R/255f;
     p[1] = c.G/255f;
@@ -1876,7 +1993,7 @@ public sealed class GL
     p[3] = c.A/255f;
     glMaterialfv(face, pname, p);
   }
-  public unsafe static void glMaterialColor(uint face, uint pname, float r, float g, float b, float a)
+  public unsafe static void glMaterialColor(int face, int pname, float r, float g, float b, float a)
   { float* p = stackalloc float[4];
     p[0] = r;
     p[1] = g;
@@ -1885,70 +2002,86 @@ public sealed class GL
     glMaterialfv(face, pname, p);
   }
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glMaterialfv(uint face, uint pname, [In] float[] parms);
+  public static extern void glMaterialfv(int face, int pname, [In] float[] parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glMateriali(uint face, uint pname, int param);
+  public static extern void glMateriali(int face, int pname, int param);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glMaterialiv(uint face, uint pname, /*const*/ int* parms);
+  public unsafe static extern void glMaterialiv(int face, int pname, /*const*/ int* parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glMaterialiv(uint face, uint pname, [In] int[] parms);
+  public static extern void glMaterialiv(int face, int pname, [In] int[] parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glMatrixMode(uint mode);
+  public static extern void glMatrixMode(int mode);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glMultMatrixd(/*const*/ double *m);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glMultMatrixd([In] double[] m);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glMultMatrixf(/*const*/ float *m);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glMultMatrixf([In] float[] m);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glNewList(uint list, uint mode);
+  public static extern void glNewList(int list, int mode);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glNormal3b(sbyte nx, sbyte ny, sbyte nz);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glNormal3bv(/*const*/ sbyte *v);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glNormal3bv([In] sbyte[] v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glNormal3d(double nx, double ny, double nz);
   public static void glNormal3d(Mathematics.ThreeD.Vector v) { glNormal3d(v.X, v.Y, v.Z); }
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glNormal3dv(/*const*/ double *v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glNormal3dv([In] double[] v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glNormal3f(float nx, float ny, float nz);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glNormal3fv(/*const*/ float *v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glNormal3fv([In] float[] v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glNormal3i(int nx, int ny, int nz);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glNormal3iv(/*const*/ int *v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glNormal3iv([In] int[] v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glNormal3s(short nx, short ny, short nz);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glNormal3sv(/*const*/ short *v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glNormal3sv([In] short[] v);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glNormalPointer(uint type, int stride, /*const*/ void* pointer);
+  public unsafe static extern void glNormalPointer(int type, int stride, /*const*/ void* pointer);
+  [CLSCompliant(false)]
   public unsafe static void glNormalPointer(int stride, /*const*/ byte* pointer)
   { glNormalPointer(GL_BYTE, stride, pointer);
   }
+  [CLSCompliant(false)]
   public unsafe static void glNormalPointer(int stride, /*const*/ short* pointer)
   { glNormalPointer(GL_SHORT, stride, pointer);
   }
+  [CLSCompliant(false)]
   public unsafe static void glNormalPointer(int stride, /*const*/ int* pointer)
   { glNormalPointer(GL_INT, stride, pointer);
   }
+  [CLSCompliant(false)]
   public unsafe static void glNormalPointer(int stride, /*const*/ float* pointer)
   { glNormalPointer(GL_FLOAT, stride, pointer);
   }
+  [CLSCompliant(false)]
   public unsafe static void glNormalPointer(int stride, /*const*/ double* pointer)
   { glNormalPointer(GL_DOUBLE, stride, pointer);
   }
@@ -1971,37 +2104,43 @@ public sealed class GL
   public static extern void glOrtho(double left, double right, double bottom, double top, double zNear, double zFar);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glPassThrough(float token);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glPixelMapfv(uint map, int mapsize, /*const*/ float *values);
-  public unsafe static void glPixelMapfv(uint map, float[] values)
+  public unsafe static extern void glPixelMapfv(int map, int mapsize, /*const*/ float *values);
+  public unsafe static void glPixelMapfv(int map, float[] values)
   { fixed(float* p=values) glPixelMapfv(map, values.Length, p);
   }
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glPixelMapuiv(uint map, int mapsize, /*const*/ uint *values);
-  public unsafe static void glPixelMapuiv(uint map, uint[] values)
+  [CLSCompliant(false)]
+  public unsafe static extern void glPixelMapuiv(int map, int mapsize, /*const*/ uint* values);
+  [CLSCompliant(false)]
+  public unsafe static void glPixelMapuiv(int map, uint[] values)
   { fixed(uint* p=values) glPixelMapuiv(map, values.Length, p);
   }
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glPixelMapusv(uint map, int mapsize, /*const*/ ushort *values);
-  public unsafe static void glPixelMapusv(uint map, ushort[] values)
+  public unsafe static extern void glPixelMapusv(int map, int mapsize, /*const*/ ushort *values);
+  [CLSCompliant(false)]
+  public unsafe static void glPixelMapusv(int map, ushort[] values)
   { fixed(ushort* p=values) glPixelMapusv(map, values.Length, p);
   }
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glPixelStoref(uint pname, float param);
+  public static extern void glPixelStoref(int pname, float param);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glPixelStorei(uint pname, int param);
+  public static extern void glPixelStorei(int pname, int param);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glPixelTransferf(uint pname, float param);
+  public static extern void glPixelTransferf(int pname, float param);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glPixelTransferi(uint pname, int param);
+  public static extern void glPixelTransferi(int pname, int param);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glPixelZoom(float xfactor, float yfactor);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glPointSize(float size);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glPolygonMode(uint face, uint mode);
+  public static extern void glPolygonMode(int face, int mode);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glPolygonOffset(float factor, float units);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glPolygonStipple(/*const*/ byte *mask);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
@@ -2014,129 +2153,147 @@ public sealed class GL
   public static extern void glPopMatrix();
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glPopName();
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glPrioritizeTextures(int n, /*const*/ uint *textureIDs, /*const*/ float* priorities);
-  public unsafe static void glPrioritizeTextures(uint[] textureIDs, float[] priorities)
-  { fixed(uint* t=textureIDs) fixed(float* p=priorities) glPrioritizeTextures(textureIDs.Length, t, p);
+  public unsafe static extern void glPrioritizeTextures(int n, /*const*/ int *textureIDs, /*const*/ float* priorities);
+  public unsafe static void glPrioritizeTextures(int[] textureIDs, float[] priorities)
+  { fixed(int* t=textureIDs) fixed(float* p=priorities) glPrioritizeTextures(textureIDs.Length, t, p);
   }
-  public unsafe static void glPrioritizeTexture(uint textureID, float priority)
+  public unsafe static void glPrioritizeTexture(int textureID, float priority)
   {
     glPrioritizeTextures(1, &textureID, &priority);
   }
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glPushAttrib(uint mask);
+  public static extern void glPushAttrib(int mask);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glPushClientAttrib(uint mask);
+  public static extern void glPushClientAttrib(int mask);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glPushMatrix();
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glPushName(uint name);
+  public static extern void glPushName(int name);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glRasterPos2d(double x, double y);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glRasterPos2dv(/*const*/ double *v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glRasterPos2dv([In] double[] v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glRasterPos2f(float x, float y);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static unsafe extern void glRasterPos2fv(/*const*/ float *v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glRasterPos2fv([In] float[] v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glRasterPos2i(int x, int y);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static unsafe extern void glRasterPos2iv(/*const*/ int *v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glRasterPos2iv([In] int[] v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glRasterPos2s(short x, short y);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static unsafe extern void glRasterPos2sv(/*const*/ short *v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glRasterPos2sv([In] short[] v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glRasterPos3d(double x, double y, double z);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static unsafe extern void glRasterPos3dv(/*const*/ double *v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glRasterPos3dv([In] double[] v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glRasterPos3f(float x, float y, float z);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static unsafe extern void glRasterPos3fv(/*const*/ float *v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glRasterPos3fv([In] float[] v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glRasterPos3i(int x, int y, int z);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static unsafe extern void glRasterPos3iv(/*const*/ int *v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glRasterPos3iv([In] int[] v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glRasterPos3s(short x, short y, short z);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static unsafe extern void glRasterPos3sv(/*const*/ short *v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glRasterPos3sv([In] short[] v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glRasterPos4d(double x, double y, double z, double w);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static unsafe extern void glRasterPos4dv(/*const*/ double *v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glRasterPos4dv([In] double[] v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glRasterPos4f(float x, float y, float z, float w);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static unsafe extern void glRasterPos4fv(/*const*/ float *v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glRasterPos4fv([In] float[] v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glRasterPos4i(int x, int y, int z, int w);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static unsafe extern void glRasterPos4iv(/*const*/ int *v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glRasterPos4iv([In] int[] v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glRasterPos4s(short x, short y, short z, short w);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static unsafe extern void glRasterPos4sv(/*const*/ short *v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glRasterPos4sv([In] short[] v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glReadBuffer(uint mode);
+  public static extern void glReadBuffer(int mode);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glReadPixels(int x, int y, int width, int height, uint format, uint type, void* pixels);
+  public unsafe static extern void glReadPixels(int x, int y, int width, int height, int format, int type, void* pixels);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glReadPixels(int x, int y, int width, int height, uint format, uint type, IntPtr pixels);
+  public unsafe static extern void glReadPixels(int x, int y, int width, int height, int format, int type, IntPtr pixels);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glReadPixels(int x, int y, int width, int height, uint format, uint type, [In] [Out] byte[] pixels);
+  public unsafe static extern void glReadPixels(int x, int y, int width, int height, int format, int type, [In] [Out] byte[] pixels);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glRectd(double x1, double y1, double x2, double y2);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glRectdv(/*const*/ double *v1, /*const*/ double *v2);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glRectdv([In] double[] v1, [In] double[] v2);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glRectf(float x1, float y1, float x2, float y2);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glRectfv(/*const*/ float *v1, /*const*/ float *v2);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glRectfv([In] float[] v1, [In] float[] v2);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glRecti(int x1, int y1, int x2, int y2);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glRectiv(/*const*/ int *v1, /*const*/ int *v2);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glRectiv([In] int[] v1, [In] int[] v2);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glRects(short x1, short y1, short x2, short y2);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glRectsv(/*const*/ short *v1, /*const*/ short *v2);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glRectsv([In] short[] v1, [In] short[] v2);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern int glRenderMode(uint mode);
+  public static extern int glRenderMode(int mode);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glRotated(double angle, double x, double y, double z);
   public static void glRotated(double angle, Mathematics.ThreeD.Vector axis)
@@ -2151,40 +2308,49 @@ public sealed class GL
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glScissor(int x, int y, int width, int height);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glSelectBuffer(int size, uint *buffer);
+  [CLSCompliant(false)]
+  public unsafe static extern void glSelectBuffer(int size, uint* buffer);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glSelectBuffer(int size, [In] [Out] uint[] buffer);
+  [CLSCompliant(false)]
   public unsafe static void glSelectBuffer(uint[] buffer)
   { fixed(uint* p=buffer) glSelectBuffer(buffer.Length, p);
   }
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glShadeModel(uint mode);
+  public static extern void glShadeModel(int mode);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glStencilFunc(uint func, int refval, uint mask);
+  public static extern void glStencilFunc(int func, int refval, uint mask);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glStencilMask(uint mask);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glStencilOp(uint fail, uint zfail, uint zpass);
+  public static extern void glStencilOp(int fail, int zfail, int zpass);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glTexCoord1d(double s);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glTexCoord1dv(/*const*/ double *v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glTexCoord1dv([In] ref double v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glTexCoord1f(float s);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glTexCoord1fv(/*const*/ float *v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glTexCoord1fv([In] ref float v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glTexCoord1i(int s);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glTexCoord1iv(/*const*/ int *v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glTexCoord1iv([In] ref int v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glTexCoord1s(short s);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glTexCoord1sv(/*const*/ short *v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
@@ -2192,24 +2358,28 @@ public sealed class GL
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glTexCoord2d(double s, double t);
   public static void glTexCoord2d(Mathematics.TwoD.Point pt) { glTexCoord2d(pt.X, pt.Y); }
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glTexCoord2dv(/*const*/ double *v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glTexCoord2dv([In] double[] v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glTexCoord2f(float s, float t);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glTexCoord2fv(/*const*/ float *v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glTexCoord2fv([In] float[] v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glTexCoord2i(int s, int t);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glTexCoord2iv(/*const*/ int *v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glTexCoord2iv([In] int[] v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glTexCoord2s(short s, short t);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glTexCoord2sv(/*const*/ short *v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
@@ -2217,132 +2387,156 @@ public sealed class GL
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glTexCoord3d(double s, double t, double r);
   public static void glTexCoord3d(Mathematics.ThreeD.Point pt) { glTexCoord3d(pt.X, pt.Y, pt.Z); }
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glTexCoord3dv(/*const*/ double *v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glTexCoord3dv([In] double[] v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glTexCoord3f(float s, float t, float r);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glTexCoord3fv(/*const*/ float *v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glTexCoord3fv([In] float[] v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glTexCoord3i(int s, int t, int r);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glTexCoord3iv(/*const*/ int *v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glTexCoord3iv([In] int[] v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glTexCoord3s(short s, short t, short r);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glTexCoord3sv(/*const*/ short *v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glTexCoord3sv([In] short[] v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glTexCoord4d(double s, double t, double r, double q);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glTexCoord4dv(/*const*/ double *v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glTexCoord4dv([In] double[] v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glTexCoord4f(float s, float t, float r, float q);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glTexCoord4fv(/*const*/ float *v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glTexCoord4fv([In] float[] v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glTexCoord4i(int s, int t, int r, int q);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glTexCoord4iv(/*const*/ int *v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glTexCoord4iv([In] int[] v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glTexCoord4s(short s, short t, short r, short q);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glTexCoord4sv(/*const*/ short *v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glTexCoord4sv([In] short[] v);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glTexCoordPointer(int size, uint type, int stride, /*const*/ void* pointer);
+  public unsafe static extern void glTexCoordPointer(int size, int type, int stride, /*const*/ void* pointer);
+  [CLSCompliant(false)]
   public unsafe static void glTexCoordPointer(int size, int stride, /*const*/ short* pointer)
   { glTexCoordPointer(size, GL_SHORT, stride, pointer);
   }
+  [CLSCompliant(false)]
   public unsafe static void glTexCoordPointer(int size, int stride, /*const*/ int* pointer)
   { glTexCoordPointer(size, GL_INT, stride, pointer);
   }
+  [CLSCompliant(false)]
   public unsafe static void glTexCoordPointer(int size, int stride, /*const*/ float* pointer)
   { glTexCoordPointer(size, GL_FLOAT, stride, pointer);
   }
+  [CLSCompliant(false)]
   public unsafe static void glTexCoordPointer(int size, int stride, /*const*/ double* pointer)
   { glTexCoordPointer(size, GL_DOUBLE, stride, pointer);
   }
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glTexEnvf(uint target, uint pname, float param);
+  public static extern void glTexEnvf(int target, int pname, float param);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glTexEnvfv(uint target, uint pname, /*const*/ float* parms);
+  public unsafe static extern void glTexEnvfv(int target, int pname, /*const*/ float* parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glTexEnvfv(uint target, uint pname, [In] float[] parms);
+  public static extern void glTexEnvfv(int target, int pname, [In] float[] parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glTexEnvi(uint target, uint pname, int param);
+  public static extern void glTexEnvi(int target, int pname, int param);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glTexEnviv(uint target, uint pname, /*const*/ int* parms);
+  public unsafe static extern void glTexEnviv(int target, int pname, /*const*/ int* parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glTexEnviv(uint target, uint pname, [In] int[] parms);
+  public static extern void glTexEnviv(int target, int pname, [In] int[] parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glTexGend(uint coord, uint pname, double param);
+  public static extern void glTexGend(int coord, int pname, double param);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glTexGendv(uint coord, uint pname, /*const*/ double* parms);
+  public unsafe static extern void glTexGendv(int coord, int pname, /*const*/ double* parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glTexGendv(uint coord, uint pname, [In] double[] parms);
+  public static extern void glTexGendv(int coord, int pname, [In] double[] parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glTexGenf(uint coord, uint pname, float param);
+  public static extern void glTexGenf(int coord, int pname, float param);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glTexGenfv(uint coord, uint pname, /*const*/ float* parms);
+  public unsafe static extern void glTexGenfv(int coord, int pname, /*const*/ float* parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glTexGenfv(uint coord, uint pname, [In] float[] parms);
+  public static extern void glTexGenfv(int coord, int pname, [In] float[] parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glTexGeni(uint coord, uint pname, int param);
+  public static extern void glTexGeni(int coord, int pname, int param);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glTexGeniv(uint coord, uint pname, /*const*/ int* parms);
+  public unsafe static extern void glTexGeniv(int coord, int pname, /*const*/ int* parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glTexGeniv(uint coord, uint pname, [In] int[] parms);
+  public static extern void glTexGeniv(int coord, int pname, [In] int[] parms);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glTexImage1D(uint target, int level, uint internalformat, int width, int border, uint format, uint type, /*const*/ void* pixels);
+  public unsafe static extern void glTexImage1D(int target, int level, int internalformat, int width, int border, int format, int type, /*const*/ void* pixels);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glTexImage1D(uint target, int level, uint internalformat, int width, int border, uint format, uint type, IntPtr pixels);
+  public static extern void glTexImage1D(int target, int level, int internalformat, int width, int border, int format, int type, IntPtr pixels);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glTexImage1D(uint target, int level, uint internalformat, int width, int border, uint format, uint type, byte[] pixels);
+  public static extern void glTexImage1D(int target, int level, int internalformat, int width, int border, int format, int type, byte[] pixels);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glTexImage2D(uint target, int level, uint internalformat, int width, int height, int border, uint format, uint type, /*const*/ void* pixels);
+  public unsafe static extern void glTexImage2D(int target, int level, int internalformat, int width, int height, int border, int format, int type, /*const*/ void* pixels);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glTexImage2D(uint target, int level, uint internalformat, int width, int height, int border, uint format, uint type, IntPtr pixels);
+  public static extern void glTexImage2D(int target, int level, int internalformat, int width, int height, int border, int format, int type, IntPtr pixels);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glTexImage2D(uint target, int level, uint internalformat, int width, int height, int border, uint format, uint type, byte[] pixels);
+  public static extern void glTexImage2D(int target, int level, int internalformat, int width, int height, int border, int format, int type, byte[] pixels);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glTexParameterf(uint target, uint pname, float param);
+  public static extern void glTexParameterf(int target, int pname, float param);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glTexParameterfv(uint target, uint pname, /*const*/ float* parms);
+  public unsafe static extern void glTexParameterfv(int target, int pname, /*const*/ float* parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glTexParameterfv(uint target, uint pname, [In] float[] parms);
+  public static extern void glTexParameterfv(int target, int pname, [In] float[] parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glTexParameteri(uint target, uint pname, uint param);
+  public static extern void glTexParameteri(int target, int pname, int param);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glTexParameteriv(uint target, uint pname, /*const*/ int* parms);
+  public unsafe static extern void glTexParameteriv(int target, int pname, /*const*/ int* parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glTexParameteriv(uint target, uint pname, [In] int[] parms);
+  public static extern void glTexParameteriv(int target, int pname, [In] int[] parms);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glTexSubImage1D(uint target, int level, int xoffset, int width, uint format, uint type, /*const*/ void* pixels);
+  public unsafe static extern void glTexSubImage1D(int target, int level, int xoffset, int width, int format, int type, /*const*/ void* pixels);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glTexSubImage1D(uint target, int level, int xoffset, int width, uint format, uint type, IntPtr pixels);
+  public unsafe static extern void glTexSubImage1D(int target, int level, int xoffset, int width, int format, int type, IntPtr pixels);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glTexSubImage1D(uint target, int level, int xoffset, int width, uint format, uint type, [In] byte[] pixels);
+  public unsafe static extern void glTexSubImage1D(int target, int level, int xoffset, int width, int format, int type, [In] byte[] pixels);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glTexSubImage2D(uint target, int level, int xoffset, int yoffset, int width, int height, uint format, uint type, /*const*/ void* pixels);
+  public unsafe static extern void glTexSubImage2D(int target, int level, int xoffset, int yoffset, int width, int height, int format, int type, /*const*/ void* pixels);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glTexSubImage2D(uint target, int level, int xoffset, int yoffset, int width, int height, uint format, uint type, IntPtr pixels);
+  public unsafe static extern void glTexSubImage2D(int target, int level, int xoffset, int yoffset, int width, int height, int format, int type, IntPtr pixels);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glTexSubImage2D(uint target, int level, int xoffset, int yoffset, int width, int height, uint format, uint type, [In] byte[] pixels);
+  public unsafe static extern void glTexSubImage2D(int target, int level, int xoffset, int yoffset, int width, int height, int format, int type, [In] byte[] pixels);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glTranslated(double x, double y, double z);
   public static void glTranslated(Mathematics.ThreeD.Vector v) { glTranslated(v.X, v.Y, v.Z); }
@@ -2352,24 +2546,28 @@ public sealed class GL
   public static extern void glVertex2d(double x, double y);
   public static void glVertex2d(Mathematics.TwoD.Point pt) { glVertex2d(pt.X, pt.Y); }
   public static void glVertex2d(Mathematics.TwoD.Vector vector) { glVertex2d(vector.X, vector.Y); }
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glVertex2dv(/*const*/ double *v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glVertex2dv([In] double[] v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glVertex2f(float x, float y);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glVertex2fv(/*const*/ float *v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glVertex2fv([In] float[] v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glVertex2i(int x, int y);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glVertex2iv(/*const*/ int *v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glVertex2iv([In] int[] v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glVertex2s(short x, short y);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glVertex2sv(/*const*/ short *v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
@@ -2378,63 +2576,76 @@ public sealed class GL
   public static extern void glVertex3d(double x, double y, double z);
   public static void glVertex3d(Mathematics.ThreeD.Point pt) { glVertex3d(pt.X, pt.Y, pt.Z); }
   public static void glVertex3d(Mathematics.ThreeD.Vector vector) { glVertex3d(vector.X, vector.Y, vector.Z); }
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glVertex3dv(/*const*/ double *v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glVertex3dv([In] double[] v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glVertex3f(float x, float y, float z);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glVertex3fv(/*const*/ float *v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glVertex3fv([In] float[] v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glVertex3i(int x, int y, int z);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glVertex3iv(/*const*/ int *v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glVertex3iv([In] int[] v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glVertex3s(short x, short y, short z);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glVertex3sv(/*const*/ short *v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glVertex3sv([In] short[] v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glVertex4d(double x, double y, double z, double w);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glVertex4dv(/*const*/ double *v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glVertex4dv([In] double[] v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glVertex4f(float x, float y, float z, float w);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glVertex4fv(/*const*/ float *v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glVertex4fv([In] float[] v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glVertex4i(int x, int y, int z, int w);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glVertex4iv(/*const*/ int *v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glVertex4iv([In] int[] v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glVertex4s(short x, short y, short z, short w);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glVertex4sv(/*const*/ short *v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glVertex4sv([In] short[] v);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glVertexPointer(int size, uint type, int stride, /*const*/ void* pointer);
+  public unsafe static extern void glVertexPointer(int size, int type, int stride, /*const*/ void* pointer);
+  [CLSCompliant(false)]
   public unsafe static void glVertexPointer(int size, int stride, /*const*/ short* pointer)
   { glVertexPointer(size, GL_SHORT, stride, pointer);
   }
+  [CLSCompliant(false)]
   public unsafe static void glVertexPointer(int size, int stride, /*const*/ int* pointer)
   { glVertexPointer(size, GL_INT, stride, pointer);
   }
+  [CLSCompliant(false)]
   public unsafe static void glVertexPointer(int size, int stride, /*const*/ float* pointer)
   { glVertexPointer(size, GL_FLOAT, stride, pointer);
   }
+  [CLSCompliant(false)]
   public unsafe static void glVertexPointer(int size, int stride, /*const*/ double* pointer)
   { glVertexPointer(size, GL_DOUBLE, stride, pointer);
   }
@@ -2557,206 +2768,224 @@ public sealed class GL
   #endregion
 
   #region Imports
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glDrawRangeElements(uint mode, int start, int end, int count, uint type, void* indices);
+  public unsafe static extern void glDrawRangeElements(int mode, int start, int end, int count, int type, void* indices);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glDrawRangeElements(uint mode, int start, int end, int count, uint type, IntPtr indices);
-  public unsafe static void glDrawRangeElements(uint mode, int start, int end, int count, byte* indices)
+  public unsafe static extern void glDrawRangeElements(int mode, int start, int end, int count, int type, IntPtr indices);
+  [CLSCompliant(false)]
+  public unsafe static void glDrawRangeElements(int mode, int start, int end, int count, byte* indices)
   { glDrawRangeElements(mode, start, end, count, GL_UNSIGNED_BYTE, indices);
   }
-  public unsafe static void glDrawRangeElements(uint mode, int start, int end, int count, ushort* indices)
+  [CLSCompliant(false)]
+  public unsafe static void glDrawRangeElements(int mode, int start, int end, int count, ushort* indices)
   { glDrawRangeElements(mode, start, end, count, GL_UNSIGNED_SHORT, indices);
   }
-  public unsafe static void glDrawRangeElements(uint mode, int start, int end, int count, uint* indices)
+  [CLSCompliant(false)]
+  public unsafe static void glDrawRangeElements(int mode, int start, int end, int count, uint* indices)
   { glDrawRangeElements(mode, start, end, count, GL_UNSIGNED_INT, indices);
   }
-  public unsafe static void glDrawRangeElements(uint mode, int start, int end, int count, byte[] indices)
+  public unsafe static void glDrawRangeElements(int mode, int start, int end, int count, byte[] indices)
   { fixed(byte* p=indices) glDrawRangeElements(mode, start, end, count, GL_UNSIGNED_BYTE, p);
   }
-  public unsafe static void glDrawRangeElements(uint mode, int start, int end, int count, ushort[] indices)
+  [CLSCompliant(false)]
+  public unsafe static void glDrawRangeElements(int mode, int start, int end, int count, ushort[] indices)
   { fixed(ushort* p=indices) glDrawRangeElements(mode, start, end, count, GL_UNSIGNED_SHORT, p);
   }
-  public unsafe static void glDrawRangeElements(uint mode, int start, int end, int count, uint[] indices)
+  [CLSCompliant(false)]
+  public unsafe static void glDrawRangeElements(int mode, int start, int end, int count, uint[] indices)
   { fixed(uint* p=indices) glDrawRangeElements(mode, start, end, count, GL_UNSIGNED_INT, p);
   }
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glTexImage3D(uint target, int level, int internalFormat, int width, int height, int depth, int border, uint format, uint type, void* pixels);
+  public unsafe static extern void glTexImage3D(int target, int level, int internalFormat, int width, int height, int depth, int border, int format, int type, void* pixels);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glTexImage3D(uint target, int level, int internalFormat, int width, int height, int depth, int border, uint format, uint type, IntPtr pixels);
+  public unsafe static extern void glTexImage3D(int target, int level, int internalFormat, int width, int height, int depth, int border, int format, int type, IntPtr pixels);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glTexImage3D(uint target, int level, int internalFormat, int width, int height, int depth, int border, uint format, uint type, [In] byte[] pixels);
+  public unsafe static extern void glTexImage3D(int target, int level, int internalFormat, int width, int height, int depth, int border, int format, int type, [In] byte[] pixels);
+  [CLSCompliant(false)]
+  [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
+  public unsafe static extern void glTexSubImage3D(int target, int level, int xoffset, int yoffset, int zoffset, int width, int height, int depth, int format, int type, void* pixels);
+  [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
+  public unsafe static extern void glTexSubImage3D(int target, int level, int xoffset, int yoffset, int zoffset, int width, int height, int depth, int format, int type, IntPtr pixels);
+  [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
+  public unsafe static extern void glTexSubImage3D(int target, int level, int xoffset, int yoffset, int zoffset, int width, int height, int depth, int format, int type, [In] byte[] pixels);
 
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glTexSubImage3D(uint target, int level, int xoffset, int yoffset, int zoffset, int width, int height, int depth, uint format, uint type, void* pixels);
+  public static extern void glCopyTexSubImage3D(int target, int level, int xoffset, int yoffset, int zoffset, int x, int y, int width, int height);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glTexSubImage3D(uint target, int level, int xoffset, int yoffset, int zoffset, int width, int height, int depth, uint format, uint type, IntPtr pixels);
+  public unsafe static extern void glColorTable(int target, int internalformat, int width, int format, int type, void* table);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glTexSubImage3D(uint target, int level, int xoffset, int yoffset, int zoffset, int width, int height, int depth, uint format, uint type, [In] byte[] pixels);
-
+  public unsafe static extern void glColorTable(int target, int internalformat, int width, int format, int type, IntPtr table);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glCopyTexSubImage3D(uint target, int level, int xoffset, int yoffset, int zoffset, int x, int y, int width, int height);
-
+  public unsafe static extern void glColorTable(int target, int internalformat, int width, int format, int type, [In] byte[] table);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glColorTable(uint target, uint internalformat, int width, uint format, uint type, void* table);
+  public unsafe static extern void glColorSubTable(int target, int start, int count, int format, int type, void* data);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glColorTable(uint target, uint internalformat, int width, uint format, uint type, IntPtr table);
+  public unsafe static extern void glColorSubTable(int target, int start, int count, int format, int type, IntPtr data);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glColorTable(uint target, uint internalformat, int width, uint format, uint type, [In] byte[] table);
-
+  public unsafe static extern void glColorSubTable(int target, int start, int count, int format, int type, [In] byte[] data);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glColorSubTable(uint target, int start, int count, uint format, uint type, void* data);
+  public unsafe static extern void glColorTableParameteriv(int target, int pname, int* parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glColorSubTable(uint target, int start, int count, uint format, uint type, IntPtr data);
+  public unsafe static extern void glColorTableParameteriv(int target, int pname, [In] int[] parms);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glColorSubTable(uint target, int start, int count, uint format, uint type, [In] byte[] data);
-
+  public unsafe static extern void glColorTableParameterfv(int target, int pname, float* parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glColorTableParameteriv(uint target, uint pname, int* parms);
+  public unsafe static extern void glColorTableParameterfv(int target, int pname, [In] float[] parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glColorTableParameteriv(uint target, uint pname, [In] int[] parms);
+  public static extern void glCopyColorSubTable(int target, int start, int x, int y, int width);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glColorTableParameterfv(uint target, uint pname, float* parms);
+  public static extern void glCopyColorTable(int target, int internalformat, int x, int y, int width);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glColorTableParameterfv(uint target, uint pname, [In] float[] parms);
+  public unsafe static extern void glGetColorTable(int target, int format, int type, void* table);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glCopyColorSubTable(uint target, int start, int x, int y, int width);
+  public unsafe static extern void glGetColorTable(int target, int format, int type, IntPtr table);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glCopyColorTable(uint target, uint internalformat, int x, int y, int width);
+  public unsafe static extern void glGetColorTable(int target, int format, int type, [In] byte[] table);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glGetColorTable(uint target, uint format, uint type, void* table);
+  public unsafe static extern void glGetColorTableParameterfv(int target, int pname, float* parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glGetColorTable(uint target, uint format, uint type, IntPtr table);
+  public unsafe static extern void glGetColorTableParameterfv(int target, int pname, out float parm);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glGetColorTable(uint target, uint format, uint type, [In] byte[] table);
+  public unsafe static extern void glGetColorTableParameterfv(int target, int pname, [In] float[] parms);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glGetColorTableParameterfv(uint target, uint pname, float* parms);
+  public unsafe static extern void glGetColorTableParameteriv(int target, int pname, int* parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glGetColorTableParameterfv(uint target, uint pname, out float parm);
+  public unsafe static extern void glGetColorTableParameteriv(int target, int pname, out int parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glGetColorTableParameterfv(uint target, uint pname, [In] float[] parms);
+  public unsafe static extern void glGetColorTableParameteriv(int target, int pname, [In] int[] parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glGetColorTableParameteriv(uint target, uint pname, int* parms);
-  [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glGetColorTableParameteriv(uint target, uint pname, out int parms);
-  [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glGetColorTableParameteriv(uint target, uint pname, [In] int[] parms);
-  [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glBlendEquation(uint mode);
+  public static extern void glBlendEquation(int mode);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glBlendColor(float red, float green, float blue, float alpha);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glHistogram(uint target, int width, uint internalformat, byte sink);
+  public static extern void glHistogram(int target, int width, int internalformat, byte sink);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glResetHistogram(uint target);
+  public static extern void glResetHistogram(int target);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-
-  public unsafe static extern void glGetHistogram(uint target, byte reset, uint format, uint type, void* values);
+  [CLSCompliant(false)]
+  public unsafe static extern void glGetHistogram(int target, byte reset, int format, int type, void* values);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glGetHistogram(uint target, byte reset, uint format, uint type, IntPtr values);
+  public unsafe static extern void glGetHistogram(int target, byte reset, int format, int type, IntPtr values);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glGetHistogram(uint target, byte reset, uint format, uint type, [In] [Out] byte[] values);
-
+  public unsafe static extern void glGetHistogram(int target, byte reset, int format, int type, [In] [Out] byte[] values);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glGetHistogramParameterfv(uint target, uint pname, float* parms);
+  public unsafe static extern void glGetHistogramParameterfv(int target, int pname, float* parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glGetHistogramParameterfv(uint target, uint pname, out float parm);
+  public unsafe static extern void glGetHistogramParameterfv(int target, int pname, out float parm);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glGetHistogramParameterfv(uint target, uint pname, [In] [Out] float[] parms);
+  public unsafe static extern void glGetHistogramParameterfv(int target, int pname, [In] [Out] float[] parms);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glGetHistogramParameteriv(uint target, uint pname, int* parms);
+  public unsafe static extern void glGetHistogramParameteriv(int target, int pname, int* parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glGetHistogramParameteriv(uint target, uint pname, out int parm);
+  public unsafe static extern void glGetHistogramParameteriv(int target, int pname, out int parm);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glGetHistogramParameteriv(uint target, uint pname, [In] [Out] int[] parms);
+  public unsafe static extern void glGetHistogramParameteriv(int target, int pname, [In] [Out] int[] parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glMinmax(uint target, uint internalformat, byte sink);
+  public static extern void glMinmax(int target, int internalformat, byte sink);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glResetMinmax(uint target); 
-
+  public static extern void glResetMinmax(int target);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glGetMinmax(uint target, byte reset, uint format, uint types, void* values);
+  public unsafe static extern void glGetMinmax(int target, byte reset, int format, int types, void* values);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glGetMinmax(uint target, byte reset, uint format, uint types, IntPtr values);
+  public unsafe static extern void glGetMinmax(int target, byte reset, int format, int types, IntPtr values);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glGetMinmax(uint target, byte reset, uint format, uint types, [In] [Out] byte[] values);
-
+  public unsafe static extern void glGetMinmax(int target, byte reset, int format, int types, [In] [Out] byte[] values);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glGetMinmaxParameterfv(uint target, uint pname, float* parms);
+  public unsafe static extern void glGetMinmaxParameterfv(int target, int pname, float* parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glGetMinmaxParameterfv(uint target, uint pname, out float parm);
+  public unsafe static extern void glGetMinmaxParameterfv(int target, int pname, out float parm);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glGetMinmaxParameterfv(uint target, uint pname, [In] [Out] float[] parms);
+  public unsafe static extern void glGetMinmaxParameterfv(int target, int pname, [In] [Out] float[] parms);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glGetMinmaxParameteriv(uint target, uint pname, int* parms);
+  public unsafe static extern void glGetMinmaxParameteriv(int target, int pname, int* parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glGetMinmaxParameteriv(uint target, uint pname, out int parm);
+  public unsafe static extern void glGetMinmaxParameteriv(int target, int pname, out int parm);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glGetMinmaxParameteriv(uint target, uint pname, [In] [Out] int[] parms);
-
+  public unsafe static extern void glGetMinmaxParameteriv(int target, int pname, [In] [Out] int[] parms);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glConvolutionFilter1D(uint target, uint internalformat, int width, uint format, uint type, void* image);
+  public unsafe static extern void glConvolutionFilter1D(int target, int internalformat, int width, int format, int type, void* image);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glConvolutionFilter1D(uint target, uint internalformat, int width, uint format, uint type, IntPtr image);
+  public unsafe static extern void glConvolutionFilter1D(int target, int internalformat, int width, int format, int type, IntPtr image);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glConvolutionFilter1D(uint target, uint internalformat, int width, uint format, uint type, [In] byte[] image);
-
+  public unsafe static extern void glConvolutionFilter1D(int target, int internalformat, int width, int format, int type, [In] byte[] image);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glConvolutionFilter2D(uint target, uint internalformat, int width, int height, uint format, uint type, void* image);
+  public unsafe static extern void glConvolutionFilter2D(int target, int internalformat, int width, int height, int format, int type, void* image);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glConvolutionFilter2D(uint target, uint internalformat, int width, int height, uint format, uint type, IntPtr image);
+  public unsafe static extern void glConvolutionFilter2D(int target, int internalformat, int width, int height, int format, int type, IntPtr image);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glConvolutionFilter2D(uint target, uint internalformat, int width, int height, uint format, uint type, [In] byte[] image);
-
-  [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glConvolutionParameterf(uint target, uint pname, float parms);
-  [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glConvolutionParameterfv(uint target, uint pname, float* parms);
-  [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glConvolutionParameterfv(uint target, uint pname, [In] float[] parms);
-  [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glConvolutionParameteri(uint target, uint pname, int parms);
-  [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glConvolutionParameteriv(uint target, uint pname, int* parms);
-  [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glConvolutionParameteriv(uint target, uint pname, [In] int[] parms);
-  [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glCopyConvolutionFilter1D(uint target, uint internalformat, int x, int y, int width);
-  [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern void glCopyConvolutionFilter2D(uint target, uint internalformat, int x, int y, int width, int height);
+  public unsafe static extern void glConvolutionFilter2D(int target, int internalformat, int width, int height, int format, int type, [In] byte[] image);
 
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glGetConvolutionFilter(uint target, uint format, uint type, void* image);
+  public static extern void glConvolutionParameterf(int target, int pname, float parms);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glGetConvolutionFilter(uint target, uint format, uint type, IntPtr image);
+  public unsafe static extern void glConvolutionParameterfv(int target, int pname, float* parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glGetConvolutionFilter(uint target, uint format, uint type, [In] [Out] byte[] image);
-
+  public unsafe static extern void glConvolutionParameterfv(int target, int pname, [In] float[] parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glGetConvolutionParameterfv(uint target, uint pname, float* parms);
+  public static extern void glConvolutionParameteri(int target, int pname, int parms);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glGetConvolutionParameterfv(uint target, uint pname, out float parm);
+  public unsafe static extern void glConvolutionParameteriv(int target, int pname, int* parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glGetConvolutionParameterfv(uint target, uint pname, [In] [Out] float[] parms);
+  public unsafe static extern void glConvolutionParameteriv(int target, int pname, [In] int[] parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glGetConvolutionParameteriv(uint target, uint pname, int* parms);
+  public static extern void glCopyConvolutionFilter1D(int target, int internalformat, int x, int y, int width);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glGetConvolutionParameteriv(uint target, uint pname, out int parm);
+  public static extern void glCopyConvolutionFilter2D(int target, int internalformat, int x, int y, int width, int height);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glGetConvolutionParameteriv(uint target, uint pname, [In] [Out] int[] parms);
-
+  public unsafe static extern void glGetConvolutionFilter(int target, int format, int type, void* image);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glSeparableFilter2D(uint target, uint internalformat, int width, int height, uint format, uint type, void* row, void* column);
+  public unsafe static extern void glGetConvolutionFilter(int target, int format, int type, IntPtr image);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glSeparableFilter2D(uint target, uint internalformat, int width, int height, uint format, uint type, IntPtr row, IntPtr column);
+  public unsafe static extern void glGetConvolutionFilter(int target, int format, int type, [In] [Out] byte[] image);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glSeparableFilter2D(uint target, uint internalformat, int width, int height, uint format, uint type, [In] byte[] row, [In] byte[] column);
-
+  public unsafe static extern void glGetConvolutionParameterfv(int target, int pname, float* parms);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glGetSeparableFilter(uint target, uint format, uint type, void* row, void* column, void* span);
+  public unsafe static extern void glGetConvolutionParameterfv(int target, int pname, out float parm);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glGetSeparableFilter(uint target, uint format, uint type, void* row, IntPtr column, IntPtr span);
+  public unsafe static extern void glGetConvolutionParameterfv(int target, int pname, [In] [Out] float[] parms);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern void glGetSeparableFilter(uint target, uint format, uint type, void* row, [In] [Out] byte[] column, [In] [Out] byte[] span);
+  public unsafe static extern void glGetConvolutionParameteriv(int target, int pname, int* parms);
+  [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
+  public unsafe static extern void glGetConvolutionParameteriv(int target, int pname, out int parm);
+  [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
+  public unsafe static extern void glGetConvolutionParameteriv(int target, int pname, [In] [Out] int[] parms);
+  [CLSCompliant(false)]
+  [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
+  public unsafe static extern void glSeparableFilter2D(int target, int internalformat, int width, int height, int format, int type, void* row, void* column);
+  [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
+  public unsafe static extern void glSeparableFilter2D(int target, int internalformat, int width, int height, int format, int type, IntPtr row, IntPtr column);
+  [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
+  public unsafe static extern void glSeparableFilter2D(int target, int internalformat, int width, int height, int format, int type, [In] byte[] row, [In] byte[] column);
+  [CLSCompliant(false)]
+  [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
+  public unsafe static extern void glGetSeparableFilter(int target, int format, int type, void* row, void* column, void* span);
+  [CLSCompliant(false)]
+  [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
+  public unsafe static extern void glGetSeparableFilter(int target, int format, int type, void* row, IntPtr column, IntPtr span);
+  [CLSCompliant(false)]
+  [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
+  public unsafe static extern void glGetSeparableFilter(int target, int format, int type, void* row, [In] [Out] byte[] column, [In] [Out] byte[] span);
   #endregion
   #endregion
 
@@ -2897,175 +3126,195 @@ public sealed class GL
 
   #region Imports
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static extern void glActiveTexture(uint texture);
+  public static extern void glActiveTexture(int texture);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static extern void glClientActiveTexture(uint texture);
+  public static extern void glClientActiveTexture(int texture);
+  [CLSCompliant(false)]
+  [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
+  public static unsafe extern void glCompressedTexImage1D(int target, int level, int internalformat, int width, int border, int imageSize, void* data);
+  [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
+  public static unsafe extern void glCompressedTexImage1D(int target, int level, int internalformat, int width, int border, int imageSize, IntPtr data);
+  [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
+  public static unsafe extern void glCompressedTexImage1D(int target, int level, int internalformat, int width, int border, int imageSize, [In] byte[] data);
+  [CLSCompliant(false)]
+  [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
+  public static unsafe extern void glCompressedTexImage2D(int target, int level, int internalformat, int width, int height, int border, int imageSize, void* data);
+  [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
+  public static unsafe extern void glCompressedTexImage2D(int target, int level, int internalformat, int width, int height, int border, int imageSize, IntPtr data);
+  [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
+  public static unsafe extern void glCompressedTexImage2D(int target, int level, int internalformat, int width, int height, int border, int imageSize, [In] byte[] data);
+  [CLSCompliant(false)]
+  [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
+  public static unsafe extern void glCompressedTexImage3D(int target, int level, int internalformat, int width, int height, int depth, int border, int imageSize, void* data);
+  [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
+  public static unsafe extern void glCompressedTexImage3D(int target, int level, int internalformat, int width, int height, int depth, int border, int imageSize, IntPtr data);
+  [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
+  public static unsafe extern void glCompressedTexImage3D(int target, int level, int internalformat, int width, int height, int depth, int border, int imageSize, [In] byte[] data);
+  [CLSCompliant(false)]
+  [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
+  public static unsafe extern void glCompressedTexSubImage1D(int target, int level, int xoffset, int width, int format, int imageSize, void* data);
+  [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
+  public static unsafe extern void glCompressedTexSubImage1D(int target, int level, int xoffset, int width, int format, int imageSize, IntPtr data);
+  [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
+  public static unsafe extern void glCompressedTexSubImage1D(int target, int level, int xoffset, int width, int format, int imageSize, [In] byte[] data);
+  [CLSCompliant(false)]
+  [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
+  public static unsafe extern void glCompressedTexSubImage2D(int target, int level, int xoffset, int yoffset, int width, int height, int format, int imageSize, void* data);
+  [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
+  public static unsafe extern void glCompressedTexSubImage2D(int target, int level, int xoffset, int yoffset, int width, int height, int format, int imageSize, IntPtr data);
+  [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
+  public static unsafe extern void glCompressedTexSubImage2D(int target, int level, int xoffset, int yoffset, int width, int height, int format, int imageSize, [In] byte[] data);
+  [CLSCompliant(false)]
+  [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
+  public static unsafe extern void glCompressedTexSubImage3D(int target, int level, int xoffset, int yoffset, int zoffset, int width, int height, int depth, int format, int imageSize, void* data);
+  [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
+  public static unsafe extern void glCompressedTexSubImage3D(int target, int level, int xoffset, int yoffset, int zoffset, int width, int height, int depth, int format, int imageSize, IntPtr data);
+  [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
+  public static unsafe extern void glCompressedTexSubImage3D(int target, int level, int xoffset, int yoffset, int zoffset, int width, int height, int depth, int format, int imageSize, [In] byte[] data);
+  [CLSCompliant(false)]
+  [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
+  public static unsafe extern void glGetCompressedTexImage(int target, int lod, void* img);
+  [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
+  public static unsafe extern void glGetCompressedTexImage(int target, int lod, IntPtr img);
+  [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
+  public static unsafe extern void glGetCompressedTexImage(int target, int lod, [In] [Out] byte[] img);
 
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static unsafe extern void glCompressedTexImage1D(uint target, int level, uint internalformat, int width, int border, int imageSize, void* data);
+  public static extern void glMultiTexCoord1d(int target, double s);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static unsafe extern void glCompressedTexImage1D(uint target, int level, uint internalformat, int width, int border, int imageSize, IntPtr data);
+  public static unsafe extern void glMultiTexCoord1dv(int target, double* v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static unsafe extern void glCompressedTexImage1D(uint target, int level, uint internalformat, int width, int border, int imageSize, [In] byte[] data);
-
+  public static unsafe extern void glMultiTexCoord1dv(int target, [In] double[] v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static unsafe extern void glCompressedTexImage2D(uint target, int level, uint internalformat, int width, int height, int border, int imageSize, void* data);
+  public static extern void glMultiTexCoord1f(int target, float s);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static unsafe extern void glCompressedTexImage2D(uint target, int level, uint internalformat, int width, int height, int border, int imageSize, IntPtr data);
+  public static unsafe extern void glMultiTexCoord1fv(int target, float* v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static unsafe extern void glCompressedTexImage2D(uint target, int level, uint internalformat, int width, int height, int border, int imageSize, [In] byte[] data);
-
+  public static unsafe extern void glMultiTexCoord1fv(int target, [In] float[] v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static unsafe extern void glCompressedTexImage3D(uint target, int level, uint internalformat, int width, int height, int depth, int border, int imageSize, void* data);
+  public static extern void glMultiTexCoord1i(int target, int s);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static unsafe extern void glCompressedTexImage3D(uint target, int level, uint internalformat, int width, int height, int depth, int border, int imageSize, IntPtr data);
+  public static unsafe extern void glMultiTexCoord1iv(int target, int* v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static unsafe extern void glCompressedTexImage3D(uint target, int level, uint internalformat, int width, int height, int depth, int border, int imageSize, [In] byte[] data);
-
+  public static unsafe extern void glMultiTexCoord1iv(int target, [In] int[] v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static unsafe extern void glCompressedTexSubImage1D(uint target, int level, int xoffset, int width, uint format, int imageSize, void* data);
+  public static extern void glMultiTexCoord1s(int target, short s);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static unsafe extern void glCompressedTexSubImage1D(uint target, int level, int xoffset, int width, uint format, int imageSize, IntPtr data);
+  public static unsafe extern void glMultiTexCoord1sv(int target, short* v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static unsafe extern void glCompressedTexSubImage1D(uint target, int level, int xoffset, int width, uint format, int imageSize, [In] byte[] data);
-
+  public static unsafe extern void glMultiTexCoord1sv(int target, [In] short[] v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static unsafe extern void glCompressedTexSubImage2D(uint target, int level, int xoffset, int yoffset, int width, int height, uint format, int imageSize, void* data);
+  public static extern void glMultiTexCoord2d(int target, double s, double t);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static unsafe extern void glCompressedTexSubImage2D(uint target, int level, int xoffset, int yoffset, int width, int height, uint format, int imageSize, IntPtr data);
+  public static unsafe extern void glMultiTexCoord2dv(int target, double* v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static unsafe extern void glCompressedTexSubImage2D(uint target, int level, int xoffset, int yoffset, int width, int height, uint format, int imageSize, [In] byte[] data);
-
+  public static unsafe extern void glMultiTexCoord2dv(int target, [In] double[] v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static unsafe extern void glCompressedTexSubImage3D(uint target, int level, int xoffset, int yoffset, int zoffset, int width, int height, int depth, uint format, int imageSize, void* data);
+  public static extern void glMultiTexCoord2f(int target, float s, float t);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static unsafe extern void glCompressedTexSubImage3D(uint target, int level, int xoffset, int yoffset, int zoffset, int width, int height, int depth, uint format, int imageSize, IntPtr data);
+  public static unsafe extern void glMultiTexCoord2fv(int target, float* v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static unsafe extern void glCompressedTexSubImage3D(uint target, int level, int xoffset, int yoffset, int zoffset, int width, int height, int depth, uint format, int imageSize, [In] byte[] data);
-
+  public static unsafe extern void glMultiTexCoord2fv(int target, [In] float[] v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static unsafe extern void glGetCompressedTexImage(uint target, int lod, void* img);
+  public static extern void glMultiTexCoord2i(int target, int s, int t);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static unsafe extern void glGetCompressedTexImage(uint target, int lod, IntPtr img);
+  public static unsafe extern void glMultiTexCoord2iv(int target, int* v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static unsafe extern void glGetCompressedTexImage(uint target, int lod, [In] [Out] byte[] img);
-
+  public static unsafe extern void glMultiTexCoord2iv(int target, [In] int[] v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static extern void glMultiTexCoord1d(uint target, double s);
+  public static extern void glMultiTexCoord2s(int target, short s, short t);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static unsafe extern void glMultiTexCoord1dv(uint target, double* v);
+  public static unsafe extern void glMultiTexCoord2sv(int target, short* v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static unsafe extern void glMultiTexCoord1dv(uint target, [In] double[] v);
+  public static unsafe extern void glMultiTexCoord2sv(int target, [In] short[] v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static extern void glMultiTexCoord1f(uint target, float s);
+  public static extern void glMultiTexCoord3d(int target, double s, double t, double r);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static unsafe extern void glMultiTexCoord1fv(uint target, float* v);
+  public static unsafe extern void glMultiTexCoord3dv(int target, double* v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static unsafe extern void glMultiTexCoord1fv(uint target, [In] float[] v);
+  public static unsafe extern void glMultiTexCoord3dv(int target, [In] double[] v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static extern void glMultiTexCoord1i(uint target, int s);
+  public static extern void glMultiTexCoord3f(int target, float s, float t, float r);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static unsafe extern void glMultiTexCoord1iv(uint target, int* v);
+  public static unsafe extern void glMultiTexCoord3fv(int target, float* v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static unsafe extern void glMultiTexCoord1iv(uint target, [In] int[] v);
+  public static unsafe extern void glMultiTexCoord3fv(int target, [In] float[] v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static extern void glMultiTexCoord1s(uint target, short s);
+  public static extern void glMultiTexCoord3i(int target, int s, int t, int r);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static unsafe extern void glMultiTexCoord1sv(uint target, short* v);
+  public static unsafe extern void glMultiTexCoord3iv(int target, int* v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static unsafe extern void glMultiTexCoord1sv(uint target, [In] short[] v);
+  public static unsafe extern void glMultiTexCoord3iv(int target, [In] int[] v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static extern void glMultiTexCoord2d(uint target, double s, double t);
+  public static extern void glMultiTexCoord3s(int target, short s, short t, short r);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static unsafe extern void glMultiTexCoord2dv(uint target, double* v);
+  public static unsafe extern void glMultiTexCoord3sv(int target, short* v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static unsafe extern void glMultiTexCoord2dv(uint target, [In] double[] v);
+  public static unsafe extern void glMultiTexCoord3sv(int target, [In] short[] v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static extern void glMultiTexCoord2f(uint target, float s, float t);
+  public static extern void glMultiTexCoord4d(int target, double s, double t, double r, double q);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static unsafe extern void glMultiTexCoord2fv(uint target, float* v);
+  public static unsafe extern void glMultiTexCoord4dv(int target, double* v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static unsafe extern void glMultiTexCoord2fv(uint target, [In] float[] v);
+  public static unsafe extern void glMultiTexCoord4dv(int target, [In] double[] v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static extern void glMultiTexCoord2i(uint target, int s, int t);
+  public static extern void glMultiTexCoord4f(int target, float s, float t, float r, float q);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static unsafe extern void glMultiTexCoord2iv(uint target, int* v);
+  public static unsafe extern void glMultiTexCoord4fv(int target, float* v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static unsafe extern void glMultiTexCoord2iv(uint target, [In] int[] v);
+  public static unsafe extern void glMultiTexCoord4fv(int target, [In] float[] v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static extern void glMultiTexCoord2s(uint target, short s, short t);
+  public static extern void glMultiTexCoord4i(int target, int s, int t, int r, int q);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static unsafe extern void glMultiTexCoord2sv(uint target, short* v);
+  public static unsafe extern void glMultiTexCoord4iv(int target, int* v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static unsafe extern void glMultiTexCoord2sv(uint target, [In] short[] v);
+  public static unsafe extern void glMultiTexCoord4iv(int target, [In] int[] v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static extern void glMultiTexCoord3d(uint target, double s, double t, double r);
+  public static extern void glMultiTexCoord4s(int target, short s, short t, short r, short q);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static unsafe extern void glMultiTexCoord3dv(uint target, double* v);
+  public static unsafe extern void glMultiTexCoord4sv(int target, short* v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static unsafe extern void glMultiTexCoord3dv(uint target, [In] double[] v);
+  public static unsafe extern void glMultiTexCoord4sv(int target, [In] short[] v);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static extern void glMultiTexCoord3f(uint target, float s, float t, float r);
+  public static unsafe extern void glLoadTransposeMatrixd(double* m);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static unsafe extern void glMultiTexCoord3fv(uint target, float* v);
+  public static unsafe extern void glLoadTransposeMatrixd([In] double[] m);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static unsafe extern void glMultiTexCoord3fv(uint target, [In] float[] v);
+  public static unsafe extern void glLoadTransposeMatrixf(float* m);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static extern void glMultiTexCoord3i(uint target, int s, int t, int r);
+  public static unsafe extern void glLoadTransposeMatrixf([In] float[] m);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static unsafe extern void glMultiTexCoord3iv(uint target, int* v);
+  public static unsafe extern void glMultTransposeMatrixd(double* m);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static unsafe extern void glMultiTexCoord3iv(uint target, [In] int[] v);
+  public static unsafe extern void glMultTransposeMatrixd([In] double[] m);
+  [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static extern void glMultiTexCoord3s(uint target, short s, short t, short r);
+  public static unsafe extern void glMultTransposeMatrixf(float* m);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static unsafe extern void glMultiTexCoord3sv(uint target, short* v);
+  public static unsafe extern void glMultTransposeMatrixf([In] float[] m);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static unsafe extern void glMultiTexCoord3sv(uint target, [In] short[] v);
+  public static extern void glSampleCoverage(float value, byte invert);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static extern void glMultiTexCoord4d(uint target, double s, double t, double r, double q);
-  [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static unsafe extern void glMultiTexCoord4dv(uint target, double* v);
-  [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static unsafe extern void glMultiTexCoord4dv(uint target, [In] double[] v);
-  [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static extern void glMultiTexCoord4f(uint target, float s, float t, float r, float q);
-  [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static unsafe extern void glMultiTexCoord4fv(uint target, float* v);
-  [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static unsafe extern void glMultiTexCoord4fv(uint target, [In] float[] v);
-  [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static extern void glMultiTexCoord4i(uint target, int s, int t, int r, int q);
-  [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static unsafe extern void glMultiTexCoord4iv(uint target, int* v);
-  [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static unsafe extern void glMultiTexCoord4iv(uint target, [In] int[] v);
-  [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static extern void glMultiTexCoord4s(uint target, short s, short t, short r, short q);
-  [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static unsafe extern void glMultiTexCoord4sv(uint target, short* v);
-  [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static unsafe extern void glMultiTexCoord4sv(uint target, [In] short[] v);
-  [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static unsafe extern void glLoadTransposeMatrixd(double* m);
-  [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static unsafe extern void glLoadTransposeMatrixd([In] double[] m);
-  [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static unsafe extern void glLoadTransposeMatrixf(float* m);
-  [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static unsafe extern void glLoadTransposeMatrixf([In] float[] m);
-  [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static unsafe extern void glMultTransposeMatrixd(double* m);
-  [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static unsafe extern void glMultTransposeMatrixd([In] double[] m);
-  [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static unsafe extern void glMultTransposeMatrixf(float* m);
-  [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static unsafe extern void glMultTransposeMatrixf([In] float[] m);
-  [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static extern void glSampleCoverage(float value, byte invert);
-  [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  static extern void glSamplePass(uint pass);
+  public static extern void glSamplePass(int pass);
   #endregion
   #endregion
 }
@@ -3077,108 +3326,113 @@ public sealed class GL
 /// information regarding these methods.
 /// </summary>
 [System.Security.SuppressUnmanagedCodeSecurity()]
-public sealed class GLU
-{ private GLU() { }
-
+public static class GLU
+{ 
   #region General
   #region Enums & Constants
-  public const uint GLU_VERSION    = 100800;
-  public const uint GLU_EXTENSIONS = 100801;
+  public const int GLU_VERSION    = 100800;
+  public const int GLU_EXTENSIONS = 100801;
 
-  public const uint GLU_TRUE       = GL.GL_TRUE;
-  public const uint GLU_FALSE      = GL.GL_FALSE;
+  public const int GLU_TRUE       = GL.GL_TRUE;
+  public const int GLU_FALSE      = GL.GL_FALSE;
   #endregion
 
   #region Imports
   [DllImport(Config.GLUImportPath, CallingConvention=CallingConvention.Winapi)]
   public static extern string gluErrorString(int error);
   [DllImport(Config.GLUImportPath, CallingConvention=CallingConvention.Winapi)]
-  public static extern string gluGetString(uint str);
+  public static extern string gluGetString(int str);
   [DllImport(Config.GLUImportPath, CallingConvention=CallingConvention.Winapi)]
   public static extern void gluOrtho2D(double left, double right, double bottom, double top);
   [DllImport(Config.GLUImportPath, CallingConvention=CallingConvention.Winapi)]
   public static extern void gluPerspective(double fovy, double aspect, double zNear, double zFar);
+  [CLSCompliant(false)]
   [DllImport(Config.GLUImportPath, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void gluPickMatrix(double x, double y, double width, double height, int* viewport);
   [DllImport(Config.GLUImportPath, CallingConvention=CallingConvention.Winapi)]
   public static extern void gluPickMatrix(double x, double y, double width, double height, [In] int[] viewport);
   [DllImport(Config.GLUImportPath, CallingConvention=CallingConvention.Winapi)]
   public static extern void gluLookAt(double eyex, double eyey, double eyez, double centerx, double centery, double centerz, double upx, double upy, double upz);
+  [CLSCompliant(false)]
   [DllImport(Config.GLUImportPath, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern int gluProject(double objx, double objy, double objz, /*const*/ double* modelMatrix, /*const*/ double* projMatrix, /*const*/ int* viewport, double* winx, double* winy, double* winz);
   [DllImport(Config.GLUImportPath, CallingConvention=CallingConvention.Winapi)]
   public static extern int gluProject(double objx, double objy, double objz, double[] modelMatrix, double[] projMatrix, int[] viewport, out double winx, out double winy, out double winz);
+  [CLSCompliant(false)]
   [DllImport(Config.GLUImportPath, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern int gluUnProject(double winx, double winy, double winz, /*const*/ double* modelMatrix, /*const*/ double* projMatrix, /*const*/ int* viewport, double *objx, double *objy, double *objz);
   [DllImport(Config.GLUImportPath, CallingConvention=CallingConvention.Winapi)]
   public static extern int gluUnProject(double winx, double winy, double winz, double[] modelMatrix, double[] projMatrix, int[] viewport, out double objx, out double objy, out double objz);
+  [CLSCompliant(false)]
   [DllImport(Config.GLUImportPath, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern int gluScaleImage(uint format, int widthin, int heightin, uint typein, /*const*/ void* datain, int widthout, int heightout, uint typeout, void* dataout);
+  public unsafe static extern int gluScaleImage(int format, int widthin, int heightin, int typein, /*const*/ void* datain, int widthout, int heightout, int typeout, void* dataout);
   [DllImport(Config.GLUImportPath, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern int gluScaleImage(uint format, int widthin, int heightin, uint typein, IntPtr datain, int widthout, int heightout, uint typeout, IntPtr dataout);
+  public unsafe static extern int gluScaleImage(int format, int widthin, int heightin, int typein, IntPtr datain, int widthout, int heightout, int typeout, IntPtr dataout);
   [DllImport(Config.GLUImportPath, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern int gluScaleImage(uint format, int widthin, int heightin, uint typein, [In] byte[] datain, int widthout, int heightout, uint typeout, [Out] byte[] dataout);
+  public unsafe static extern int gluScaleImage(int format, int widthin, int heightin, int typein, [In] byte[] datain, int widthout, int heightout, int typeout, [Out] byte[] dataout);
+  [CLSCompliant(false)]
   [DllImport(Config.GLUImportPath, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern int gluBuild1DMipmaps(uint target, int components, int width, uint format, uint type, /*const*/ void* data);
+  public unsafe static extern int gluBuild1DMipmaps(int target, int components, int width, int format, int type, /*const*/ void* data);
   [DllImport(Config.GLUImportPath, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern int gluBuild1DMipmaps(uint target, int components, int width, uint format, uint type, IntPtr data);
+  public unsafe static extern int gluBuild1DMipmaps(int target, int components, int width, int format, int type, IntPtr data);
   [DllImport(Config.GLUImportPath, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern int gluBuild1DMipmaps(uint target, int components, int width, uint format, uint type, [In] byte[] data);
+  public unsafe static extern int gluBuild1DMipmaps(int target, int components, int width, int format, int type, [In] byte[] data);
+  [CLSCompliant(false)]
   [DllImport(Config.GLUImportPath, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern int gluBuild2DMipmaps(uint target, int components, int width, int height, uint format, uint type, /*const*/ void* data);
+  public unsafe static extern int gluBuild2DMipmaps(int target, int components, int width, int height, int format, int type, /*const*/ void* data);
   [DllImport(Config.GLUImportPath, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern int gluBuild2DMipmaps(uint target, int components, int width, int height, uint format, uint type, IntPtr data);
+  public unsafe static extern int gluBuild2DMipmaps(int target, int components, int width, int height, int format, int type, IntPtr data);
   [DllImport(Config.GLUImportPath, CallingConvention=CallingConvention.Winapi)]
-  public unsafe static extern int gluBuild2DMipmaps(uint target, int components, int width, int height, uint format, uint type, [In] byte[] data);
+  public unsafe static extern int gluBuild2DMipmaps(int target, int components, int width, int height, int format, int type, [In] byte[] data);
   #endregion
   #endregion
   
   #region Tessellation
   #region Constants
   /* TessProperties */
-  public const uint GLU_TESS_WINDING_RULE           =100140;
-  public const uint GLU_TESS_BOUNDARY_ONLY          =100141;
-  public const uint GLU_TESS_TOLERANCE              =100142;
+  public const int GLU_TESS_WINDING_RULE           =100140;
+  public const int GLU_TESS_BOUNDARY_ONLY          =100141;
+  public const int GLU_TESS_TOLERANCE              =100142;
   /* TessWinding */
-  public const uint GLU_TESS_WINDING_ODD            =100130;
-  public const uint GLU_TESS_WINDING_NONZERO        =100131;
-  public const uint GLU_TESS_WINDING_POSITIVE       =100132;
-  public const uint GLU_TESS_WINDING_NEGATIVE       =100133;
-  public const uint GLU_TESS_WINDING_ABS_GEQ_TWO    =100134;
+  public const int GLU_TESS_WINDING_ODD            =100130;
+  public const int GLU_TESS_WINDING_NONZERO        =100131;
+  public const int GLU_TESS_WINDING_POSITIVE       =100132;
+  public const int GLU_TESS_WINDING_NEGATIVE       =100133;
+  public const int GLU_TESS_WINDING_ABS_GEQ_TWO    =100134;
   /* TessCallback */
-  public const uint GLU_TESS_BEGIN          =100100;
-  public const uint GLU_TESS_VERTEX         =100101;
-  public const uint GLU_TESS_END            =100102;
-  public const uint GLU_TESS_ERROR          =100103;
-  public const uint GLU_TESS_EDGE_FLAG      =100104;
-  public const uint GLU_TESS_COMBINE        =100105;
-  public const uint GLU_TESS_BEGIN_DATA     =100106;
-  public const uint GLU_TESS_VERTEX_DATA    =100107;
-  public const uint GLU_TESS_END_DATA       =100108;
-  public const uint GLU_TESS_ERROR_DATA     =100109;
-  public const uint GLU_TESS_EDGE_FLAG_DATA =100110;
-  public const uint GLU_TESS_COMBINE_DATA   =100111;
+  public const int GLU_TESS_BEGIN          =100100;
+  public const int GLU_TESS_VERTEX         =100101;
+  public const int GLU_TESS_END            =100102;
+  public const int GLU_TESS_ERROR          =100103;
+  public const int GLU_TESS_EDGE_FLAG      =100104;
+  public const int GLU_TESS_COMBINE        =100105;
+  public const int GLU_TESS_BEGIN_DATA     =100106;
+  public const int GLU_TESS_VERTEX_DATA    =100107;
+  public const int GLU_TESS_END_DATA       =100108;
+  public const int GLU_TESS_ERROR_DATA     =100109;
+  public const int GLU_TESS_EDGE_FLAG_DATA =100110;
+  public const int GLU_TESS_COMBINE_DATA   =100111;
   /* TessError */
-  public const uint GLU_TESS_ERROR1     =100151;
-  public const uint GLU_TESS_ERROR2     =100152;
-  public const uint GLU_TESS_ERROR3     =100153;
-  public const uint GLU_TESS_ERROR4     =100154;
-  public const uint GLU_TESS_ERROR5     =100155;
-  public const uint GLU_TESS_ERROR6     =100156;
-  public const uint GLU_TESS_ERROR7     =100157;
-  public const uint GLU_TESS_ERROR8     =100158;
+  public const int GLU_TESS_ERROR1     =100151;
+  public const int GLU_TESS_ERROR2     =100152;
+  public const int GLU_TESS_ERROR3     =100153;
+  public const int GLU_TESS_ERROR4     =100154;
+  public const int GLU_TESS_ERROR5     =100155;
+  public const int GLU_TESS_ERROR6     =100156;
+  public const int GLU_TESS_ERROR7     =100157;
+  public const int GLU_TESS_ERROR8     =100158;
 
-  public const uint GLU_TESS_MISSING_BEGIN_POLYGON  =GLU_TESS_ERROR1;
-  public const uint GLU_TESS_MISSING_BEGIN_CONTOUR  =GLU_TESS_ERROR2;
-  public const uint GLU_TESS_MISSING_END_POLYGON    =GLU_TESS_ERROR3;
-  public const uint GLU_TESS_MISSING_END_CONTOUR    =GLU_TESS_ERROR4;
-  public const uint GLU_TESS_COORD_TOO_LARGE        =GLU_TESS_ERROR5;
-  public const uint GLU_TESS_NEED_COMBINE_CALLBACK  =GLU_TESS_ERROR6;
+  public const int GLU_TESS_MISSING_BEGIN_POLYGON  =GLU_TESS_ERROR1;
+  public const int GLU_TESS_MISSING_BEGIN_CONTOUR  =GLU_TESS_ERROR2;
+  public const int GLU_TESS_MISSING_END_POLYGON    =GLU_TESS_ERROR3;
+  public const int GLU_TESS_MISSING_END_CONTOUR    =GLU_TESS_ERROR4;
+  public const int GLU_TESS_COORD_TOO_LARGE        =GLU_TESS_ERROR5;
+  public const int GLU_TESS_NEED_COMBINE_CALLBACK  =GLU_TESS_ERROR6;
   #endregion
   
   #region Delegates
   [UnmanagedFunctionPointer(Config.GLUCallbackConvention)]
-  public delegate void GLUtessBeginProc(uint type);
+  public delegate void GLUtessBeginProc(int type);
   [UnmanagedFunctionPointer(Config.GLUCallbackConvention)]
   public delegate void GLUtessEdgeFlagProc(byte isBoundaryEdge);
   [UnmanagedFunctionPointer(Config.GLUCallbackConvention)]
@@ -3186,12 +3440,13 @@ public sealed class GLU
   [UnmanagedFunctionPointer(Config.GLUCallbackConvention)]
   public delegate void GLUtessEndProc();
   [UnmanagedFunctionPointer(Config.GLUCallbackConvention)]
-  public delegate void GLUtessErrorProc(uint error);
+  public delegate void GLUtessErrorProc(int error);
+  [CLSCompliant(false)]
   [UnmanagedFunctionPointer(Config.GLUCallbackConvention)]
   public unsafe delegate void GLUtessCombineProc(double* coords3, IntPtr* vertexContext4, float* weights4,
                                                  out IntPtr newVertex);
   [UnmanagedFunctionPointer(Config.GLUCallbackConvention)]
-  public delegate void GLUtessBeginDataProc(uint type, IntPtr context);
+  public delegate void GLUtessBeginDataProc(int type, IntPtr context);
   [UnmanagedFunctionPointer(Config.GLUCallbackConvention)]
   public delegate void GLUtessEdgeFlagDataProc(byte isBoundaryEdge, IntPtr context);
   [UnmanagedFunctionPointer(Config.GLUCallbackConvention)]
@@ -3199,7 +3454,8 @@ public sealed class GLU
   [UnmanagedFunctionPointer(Config.GLUCallbackConvention)]
   public delegate void GLUtessEndDataProc(IntPtr context);
   [UnmanagedFunctionPointer(Config.GLUCallbackConvention)]
-  public delegate void GLUtessErrorDataProc(uint error, IntPtr context);
+  public delegate void GLUtessErrorDataProc(int error, IntPtr context);
+  [CLSCompliant(false)]
   [UnmanagedFunctionPointer(Config.GLUCallbackConvention)]
   public unsafe delegate void GLUtessCombineDataProc(double* coords3, IntPtr* vertexContext4, float* weights4,
                                                      out IntPtr newVertex, IntPtr context);
@@ -3215,6 +3471,7 @@ public sealed class GLU
   public static void gluTessBeginPolygon(IntPtr tessellator) { gluTessBeginPolygon(tessellator, IntPtr.Zero); }
   [DllImport(Config.GLUImportPath, CallingConvention=CallingConvention.Winapi)]
   public static extern void gluTessBeginContour(IntPtr tessellator);
+  [CLSCompliant(false)]
   [DllImport(Config.GLUImportPath, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void gluTessVertex(IntPtr tessellator, double* coords3d, IntPtr context);
   [DllImport(Config.GLUImportPath, CallingConvention=CallingConvention.Winapi)]
@@ -3222,7 +3479,7 @@ public sealed class GLU
   [DllImport(Config.GLUImportPath, CallingConvention=CallingConvention.Winapi)]
   public static extern void gluTessEndPolygon(IntPtr tessellator);
   [DllImport(Config.GLUImportPath, CallingConvention=CallingConvention.Winapi)]
-  public static extern void gluTessProperty(IntPtr tessellator, uint which, double value);
+  public static extern void gluTessProperty(IntPtr tessellator, int which, double value);
   [DllImport(Config.GLUImportPath, CallingConvention=CallingConvention.Winapi)]
   public static extern void gluTessNormal(IntPtr tessellator, double x, double y, double z);
   public static void gluTessNormal(IntPtr tessellator, Mathematics.TwoD.Vector v)
@@ -3232,7 +3489,7 @@ public sealed class GLU
   { gluTessNormal(tessellator, v.X, v.Y, v.Z);
   }
   [DllImport(Config.GLUImportPath, CallingConvention=CallingConvention.Winapi)]
-  public static extern void gluTessCallback(IntPtr tessellator, uint which, Delegate callback);
+  public static extern void gluTessCallback(IntPtr tessellator, int which, Delegate callback);
   public static void gluTessCallback(IntPtr tessellator, GLUtessBeginProc callback)
   { gluTessCallback(tessellator, GLU_TESS_BEGIN, callback);
   }
@@ -3248,6 +3505,7 @@ public sealed class GLU
   public static void gluTessCallback(IntPtr tessellator, GLUtessErrorProc callback)
   { gluTessCallback(tessellator, GLU_TESS_ERROR, callback);
   }
+  [CLSCompliant(false)]
   public static void gluTessCallback(IntPtr tessellator, GLUtessCombineProc callback)
   { gluTessCallback(tessellator, GLU_TESS_COMBINE, callback);
   }
@@ -3266,12 +3524,13 @@ public sealed class GLU
   public static void gluTessCallback(IntPtr tessellator, GLUtessErrorDataProc callback)
   { gluTessCallback(tessellator, GLU_TESS_ERROR_DATA, callback);
   }
+  [CLSCompliant(false)]
   public static void gluTessCallback(IntPtr tessellator, GLUtessCombineDataProc callback)
   { gluTessCallback(tessellator, GLU_TESS_COMBINE_DATA, callback);
   }
 
   [DllImport(Config.GLUImportPath, CallingConvention=CallingConvention.Winapi)]
-  public static extern void gluGetTessProperty(IntPtr tessellator, uint which, out double value);
+  public static extern void gluGetTessProperty(IntPtr tessellator, int which, out double value);
   #endregion
   #endregion
 }

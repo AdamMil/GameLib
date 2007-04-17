@@ -1,7 +1,7 @@
 /*
 GameLib is a library for developing games and other multimedia applications.
 http://www.adammil.net/
-Copyright (C) 2002-2006 Adam Milazzo
+Copyright (C) 2002-2007 Adam Milazzo
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -16,8 +16,9 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
+using System;
 using System.Reflection;
-using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 [assembly: AssemblyTitle("GameLib")]
 [assembly: AssemblyDescription("A game/multimedia library")]
@@ -27,6 +28,9 @@ using System.Runtime.CompilerServices;
 [assembly: AssemblyConfiguration("Release")]
 #endif
 [assembly: AssemblyProduct("GameLib")]
-[assembly: AssemblyCopyright("Copyright 2002-2006 Adam Milazzo")]
+[assembly: AssemblyCopyright("Copyright 2002-2007 Adam Milazzo")]
 
 [assembly: AssemblyVersion("0.5.*")]
+
+[assembly: CLSCompliant(true)]
+[assembly: ComVisible(false)]

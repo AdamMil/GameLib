@@ -1,7 +1,7 @@
 /*
 GameLib is a library for developing games and other multimedia applications.
 http://www.adammil.net/
-Copyright (C) 2002-2006 Adam Milazzo
+Copyright (C) 2002-2007 Adam Milazzo
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -44,6 +44,7 @@ public enum PaletteType
 /// <summary>This class holds certain OpenGL options. While most OpenGL attributes can be set normally through
 /// the OpenGL API, the options contained in this class must be set when the video mode is set.
 /// </summary>
+[CLSCompliant(false)]
 public class GLOptions
 { 
   /// <summary>The size of the frame buffer's red channel, in bits.</summary>
@@ -97,6 +98,7 @@ public delegate void ModeChangedHandler();
 
 #region PixelFormat
 /// <summary>This class represents the format of the pixels in memory for a given surface.</summary>
+[CLSCompliant(false)]
 public sealed class PixelFormat
 {
   /// <summary>This constructor creates an empty PixelFormat class. The contents are not valid and must be
@@ -229,6 +231,7 @@ public sealed class PixelFormat
 /// channels, representing a mapping between the input and output for that channel. The input is the index into
 /// the array, and the output is the 16-bit gamma value at that index, scaled to the output color precision.
 /// </remarks>
+[CLSCompliant(false)]
 public sealed class GammaRamp
 { 
   /// <summary>Gets the array for the red component.</summary>
@@ -252,14 +255,17 @@ public sealed class GammaRamp
 /// of the video hardware, etc. <see cref="Video.Initialize"/> must be called before other methods or properties
 /// can be used.
 /// </summary>
-public sealed class Video
-{ private Video() { }
-
+public static class Video
+{ 
   #region VideoInfo
   /// <summary>This class contains informations about the video hardware.</summary>
   public class VideoInfo
-  { internal unsafe VideoInfo(SDL.VideoInfo* info)
-    { flags=info->flags; videoMem=info->videoMem; format=info->format==null ? null : new PixelFormat(info->format);
+  { 
+    internal unsafe VideoInfo(SDL.VideoInfo* info)
+    {
+      flags     = info->flags;
+      videoMem  = (int)info->videoMem;
+      format    = info->format==null ? null : new PixelFormat(info->format);
     }
 
     /// <summary>Returns a value indicating whether hardware surfaces can be created.</summary>
@@ -291,14 +297,15 @@ public sealed class Video
     public bool AccelFills { get { return (flags&SDL.InfoFlag.Fills)!=0; } }
     /// <summary>Returns the amount of video memory.</summary>
     /// <value>The total amount of video memory in kilobytes.</value>
-    public uint VideoMemory { get { return videoMem; } }
+    public int VideoMemory { get { return videoMem; } }
     /// <summary>Returns the pixel format of the "best" video mode.</summary>
     /// <value>A <see cref="PixelFormat"/> object representing the pixel format of the "best" video mode.</value>
+    [CLSCompliant(false)]
     public PixelFormat Format { get { return format; } }
 
-    PixelFormat format;
+    PixelFormat  format;
     SDL.InfoFlag flags;
-    uint         videoMem;
+    int          videoMem;
   }
   #endregion
 
@@ -342,6 +349,7 @@ public sealed class Video
   /// <summary>Returns the pixel format of the primary display surface.</summary>
   /// <value>A <see cref="PixelFormat"/> object describing the pixel format of the primary display surface.</value>
   /// <exception cref="InvalidOperationException">Thrown if a video mode has not been set.</exception>
+  [CLSCompliant(false)]
   public static PixelFormat DisplayFormat { get { AssertModeSet(); return display.Format; } }
 
   /// <summary>Gets or sets the current gamma ramp.</summary>
@@ -350,6 +358,7 @@ public sealed class Video
   /// changing the gamma.
   /// </remarks>
   /// <exception cref="InvalidOperationException">Thrown if a video mode has not been set.</exception>
+  [CLSCompliant(false)]
   public static GammaRamp GammaRamp
   { get
     { if(ramp==null)
@@ -425,6 +434,7 @@ public sealed class Video
   /// occurs in windowed video modes.
   /// </returns>
   /// <exception cref="InvalidOperationException">Thrown if the video subsystem has not been initialized.</exception>
+  [CLSCompliant(false)]
   public unsafe static Size[] GetModes(PixelFormat format, SurfaceFlag flags)
   { AssertInit();
     SDL.Rect** list, p;
@@ -514,6 +524,7 @@ public sealed class Video
   /// and passing <see cref="SurfaceFlag.None"/> for the surface flags.
   /// </remarks>
   /// <exception cref="InvalidOperationException">Thrown if the video subsystem has not been initialized.</exception>
+  [CLSCompliant(false)]
   public static void SetGLMode(int width, int height, int depth, GLOptions opts)
   { SetGLMode(width, height, depth, SurfaceFlag.None, opts);
   }
@@ -544,6 +555,7 @@ public sealed class Video
   /// class must be set at the time the video mode is set by passing them to this function.
   /// </remarks>
   /// <exception cref="InvalidOperationException">Thrown if the video subsystem has not been initialized.</exception>
+  [CLSCompliant(false)]
   public unsafe static void SetGLMode(int width, int height, int depth, SurfaceFlag flags, GLOptions opts)
   { if(opts!=null)
     { if(opts.Red  !=-1) SDL.SetAttribute(SDL.Attribute.RedSize,   opts.Red);
@@ -655,6 +667,7 @@ public sealed class Video
   /// <remarks>Calling this is equivalent to calling <see cref="Surface.MapColor(Color)"/> on the
   /// <see cref="DisplaySurface"/>.
   /// </remarks>
+  [CLSCompliant(false)]
   public static uint MapColor(Color color) { return DisplaySurface.MapColor(color); }
 
   /// <summary>Maps a raw pixel value to the corresponding color for the display surface.</summary>
@@ -663,6 +676,7 @@ public sealed class Video
   /// <remarks>Calling this is equivalent to calling <see cref="Surface.MapColor(uint)"/> on the
   /// <see cref="DisplaySurface"/>.
   /// </remarks>
+  [CLSCompliant(false)]
   public static Color MapColor(uint color) { return DisplaySurface.MapColor(color); }
 
   /// <summary>Sets the physical palette.</summary>
@@ -713,8 +727,8 @@ public sealed class Video
 /// <summary>This class provides some support for communicating with the Windowing Manager, if running in a
 /// windowed video mode.
 /// </summary>
-public sealed class WM
-{ WM() { }
+public static class WM
+{ 
   static WM() { inputFocus = mouseFocus = minimized = true; }
 
   /// <summary>Gets whether the application window is active (focused) or not.</summary>

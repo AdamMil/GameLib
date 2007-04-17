@@ -1,7 +1,7 @@
 /*
 GameLib is a library for developing games and other multimedia applications.
 http://www.adammil.net/
-Copyright (C) 2002-2006 Adam Milazzo
+Copyright (C) 2002-2007 Adam Milazzo
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -38,9 +38,8 @@ public class ValueChangedEventArgs : EventArgs
 }
 
 /// <summary>This class provides miscellaneous utilities that don't fit anywhere else.</summary>
-public sealed class Utility
-{ private Utility() { }
-
+public static class Utility
+{ 
   /// <summary>This field provides a global random number generator.</summary>
   public static readonly Random Random = new Random();
 }

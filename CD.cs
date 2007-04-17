@@ -1,7 +1,7 @@
 /*
 GameLib is a library for developing games and other multimedia applications.
 http://www.adammil.net/
-Copyright (C) 2002-2006 Adam Milazzo
+Copyright (C) 2002-2007 Adam Milazzo
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -228,9 +228,8 @@ public unsafe sealed class Drive
 /// <remarks><see cref="Initialize"/> and <see cref="Deinitialize"/> must be called to initialize and deinitialize
 /// the CD-ROM subsystem.
 /// </remarks>
-public sealed class CD
-{ private CD() { }
-
+public static class CD
+{ 
   /// <summary>Returns the number of frames in one second of CD audio.</summary>
   /// <value>The number of frames in one second of CD audio.</value>
   /// <remarks>A frame is about 1/75th of a second.</remarks>

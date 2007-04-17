@@ -1,7 +1,7 @@
 /*
 GameLib is a library for developing games and other multimedia applications.
 http://www.adammil.net/
-Copyright (C) 2002-2006 Adam Milazzo
+Copyright (C) 2002-2007 Adam Milazzo
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -49,13 +49,15 @@ public sealed class DelegateMarshaller
   public unsafe IntPtr ToIntPtr()  { IntPtr ptr; Marshal.StructureToPtr(this, new IntPtr(&ptr), false); return ptr; }
   /// <summary>Converts the delegate given to the constructor into a raw pointer.</summary>
   /// <returns>An unmanaged function pointer to the delegate.</returns>
+  [CLSCompliant(false)]
   public unsafe void* ToPointer() { void* ptr; Marshal.StructureToPtr(this, new IntPtr(&ptr), false); return ptr; }
 
   [MarshalAs(UnmanagedType.FunctionPtr),FieldOffset(0)] Delegate func;
 }
 
 /// <summary>This class provides methods to help when working with unsafe code.</summary>
-public sealed class Unsafe
+[CLSCompliant(false)]
+public static class Unsafe
 { 
   /// <summary>This method copies a block of memory to another location.</summary>
   /// <param name="src">A pointer to the beginning of the source block of memory.</param>

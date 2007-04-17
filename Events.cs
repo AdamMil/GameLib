@@ -1,7 +1,7 @@
 /*
 GameLib is a library for developing games and other multimedia applications.
 http://www.adammil.net/
-Copyright (C) 2002-2006 Adam Milazzo
+Copyright (C) 2002-2007 Adam Milazzo
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -244,10 +244,14 @@ public class ExceptionEvent : Event
 
   /// <summary>Gets the exception that occurred.</summary>
   /// <remarks>The exception that occurred.</remarks>
-  public Exception Exception { get { return exception; } }
+  public Exception Exception
+  {
+    get { return exception; }
+    protected set { exception = value; }
+  }
 
   /// <summary>The exception that occurred.</summary>
-  protected Exception exception;
+  Exception exception;
   ExceptionLocation location;
 }
 #endregion
@@ -652,9 +656,8 @@ public delegate bool IdleProcedure();
 /// from other threads while those locks are held, though!
 /// The event subsystem must be initialized by calling <see cref="Events.Initialize"/> before use.
 /// </remarks>
-public sealed class Events
-{ private Events() { }
-
+public static class Events
+{ 
   /// <summary>A value representing an infinite amount of time.</summary>
   /// <remarks>This value can be passed to <see cref="NextEvent"/> and <see cref="PeekEvent"/> to request that
   /// they block until an event becomes available.

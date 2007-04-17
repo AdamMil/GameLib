@@ -1,7 +1,7 @@
 /*
 GameLib is a library for developing games and other multimedia applications.
 http://www.adammil.net/
-Copyright (C) 2002-2006 Adam Milazzo
+Copyright (C) 2002-2007 Adam Milazzo
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -23,9 +23,8 @@ namespace GameLib
 {
 
 /// <summary>This class contains all the compile-time configuration necessary to build GameLib.</summary>
-public sealed class Config
-{ private Config() { }
-
+public static class Config
+{ 
   /// <summary>The <see cref="DllImportAttribute"/> path to the SDL_image library.</summary>
   public const string SDLImageImportPath  = "SDL_image";
   /// <summary>The <see cref="DllImportAttribute"/> path to the SDL_gfx library.</summary>

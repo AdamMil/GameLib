@@ -1,7 +1,7 @@
 /*
 GameLib is a library for developing games and other multimedia applications.
 http://www.adammil.net/
-Copyright (C) 2002-2006 Adam Milazzo
+Copyright (C) 2002-2007 Adam Milazzo
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -26,9 +26,8 @@ namespace GameLib.Mathematics
 
 #region MathConst
 /// <summary>This class provides some useful constants for math operations.</summary>
-public sealed class MathConst
-{ private MathConst() { }
-
+public static class MathConst
+{ 
   /// <summary>A value that can be used to convert degrees to radians.</summary>
   /// <remarks>If you multiply a degree value by this constant, it will be converted to radians.</remarks>
   public const double DegreesToRadians = Math.PI/180;
@@ -421,12 +420,14 @@ public struct Fixed32 : IFormattable, IComparable, IConvertible
   #region IConvertible Members
   // FIXME: these should probably do rounding
   /// <include file="documentation.xml" path="//IConvertible/ToUInt64/*"/>
+  [CLSCompliant(false)]
   public ulong ToUInt64(IFormatProvider provider)
   { int n = ToInt();
     if(n<0) throw new OverflowException();
     return (ulong)n;
   }
   /// <include file="documentation.xml" path="//IConvertible/ToSByte/*"/>
+  [CLSCompliant(false)]
   public sbyte ToSByte(IFormatProvider provider)
   { int n = ToInt();
     if(n<sbyte.MinValue || n>sbyte.MaxValue) throw new OverflowException();
@@ -447,6 +448,7 @@ public struct Fixed32 : IFormattable, IComparable, IConvertible
   /// <include file="documentation.xml" path="//IConvertible/ToInt32/*"/>
   public int ToInt32(IFormatProvider provider) { return ToInt(); }
   /// <include file="documentation.xml" path="//IConvertible/ToUInt16/*"/>
+  [CLSCompliant(false)]
   public ushort ToUInt16(IFormatProvider provider)
   { int n = ToInt();
     if(n<ushort.MinValue || n>ushort.MaxValue) throw new OverflowException();
@@ -501,6 +503,7 @@ public struct Fixed32 : IFormattable, IComparable, IConvertible
     throw new InvalidCastException();
   }
   /// <include file="documentation.xml" path="//IConvertible/ToUInt32/*"/>
+  [CLSCompliant(false)]
   public uint ToUInt32(IFormatProvider provider)
   { int n = ToInt();
     if(n<0) throw new OverflowException();
@@ -835,12 +838,14 @@ public struct Fixed64 : IFormattable, IComparable, IConvertible
   #region IConvertible Members
   // FIXME: these should probably do rounding
   /// <include file="documentation.xml" path="//IConvertible/ToUInt64/*"/>
+  [CLSCompliant(false)]
   public ulong ToUInt64(IFormatProvider provider)
   { int n = ToInt();
     if(n<0) throw new OverflowException();
     return (ulong)n;
   }
   /// <include file="documentation.xml" path="//IConvertible/ToSByte/*"/>
+  [CLSCompliant(false)]
   public sbyte ToSByte(IFormatProvider provider)
   { int n = ToInt();
     if(n<sbyte.MinValue || n>sbyte.MaxValue) throw new OverflowException();
@@ -861,6 +866,7 @@ public struct Fixed64 : IFormattable, IComparable, IConvertible
   /// <include file="documentation.xml" path="//IConvertible/ToInt32/*"/>
   public int ToInt32(IFormatProvider provider) { return ToInt(); }
   /// <include file="documentation.xml" path="//IConvertible/ToUInt16/*"/>
+  [CLSCompliant(false)]
   public ushort ToUInt16(IFormatProvider provider)
   { int n = ToInt();
     if(n<ushort.MinValue || n>ushort.MaxValue) throw new OverflowException();
@@ -914,6 +920,7 @@ public struct Fixed64 : IFormattable, IComparable, IConvertible
     throw new InvalidCastException();
   }
   /// <include file="documentation.xml" path="//IConvertible/ToUInt32/*"/>
+  [CLSCompliant(false)]
   public uint ToUInt32(IFormatProvider provider)
   { int n = ToInt();
     if(n<0) throw new OverflowException();
@@ -1689,6 +1696,7 @@ public static class Math2D
 
   /// <summary>Rotates a 2D point in place using precalculated sine and cosine factors.</summary>
   /// <remarks>The sine and cosine factors can be obtained from the <see cref="GLMath.GetRotationFactors"/> function.</remarks>
+  [CLSCompliant(false)]
   public static void Rotate(ref TwoD.Point point, double sin, double cos)
   {
     point = new TwoD.Point(point.X*cos - point.Y*sin, point.X*sin + point.Y*cos);
@@ -1718,6 +1726,7 @@ public static class Math2D
 
   /// <summary>Rotates a 2D vector in place using precalculated sine and cosine factors.</summary>
   /// <remarks>The sine and cosine factors can be obtained from the <see cref="GLMath.GetRotationFactors"/> function.</remarks>
+  [CLSCompliant(false)]
   public static void Rotate(ref TwoD.Vector vector, double sin, double cos)
   { vector = new TwoD.Vector(vector.X*cos - vector.Y*sin, vector.X*sin + vector.Y*cos);
   }

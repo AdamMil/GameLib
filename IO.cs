@@ -1,7 +1,7 @@
 /*
 GameLib is a library for developing games and other multimedia applications.
 http://www.adammil.net/
-Copyright (C) 2002-2006 Adam Milazzo
+Copyright (C) 2002-2007 Adam Milazzo
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -20,6 +20,7 @@ using System;
 using System.IO;
 using System.Runtime.InteropServices;
 
+#pragma warning disable 3001,3002
 // TODO: clean up code for binary formatted output (it's ugly)
 // TODO: allow a '*' prefix in binary reading that uses the number as the prefix for the next code, so we can read arrays without breaking up the format string
 
@@ -240,9 +241,8 @@ public class StreamStream : Stream
 
 #region IOH
 /// <summary>This class provides helpers for stream, console, and buffer IO.</summary>
-public sealed class IOH
-{ private IOH() {}
-
+public static class IOH
+{ 
   #region CalculateOutputs
   /// <summary>Calculates how many objects would be read by <see cref="Read(Stream,string)"/> and the like.</summary>
   /// <param name="format">The format string to use to calculate the number of objects.</param>
