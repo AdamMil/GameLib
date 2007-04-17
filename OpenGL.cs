@@ -1,7 +1,7 @@
 /*
 GameLib is a library for developing games and other multimedia applications.
 http://www.adammil.net/
-Copyright (C) 2002-2006 Adam Milazzo
+Copyright (C) 2002-2007 Adam Milazzo
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -30,9 +30,8 @@ namespace GameLib.Video
 #region OpenGL class
 /// <summary>This class provides some high-level support for interfacing with the OpenGL API.</summary>
 // TODO: add more methods
-public sealed class OpenGL
-{ private OpenGL() { }
-
+public static class OpenGL
+{ 
   /// <summary>Returns a collection of extensions supported by OpenGL.</summary>
   /// <value>A collection of strings representing the extensions supported by OpenGL.</value>
   public static System.Collections.ICollection Extensions
@@ -175,7 +174,7 @@ public sealed class OpenGL
   /// texture dimensions to be powers of two in length.
   /// </param>
   /// <include file="documentation.xml" path="//Video/OpenGL/TexImage2D/*"/>
-  public static bool TexImage2D(uint internalFormat, Surface surface, out Size texSize)
+  public static bool TexImage2D(int internalFormat, Surface surface, out Size texSize)
   { return TexImage2D(internalFormat, 0, 0, surface, out texSize);
   }
   /// <param name="internalFormat">The internal format that OpenGL should use to store the texture.</param>
@@ -185,7 +184,7 @@ public sealed class OpenGL
   /// texture dimensions to be powers of two in length.
   /// </param>
   /// <include file="documentation.xml" path="//Video/OpenGL/TexImage2D/*"/>
-  public static bool TexImage2D(uint internalFormat, int level, Surface surface, out Size texSize)
+  public static bool TexImage2D(int internalFormat, int level, Surface surface, out Size texSize)
   { return TexImage2D(internalFormat, level, 0, surface, out texSize);
   }
   /// <param name="internalFormat">The internal format that OpenGL should use to store the texture.</param>
@@ -196,10 +195,9 @@ public sealed class OpenGL
   /// texture dimensions to be powers of two in length.
   /// </param>
   /// <include file="documentation.xml" path="//Video/OpenGL/TexImage2D/*"/>
-  public static bool TexImage2D(uint internalFormat, int level, int border, Surface surface, out Size texSize)
+  public static bool TexImage2D(int internalFormat, int level, int border, Surface surface, out Size texSize)
   { PixelFormat pf = surface.Format;
-    uint format=0;
-    int awidth=surface.Width-border*2, aheight=surface.Height-border*2;
+    int format=0, awidth=surface.Width-border*2, aheight=surface.Height-border*2;
     bool usingAlpha = surface.UsingAlpha || surface.UsingKey;
 
     texSize = GetTextureSize(new Size(awidth, aheight));
@@ -213,7 +211,7 @@ public sealed class OpenGL
     // TODO: be careful about alignment. see glPixelStore()
 
     if(awidth==texSize.Width && aheight==texSize.Height && !surface.UsingKey && surface.Pitch==surface.Width*surface.Depth/8)
-    { uint type = GL.GL_UNSIGNED_BYTE;
+    { int type = GL.GL_UNSIGNED_BYTE;
       bool hasPPE = VersionMinor>=2 && VersionMajor==1 || HasExtension("GL_EXT_packed_pixels") || VersionMajor>1;
       bool hasBGR = VersionMinor>=2 && VersionMajor==1 || HasExtension("EXT_bgra") || VersionMajor>1;
       if(surface.Depth==16 && hasPPE)
@@ -306,18 +304,18 @@ public sealed class OpenGL
 
   #region WillTextureFit
   /// <include file="documentation.xml" path="//Video/OpenGL/WillTextureFit/*"/>
-  public static bool WillTextureFit(uint internalFormat, int width, int height)
+  public static bool WillTextureFit(int internalFormat, int width, int height)
   { return WillTextureFit(internalFormat, 0, 0, width, height);
   }
   /// <param name="level">The mipmap level of the texture.</param>
   /// <include file="documentation.xml" path="//Video/OpenGL/WillTextureFit/*"/>
-  public static bool WillTextureFit(uint internalFormat, int level, int width, int height)
+  public static bool WillTextureFit(int internalFormat, int level, int width, int height)
   { return WillTextureFit(internalFormat, level, 0, width, height);
   }
   /// <param name="level">The mipmap level of the texture.</param>
   /// <param name="border">The width of the texture's border.</param>
   /// <include file="documentation.xml" path="//Video/OpenGL/WillTextureFit/*"/>
-  public static bool WillTextureFit(uint internalFormat, int level, int border, int width, int height)
+  public static bool WillTextureFit(int internalFormat, int level, int border, int width, int height)
   { int fits;
     unsafe
     { GL.glTexImage2D(GL.GL_PROXY_TEXTURE_2D, level, internalFormat, width, height, border, GL.GL_RGB,
@@ -386,18 +384,18 @@ public class GLTexture2D : IDisposable
   /// <summary>Initializes this this texture from a surface.</summary>
   /// <param name="internalFormat">The internal format OpenGL should use for the texture.</param>
   /// <param name="surface">The surface from which the texture will be loaded.</param>
-  public GLTexture2D(uint internalFormat, Surface surface) : this(internalFormat, 0, 0, surface) { }
+  public GLTexture2D(int internalFormat, Surface surface) : this(internalFormat, 0, 0, surface) { }
   /// <summary>Initializes this this texture from a surface.</summary>
   /// <param name="internalFormat">The internal format OpenGL should use for the texture.</param>
   /// <param name="level">The mipmap level to upload the texture into.</param>
   /// <param name="surface">The surface from which the texture will be loaded.</param>
-  public GLTexture2D(uint internalFormat, int level, Surface surface) : this(internalFormat, level, 0, surface) { }
+  public GLTexture2D(int internalFormat, int level, Surface surface) : this(internalFormat, level, 0, surface) { }
   /// <summary>Initializes this this texture from a surface.</summary>
   /// <param name="internalFormat">The internal format OpenGL should use for the texture.</param>
   /// <param name="level">The mipmap level to upload the texture into.</param>
   /// <param name="border">The width of the border.</param>
   /// <param name="surface">The surface from which the texture will be loaded.</param>
-  public GLTexture2D(uint internalFormat, int level, int border, Surface surface)
+  public GLTexture2D(int internalFormat, int level, int border, Surface surface)
   { if(!Load(internalFormat, level, border, surface)) throw new OutOfTextureMemoryException();
   }
   ~GLTexture2D() { Dispose(true); }
@@ -446,7 +444,7 @@ public class GLTexture2D : IDisposable
   public bool Initialized { get { return texture!=0; } }
 
   /// <summary>Gets the OpenGL texture ID of this texture, or zero if no texture is loaded.</summary>
-  public uint TextureID { get { return texture; } }
+  public int TextureID { get { return texture; } }
 
   /// <summary>Gets the height of the texture in pixels.</summary>
   /// <remarks>The size of the image may differ from the size of the texture because most OpenGL implementations
@@ -486,23 +484,23 @@ public class GLTexture2D : IDisposable
   /// <param name="internalFormat">The internal format OpenGL should use for the texture.</param>
   /// <param name="surface">The surface from which the texture will be loaded.</param>
   /// <returns>True if the texture could be loaded and false otherwise.</returns>
-  public bool Load(uint internalFormat, Surface surface) { return Load(internalFormat, 0, 0, surface); }
+  public bool Load(int internalFormat, Surface surface) { return Load(internalFormat, 0, 0, surface); }
   /// <summary>Loads this this texture from a surface.</summary>
   /// <param name="internalFormat">The internal format OpenGL should use for the texture.</param>
   /// <param name="level">The mipmap level to upload the texture into.</param>
   /// <param name="surface">The surface from which the texture will be loaded.</param>
   /// <returns>True if the texture could be loaded and false otherwise.</returns>
-  public bool Load(uint internalFormat, int level, Surface surface) { return Load(internalFormat, level, 0, surface); }
+  public bool Load(int internalFormat, int level, Surface surface) { return Load(internalFormat, level, 0, surface); }
   /// <summary>Loads this this texture from a surface.</summary>
   /// <param name="internalFormat">The internal format OpenGL should use for the texture.</param>
   /// <param name="level">The mipmap level to upload the texture into.</param>
   /// <param name="border">The width of the border.</param>
   /// <param name="surface">The surface from which the texture will be loaded.</param>
   /// <returns>True if the texture could be loaded and false otherwise.</returns>
-  public bool Load(uint internalFormat, int level, int border, Surface surface)
+  public bool Load(int internalFormat, int level, int border, Surface surface)
   { Unload();
 
-    uint tex=0, old;
+    int tex=0, old;
     GL.glGenTexture(out tex);
     if(tex==0) throw new NoMoreTexturesException();
 
@@ -532,7 +530,7 @@ public class GLTexture2D : IDisposable
   void Dispose(bool finalizing) { Unload(); }
 
   Size imgSize, size;
-  uint texture;
+  int texture;
 }
 #endregion
 

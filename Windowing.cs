@@ -1,7 +1,7 @@
 /*
 GameLib is a library for developing games and other multimedia applications.
 http://www.adammil.net/
-Copyright (C) 2002-2006 Adam Milazzo
+Copyright (C) 2002-2007 Adam Milazzo
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -2631,7 +2631,15 @@ public class DesktopControl : ContainerControl, IDisposable
   /// <remarks>The double click delay is the maximum number of milliseconds allowed between mouse clicks for them
   /// to be recognized as a double click. The default value is 350 milliseconds.
   /// </remarks>
-  public uint DoubleClickDelay  { get { return dcDelay; } set { dcDelay=value; } }
+  public int DoubleClickDelay
+  { 
+    get { return dcDelay; } 
+    set
+    {
+      if(value < 0) throw new ArgumentOutOfRangeException();
+      dcDelay=value; 
+    } 
+  }
 
   /// <summary>Gets or sets the default drag threshold for this desktop.</summary>
   /// <remarks>This property provides a default drag threshold for controls that do not specify one. See
@@ -2651,10 +2659,12 @@ public class DesktopControl : ContainerControl, IDisposable
   /// This property is incompatible with the <see cref="Input.Keyboard.EnableKeyRepeat"/> method, so
   /// enabling this property will call <see cref="Input.Keyboard.DisableKeyRepeat"/> first.
   /// </remarks>
-  public uint KeyRepeatDelay
+  public int KeyRepeatDelay
   { get { return krDelay; }
     set
-    { if(value==krDelay) return;
+    { 
+      if(value==krDelay) return;
+      if(value < 0) throw new ArgumentOutOfRangeException();
       krDelay=value;
       if(value==0 && krTimer!=null)
       { krTimer.Change(System.Threading.Timeout.Infinite, System.Threading.Timeout.Infinite);
@@ -2675,7 +2685,7 @@ public class DesktopControl : ContainerControl, IDisposable
   /// value is 40 millseconds.
   /// </remarks>
   /// <exception cref="ArgumentOutOfRangeException">Thrown if value is less than 1.</exception>
-  public uint KeyRepeatRate
+  public int KeyRepeatRate
   { get { return krRate; }
     set
     { if(value<1) throw new ArgumentOutOfRangeException("KeyRepeatRate", value, "must be greater then or equal to 1");
@@ -3310,8 +3320,7 @@ public class DesktopControl : ContainerControl, IDisposable
   ModeChangedHandler modeChanged;
   Input.Key tab=Input.Key.Tab;
   ClickStatus clickStatus;
-  int   enteredLen, updatedLen;
-  uint  dcDelay=350, krDelay, krRate=DefaultKeyRepeatRate;
+  int   enteredLen, updatedLen, dcDelay=350, krDelay, krRate=DefaultKeyRepeatRate;
   bool  keys=true, clicks=true, moves=true, init, dragStarted, trackUpdates=true, keyProcessing;
 }
 #endregion
@@ -3339,9 +3348,8 @@ public enum BorderStyle
   Depressed=16,
 };
 
-public sealed class Helpers
-{ private Helpers() { }
-
+public static class Helpers
+{ 
   /// <summary>The direction an arrow points.<seealso cref="DrawArrow"/></summary>
   public enum Arrow { Up, Down, Left, Right }
 

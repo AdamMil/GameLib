@@ -1,7 +1,7 @@
 /*
 GameLib is a library for developing games and other multimedia applications.
 http://www.adammil.net/
-Copyright (C) 2002-2006 Adam Milazzo
+Copyright (C) 2002-2007 Adam Milazzo
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -506,9 +506,9 @@ public delegate bool LinkMessageRecvHandler(NetLink link, LinkMessage msg);
 /// <summary>This class represents a network message.</summary>
 public sealed class LinkMessage
 { internal LinkMessage() { }
-  internal LinkMessage(uint header, byte[] data, int index, int length, SendFlag flags, uint timeout, object tag)
+  internal LinkMessage(uint header, byte[] data, int index, int length, SendFlag flags, int timeout, object tag)
   { this.header=header; this.data=data; this.index=index; this.length=length; this.flags=flags; this.tag=tag;
-    if(timeout!=0) this.deadline = Timing.Msecs+timeout;
+    if(timeout!=0) this.deadline = Timing.Msecs+(uint)timeout;
   }
 
   /// <summary>This property returns the array that contains the message data.</summary>
@@ -609,9 +609,9 @@ public class NetLink
   }
 
   /// <include file="documentation.xml" path="//Network/Common/LagAverage/*"/>
-  public uint LagAverage { get { return lagAverage;  } set { lagAverage =value; } }
+  public int LagAverage { get { return lagAverage;  } set { lagAverage =value; } }
   /// <include file="documentation.xml" path="//Network/Common/LagVariance/*"/>
-  public uint LagVariance { get { return lagVariance; } set { lagVariance=value; } }
+  public int LagVariance { get { return lagVariance; } set { lagVariance=value; } }
 
   /// <summary>Returns true if a message is waiting to be retrieved.</summary>
   public bool MessageWaiting
@@ -768,27 +768,31 @@ public class NetLink
   /// <include file="documentation.xml" path="//Network/NetLink/Send/*[self::Common or self::Length or self::Index or self::Flags]/*"/>
   public void Send(byte[] data, int index, int length, SendFlag flags) { Send(data, index, length, flags, 0, null); }
   /// <include file="documentation.xml" path="//Network/NetLink/Send/*[self::Common or self::Length or self::Index or self::Flags or self::Timeout]/*"/>
-  public void Send(byte[] data, int index, int length, SendFlag flags, uint timeoutMs) { Send(data, index, length, flags, timeoutMs, null); }
+  public void Send(byte[] data, int index, int length, SendFlag flags, int timeoutMs) { Send(data, index, length, flags, timeoutMs, null); }
   /// <include file="documentation.xml" path="//Network/NetLink/Send/*[self::Common or self::Length or self::Flags]/*"/>
   public void Send(byte[] data, int length, SendFlag flags) { Send(data, 0, length, flags, 0, null); }
   /// <include file="documentation.xml" path="//Network/NetLink/Send/*[self::Common or self::Length or self::Flags or self::Timeout]/*"/>
-  public void Send(byte[] data, int length, SendFlag flags, uint timeoutMs) { Send(data, 0, length, flags, timeoutMs, null); }
+  public void Send(byte[] data, int length, SendFlag flags, int timeoutMs) { Send(data, 0, length, flags, timeoutMs, null); }
   /// <include file="documentation.xml" path="//Network/NetLink/Send/*[self::Common or self::Flags]/*"/>
   public void Send(byte[] data, SendFlag flags) { Send(data, 0, data.Length, flags, 0, null); }
   /// <include file="documentation.xml" path="//Network/NetLink/Send/*[self::Common or self::Flags or self::Timeout]/*"/>
-  public void Send(byte[] data, SendFlag flags, uint timeoutMs) { Send(data, 0, data.Length, flags, timeoutMs, null); }
+  public void Send(byte[] data, SendFlag flags, int timeoutMs) { Send(data, 0, data.Length, flags, timeoutMs, null); }
   /// <include file="documentation.xml" path="//Network/NetLink/Send/*[self::Common or self::Length or self::Index or self::Flags or self::Timeout]/*"/>
   /// <param name="tag">Arbitrary data that will be associated with this message and that can be accessed via
   /// <see cref="LinkMessage.Tag"/>. The data is not examined or modified by the network engine. Note that this means
   /// <see cref="LinkMessage.Tag"/> will always be null on the receiving end.
   /// </param>
-  public void Send(byte[] data, int index, int length, SendFlag flags, uint timeoutMs, object tag)
-  { if(!connected) throw new InvalidOperationException("Link is not open");
+  public void Send(byte[] data, int index, int length, SendFlag flags, int timeoutMs, object tag)
+  {
+    if(!connected) throw new InvalidOperationException("Link is not open");
     if((flags&SendFlag.NotifyReceived)!=0)
       throw new NotImplementedException("SendFlag.NotifyReceived is not yet implemented");
     if(!IsConnected) throw new ConnectionLostException();
     if(length>65535) throw new DataTooLargeException(65535);
-    if(index<0 || length<0 || index+length>data.Length) throw new ArgumentOutOfRangeException("index or length");
+    if(timeoutMs < 0 || index<0 || length<0 || index+length>data.Length)
+    {
+      throw new ArgumentOutOfRangeException("index or length");
+    }
 
     Queue<LinkMessage> queue;
     if((flags&SendFlag.HighPriority)!=0)
@@ -1207,8 +1211,7 @@ public class NetLink
   Socket     tcp, udp;
   Queue<LinkMessage> low, norm, high, recv;
   byte[]     recvBuf, sendBuf;
-  int        nextSize, nextIndex, udpMax;
-  uint       lagAverage, lagVariance;
+  int        nextSize, nextIndex, udpMax, lagAverage, lagVariance;
   ushort     sendSeq, recvSeq, nextSeq;
   SendFlag   recvFlags, defFlags=SendFlag.ReliableSequential;
   bool       connected;
@@ -1304,7 +1307,7 @@ public class Server
   public ReadOnlyCollection<ServerPlayer> Players { get { return players.AsReadOnly(); } }
 
   /// <include file="documentation.xml" path="//Network/Common/LagAverage/*"/>
-  public uint LagAverage
+  public int LagAverage
   { get { return lagAverage; }
     set
     { lock(this) foreach(ServerPlayer p in players) p.Link.LagAverage=value;
@@ -1313,7 +1316,7 @@ public class Server
   }
 
   /// <include file="documentation.xml" path="//Network/Common/LagVariance/*"/>
-  public uint LagVariance
+  public int LagVariance
   { get { return lagVariance; }
     set
     { lock(this) foreach(ServerPlayer p in players) p.Link.LagVariance=value;
@@ -1421,7 +1424,7 @@ public class Server
   /// <remarks>The connection with the player player will be terminated only after all outgoing messages have
   /// been sent and all incoming messages have been processed.
   /// </remarks>
-  public void DropPlayerDelayed(ServerPlayer p) { DropPlayerDelayed(p, uint.MaxValue); }
+  public void DropPlayerDelayed(ServerPlayer p) { DropPlayerDelayed(p, int.MaxValue); }
 
   /// <summary>Drops a player with a delay to allow incoming and outgoing messages to be sent.</summary>
   /// <param name="p">The <see cref="ServerPlayer"/> to drop.</param>
@@ -1429,8 +1432,10 @@ public class Server
   /// <remarks>The connection with the player player will be terminated after all outgoing messages have
   /// been sent and all incoming messages have been processed, or the timeout expires.
   /// </remarks>
-  public void DropPlayerDelayed(ServerPlayer p, uint timeoutMs)
-  { p.DropDelay   = timeoutMs;
+  public void DropPlayerDelayed(ServerPlayer p, int timeoutMs)
+  {
+    if(timeoutMs < 0) throw new ArgumentOutOfRangeException();
+    p.DropDelay   = (uint)timeoutMs;
     p.DropStart   = Timing.Msecs;
     p.DelayedDrop = true;
   }
@@ -1454,11 +1459,11 @@ public class Server
     else RawSend(toWho, data, index, length, flags, 0, data);
   }
   /// <include file="documentation.xml" path="//Network/Server/Send/*[self::Common or self::byteData or self::Flags or self::Timeout]/*"/>
-  public void Send(object toWho, byte[] data, SendFlag flags, uint timeoutMs) { Send(toWho, data, 0, data.Length, flags); }
+  public void Send(object toWho, byte[] data, SendFlag flags, int timeoutMs) { Send(toWho, data, 0, data.Length, flags); }
   /// <include file="documentation.xml" path="//Network/Server/Send/*[self::Common or self::byteData or self::Length or self::Flags or self::Timeout]/*"/>
-  public void Send(object toWho, byte[] data, int length, SendFlag flags, uint timeoutMs) { Send(toWho, data, 0, length, flags); }
+  public void Send(object toWho, byte[] data, int length, SendFlag flags, int timeoutMs) { Send(toWho, data, 0, length, flags); }
   /// <include file="documentation.xml" path="//Network/Server/Send/*[self::Common or self::byteData or self::Index or self::Length or self::Flags or self::Timeout]/*"/>
-  public void Send(object toWho, byte[] data, int index, int length, SendFlag flags, uint timeoutMs)
+  public void Send(object toWho, byte[] data, int index, int length, SendFlag flags, int timeoutMs)
   { if(cvt.AltersByteArray) RawSend(toWho, cvt.Serialize(data, index, length), flags, timeoutMs, data);
     else RawSend(toWho, data, index, length, flags, timeoutMs, data);
   }
@@ -1467,7 +1472,7 @@ public class Server
   /// <include file="documentation.xml" path="//Network/Server/Send/*[self::Common or self::objData or self::Flags]/*"/>
   public void Send(object toWho, object data, SendFlag flags) { RawSend(toWho, cvt.Serialize(data), flags, 0, data); }
   /// <include file="documentation.xml" path="//Network/Server/Send/*[self::Common or self::objData or self::Flags or self::Timeout]/*"/>
-  public void Send(object toWho, object data, SendFlag flags, uint timeoutMs)
+  public void Send(object toWho, object data, SendFlag flags, int timeoutMs)
   { RawSend(toWho, cvt.Serialize(data), flags, timeoutMs, data);
   }
 
@@ -1478,12 +1483,14 @@ public class Server
   protected MessageConverter Converter { get { return cvt; } }
 
   /// <include file="documentation.xml" path="//Network/Server/Send/*[self::Common or self::RawSend or self::Flags or self::Timeout]/*"/>
-  protected void RawSend(object toWho, byte[] data, SendFlag flags, uint timeoutMs, object orig)
+  protected void RawSend(object toWho, byte[] data, SendFlag flags, int timeoutMs, object orig)
   { RawSend(toWho, data, 0, data.Length, flags, timeoutMs, orig);
   }
   /// <include file="documentation.xml" path="//Network/Server/Send/*[self::Common or self::RawSend or self::Index or self::Length or self::Flags or self::Timeout]/*"/>
-  protected void RawSend(object toWho, byte[] data, int index, int length, SendFlag flags, uint timeoutMs, object orig)
-  { if((object)data!=orig) flags |= SendFlag.NoCopy;
+  protected void RawSend(object toWho, byte[] data, int index, int length, SendFlag flags, int timeoutMs, object orig)
+  {
+    if(timeoutMs < 0) throw new ArgumentOutOfRangeException();
+    if((object)data!=orig) flags |= SendFlag.NoCopy;
     if(toWho==null || toWho==Players)
       lock(this)
         foreach(ServerPlayer p in players)
@@ -1671,7 +1678,8 @@ public class Server
   TcpListener        server;
   Thread             thread;
   SendFlag           defFlags = SendFlag.ReliableSequential;
-  uint               nextID=1, lagAverage, lagVariance;
+  uint               nextID=1;
+  int                lagAverage, lagVariance;
   bool               quit, listening;
 }
 #endregion
@@ -1729,12 +1737,12 @@ public class Client
   }
 
   /// <include file="documentation.xml" path="//Network/Common/LagAverage/*"/>
-  public uint LagAverage
+  public int LagAverage
   { get { return AssertLink().LagAverage; }
     set { AssertLink().LagAverage=value; }
   }
   /// <include file="documentation.xml" path="//Network/Common/LagVariance/*"/>
-  public uint LagVariance
+  public int LagVariance
   { get { return AssertLink().LagVariance; }
     set { AssertLink().LagVariance=value; }
   }
@@ -1774,15 +1782,17 @@ public class Client
   /// <remarks>The connection will be terminated only after all outgoing messages have been sent and all incoming
   /// messages have been processed.
   /// </remarks>
-  public void DelayedDisconnect() { DelayedDisconnect(uint.MaxValue); }
+  public void DelayedDisconnect() { DelayedDisconnect(int.MaxValue); }
 
   /// <summary>Disconnects from the server with a delay to allow incoming and outgoing messages to be sent.</summary>
   /// <param name="timeoutMs">The amount of time to wait for all remaining messages to be sent, in milliseconds.</param>
   /// <remarks>The connection will be terminated after all outgoing messages have been sent and all incoming
   /// messages have been processed, or the timeout expires.
   /// </remarks>
-  public void DelayedDisconnect(uint timeoutMs)
-  { dropDelay   = timeoutMs;
+  public void DelayedDisconnect(int timeoutMs)
+  {
+    if(timeoutMs < 0) throw new ArgumentOutOfRangeException();
+    dropDelay   = (uint)timeoutMs;
     dropStart   = Timing.Msecs;
     delayedDrop = true;
   }
@@ -1835,11 +1845,11 @@ public class Client
     else DoSend(data, index, length, flags, 0, data);
   }
   /// <include file="documentation.xml" path="//Network/Client/Send/*[self::Common or self::byteData or self::Flags or self::Timeout]/*"/>
-  public void Send(byte[] data, SendFlag flags, uint timeoutMs) { Send(data, 0, data.Length, flags); }
+  public void Send(byte[] data, SendFlag flags, int timeoutMs) { Send(data, 0, data.Length, flags); }
   /// <include file="documentation.xml" path="//Network/Client/Send/*[self::Common or self::byteData or self::Length or self::Flags or self::Timeout]/*"/>
-  public void Send(byte[] data, int length, SendFlag flags, uint timeoutMs) { Send(data, 0, length, flags); }
+  public void Send(byte[] data, int length, SendFlag flags, int timeoutMs) { Send(data, 0, length, flags); }
   /// <include file="documentation.xml" path="//Network/Client/Send/*[self::Common or self::byteData or self::Index or self::Length or self::Flags or self::Timeout]/*"/>
-  public void Send(byte[] data, int index, int length, SendFlag flags, uint timeoutMs)
+  public void Send(byte[] data, int index, int length, SendFlag flags, int timeoutMs)
   { AssertLink();
     if(cvt.AltersByteArray) DoSend(cvt.Serialize(data, index, length), flags, timeoutMs, data);
     else DoSend(data, index, length, flags, timeoutMs, data);
@@ -1855,7 +1865,7 @@ public class Client
     DoSend(cvt.Serialize(data), flags, 0, data);
   }
   /// <include file="documentation.xml" path="//Network/Client/Send/*[self::Common or self::objData or self::Flags or self::Timeout]/*"/>
-  public void Send(object data, SendFlag flags, uint timeoutMs)
+  public void Send(object data, SendFlag flags, int timeoutMs)
   { AssertLink();
     DoSend(cvt.Serialize(data), flags, timeoutMs, data);
   }
@@ -1908,11 +1918,11 @@ public class Client
     if(cmh!=null) cmh(this, message);
   }
 
-  void DoSend(byte[] data, SendFlag flags, uint timeoutMs, object orig)
+  void DoSend(byte[] data, SendFlag flags, int timeoutMs, object orig)
   { if((object)data!=orig) flags |= SendFlag.NoCopy;
     link.Send(data, 0, data.Length, flags, timeoutMs, orig);
   }
-  void DoSend(byte[] data, int index, int length, SendFlag flags, uint timeoutMs, object orig)
+  void DoSend(byte[] data, int index, int length, SendFlag flags, int timeoutMs, object orig)
   { if((object)data!=orig) flags |= SendFlag.NoCopy;
     link.Send(data, index, length, flags, timeoutMs, orig);
   }

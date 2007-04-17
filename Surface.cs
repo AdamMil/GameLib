@@ -1,7 +1,7 @@
 /*
 GameLib is a library for developing games and other multimedia applications.
 http://www.adammil.net/
-Copyright (C) 2002-2006 Adam Milazzo
+Copyright (C) 2002-2007 Adam Milazzo
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -72,7 +72,7 @@ public enum ImageType
 }
 
 [Flags]
-public enum SurfaceFlag : uint
+public enum SurfaceFlag
 { 
   /// <summary>Default flags.</summary>
   None = 0,
@@ -83,12 +83,12 @@ public enum SurfaceFlag : uint
   /// acceleration cannot be used and the surface is stored in system memory and it contains blocks of solid
   /// color and does not change often. This flag is not to be used when setting the video mode.
   /// </remarks>
-  RLE = SDL.VideoFlag.RLEAccel,
+  RLE = (int)SDL.VideoFlag.RLEAccel,
   /// <summary>When blitted, the surface will use alpha blending.</summary>
   /// <remarks>This flag is not to be used when setting the video mode, and only makes sense for surfaces
   /// that contain an alpha channel or use a surface alpha.
   /// </remarks>
-  SrcAlpha = SDL.VideoFlag.SrcAlpha,
+  SrcAlpha = (int)SDL.VideoFlag.SrcAlpha,
 
   /* surfaces and mode setting */
   /// <summary>Asynchronous blits will be used if possible.</summary>
@@ -96,15 +96,15 @@ public enum SurfaceFlag : uint
   /// immediately if possible, setting up the blit to happen in the background. This may slow down blitting on
   /// single CPU machines, but may provide a speed increase on SMP systems.
   /// </remarks>
-  AsyncBlit = SDL.VideoFlag.AsyncBlit,
+  AsyncBlit = (int)SDL.VideoFlag.AsyncBlit,
   /// <summary>The surface will be stored in video memory if possible.</summary>
   /// <remarks>When setting the video mode, this flag indicates that a video mode which allows hardware surfaces
   /// is desired.
   /// </remarks>
-  Hardware = SDL.VideoFlag.HWSurface,
+  Hardware = (int)SDL.VideoFlag.HWSurface,
   /// <summary>The surface will be stored in system memory.</summary>
   /// <remarks>This flag can be used in the creation of any surface.</remarks>
-  Software = SDL.VideoFlag.SWSurface,
+  Software = (int)SDL.VideoFlag.SWSurface,
 
   /* mode setting only */
   /// <summary>Enables double buffering for the display surface.</summary>
@@ -114,35 +114,35 @@ public enum SurfaceFlag : uint
   /// though, and if it cannot be enabled, a single hardware surface will be attempted instead, falling back to a
   /// software surface if that, too, fails.
   /// </remarks>
-  DoubleBuffer = SDL.VideoFlag.DoubleBuffer,
+  DoubleBuffer = (int)SDL.VideoFlag.DoubleBuffer,
   /// <summary>An attempt will be made to use a fullscreen video mode.</summary>
-  Fullscreen = SDL.VideoFlag.FullScreen,
+  Fullscreen = unchecked((int)SDL.VideoFlag.FullScreen),
   /// <summary>Disable video mode emulation.</summary>
   /// <remarks>Normally, if a mode cannot be set at a specified bit depth, an attempt will be made to emulate
   /// the bit depth with a shadow surface. Specifying this flag causes <see cref="Video.SetMode"/> to not
   /// emulate the color depth but instead just use whichever color depth is closest. The format of the
   /// <see cref="Video.DisplaySurface"/> may not be what is expected if this flag is used.
   /// </remarks>
-  NoEmulation = SDL.VideoFlag.AnyFormat,
+  NoEmulation = (int)SDL.VideoFlag.AnyFormat,
   /// <summary>For windowed video modes, this flag attempts to remove the title bar and frame decoration from
   /// the window.
   /// </summary>
-  NoFrame = SDL.VideoFlag.NoFrame,
+  NoFrame = (int)SDL.VideoFlag.NoFrame,
   /// <summary>The surface has an associated OpenGL rendering context.</summary>
   /// <remarks>If passed to <see cref="Video.SetMode"/>, an OpenGL video mode will be set.
   /// <see cref="Video.SetGLMode"/> automatically applies this flag.
   /// </remarks>
-  OpenGL = SDL.VideoFlag.OpenGL,
+  OpenGL = (int)SDL.VideoFlag.OpenGL,
   /// <summary>For windowed video modes, this flag attempts to make the window resizeable.</summary>
   /// <remarks>Applications should handle the <see cref="Events.ResizeEvent">resize event</see> if they use
   /// this flag.
   /// </remarks>
-  Resizeable = SDL.VideoFlag.Resizable,
+  Resizeable = (int)SDL.VideoFlag.Resizable,
   /// <summary>This surface will have the physical paletted associated with it.</summary>
   /// <remarks>This flag can be used when setting the video mode to indicate that the display surface can be used
   /// to control the physical palette.
   /// </remarks>
-  PhysicalPalette = SDL.VideoFlag.HWPalette
+  PhysicalPalette = (int)SDL.VideoFlag.HWPalette
 }
 #endregion
 
@@ -233,10 +233,12 @@ public sealed class Surface : IDisposable, IBlittable
   /// <remarks>Using this is equivalent to using <see cref="Surface(int,int,PixelFormat,SurfaceFlag)"/> and
   /// passing <see cref="SurfaceFlag.None"/>.
   /// </remarks>
+  [CLSCompliant(false)]
   public Surface(int width, int height, PixelFormat format) : this(width, height, format, SurfaceFlag.None) { }
 
   /// <include file="documentation.xml" path="//Video/Surface/Cons/FromFormat/*"/>
   /// <param name="flags">The <see cref="SurfaceFlag"/> flags to use when initializing this surface.</param>
+  [CLSCompliant(false)]
   public Surface(int width, int height, PixelFormat format, SurfaceFlag flags)
   { InitFromFormat(width, height, format, flags);
   }
@@ -375,10 +377,12 @@ public sealed class Surface : IDisposable, IBlittable
   /// <remarks>This property is only valid while the image is locked (see <see cref="Lock"/> and
   /// <see cref="Locked"/>).
   /// </remarks>
+  [CLSCompliant(false)]
   public unsafe void* Data { get { return surface->Pixels; } }
 
   /// <summary>Gets the pixel format of the surface.</summary>
   /// <value>A <see cref="PixelFormat"/> object describing the pixel format of this surface.</value>
+  [CLSCompliant(false)]
   public PixelFormat Format { get { return format; } }
 
   /// <summary>Gets the number of entries in this surface's logical palette.</summary>
@@ -461,6 +465,7 @@ public sealed class Surface : IDisposable, IBlittable
   /// will be ignored if the surface has an alpha channel. In that case, use the alpha channel to mark pixels as
   /// transparent by setting the alpha value to zero (transparent).
   /// </remarks>
+  [CLSCompliant(false)]
   public uint RawColorKey
   { get { return rawKey; }
     set
@@ -533,10 +538,12 @@ public sealed class Surface : IDisposable, IBlittable
   /// <include file="documentation.xml" path="//Video/Surface/Fill/*[self::Whole or self::C]/*"/>
   public void Fill(Color color) { Fill(Bounds, MapColor(color)); }
   /// <include file="documentation.xml" path="//Video/Surface/Fill/*[self::Whole or self::R]/*"/>
-  public void Fill(uint color)  { Fill(Bounds, color); }
+  [CLSCompliant(false)]
+  public void Fill(uint color) { Fill(Bounds, color); }
   /// <include file="documentation.xml" path="//Video/Surface/Fill/*[self::Rect or self::C]/*"/>
   public void Fill(Rectangle rect, Color color) { Fill(rect, MapColor(color)); }
   /// <include file="documentation.xml" path="//Video/Surface/Fill/*[self::Rect or self::R]/*"/>
+  [CLSCompliant(false)]
   public unsafe void Fill(Rectangle rect, uint color)
   { SDL.Rect drect = new SDL.Rect(rect);
     SDL.Check(SDL.FillRect(surface, ref drect, color));
@@ -639,8 +646,10 @@ public sealed class Surface : IDisposable, IBlittable
   public Color GetPixel(int x, int y) { return MapColor(GetPixelRaw(x, y)); }
 
   /// <include file="documentation.xml" path="//Video/Surface/GetPixel/*[self::R or self::Pt]/*"/>
+  [CLSCompliant(false)]
   public uint GetPixelRaw(Point point) { return GetPixelRaw(point.X, point.Y); }
   /// <include file="documentation.xml" path="//Video/Surface/GetPixel/*[self::R or self::XY]/*"/>
+  [CLSCompliant(false)]
   public uint GetPixelRaw(int x, int y)
   { if(!Bounds.Contains(x, y)) throw new ArgumentOutOfRangeException();
     Lock();
@@ -670,8 +679,10 @@ public sealed class Surface : IDisposable, IBlittable
   /// <include file="documentation.xml" path="//Video/Surface/PutPixel/*[self::C or self::XY]/*"/>
   public void PutPixel(int x, int y, Color color) { PutPixel(x, y, MapColor(color)); }
   /// <include file="documentation.xml" path="//Video/Surface/PutPixel/*[self::R or self::Pt]/*"/>
+  [CLSCompliant(false)]
   public void PutPixel(Point point, uint color) { PutPixel(point.X, point.Y, color); }
   /// <include file="documentation.xml" path="//Video/Surface/PutPixel/*[self::R or self::XY]/*"/>
+  [CLSCompliant(false)]
   public void PutPixel(int x, int y, uint color)
   { if(!ClipRect.Contains(x, y)) return;
     Lock();
@@ -712,6 +723,7 @@ public sealed class Surface : IDisposable, IBlittable
   /// <remarks>The raw color key is used during blitting to mark source pixels as transparent. Source pixels matching
   /// the color key will not be processed. This method sets the color key and then sets <see cref="UsingKey"/> to true.
   /// </remarks>
+  [CLSCompliant(false)]
   public unsafe void SetColorKey(uint color)
   { rawKey   = color;
     key      = MapColor(color);
@@ -747,6 +759,7 @@ public sealed class Surface : IDisposable, IBlittable
   /// <summary>Maps a <see cref="Color"/> to the nearest raw pixel value.</summary>
   /// <param name="color">The <see cref="Color"/> to map.</param>
   /// <returns>The raw pixel value closest to the color given.</returns>
+  [CLSCompliant(false)]
   public unsafe uint MapColor(Color color)
   { return SDL.MapRGBA(surface->Format, color.R, color.G, color.B, color.A);
   }
@@ -757,12 +770,14 @@ public sealed class Surface : IDisposable, IBlittable
   /// <remarks>The alpha value passed overrides the alpha value contained in the <see cref="Color.A"/>
   /// property of <paramref name="color"/>.
   /// </remarks>
+  [CLSCompliant(false)]
   public unsafe uint MapColor(Color color, byte alpha)
   { return SDL.MapRGBA(surface->Format, color.R, color.G, color.B, alpha);
   }
   /// <summary>Maps a raw pixel value to the corresponding <see cref="Color"/>.</summary>
   /// <param name="color">The raw pixel value to map.</param>
   /// <returns>The <see cref="Color"/> corresponding to <paramref name="color"/>.</returns>
+  [CLSCompliant(false)]
   public unsafe Color MapColor(uint color)
   { byte r, g, b, a;
     SDL.GetRGBA(color, surface->Format, out r, out g, out b, out a);
@@ -855,6 +870,7 @@ public sealed class Surface : IDisposable, IBlittable
   /// <param name="format">The pixel format of the new surface.</param>
   /// <returns>A new <see cref="Surface"/> containing the same image data, converted to the given pixel format.
   /// </returns>
+  [CLSCompliant(false)]
   public Surface Clone(PixelFormat format) { return Clone(format, Flags); }
   /// <summary>Returns a clone of this surface.</summary>
   /// <param name="flags">The surface flags for the new surface.</param>
@@ -865,6 +881,7 @@ public sealed class Surface : IDisposable, IBlittable
   /// <param name="flags">The surface flags for the new surface.</param>
   /// <returns>A new <see cref="Surface"/> containing the same image data, converted to the given pixel format.
   /// </returns>
+  [CLSCompliant(false)]
   public unsafe Surface Clone(PixelFormat format, SurfaceFlag flags)
   { SDL.Surface* ret;
     fixed(SDL.PixelFormat* pf = &format.format) ret = SDL.ConvertSurface(surface, pf, (uint)flags);

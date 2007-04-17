@@ -22,41 +22,48 @@ using GameLib.CD;
 namespace CDAudioTest
 {
 
-class App
-{ static void Main()
-  { CD.Initialize();
-    Drive playDrive = null;
-    int playTrack = -1;
-    
-    foreach(Drive drive in CD.Drives)
-    { Console.Write("Drive {0} - ", drive.Number);
-      if(drive.CDInDrive)
-      { Console.WriteLine("CD in drive, {0} tracks", drive.Tracks.Count);
-        foreach(Track track in drive.Tracks)
-        { Console.WriteLine("  Track {0}: type={1}, start={2}, length={3}",
-                            track.Number, track.Type, track.Start, track.Length);
-          if(playTrack==-1 && track.Type==TrackType.Audio)
-          { playDrive = drive; playTrack = track.Number;
+  class App
+  {
+    static void Main()
+    {
+      CD.Initialize();
+      Drive playDrive = null;
+      int playTrack = -1;
+
+      foreach(Drive drive in CD.Drives)
+      {
+        Console.Write("Drive {0} - ", drive.Number);
+        if(drive.CDInDrive)
+        {
+          Console.WriteLine("CD in drive, {0} tracks", drive.Tracks.Count);
+          foreach(Track track in drive.Tracks)
+          {
+            Console.WriteLine("  Track {0}: type={1}, start={2}, length={3}",
+                              track.Number, track.Type, track.Start, track.Length);
+            if(playTrack==-1 && track.Type==TrackType.Audio)
+            {
+              playDrive = drive; playTrack = track.Number;
+            }
           }
         }
+        else Console.WriteLine("No cd in drive");
       }
-      else Console.WriteLine("No cd in drive");
-    }
 
-    Console.WriteLine();
-    if(playTrack==-1) Console.WriteLine("Nothing to play!");
-    else
-    { Console.WriteLine("Playing track {0} of drive {1}...", playTrack,
-                        playDrive.Number);
-      playDrive.Play(playTrack);
-    }
+      Console.WriteLine();
+      if(playTrack==-1) Console.WriteLine("Nothing to play!");
+      else
+      {
+        Console.WriteLine("Playing track {0} of drive {1}...", playTrack,
+                          playDrive.Number);
+        playDrive.Play(playTrack);
+      }
 
-    Console.WriteLine("Press [ENTER] to quit.");
-    Console.ReadLine();
-    if(playDrive!=null) playDrive.Stop();
-    
-    CD.Deinitialize();
+      Console.WriteLine("Press [ENTER] to quit.");
+      Console.ReadLine();
+      if(playDrive!=null) playDrive.Stop();
+
+      CD.Deinitialize();
+    }
   }
-}
 
 } // namespace CDAudioTest

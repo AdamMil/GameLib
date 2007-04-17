@@ -1,7 +1,7 @@
 /*
 GameLib is a library for developing games and other multimedia applications.
 http://www.adammil.net/
-Copyright (C) 2002-2006 Adam Milazzo
+Copyright (C) 2002-2007 Adam Milazzo
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -53,11 +53,15 @@ public class DataTooLargeException : GameLibException
 
   /// <summary>Gets the maximum size allowed.</summary>
   /// <value>The maximum size allowed, or -1 if the maximum size was not given.</value>
-  public int MaxSize { get { return maxSize; } }
+  public int MaxSize
+  {
+    get { return maxSize; }
+    protected set { maxSize = value; }
+  }
 
   /// <summary>The maximum size allowed.</summary>
   /// <value>The maximum size allowed, or -1 if the maximum size was not given.</value>
-  protected int maxSize;
+  int maxSize;
 }
 
 /// <summary>This exception is thrown when an encoder or decoder could not be found for the given data.</summary>
@@ -218,10 +222,14 @@ public class OggVorbisException : AudioException
   /// <value>An <see cref="OggError"/> value that represents the reason the decoder could not properly decode the
   /// stream.
   /// </value>
-  public OggError Code { get { return code; } }
+  public OggError Code
+  {
+    get { return code; }
+    protected set { code = value; }
+  }
 
   /// <summary>The reason the decoder could not properly decode the stream.</summary>
-  protected OggError code;
+  OggError code;
 }
 
 } // namespace GameLib.Audio

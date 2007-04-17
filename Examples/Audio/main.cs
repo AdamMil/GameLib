@@ -22,56 +22,60 @@ using GameLib.Audio;
 namespace AudioTest
 {
 
-class App
-{ static void Main()
-  { 
-    #if DEBUG
-    string dataPath = "../../../"; // set to something correct
-    #else
+  class App
+  {
+    static void Main()
+    {
+#if DEBUG
+      string dataPath = "../../../"; // set to something correct
+#else
     string dataPath = "data/"; // set to something correct
-    #endif
-    
-    Audio.Initialize(44100); // 44100 hz 16-bit stereo
-    Audio.AllocateChannels(8); // allocate 8 audio channels
-    Audio.ReservedChannels = 1; // reserve the first channel for the music
+#endif
 
-    // by default, audio sources are streamed from the disk, even wav/au/etc
-    VorbisSource ogg = new VorbisSource(dataPath+"music.ogg");
-    // but a SampleSource converts any other audio source into a sample,
-    // which means it's loaded completely into memory
-    SampleSource smp = new SampleSource(new SoundFileSource(dataPath+"woot.wav"));
+      Audio.Initialize(44100); // 44100 hz 16-bit stereo
+      Audio.AllocateChannels(8); // allocate 8 audio channels
+      Audio.ReservedChannels = 1; // reserve the first channel for the music
 
-    while(true)
-    { Console.WriteLine("1) Toggle playing of streaming ogg");
-      Console.WriteLine("2) Play the sample");
-      if(Audio.Channels[0].Playing)
-      { Console.WriteLine("3) Speed up streaming ogg");
-        Console.WriteLine("4) Slow down streaming ogg");
-        Console.WriteLine("5) Fade out streaming ogg");
+      // by default, audio sources are streamed from the disk, even wav/au/etc
+      VorbisSource ogg = new VorbisSource(dataPath+"music.ogg");
+      // but a SampleSource converts any other audio source into a sample,
+      // which means it's loaded completely into memory
+      SampleSource smp = new SampleSource(new SoundFileSource(dataPath+"woot.wav"));
+
+      while(true)
+      {
+        Console.WriteLine("1) Toggle playing of streaming ogg");
+        Console.WriteLine("2) Play the sample");
+        if(Audio.Channels[0].Playing)
+        {
+          Console.WriteLine("3) Speed up streaming ogg");
+          Console.WriteLine("4) Slow down streaming ogg");
+          Console.WriteLine("5) Fade out streaming ogg");
+        }
+        Console.WriteLine("6) Quit");
+        Console.Write("Enter choice: ");
+        switch(Console.ReadKey().KeyChar)
+        {
+          case '1':
+            if(Audio.Channels[0].Stopped) // if stopped, play ogg on channel 0
+              ogg.Play(Audio.Infinite, Audio.Infinite, 0, 0);
+            else Audio.Channels[0].Paused = !Audio.Channels[0].Paused;
+            break;
+          case '2': smp.Play(); break; // play on any available channel
+          case '3': Audio.Channels[0].PlaybackRate += 0.1f; break;
+          case '4':
+            if(Audio.Channels[0].PlaybackRate > 0.1f)
+              Audio.Channels[0].PlaybackRate -= 0.1f;
+            break;
+          case '5': Audio.Channels[0].FadeOut(450); break;
+          case '6': goto done;
+        }
+        Console.Write("\n\n");
       }
-      Console.WriteLine("6) Quit");
-      Console.Write("Enter choice: ");
-      switch(Console.ReadKey().KeyChar)
-      { case '1':
-          if(Audio.Channels[0].Stopped) // if stopped, play ogg on channel 0
-            ogg.Play(Audio.Infinite, Audio.Infinite, 0, 0);
-          else Audio.Channels[0].Paused = !Audio.Channels[0].Paused;
-          break;
-        case '2': smp.Play(); break; // play on any available channel
-        case '3': Audio.Channels[0].PlaybackRate += 0.1f; break;
-        case '4':
-          if(Audio.Channels[0].PlaybackRate > 0.1f)
-            Audio.Channels[0].PlaybackRate -= 0.1f;
-          break;
-        case '5': Audio.Channels[0].FadeOut(450); break;
-        case '6': goto done;
-      }
-      Console.Write("\n\n");
+
+      done:
+      Audio.Deinitialize();
     }
-
-    done:
-    Audio.Deinitialize();
   }
-}
 
 } // namespace AudioTest

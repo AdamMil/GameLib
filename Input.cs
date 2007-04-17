@@ -1,7 +1,7 @@
 /*
 GameLib is a library for developing games and other multimedia applications.
 http://www.adammil.net/
-Copyright (C) 2002-2006 Adam Milazzo
+Copyright (C) 2002-2007 Adam Milazzo
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -237,26 +237,26 @@ public enum Key : int
 
 /// <summary>This enum contains keyboard modifier bitmask values.</summary>
 [Flags]
-public enum KeyMod : uint
+public enum KeyMod
 { 
   /// <summary>No keyboard modifiers.</summary>
   None=0,
   /// <summary>Left shift key.</summary>
-  LShift=SDL.KeyMod.LShift,
+  LShift=(int)SDL.KeyMod.LShift,
   /// <summary>Right shift key.</summary>
-  RShift=SDL.KeyMod.RShift,
+  RShift=(int)SDL.KeyMod.RShift,
   /// <summary>Left ctrl key.</summary>
-  LCtrl=SDL.KeyMod.LCtrl,
+  LCtrl=(int)SDL.KeyMod.LCtrl,
   /// <summary>Right ctrl key.</summary>
-  RCtrl=SDL.KeyMod.RCtrl,
+  RCtrl=(int)SDL.KeyMod.RCtrl,
   /// <summary>Left alt key.</summary>
-  LAlt=SDL.KeyMod.LAlt,
+  LAlt=(int)SDL.KeyMod.LAlt,
   /// <summary>Right alt key.</summary>
-  RAlt=SDL.KeyMod.RAlt,
+  RAlt=(int)SDL.KeyMod.RAlt,
   /// <summary>Left meta key.</summary>
-  LMeta=SDL.KeyMod.LMeta,
+  LMeta=(int)SDL.KeyMod.LMeta,
   /// <summary>Right meta key.</summary>
-  RMeta=SDL.KeyMod.RMeta,
+  RMeta=(int)SDL.KeyMod.RMeta,
   /// <summary>A mask containing the left and right shift keys.</summary>
   Shift=LShift|RShift,
   /// <summary>A mask containing the left and right ctrl keys.</summary>
@@ -266,11 +266,11 @@ public enum KeyMod : uint
   /// <summary>A mask containing the left and right meta keys.</summary>
   Meta=LMeta|RMeta,
   /// <summary>Num lock status.</summary>
-  NumLock=SDL.KeyMod.NumLock,
+  NumLock=(int)SDL.KeyMod.NumLock,
   /// <summary>Caps lock status.</summary>
-  CapsLock=SDL.KeyMod.CapsLock,
+  CapsLock=(int)SDL.KeyMod.CapsLock,
   /// <summary>Keyboard mode.</summary>
-  Mode=SDL.KeyMod.Mode,
+  Mode=(int)SDL.KeyMod.Mode,
 
   /// <summary>A mask containing the num lock, caps lock, and keyboard mode status modifiers ("status modifiers").</summary>
   StatusMask=NumLock|CapsLock|Mode,
@@ -458,9 +458,8 @@ public delegate void JoyButtonHandler(Joystick js, JoyButtonEvent e);
 #region Keyboard
 /// <summary>This class represents the keyboard.</summary>
 /// <remarks>This class is updated by the <see cref="Input.ProcessEvent"/> method.</remarks>
-public sealed class Keyboard
-{ private Keyboard() { }
-
+public static class Keyboard
+{ 
   /// <summary>Occurs when a keyboard key is pressed or released.</summary>
   /// <remarks>This event is raised by the <see cref="Input.ProcessEvent"/> method.</remarks>
   public static KeyEventHandler KeyEvent;
@@ -577,9 +576,8 @@ public sealed class Keyboard
 #region Mouse
 /// <summary>This class represents the mouse.</summary>
 /// <remarks>This class is updated by the <see cref="Input.ProcessEvent"/> method.</remarks>
-public sealed class Mouse
-{ private Mouse() { }
-
+public static class Mouse
+{ 
   /// <summary>Occurs when the mouse is moved.</summary>
   /// <remarks>This event is raised by the <see cref="Input.ProcessEvent"/> method.</remarks>
   public static event MouseMoveHandler  MouseMove;
@@ -900,9 +898,8 @@ public sealed class Joystick : IDisposable
 /// <remarks>It's possible for input to be handled manually without using the input classes (by using raw
 /// <see cref="GameLib.Events"/> events), but using them can simplify many types of input processing.
 /// </remarks>
-public sealed class Input
-{ private Input() { }
-
+public static class Input
+{ 
   /// <summary>Returns true if the input subsystem has been initialized.</summary>
   public static bool Initialized { get { return initCount>0; } }
 

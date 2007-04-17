@@ -1,7 +1,7 @@
 /*
 GameLib is a library for developing games and other multimedia applications.
 http://www.adammil.net/
-Copyright (C) 2002-2006 Adam Milazzo
+Copyright (C) 2002-2007 Adam Milazzo
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -29,8 +29,8 @@ namespace GameLib
 /// timers are based on the tick-based timers. The tick-based timers provide the maximum resolution and
 /// precision.
 /// </remarks>
-public sealed class Timing
-{ private Timing() { }
+public static class Timing
+{
   static Timing() // FIXME: Utility never deinitialized
   { GLU.Utility.Check(GLU.Utility.Init());
     timerFreq = GLU.Utility.GetTimerFrequency();
@@ -47,6 +47,7 @@ public sealed class Timing
   /// <remarks>This property will overflow after about 49 days of timing, though <see cref="Reset"/> can be
   /// used to reset the base time point, extending the time until overflow.
   /// </remarks>
+  [CLSCompliant(false)]
   public static uint Msecs { get { return GLU.Utility.GetMilliseconds(); } }
   /// <summary>Gets the number of seconds that have elapsed since the timer started counting.</summary>
   /// <remarks>While likely insignificant, this property will lose precision as time goes on due to the nature of

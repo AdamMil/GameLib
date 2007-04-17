@@ -1,7 +1,7 @@
 /*
 GameLib is a library for developing games and other multimedia applications.
 http://www.adammil.net/
-Copyright (C) 2002-2006 Adam Milazzo
+Copyright (C) 2002-2007 Adam Milazzo
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -22,10 +22,10 @@ using System.Runtime.InteropServices;
 namespace GameLib.Interop.GLMixer
 {
 
+[CLSCompliant(false)]
 [System.Security.SuppressUnmanagedCodeSecurity()]
-public sealed class GLMixer
-{ private GLMixer() { }
-
+public static class GLMixer
+{ 
   [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
   internal unsafe delegate void MixCallback(int* stream, uint samples, IntPtr context);
 

@@ -1,7 +1,7 @@
 /*
 GameLib is a library for developing games and other multimedia applications.
 http://www.adammil.net/
-Copyright (C) 2002-2006 Adam Milazzo
+Copyright (C) 2002-2007 Adam Milazzo
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -527,6 +527,7 @@ public abstract class ScrollBarBase : Control, IDisposable
 
   public int PageIncrement { get { return pageInc; } set { pageInc=value; } }
 
+  [CLSCompliant(false)]
   public uint ClickRepeatDelay
   { get { return crDelay; }
     set
@@ -545,6 +546,8 @@ public abstract class ScrollBarBase : Control, IDisposable
       }
     }
   }
+
+  [CLSCompliant(false)]
   public uint ClickRepeatRate
   { get { return crRate; }
     set
@@ -1323,29 +1326,101 @@ public abstract class ListControl : ScrollableControl
   }
 
   #region ItemCollection
-  public sealed class ItemCollection : System.Collections.CollectionBase
-  { public ItemCollection(ListControl parent)
+  public sealed class ItemCollection : System.Collections.IList
+  { 
+    public ItemCollection(ListControl parent)
     { this.parent = parent;
       list = new List<Item>();
     }
+    
     public ItemCollection(ListControl parent, System.Collections.IEnumerable items)
     { this.parent = parent;
       list = new List<Item>();
       foreach(object o in items) list.Add(new Item(o));
     }
 
-    public object this[int index] { get { return list[index].Object; } }
+    #region Enumerator
+    sealed class Enumerator : System.Collections.IEnumerator
+    {
+      public Enumerator(ItemCollection parent)
+      {
+        this.parent  = parent;
+        Reset();
+      }
+
+      public object Current
+      {
+        get
+        {
+          if(!haveItem) throw new InvalidOperationException();
+          return current;
+        }
+      }
+
+      public bool MoveNext()
+      {
+        if(version != parent.version) throw new InvalidOperationException();
+        
+        if(index >= parent.Count || ++index == parent.Count)
+        {
+          haveItem = false;
+          return false;
+        }
+
+        current = parent[index];
+        haveItem = true;
+        return true;
+      }
+
+      public void Reset()
+      {
+        index    = -1;
+        version  = parent.version;
+        haveItem = false;
+      }
+
+      readonly ItemCollection parent;
+      object current;
+      int index, version;
+      bool haveItem;
+    }
+    #endregion
+
+    public object this[int index]
+    {
+      get { return list[index].Object; }
+      set
+      {
+        if(sorted) throw new InvalidOperationException("You can't set items in a sorted list. Use Add() instead.");
+        Item item = list[index];
+        item.Object = value;
+        list[index] = item;
+        OnUpdated();
+      }
+    }
+
+    public int Count { get { return list.Count; } }
+
+    public bool IsFixedSize { get { return false; } }
+    public bool IsReadOnly { get { return false; } }
+    public bool IsSynchronized { get { return false; } }
+    public object SyncRoot { get { return parent; } }
 
     public int Add(object item)
-    { if(sorted)
-      { int index = FindInsertionPoint(item);
+    {
+      int index;
+      if(sorted)
+      { 
+        index = FindInsertionPoint(item);
         list.Insert(index, new Item(item));
-        return index;
       }
       else
-      { list.Add(new Item(item));
-        return list.Count-1;
+      { 
+        list.Add(new Item(item));
+        index = list.Count-1;
       }
+      OnUpdated();
+      return index;
     }
 
     public void AddRange(params object[] items)
@@ -1358,22 +1433,38 @@ public abstract class ListControl : ScrollableControl
         { Item item = new Item(items[i]);
           list.Insert(FindInsertionPoint(item), item);
         }
-      Updated();
-      parent.Invalidate(parent.ContentRect);
+      OnUpdated();
     }
 
     public void AddRange(System.Collections.IEnumerable items)
     { foreach(object o in items) list.Add(new Item(o));
       if(sorted) list.Sort(Comparer);
-      Updated();
-      parent.Invalidate(parent.ContentRect);
+      OnUpdated();
+    }
+
+    public void Clear()
+    {
+      list.Clear();
+      OnUpdated();
     }
 
     public bool Contains(object item) { return IndexOf(item)!=-1; }
 
+    public void CopyTo(Array array, int index)
+    {
+      if(index < 0 || index+Count > array.Length) throw new ArgumentOutOfRangeException();
+      foreach(Item item in list) array.SetValue(item.Object, index++);
+    }
+
+    public System.Collections.IEnumerator GetEnumerator()
+    {
+      return new Enumerator(this);
+    }
+
     public void Insert(int index, object item)
     { if(sorted) throw new InvalidOperationException("Can't insert into a sorted list. Use Add()");
       else list.Insert(index, new Item(item));
+      OnUpdated();
     }
 
     public int IndexOf(object item)
@@ -1418,36 +1509,37 @@ public abstract class ListControl : ScrollableControl
       if(index!=-1) list.RemoveAt(index);
     }
 
+    public void RemoveAt(int index)
+    {
+      list.RemoveAt(index);
+      OnUpdated();
+    }
+
+    internal int StateVersion { get { return stateVersion; } }
+    internal int Version { get { return version; } }
+
     internal bool Sorted
     { get { return sorted; }
       set
       { if(value && !sorted)
         { list.Sort(Comparer);
-          Updated();
-          parent.Invalidate(parent.ContentRect);
+          OnUpdated();
         }
         sorted = value;
       }
     }
 
-    internal int Version { get { return version; } }
-    internal void Updated() { version++; parent.OnListChanged(); }
+    internal void StateUpdated()
+    {
+      stateVersion++;
+      parent.OnListChanged();
+      parent.Invalidate(parent.ContentRect);
+    }
 
-    protected override void OnClearComplete()
-    { Updated();
-      parent.Invalidate(parent.ContentRect);
-    }
-    protected override void OnInsertComplete(int index, object value)
-    { Updated();
-      parent.Invalidate(parent.ContentRect);
-    }
-    protected override void OnRemoveComplete(int index, object value)
-    { Updated();
-      parent.Invalidate(parent.ContentRect);
-    }
-    protected override void OnSetComplete(int index, object oldValue, object newValue)
-    { Updated();
-      parent.InvalidateItem(index);
+    void OnUpdated()
+    {
+      version++;
+      StateUpdated();
     }
 
     sealed class TextComparer : IComparer<Item>
@@ -1473,19 +1565,23 @@ public abstract class ListControl : ScrollableControl
     internal List<Item> list;
     ListControl parent;
     TextComparer comparer;
-    int  version;
+    int  version, stateVersion;
     bool sorted;
   }
   #endregion
 
   #region SelectedIndexCollection
   public sealed class SelectedIndexCollection : ICollection<int>
-  { internal SelectedIndexCollection(ListControl list) { items=list.Items; version=items.Version-1; }
+  {
+    // subtract one from the version to force a reload the first time the collection is used
+    internal SelectedIndexCollection(ListControl list) { items=list.Items; version=items.StateVersion-1; }
 
     #region IndexEnumerator
     sealed class IndexEnumerator : IEnumerator<int>
-    { public IndexEnumerator(SelectedIndexCollection indices)
-      { this.indices=indices; count=indices.Count; version=indices.items.Version; index=-1;
+    { 
+      public IndexEnumerator(SelectedIndexCollection indices)
+      {
+        this.indices=indices; count=indices.Count; version=indices.items.StateVersion; index=-1;
       }
 
       public void Dispose() { indices = null; }
@@ -1505,14 +1601,16 @@ public abstract class ListControl : ScrollableControl
       }
 
       public bool MoveNext()
-      { if(version!=indices.items.Version) throw new InvalidOperationException();
+      {
+        if(version!=indices.items.StateVersion) throw new InvalidOperationException();
         if(index>=count-1) return false;
         current = indices[++index];
         return true;
       }
 
       public void Reset()
-      { if(version!=indices.items.Version) throw new InvalidOperationException();
+      {
+        if(version!=indices.items.StateVersion) throw new InvalidOperationException();
         index = -1;
       }
 
@@ -1542,12 +1640,13 @@ public abstract class ListControl : ScrollableControl
 
     internal int[] Indices
     { get
-      { if(version!=items.Version)
+      {
+        if(version!=items.StateVersion)
         { List<Item> list = items.list;
           List<int> sel  = new List<int>();
           for(int i=0; i<list.Count; i++) if(list[i].Is(ItemState.Selected)) sel.Add(i);
           indices = sel.ToArray();
-          version = items.Version;
+          version = items.StateVersion;
         }
         return indices;
       }
@@ -1640,7 +1739,7 @@ public abstract class ListControl : ScrollableControl
         it.State &= ~ItemState.Selected;
         items.list[indices[i]] = it;
       }
-      items.Updated();
+      items.StateUpdated();
       Invalidate(ContentRect);
     }
   }
@@ -1674,14 +1773,14 @@ public abstract class ListControl : ScrollableControl
     if(deselectOthers) Invalidate(ContentRect);
     else if(was!=selected) InvalidateItem(index);
     else return;
-    items.Updated();
+    items.StateUpdated();
   }
 
   public void ToggleSelected(int index)
   { Item it = items.list[index];
     it.State ^= ItemState.Selected;
     items.list[index] = it;
-    items.Updated();
+    items.StateUpdated();
     InvalidateItem(index);
   }
 
@@ -2068,7 +2167,7 @@ public abstract class ListBoxBase : ListControl
       if(from==to) break;
       from+=add;
     }
-    Items.Updated();
+    Items.StateUpdated();
   }
 
   class ScrollEvent : Events.WindowEvent { public ScrollEvent(Control ctrl) : base(ctrl) { } }
