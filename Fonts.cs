@@ -19,12 +19,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using AdamMil.Collections;
 using GameLib.Video;
-using GameLib.Collections;
 using GameLib.Interop.SDL;
 using GameLib.Interop.SDLTTF;
-
-// TODO: evaluate usage of Color.Transparent and consider replacing with Color.Empty
 
 namespace GameLib.Fonts
 {
@@ -38,7 +36,7 @@ namespace GameLib.Fonts
 public abstract class Font : IDisposable
 { 
   /// <summary>Initializes the font.</summary>
-  public Font()
+  protected Font()
   { Video.Video.Initialize();
     handler = new Video.ModeChangedHandler(OnDisplayFormatChanged);
     Video.Video.ModeChanged += handler;
@@ -174,7 +172,7 @@ public abstract class Font : IDisposable
   { if(text.Length==0) return new int[0];
 
     List<int> list = new List<int>(); // make this a class member?
-    int x=rect.X+startx, start=0, end=0, pend, length=0, plen=0, height=LineSkip;
+    int start=0, end=0, pend, length=0, plen=0, height=LineSkip;
     int rwidth=rect.Width-startx, rheight=rect.Height-starty;
     if(height>rheight) return new int[0];
 
@@ -245,7 +243,7 @@ public abstract class Font : IDisposable
 
 /// <summary>This enum contains different types of font styles, which can be ORed together.</summary>
 [Flags]
-public enum FontStyle : byte
+public enum FontStyle
 { 
   /// <summary>Normal font rendering.</summary>
   Normal=0,
@@ -385,13 +383,15 @@ public class BitmapFont : Font
 
   /// <summary>See <see cref="Font.Dispose(bool)"/> for more details regarding this method.</summary>
   protected override void Dispose(bool finalizing)
-  { font.Dispose();
-    orig.Dispose();
+  {
     base.Dispose(finalizing);
+    font.Dispose();
+    orig.Dispose();
   }
 
   int GetOffset(char c)
-  { if(contiguous)
+  { 
+    if(contiguous)
     { if(charset.Length==0 || c<charset[0] || c>charset[charset.Length-1]) return -1;
       return c-charset[0];
     }
@@ -416,7 +416,7 @@ public class BitmapFont : Font
 
 #region TrueType enums & class
 /// <summary>This enum contains values which specify how font glyphs should be rendered.</summary>
-public enum RenderStyle : byte
+public enum RenderStyle
 { 
   /// <summary>The glyphs will be rendered solid using the foreground color, with no antialiasing.
   /// This method provides the highest performance, and crisp text.
@@ -500,7 +500,7 @@ public class TrueTypeFont : StyledFont
   /// <para>The background color represents the color drawn behind the font. This is not necessarily the same
   /// as the color to antialias with when <see cref="RenderStyle"/> is set to
   /// <see cref="GameLib.Fonts.RenderStyle.Shaded"/>. If <see cref="ShadeColor"/> is not
-  /// <see cref="System.Drawing.Color.Transparent"/>, then it will be used instead to shade the font.
+  /// <see cref="System.Drawing.Color.Empty"/>, then it will be used instead to shade the font.
   /// </para>
   /// <para>If <see cref="ShadeColorCloak"/> is true, setting this property will actually set the
   /// <see cref="ShadeColor"/> property, and this property will always be
@@ -530,7 +530,7 @@ public class TrueTypeFont : StyledFont
   /// <summary>Gets/sets the color used to shade the font when <see cref="RenderStyle"/> is set to
   /// <see cref="GameLib.Fonts.RenderStyle.Shaded"/>.
   /// </summary>
-  /// <remarks>If this property is set to <see cref="System.Drawing.Color.Transparent"/>, the <see cref="BackColor"/>
+  /// <remarks>If this property is set to <see cref="System.Drawing.Color.Empty"/>, the <see cref="BackColor"/>
   /// will be used instead to shade the font. If both this and <see cref="BackColor"/> are set to
   /// <see cref="System.Drawing.Color.Transparent"/>, the font will be shaded against a black background.
   /// </remarks>
@@ -552,7 +552,7 @@ public class TrueTypeFont : StyledFont
   { get { return shadeCloak; }
     set
     { if(value!=shadeCloak)
-      { if(value && shadeColor==Color.Transparent && bgColor!=Color.Transparent)
+      { if(value && shadeColor.IsEmpty && bgColor!=Color.Transparent)
         { ShadeColor = bgColor;
           BackColor  = Color.Transparent;
         }
@@ -663,7 +663,7 @@ public class TrueTypeFont : StyledFont
   }
 
   protected CachedChar GetChar(char c)
-  { Color shade = shadeColor!=Color.Transparent ? shadeColor : bgColor!=Color.Transparent ? bgColor : Color.Black;
+  { Color shade = !shadeColor.IsEmpty ? shadeColor : bgColor!=Color.Transparent ? bgColor : Color.Black;
     CacheIndex ind = new CacheIndex(c, color, shade, fstyle, rstyle);
     LinkedListNode<CachedChar> node;
     CachedChar cc;
@@ -688,7 +688,7 @@ public class TrueTypeFont : StyledFont
       { case RenderStyle.Solid: surface = TTF.RenderGlyph_Solid(font, c, sdlColor); break;
         case RenderStyle.Shaded:
           surface = TTF.RenderGlyph_Shaded(font, c, sdlColor,
-                                           shadeColor!=Color.Transparent ? sdlShadeColor :
+                                           !shadeColor.IsEmpty ? sdlShadeColor :
                                              bgColor!=Color.Transparent ? sdlBgColor : new SDL.Color(Color.Black));
           break;
         case RenderStyle.Blended: surface = TTF.RenderGlyph_Blended(font, c, sdlColor); break;
@@ -770,9 +770,8 @@ public class TrueTypeFont : StyledFont
   void Init()
   { unsafe { if(font.ToPointer()==null) { TTF.Deinitialize(); TTF.RaiseError(); } }
     RenderStyle = RenderStyle.Solid;
-    Color = Color.White;
-    BackColor  = Color.Transparent;
-    ShadeColor = Color.Transparent;
+    Color       = Color.White;
+    BackColor   = Color.Transparent;
   }
 
   LinkedList<CachedChar> list = new LinkedList<CachedChar>();

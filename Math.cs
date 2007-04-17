@@ -47,7 +47,7 @@ public static class GLMath
   /// <param name="angle">The angle to rotate by, in radians.</param>
   /// <param name="sin">A variable that will be set to the sine factor.</param>
   /// <param name="cos">A variable that will be set to the cosine factor.</param>
-  /// <remarks>These factors can be used with <see cref="Math2D.Rotate"/> functions to rotate points and vertices.</remarks>
+  /// <remarks>These factors can be used with <see cref="TwoD.Math2D.Rotate"/> functions to rotate points and vertices.</remarks>
   public static void GetRotationFactors(double angle, out double sin, out double cos)
   {
     sin = Math.Sin(angle);
@@ -81,116 +81,116 @@ public static class GLMath
   }
 
   /// <summary>Returns the absolute value of a <see cref="Fixed32"/>.</summary>
-  /// <param name="val">A <see cref="Fixed32"/> value.</param>
+  /// <param name="value">A <see cref="Fixed32"/> value.</param>
   /// <returns>A new <see cref="Fixed32"/> containing the absolute value.</returns>
-  public static Fixed32 Abs(Fixed32 val) { return val.val<0 ? new Fixed32((uint)-val.val) : val; }
+  public static Fixed32 Abs(Fixed32 value) { return value.value<0 ? new Fixed32((uint)-value.value) : value; }
   /// <summary>Returns the arc-cosine of a <see cref="Fixed32"/>.</summary>
-  /// <param name="val">A <see cref="Fixed32"/> value.</param>
+  /// <param name="value">A <see cref="Fixed32"/> value.</param>
   /// <returns>A new <see cref="Fixed32"/> containing the arc-cosine.</returns>
-  public static Fixed32 Acos(Fixed32 val) { return new Fixed32(Math.Acos(val.ToDouble())); }
+  public static Fixed32 Acos(Fixed32 value) { return new Fixed32(Math.Acos(value.ToDouble())); }
   /// <summary>Returns the arc-sine of a <see cref="Fixed32"/>.</summary>
-  /// <param name="val">A <see cref="Fixed32"/> value.</param>
+  /// <param name="value">A <see cref="Fixed32"/> value.</param>
   /// <returns>A new <see cref="Fixed32"/> containing the arc-sine.</returns>
-  public static Fixed32 Asin(Fixed32 val) { return new Fixed32(Math.Asin(val.ToDouble())); }
+  public static Fixed32 Asin(Fixed32 value) { return new Fixed32(Math.Asin(value.ToDouble())); }
   /// <summary>Returns the arc-tangent of a <see cref="Fixed32"/>.</summary>
-  /// <param name="val">A <see cref="Fixed32"/> value.</param>
+  /// <param name="value">A <see cref="Fixed32"/> value.</param>
   /// <returns>A new <see cref="Fixed32"/> containing the arc-tangent.</returns>
-  public static Fixed32 Atan(Fixed32 val) { return new Fixed32(Math.Atan(val.ToDouble())); }
+  public static Fixed32 Atan(Fixed32 value) { return new Fixed32(Math.Atan(value.ToDouble())); }
   /// <summary>Returns the ceiling of a <see cref="Fixed32"/>.</summary>
-  /// <param name="val">A <see cref="Fixed32"/> value.</param>
+  /// <param name="value">A <see cref="Fixed32"/> value.</param>
   /// <returns>A new <see cref="Fixed32"/> containing the smallest whole number greater than or equal to the given
   /// number.
   /// </returns>
-  public static Fixed32 Ceiling(Fixed32 val) { return val.Ceiling; }
+  public static Fixed32 Ceiling(Fixed32 value) { return value.Ceiling; }
   /// <summary>Returns the cosine of a <see cref="Fixed32"/>.</summary>
-  /// <param name="val">A <see cref="Fixed32"/> value.</param>
+  /// <param name="value">A <see cref="Fixed32"/> value.</param>
   /// <returns>A new <see cref="Fixed32"/> containing the cosine.</returns>
-  public static Fixed32 Cos(Fixed32 val) { return new Fixed32(Math.Cos(val.ToDouble())); }
+  public static Fixed32 Cos(Fixed32 value) { return new Fixed32(Math.Cos(value.ToDouble())); }
   /// <summary>Returns the floor of a <see cref="Fixed32"/>.</summary>
-  /// <param name="val">A <see cref="Fixed32"/> value.</param>
+  /// <param name="value">A <see cref="Fixed32"/> value.</param>
   /// <returns>A new <see cref="Fixed32"/> containing the largest whole number less than or equal to the given
   /// number.
   /// </returns>
-  public static Fixed32 Floor(Fixed32 val) { return val.Floor; }
+  public static Fixed32 Floor(Fixed32 value) { return value.Floor; }
   /// <summary>Returns the rounded value of a <see cref="Fixed32"/>.</summary>
-  /// <param name="val">A <see cref="Fixed32"/> value.</param>
+  /// <param name="value">A <see cref="Fixed32"/> value.</param>
   /// <returns>A new <see cref="Fixed32"/> containing the rounded value.</returns>
   /// <remarks>This method performs banker's rounding, so values with a fractional part of exactly 0.5 will be
   /// rounded towards the nearest even number, or towards zero.
   /// </remarks>
-  public static Fixed32 Round(Fixed32 val) { return val.Rounded; }
+  public static Fixed32 Round(Fixed32 value) { return value.Rounded; }
   /// <summary>Returns the sine of a <see cref="Fixed32"/>.</summary>
-  /// <param name="val">A <see cref="Fixed32"/> value.</param>
+  /// <param name="value">A <see cref="Fixed32"/> value.</param>
   /// <returns>A new <see cref="Fixed32"/> containing the sine.</returns>
-  public static Fixed32 Sin(Fixed32 val) { return new Fixed32(Math.Sin(val.ToDouble())); }
+  public static Fixed32 Sin(Fixed32 value) { return new Fixed32(Math.Sin(value.ToDouble())); }
   /// <summary>Returns the square root of a <see cref="Fixed32"/>.</summary>
-  /// <param name="val">A <see cref="Fixed32"/> value.</param>
+  /// <param name="value">A <see cref="Fixed32"/> value.</param>
   /// <returns>A new <see cref="Fixed32"/> containing the square root.</returns>
-  public static Fixed32 Sqrt(Fixed32 val) { return new Fixed32(Math.Sqrt(val.ToDouble())); }
+  public static Fixed32 Sqrt(Fixed32 value) { return new Fixed32(Math.Sqrt(value.ToDouble())); }
   /// <summary>Returns the tangent of a <see cref="Fixed32"/>.</summary>
-  /// <param name="val">A <see cref="Fixed32"/> value.</param>
+  /// <param name="value">A <see cref="Fixed32"/> value.</param>
   /// <returns>A new <see cref="Fixed32"/> containing the tangent.</returns>
-  public static Fixed32 Tan(Fixed32 val) { return new Fixed32(Math.Tan(val.ToDouble())); }
+  public static Fixed32 Tan(Fixed32 value) { return new Fixed32(Math.Tan(value.ToDouble())); }
   /// <summary>Returns the truncated value of a <see cref="Fixed32"/>.</summary>
-  /// <param name="val">A <see cref="Fixed32"/> value.</param>
+  /// <param name="value">A <see cref="Fixed32"/> value.</param>
   /// <returns>A new <see cref="Fixed32"/> containing the value truncated towards zero.</returns>
-  public static Fixed32 Truncate(Fixed32 val) { return val.Truncated; }
+  public static Fixed32 Truncate(Fixed32 value) { return value.Truncated; }
 
   /// <summary>Returns the absolute value of a <see cref="Fixed64"/>.</summary>
-  /// <param name="val">A <see cref="Fixed64"/> value.</param>
+  /// <param name="value">A <see cref="Fixed64"/> value.</param>
   /// <returns>A new <see cref="Fixed64"/> containing the absolute value.</returns>
-  public static Fixed64 Abs(Fixed64 val) { return val.val<0 ? new Fixed64(-val.val) : val; }
+  public static Fixed64 Abs(Fixed64 value) { return value.value<0 ? new Fixed64(-value.value) : value; }
   /// <summary>Returns the arc-cosine of a <see cref="Fixed64"/>.</summary>
-  /// <param name="val">A <see cref="Fixed64"/> value.</param>
+  /// <param name="value">A <see cref="Fixed64"/> value.</param>
   /// <returns>A new <see cref="Fixed64"/> containing the arc-cosine.</returns>
-  public static Fixed64 Acos(Fixed64 val) { return new Fixed64(Math.Acos(val.ToDouble())); }
+  public static Fixed64 Acos(Fixed64 value) { return new Fixed64(Math.Acos(value.ToDouble())); }
   /// <summary>Returns the arc-sine of a <see cref="Fixed64"/>.</summary>
-  /// <param name="val">A <see cref="Fixed64"/> value.</param>
+  /// <param name="value">A <see cref="Fixed64"/> value.</param>
   /// <returns>A new <see cref="Fixed64"/> containing the arc-sine.</returns>
-  public static Fixed64 Asin(Fixed64 val) { return new Fixed64(Math.Asin(val.ToDouble())); }
+  public static Fixed64 Asin(Fixed64 value) { return new Fixed64(Math.Asin(value.ToDouble())); }
   /// <summary>Returns the arc-tangent of a <see cref="Fixed64"/>.</summary>
-  /// <param name="val">A <see cref="Fixed64"/> value.</param>
+  /// <param name="value">A <see cref="Fixed64"/> value.</param>
   /// <returns>A new <see cref="Fixed64"/> containing the arc-tangent.</returns>
-  public static Fixed64 Atan(Fixed64 val) { return new Fixed64(Math.Atan(val.ToDouble())); }
+  public static Fixed64 Atan(Fixed64 value) { return new Fixed64(Math.Atan(value.ToDouble())); }
   /// <summary>Returns the ceiling of a <see cref="Fixed64"/>.</summary>
-  /// <param name="val">A <see cref="Fixed64"/> value.</param>
+  /// <param name="value">A <see cref="Fixed64"/> value.</param>
   /// <returns>A new <see cref="Fixed64"/> containing the smallest whole number greater than or equal to the given
   /// number.
   /// </returns>
-  public static Fixed64 Ceiling(Fixed64 val) { return val.Ceiling; }
+  public static Fixed64 Ceiling(Fixed64 value) { return value.Ceiling; }
   /// <summary>Returns the cosine of a <see cref="Fixed64"/>.</summary>
-  /// <param name="val">A <see cref="Fixed64"/> value.</param>
+  /// <param name="value">A <see cref="Fixed64"/> value.</param>
   /// <returns>A new <see cref="Fixed64"/> containing the cosine.</returns>
-  public static Fixed64 Cos(Fixed64 val) { return new Fixed64(Math.Cos(val.ToDouble())); }
+  public static Fixed64 Cos(Fixed64 value) { return new Fixed64(Math.Cos(value.ToDouble())); }
   /// <summary>Returns the floor of a <see cref="Fixed64"/>.</summary>
-  /// <param name="val">A <see cref="Fixed64"/> value.</param>
+  /// <param name="value">A <see cref="Fixed64"/> value.</param>
   /// <returns>A new <see cref="Fixed64"/> containing the largest whole number less than or equal to the given
   /// number.
   /// </returns>
-  public static Fixed64 Floor(Fixed64 val) { return val.Floor; }
+  public static Fixed64 Floor(Fixed64 value) { return value.Floor; }
   /// <summary>Returns the rounded value of a <see cref="Fixed64"/>.</summary>
-  /// <param name="val">A <see cref="Fixed64"/> value.</param>
+  /// <param name="value">A <see cref="Fixed64"/> value.</param>
   /// <returns>A new <see cref="Fixed64"/> containing the rounded value.</returns>
   /// <remarks>This method performs banker's rounding, so values with a fractional part of exactly 0.5 will be
   /// rounded towards the nearest even number, or towards zero.
   /// </remarks>
-  public static Fixed64 Round(Fixed64 val) { return val.Rounded; }
+  public static Fixed64 Round(Fixed64 value) { return value.Rounded; }
   /// <summary>Returns the sine of a <see cref="Fixed64"/>.</summary>
-  /// <param name="val">A <see cref="Fixed64"/> value.</param>
+  /// <param name="value">A <see cref="Fixed64"/> value.</param>
   /// <returns>A new <see cref="Fixed64"/> containing the sine.</returns>
-  public static Fixed64 Sin(Fixed64 val) { return new Fixed64(Math.Sin(val.ToDouble())); }
+  public static Fixed64 Sin(Fixed64 value) { return new Fixed64(Math.Sin(value.ToDouble())); }
   /// <summary>Returns the square root of a <see cref="Fixed64"/>.</summary>
-  /// <param name="val">A <see cref="Fixed64"/> value.</param>
+  /// <param name="value">A <see cref="Fixed64"/> value.</param>
   /// <returns>A new <see cref="Fixed64"/> containing the square root.</returns>
-  public static Fixed64 Sqrt(Fixed64 val) { return new Fixed64(Math.Sqrt(val.ToDouble())); }
+  public static Fixed64 Sqrt(Fixed64 value) { return new Fixed64(Math.Sqrt(value.ToDouble())); }
   /// <summary>Returns the tangent of a <see cref="Fixed64"/>.</summary>
-  /// <param name="val">A <see cref="Fixed64"/> value.</param>
+  /// <param name="value">A <see cref="Fixed64"/> value.</param>
   /// <returns>A new <see cref="Fixed64"/> containing the tangent.</returns>
-  public static Fixed64 Tan(Fixed64 val) { return new Fixed64(Math.Tan(val.ToDouble())); }
+  public static Fixed64 Tan(Fixed64 value) { return new Fixed64(Math.Tan(value.ToDouble())); }
   /// <summary>Returns the truncated value of a <see cref="Fixed64"/>.</summary>
-  /// <param name="val">A <see cref="Fixed64"/> value.</param>
+  /// <param name="value">A <see cref="Fixed64"/> value.</param>
   /// <returns>A new <see cref="Fixed64"/> containing the value truncated towards zero.</returns>
-  public static Fixed64 Truncate(Fixed64 val) { return val.Truncated; }
+  public static Fixed64 Truncate(Fixed64 value) { return value.Truncated; }
 }
 #endregion
 
@@ -206,6 +206,7 @@ public static class GLMath
 /// -32768 to approximately 32767.99998.
 /// </para>
 /// </remarks>
+// TODO: use a union like Fixed64 does
 [Serializable, StructLayout(LayoutKind.Sequential)]
 public struct Fixed32 : IFormattable, IComparable, IConvertible
 { 
@@ -215,35 +216,35 @@ public struct Fixed32 : IFormattable, IComparable, IConvertible
   /// able to be accurately represented.
   /// </remarks>
   /// <exception cref="OverflowException">Thrown if <paramref name="value"/> cannot be represented by this type.</exception>
-  public Fixed32(double value) { val=FromDouble(value); }
+  public Fixed32(double value) { this.value = FromDouble(value); }
   /// <summary>Initializes this fixed-point class from an integer.</summary>
   /// <param name="value">An integer from which the fixed-point number will be initialized.</param>
   /// <exception cref="OverflowException">Thrown if <paramref name="value"/> cannot be represented by this type.</exception>
   public Fixed32(int value)
   { if(value<-32768 || value>32767) throw new OverflowException();
-    val=value<<16;
+    this.value = value<<16;
   }
-  internal Fixed32(uint value) { val=(int)value; } // ugly, but 'int' was already taken
+  internal Fixed32(uint value) { this.value = (int)value; } // ugly, but 'int' was already taken
 
   /// <summary>Gets this number's absolute value.</summary>
   /// <value>A new fixed-point number containing the absolute value of this number.</value>
-  public Fixed32 Abs { get { return val<0 ? new Fixed32((uint)-val) : this; } }
+  public Fixed32 Abs { get { return value<0 ? new Fixed32((uint)-value) : this; } }
   /// <summary>Gets this number's ceiling.</summary>
   /// <value>A new fixed-point number containing the smallest whole number greater than or equal to the current value.</value>
-  public Fixed32 Ceiling { get { return new Fixed32((uint)((val+(OneVal-1)) & Trunc)); } }
+  public Fixed32 Ceiling { get { return new Fixed32((uint)((value+(OneVal-1)) & Trunc)); } }
   /// <summary>Gets this number's floor.</summary>
   /// <value>A new fixed-point number containing the largest whole number less than or equal to the current value.</value>
-  public Fixed32 Floor { get { return new Fixed32((uint)(val&Trunc)); } }
+  public Fixed32 Floor { get { return new Fixed32((uint)(value&Trunc)); } }
   /// <summary>Gets this number's value, rounded.</summary>
   /// <remarks>This method performs banker's rounding, so values with a fractional part of exactly 0.5 will be
   /// rounded towards the nearest even number, or towards zero.
   /// </remarks>
   public Fixed32 Rounded
   { get
-    { ushort fp = (ushort)val;
-      if(fp<0x8000) return new Fixed32((uint)(val&Trunc));
-      else if(fp>0x8000 || (val&OneVal)!=0) return new Fixed32((uint)((val+OneVal)&Trunc));
-      else return new Fixed32((uint)(val&Trunc));
+    { ushort fp = (ushort)value;
+      if(fp<0x8000) return new Fixed32((uint)(value&Trunc));
+      else if(fp>0x8000 || (value&OneVal)!=0) return new Fixed32((uint)((value+OneVal)&Trunc));
+      else return new Fixed32((uint)(value&Trunc));
     }
   }
   /// <summary>Gets this number's square root.</summary>
@@ -251,28 +252,28 @@ public struct Fixed32 : IFormattable, IComparable, IConvertible
   public Fixed32 Sqrt { get { return new Fixed32(Math.Sqrt(ToDouble())); } }
   /// <summary>Gets this number's value, truncated towards zero.</summary>
   /// <value>A new fixed-point number containing the current value truncated towards zero.</value>
-  public Fixed32 Truncated { get { return new Fixed32((uint)((val<0 ? val+(OneVal-1) : val)&Trunc)); } }
+  public Fixed32 Truncated { get { return new Fixed32((uint)((value<0 ? value+(OneVal-1) : value)&Trunc)); } }
   /// <summary>Returns true if this object is equal to the given object.</summary>
   /// <param name="obj">The object to compare against.</param>
   /// <returns>True if <paramref name="obj"/> is a <see cref="Fixed32"/> and has the same value as this one.</returns>
   public override bool Equals(object obj)
   { if(!(obj is Fixed32)) return false;
-    return val == ((Fixed32)obj).val;
+    return value == ((Fixed32)obj).value;
   }
   /// <summary>Returns a hash code for this <see cref="Fixed32"/>.</summary>
   /// <returns>An integer hash code for this <see cref="Fixed32"/>.</returns>
-  public override int GetHashCode() { return val; }
+  public override int GetHashCode() { return value; }
   /// <summary>Converts this <see cref="Fixed32"/> to a <see cref="Fixed64"/>.</summary>
   /// <returns>A <see cref="Fixed64"/> containing the same value.</returns>
-  public Fixed64 ToFixed64() { return new Fixed64(((long)(val&Trunc)<<16) | (uint)((ushort)val<<16)); }
+  public Fixed64 ToFixed64() { return new Fixed64(((long)(value&Trunc)<<16) | (uint)((ushort)value<<16)); }
   /// <summary>Converts this fixed-point number to a floating-point number.</summary>
   /// <returns>The double value closest to this fixed-point number.</returns>
-  public double ToDouble() { return (val>>16) + (ushort)val*0.0000152587890625; } // 1 / (1<<16)
+  public double ToDouble() { return (value>>16) + (ushort)value*0.0000152587890625; } // 1 / (1<<16)
   /// <summary>Returns the integer portion of the fixed-point number.</summary>
   /// <returns>The integer portion of the fixed-point number.</returns>
   public int ToInt()
-  { int ret = val>>16;
-    if(ret<0 && (ushort)val!=0) ret++;
+  { int ret = value>>16;
+    if(ret<0 && (ushort)value!=0) ret++;
     return ret;
   }
   /// <summary>Converts this fixed-point number into a string.</summary>
@@ -307,48 +308,48 @@ public struct Fixed32 : IFormattable, IComparable, IConvertible
   }
 
   #region Arithmetic operators
-  public static Fixed32 operator-(Fixed32 val) { return new Fixed32((uint)-val.val); }
+  public static Fixed32 operator-(Fixed32 val) { return new Fixed32((uint)-val.value); }
 
-  public static Fixed32 operator+(Fixed32 lhs, int rhs) { return new Fixed32((uint)(lhs.val+(rhs<<16))); }
-  public static Fixed32 operator-(Fixed32 lhs, int rhs) { return new Fixed32((uint)(lhs.val-(rhs<<16))); }
-  public static Fixed32 operator*(Fixed32 lhs, int rhs) { return new Fixed32((uint)(lhs.val*rhs)); }
-  public static Fixed32 operator/(Fixed32 lhs, int rhs) { return new Fixed32((uint)(lhs.val/rhs)); }
+  public static Fixed32 operator+(Fixed32 lhs, int rhs) { return new Fixed32((uint)(lhs.value+(rhs<<16))); }
+  public static Fixed32 operator-(Fixed32 lhs, int rhs) { return new Fixed32((uint)(lhs.value-(rhs<<16))); }
+  public static Fixed32 operator*(Fixed32 lhs, int rhs) { return new Fixed32((uint)(lhs.value*rhs)); }
+  public static Fixed32 operator/(Fixed32 lhs, int rhs) { return new Fixed32((uint)(lhs.value/rhs)); }
 
-  public static Fixed32 operator+(Fixed32 lhs, double rhs) { return new Fixed32((uint)(lhs.val+FromDouble(rhs))); }
-  public static Fixed32 operator-(Fixed32 lhs, double rhs) { return new Fixed32((uint)(lhs.val-FromDouble(rhs))); }
-  public static Fixed32 operator*(Fixed32 lhs, double rhs) { return new Fixed32((uint)(((long)lhs.val*FromDouble(rhs))>>16)); }
-  public static Fixed32 operator/(Fixed32 lhs, double rhs) { return new Fixed32((uint)(((long)lhs.val<<16)/FromDouble(rhs))); }
+  public static Fixed32 operator+(Fixed32 lhs, double rhs) { return new Fixed32((uint)(lhs.value+FromDouble(rhs))); }
+  public static Fixed32 operator-(Fixed32 lhs, double rhs) { return new Fixed32((uint)(lhs.value-FromDouble(rhs))); }
+  public static Fixed32 operator*(Fixed32 lhs, double rhs) { return new Fixed32((uint)(((long)lhs.value*FromDouble(rhs))>>16)); }
+  public static Fixed32 operator/(Fixed32 lhs, double rhs) { return new Fixed32((uint)(((long)lhs.value<<16)/FromDouble(rhs))); }
 
-  public static Fixed32 operator+(int lhs, Fixed32 rhs) { return new Fixed32((uint)((lhs<<16)+rhs.val)); }
-  public static Fixed32 operator-(int lhs, Fixed32 rhs) { return new Fixed32((uint)((lhs<<16)-rhs.val)); }
-  public static Fixed32 operator*(int lhs, Fixed32 rhs) { return new Fixed32((uint)(lhs*rhs.val)); }
-  public static Fixed32 operator/(int lhs, Fixed32 rhs) { return new Fixed32((uint)(((long)lhs<<32)/rhs.val)); }
+  public static Fixed32 operator+(int lhs, Fixed32 rhs) { return new Fixed32((uint)((lhs<<16)+rhs.value)); }
+  public static Fixed32 operator-(int lhs, Fixed32 rhs) { return new Fixed32((uint)((lhs<<16)-rhs.value)); }
+  public static Fixed32 operator*(int lhs, Fixed32 rhs) { return new Fixed32((uint)(lhs*rhs.value)); }
+  public static Fixed32 operator/(int lhs, Fixed32 rhs) { return new Fixed32((uint)(((long)lhs<<32)/rhs.value)); }
 
-  public static Fixed32 operator+(double lhs, Fixed32 rhs) { return new Fixed32((uint)(FromDouble(lhs)+rhs.val)); }
-  public static Fixed32 operator-(double lhs, Fixed32 rhs) { return new Fixed32((uint)(FromDouble(lhs)-rhs.val)); }
-  public static Fixed32 operator*(double lhs, Fixed32 rhs) { return new Fixed32((uint)(((long)FromDouble(lhs)*rhs.val)>>16)); }
-  public static Fixed32 operator/(double lhs, Fixed32 rhs) { return new Fixed32((uint)(((long)FromDouble(lhs)<<16)/rhs.val)); }
+  public static Fixed32 operator+(double lhs, Fixed32 rhs) { return new Fixed32((uint)(FromDouble(lhs)+rhs.value)); }
+  public static Fixed32 operator-(double lhs, Fixed32 rhs) { return new Fixed32((uint)(FromDouble(lhs)-rhs.value)); }
+  public static Fixed32 operator*(double lhs, Fixed32 rhs) { return new Fixed32((uint)(((long)FromDouble(lhs)*rhs.value)>>16)); }
+  public static Fixed32 operator/(double lhs, Fixed32 rhs) { return new Fixed32((uint)(((long)FromDouble(lhs)<<16)/rhs.value)); }
 
-  public static Fixed32 operator+(Fixed32 lhs, Fixed32 rhs) { return new Fixed32((uint)(lhs.val+rhs.val)); }
-  public static Fixed32 operator-(Fixed32 lhs, Fixed32 rhs) { return new Fixed32((uint)(lhs.val-rhs.val)); }
-  public static Fixed32 operator*(Fixed32 lhs, Fixed32 rhs) { return new Fixed32((uint)(((long)lhs.val*rhs.val)>>16)); }
-  public static Fixed32 operator/(Fixed32 lhs, Fixed32 rhs) { return new Fixed32((uint)(((long)lhs.val<<16)/rhs.val)); }
+  public static Fixed32 operator+(Fixed32 lhs, Fixed32 rhs) { return new Fixed32((uint)(lhs.value+rhs.value)); }
+  public static Fixed32 operator-(Fixed32 lhs, Fixed32 rhs) { return new Fixed32((uint)(lhs.value-rhs.value)); }
+  public static Fixed32 operator*(Fixed32 lhs, Fixed32 rhs) { return new Fixed32((uint)(((long)lhs.value*rhs.value)>>16)); }
+  public static Fixed32 operator/(Fixed32 lhs, Fixed32 rhs) { return new Fixed32((uint)(((long)lhs.value<<16)/rhs.value)); }
   #endregion
 
   #region Comparison operators
-  public static bool operator<(Fixed32 lhs, Fixed32 rhs) { return lhs.val<rhs.val; }
-  public static bool operator<=(Fixed32 lhs, Fixed32 rhs) { return lhs.val<=rhs.val; }
-  public static bool operator>(Fixed32 lhs, Fixed32 rhs) { return lhs.val>rhs.val; }
-  public static bool operator>=(Fixed32 lhs, Fixed32 rhs) { return lhs.val>=rhs.val; }
-  public static bool operator==(Fixed32 lhs, Fixed32 rhs) { return lhs.val==rhs.val; }
-  public static bool operator!=(Fixed32 lhs, Fixed32 rhs) { return lhs.val!=rhs.val; }
+  public static bool operator<(Fixed32 lhs, Fixed32 rhs) { return lhs.value<rhs.value; }
+  public static bool operator<=(Fixed32 lhs, Fixed32 rhs) { return lhs.value<=rhs.value; }
+  public static bool operator>(Fixed32 lhs, Fixed32 rhs) { return lhs.value>rhs.value; }
+  public static bool operator>=(Fixed32 lhs, Fixed32 rhs) { return lhs.value>=rhs.value; }
+  public static bool operator==(Fixed32 lhs, Fixed32 rhs) { return lhs.value==rhs.value; }
+  public static bool operator!=(Fixed32 lhs, Fixed32 rhs) { return lhs.value!=rhs.value; }
 
-  public static bool operator<(Fixed32 lhs, int rhs) { return lhs.val<(rhs<<16); }
-  public static bool operator<=(Fixed32 lhs, int rhs) { return lhs.val<=(rhs<<16); }
-  public static bool operator>(Fixed32 lhs, int rhs) { return lhs.val>(rhs<<16); }
-  public static bool operator>=(Fixed32 lhs, int rhs) { return lhs.val>=(rhs<<16); }
-  public static bool operator==(Fixed32 lhs, int rhs) { return lhs.val==(rhs<<16); }
-  public static bool operator!=(Fixed32 lhs, int rhs) { return lhs.val!=(rhs<<16); }
+  public static bool operator<(Fixed32 lhs, int rhs) { return lhs.value<(rhs<<16); }
+  public static bool operator<=(Fixed32 lhs, int rhs) { return lhs.value<=(rhs<<16); }
+  public static bool operator>(Fixed32 lhs, int rhs) { return lhs.value>(rhs<<16); }
+  public static bool operator>=(Fixed32 lhs, int rhs) { return lhs.value>=(rhs<<16); }
+  public static bool operator==(Fixed32 lhs, int rhs) { return lhs.value==(rhs<<16); }
+  public static bool operator!=(Fixed32 lhs, int rhs) { return lhs.value!=(rhs<<16); }
 
   public static bool operator<(Fixed32 lhs, double rhs) { return lhs.ToDouble()<rhs; }
   public static bool operator<=(Fixed32 lhs, double rhs) { return lhs.ToDouble()<=rhs; }
@@ -357,12 +358,12 @@ public struct Fixed32 : IFormattable, IComparable, IConvertible
   public static bool operator==(Fixed32 lhs, double rhs) { return lhs.ToDouble()==rhs; }
   public static bool operator!=(Fixed32 lhs, double rhs) { return lhs.ToDouble()!=rhs; }
 
-  public static bool operator<(int lhs, Fixed32 rhs) { return (lhs<<16)<rhs.val; }
-  public static bool operator<=(int lhs, Fixed32 rhs) { return (lhs<<16)<=rhs.val; }
-  public static bool operator>(int lhs, Fixed32 rhs) { return (lhs<<16)>rhs.val; }
-  public static bool operator>=(int lhs, Fixed32 rhs) { return (lhs<<16)>=rhs.val; }
-  public static bool operator==(int lhs, Fixed32 rhs) { return (lhs<<16)==rhs.val; }
-  public static bool operator!=(int lhs, Fixed32 rhs) { return (lhs<<16)!=rhs.val; }
+  public static bool operator<(int lhs, Fixed32 rhs) { return (lhs<<16)<rhs.value; }
+  public static bool operator<=(int lhs, Fixed32 rhs) { return (lhs<<16)<=rhs.value; }
+  public static bool operator>(int lhs, Fixed32 rhs) { return (lhs<<16)>rhs.value; }
+  public static bool operator>=(int lhs, Fixed32 rhs) { return (lhs<<16)>=rhs.value; }
+  public static bool operator==(int lhs, Fixed32 rhs) { return (lhs<<16)==rhs.value; }
+  public static bool operator!=(int lhs, Fixed32 rhs) { return (lhs<<16)!=rhs.value; }
 
   public static bool operator<(double lhs, Fixed32 rhs) { return lhs<rhs.ToDouble(); }
   public static bool operator<=(double lhs, Fixed32 rhs) { return lhs<=rhs.ToDouble(); }
@@ -412,7 +413,7 @@ public struct Fixed32 : IFormattable, IComparable, IConvertible
   /// <include file="documentation.xml" path="//IComparable/CompareTo/*"/>
   public int CompareTo(object obj)
   { if(obj==null) return 1;
-    if(obj is Fixed32) { return val-((Fixed32)obj).val; }
+    if(obj is Fixed32) { return value-((Fixed32)obj).value; }
     throw new ArgumentException("'obj' is not a Fixed32");
   }
   #endregion
@@ -444,7 +445,7 @@ public struct Fixed32 : IFormattable, IComparable, IConvertible
     return (float)d;
   }
   /// <include file="documentation.xml" path="//Mathematics/Fixed/ToBoolean/*"/>
-  public bool ToBoolean(IFormatProvider provider) { return val==0; }
+  public bool ToBoolean(IFormatProvider provider) { return value==0; }
   /// <include file="documentation.xml" path="//IConvertible/ToInt32/*"/>
   public int ToInt32(IFormatProvider provider) { return ToInt(); }
   /// <include file="documentation.xml" path="//IConvertible/ToUInt16/*"/>
@@ -516,7 +517,7 @@ public struct Fixed32 : IFormattable, IComparable, IConvertible
   public string ToString(string format, IFormatProvider provider)
   { if(format==null) return ToDouble().ToString();
     if(format.Length==0 || char.ToUpper(format[0])!='R') return ToDouble().ToString(format);
-    return (val>>16).ToString() + '/' + ((ushort)val).ToString();
+    return (value>>16).ToString() + '/' + ((ushort)value).ToString();
   }
   #endregion
 
@@ -531,7 +532,7 @@ public struct Fixed32 : IFormattable, IComparable, IConvertible
     return (whole<<16) + fp;
   }
 
-  internal int val;
+  internal int value;
 }
 #endregion
 
@@ -556,31 +557,31 @@ public struct Fixed64 : IFormattable, IComparable, IConvertible
   /// represented.
   /// </remarks>
   /// <exception cref="OverflowException">Thrown if <paramref name="value"/> cannot be represented by this type.</exception>
-  public Fixed64(double value) { wholePart=0; val=FromDouble(value); } // damn C# requires all fields to be set
+  public Fixed64(double value) { wholePart=0; this.value=FromDouble(value); } // damn C# requires all fields to be set
   /// <summary>Initializes this fixed-point class from an integer.</summary>
   /// <param name="value">An integer from which the fixed-point number will be initialized.</param>
-  public Fixed64(int value) { val=0; wholePart=value; }
-  internal Fixed64(long value) { wholePart=0; val=value; }
-  internal Fixed64(int whole, uint frac) { val=frac; wholePart=whole; }
+  public Fixed64(int value) { this.value=0; wholePart=value; }
+  internal Fixed64(long value) { wholePart=0; this.value=value; }
+  internal Fixed64(int whole, uint frac) { value=frac; wholePart=whole; }
   /// <summary>Gets this number's absolute value.</summary>
   /// <value>A new fixed-point number containing the absolute value of this number.</value>
-  public Fixed64 Abs { get { return val<0 ? new Fixed64(-val) : this; } }
+  public Fixed64 Abs { get { return value<0 ? new Fixed64(-value) : this; } }
   /// <summary>Gets this number's ceiling.</summary>
   /// <value>A new fixed-point number containing the smallest whole number greater than or equal to the current value.</value>
-  public Fixed64 Ceiling { get { return new Fixed64((val+(OneVal-1)) & Trunc); } }
+  public Fixed64 Ceiling { get { return new Fixed64((value+(OneVal-1)) & Trunc); } }
   /// <summary>Gets this number's floor.</summary>
   /// <value>A new fixed-point number containing the largest whole number less than or equal to the current value.</value>
-  public Fixed64 Floor { get { return new Fixed64(val&Trunc); } }
+  public Fixed64 Floor { get { return new Fixed64(value&Trunc); } }
   /// <summary>Gets this number's value, rounded.</summary>
   /// <remarks>This method performs banker's rounding, so values with a fractional part of exactly 0.5 will be
   /// rounded towards the nearest even number, or towards zero.
   /// </remarks>
   public Fixed64 Rounded
   { get
-    { uint fp = (uint)val;
-      if(fp<0x80000000) return new Fixed64(val&Trunc);
-      else if(fp>0x80000000 || (val&OneVal)!=0) return new Fixed64((val+OneVal)&Trunc);
-      else return new Fixed64(val&Trunc);
+    { uint fp = (uint)value;
+      if(fp<0x80000000) return new Fixed64(value&Trunc);
+      else if(fp>0x80000000 || (value&OneVal)!=0) return new Fixed64((value+OneVal)&Trunc);
+      else return new Fixed64(value&Trunc);
     }
   }
   /// <summary>Gets this number's square root.</summary>
@@ -588,17 +589,17 @@ public struct Fixed64 : IFormattable, IComparable, IConvertible
   public Fixed64 Sqrt { get { return new Fixed64(Math.Sqrt(ToDouble())); } }
   /// <summary>Gets this number's value, truncated towards zero.</summary>
   /// <value>A new fixed-point number containing the current value truncated towards zero.</value>
-  public Fixed64 Truncated { get { return new Fixed64((val<0 ? val+(OneVal-1) : val)&Trunc); } }
+  public Fixed64 Truncated { get { return new Fixed64((value<0 ? value+(OneVal-1) : value)&Trunc); } }
   /// <summary>Returns true if this object is equal to the given object.</summary>
   /// <param name="obj">The object to compare against.</param>
   /// <returns>True if <paramref name="obj"/> is a <see cref="Fixed64"/> and has the same value as this one.</returns>
   public override bool Equals(object obj)
   { if(!(obj is Fixed64)) return false;
-    return val == ((Fixed64)obj).val;
+    return value == ((Fixed64)obj).value;
   }
   /// <summary>Returns a hash code for this <see cref="Fixed64"/>.</summary>
   /// <returns>An integer hash code for this <see cref="Fixed64"/>.</returns>
-  public override int GetHashCode() { return wholePart ^ (int)(uint)val; }
+  public override int GetHashCode() { return wholePart ^ (int)(uint)value; }
   /// <summary>Converts this <see cref="Fixed64"/> to a <see cref="Fixed32"/>.</summary>
   /// <returns>A <see cref="Fixed32"/> containing the approximately the same value.</returns>
   /// <remarks>Due to the greater precision of the <see cref="Fixed64"/> class, the fractional part of the resulting
@@ -607,16 +608,16 @@ public struct Fixed64 : IFormattable, IComparable, IConvertible
   /// <exception cref="OverflowException">Thrown if the value is outside the range of a <see cref="Fixed32"/>.</exception>
   public Fixed32 ToFixed32()
   { if(wholePart<short.MinValue || wholePart>short.MaxValue) throw new OverflowException();
-    return new Fixed32((uint)((short)wholePart<<16) | ((uint)val>>16));
+    return new Fixed32((uint)((short)wholePart<<16) | ((uint)value>>16));
   }
   /// <summary>Converts this fixed-point number to a floating-point number.</summary>
   /// <returns>The double value closest to this fixed-point number.</returns>
-  public double ToDouble() { return wholePart + (uint)val*0.00000000023283064365386962890625; } // 1 / (1<<32)
+  public double ToDouble() { return wholePart + (uint)value*0.00000000023283064365386962890625; } // 1 / (1<<32)
   /// <summary>Returns the integer portion of the fixed-point number.</summary>
   /// <returns>The integer portion of the fixed-point number.</returns>
   public int ToInt()
   { int ret = wholePart;
-    if(ret<0 && (uint)val!=0) ret++;
+    if(ret<0 && (uint)value!=0) ret++;
     return ret;
   }
   /// <summary>Converts this fixed-point number into a string.</summary>
@@ -652,86 +653,86 @@ public struct Fixed64 : IFormattable, IComparable, IConvertible
   }
 
   #region Arithmetic operators
-  public static Fixed64 operator-(Fixed64 val) { return new Fixed64(-val.val); }
+  public static Fixed64 operator-(Fixed64 val) { return new Fixed64(-val.value); }
 
-  public static Fixed64 operator+(Fixed64 lhs, int rhs) { return new Fixed64(lhs.val+((long)rhs<<32)); }
-  public static Fixed64 operator-(Fixed64 lhs, int rhs) { return new Fixed64(lhs.val-((long)rhs<<32)); }
-  public static Fixed64 operator*(Fixed64 lhs, int rhs) { return new Fixed64(lhs.val*rhs); }
-  public static Fixed64 operator/(Fixed64 lhs, int rhs) { return new Fixed64(lhs.val/rhs); }
+  public static Fixed64 operator+(Fixed64 lhs, int rhs) { return new Fixed64(lhs.value+((long)rhs<<32)); }
+  public static Fixed64 operator-(Fixed64 lhs, int rhs) { return new Fixed64(lhs.value-((long)rhs<<32)); }
+  public static Fixed64 operator*(Fixed64 lhs, int rhs) { return new Fixed64(lhs.value*rhs); }
+  public static Fixed64 operator/(Fixed64 lhs, int rhs) { return new Fixed64(lhs.value/rhs); }
 
-  public static Fixed64 operator+(Fixed64 lhs, double rhs) { return new Fixed64(lhs.val+FromDouble(rhs)); }
-  public static Fixed64 operator-(Fixed64 lhs, double rhs) { return new Fixed64(lhs.val-FromDouble(rhs)); }
+  public static Fixed64 operator+(Fixed64 lhs, double rhs) { return new Fixed64(lhs.value+FromDouble(rhs)); }
+  public static Fixed64 operator-(Fixed64 lhs, double rhs) { return new Fixed64(lhs.value-FromDouble(rhs)); }
   public static Fixed64 operator*(Fixed64 lhs, double rhs) { return lhs * new Fixed64(rhs); }
   public static Fixed64 operator/(Fixed64 lhs, double rhs) { return lhs / new Fixed64(rhs); }
 
-  public static Fixed64 operator+(int lhs, Fixed64 rhs) { return new Fixed64(((long)lhs<<32)+rhs.val); }
-  public static Fixed64 operator-(int lhs, Fixed64 rhs) { return new Fixed64(((long)lhs<<32)-rhs.val); }
-  public static Fixed64 operator*(int lhs, Fixed64 rhs) { return new Fixed64(lhs*rhs.val); }
+  public static Fixed64 operator+(int lhs, Fixed64 rhs) { return new Fixed64(((long)lhs<<32)+rhs.value); }
+  public static Fixed64 operator-(int lhs, Fixed64 rhs) { return new Fixed64(((long)lhs<<32)-rhs.value); }
+  public static Fixed64 operator*(int lhs, Fixed64 rhs) { return new Fixed64(lhs*rhs.value); }
   public static Fixed64 operator/(int lhs, Fixed64 rhs) { return new Fixed64(lhs) / rhs; }
 
-  public static Fixed64 operator+(double lhs, Fixed64 rhs) { return new Fixed64(FromDouble(lhs)+rhs.val); }
-  public static Fixed64 operator-(double lhs, Fixed64 rhs) { return new Fixed64(FromDouble(lhs)-rhs.val); }
+  public static Fixed64 operator+(double lhs, Fixed64 rhs) { return new Fixed64(FromDouble(lhs)+rhs.value); }
+  public static Fixed64 operator-(double lhs, Fixed64 rhs) { return new Fixed64(FromDouble(lhs)-rhs.value); }
   public static Fixed64 operator*(double lhs, Fixed64 rhs) { return new Fixed64(lhs) * rhs; }
   public static Fixed64 operator/(double lhs, Fixed64 rhs) { return new Fixed64(lhs) / rhs; }
 
-  public static Fixed64 operator+(Fixed64 lhs, Fixed64 rhs) { return new Fixed64(lhs.val+rhs.val); }
-  public static Fixed64 operator-(Fixed64 lhs, Fixed64 rhs) { return new Fixed64(lhs.val-rhs.val); }
+  public static Fixed64 operator+(Fixed64 lhs, Fixed64 rhs) { return new Fixed64(lhs.value+rhs.value); }
+  public static Fixed64 operator-(Fixed64 lhs, Fixed64 rhs) { return new Fixed64(lhs.value-rhs.value); }
 
   public static Fixed64 operator*(Fixed64 lhs, Fixed64 rhs)
-  { long a=lhs.val>>32, b=(uint)lhs.val, c=rhs.val>>32, d=(uint)rhs.val;
+  { long a=lhs.value>>32, b=(uint)lhs.value, c=rhs.value>>32, d=(uint)rhs.value;
     return new Fixed64(((a*c)<<32) + b*c + a*d + ((b*d)>>32));
   }
 
   public static Fixed64 operator/(Fixed64 lhs, Fixed64 rhs)
   { long quot, rem;
-    uint fp = (uint)rhs.val;
+    uint fp = (uint)rhs.value;
     int  count;
-    if(fp==0) { return new Fixed64(lhs.val / rhs.ToInt()); }
+    if(fp==0) { return new Fixed64(lhs.value / rhs.ToInt()); }
 
     byte neg=0;
-    if(lhs.val<0) { lhs.val=-lhs.val; neg=(byte)~neg; }
-    if(rhs.val<0) { rhs.val=-rhs.val; neg=(byte)~neg; }
+    if(lhs.value<0) { lhs.value=-lhs.value; neg=(byte)~neg; }
+    if(rhs.value<0) { rhs.value=-rhs.value; neg=(byte)~neg; }
 
     count=0; // reduce if we can
-    { uint op = (uint)lhs.val, mask=1;
+    { uint op = (uint)lhs.value, mask=1;
       if((fp&mask)==0 && (op&mask)==0)
       { do { mask<<=1; count++; } while((fp&mask)==0 && (op&mask)==0);
-        rhs.val>>=count; lhs.val>>=count;
+        rhs.value>>=count; lhs.value>>=count;
       }
     }
 
-    if(rhs.val<0x100000000)
-    { quot  = Math.DivRem(lhs.val, rhs.val, out rem)<<32;
-      quot += Math.DivRem(rem<<32, rhs.val, out rem);
+    if(rhs.value<0x100000000)
+    { quot  = Math.DivRem(lhs.value, rhs.value, out rem)<<32;
+      quot += Math.DivRem(rem<<32, rhs.value, out rem);
     }
-    else if(rhs.val<0x1000000000000)
-    { Math.DivRem(lhs.val>>32, rhs.val, out rem);
-      quot  = Math.DivRem((rem<<32)+(uint)lhs.val, rhs.val, out rem)<<32;
-      quot += Math.DivRem(rem<<16, rhs.val, out rem)<<16;
-      quot += Math.DivRem(rem<<16, rhs.val, out rem);
+    else if(rhs.value<0x1000000000000)
+    { Math.DivRem(lhs.value>>32, rhs.value, out rem);
+      quot  = Math.DivRem((rem<<32)+(uint)lhs.value, rhs.value, out rem)<<32;
+      quot += Math.DivRem(rem<<16, rhs.value, out rem)<<16;
+      quot += Math.DivRem(rem<<16, rhs.value, out rem);
     }
     else // fall back on long division
     { // TODO: optimize for divisor>=dividend
-      Union ls = new Union(lhs.val<<count), t = new Union();
+      Union ls = new Union(lhs.value<<count), t = new Union();
       int  bits = 96-count;
       byte bit;
 
       rem = quot = 0;
       do
       { rem = (rem<<1) | (byte)((ls.Uint&0x80000000)>>31);
-        lhs.val = ls.Long;
+        lhs.value = ls.Long;
         ls.Long <<= 1;
         bits--;
       }
-      while(rem<rhs.val);
+      while(rem<rhs.value);
 
-      ls.Long = lhs.val;
+      ls.Long = lhs.value;
       rem >>= 1;
       bits++;
 
       do
       { rem = (rem<<1) | (byte)((ls.Uint&0x80000000)>>31);
-        t.Long = rem - rhs.val;
+        t.Long = rem - rhs.value;
         bit  = (byte)((~t.Uint&0x80000000)>>31);
         quot = (quot<<1) | bit;
         if(bit!=0) rem=t.Long;
@@ -744,19 +745,19 @@ public struct Fixed64 : IFormattable, IComparable, IConvertible
   #endregion
 
   #region Comparison operators
-  public static bool operator<(Fixed64 lhs, Fixed64 rhs) { return lhs.val<rhs.val; }
-  public static bool operator<=(Fixed64 lhs, Fixed64 rhs) { return lhs.val<=rhs.val; }
-  public static bool operator>(Fixed64 lhs, Fixed64 rhs) { return lhs.val>rhs.val; }
-  public static bool operator>=(Fixed64 lhs, Fixed64 rhs) { return lhs.val>=rhs.val; }
-  public static bool operator==(Fixed64 lhs, Fixed64 rhs) { return lhs.val==rhs.val; }
-  public static bool operator!=(Fixed64 lhs, Fixed64 rhs) { return lhs.val!=rhs.val; }
+  public static bool operator<(Fixed64 lhs, Fixed64 rhs) { return lhs.value<rhs.value; }
+  public static bool operator<=(Fixed64 lhs, Fixed64 rhs) { return lhs.value<=rhs.value; }
+  public static bool operator>(Fixed64 lhs, Fixed64 rhs) { return lhs.value>rhs.value; }
+  public static bool operator>=(Fixed64 lhs, Fixed64 rhs) { return lhs.value>=rhs.value; }
+  public static bool operator==(Fixed64 lhs, Fixed64 rhs) { return lhs.value==rhs.value; }
+  public static bool operator!=(Fixed64 lhs, Fixed64 rhs) { return lhs.value!=rhs.value; }
 
-  public static bool operator<(Fixed64 lhs, int rhs) { return lhs.val<((long)rhs<<32); }
-  public static bool operator<=(Fixed64 lhs, int rhs) { return lhs.val<=((long)rhs<<32); }
-  public static bool operator>(Fixed64 lhs, int rhs) { return lhs.val>((long)rhs<<32); }
-  public static bool operator>=(Fixed64 lhs, int rhs) { return lhs.val>=((long)rhs<<32); }
-  public static bool operator==(Fixed64 lhs, int rhs) { return lhs.val==((long)rhs<<32); }
-  public static bool operator!=(Fixed64 lhs, int rhs) { return lhs.val!=((long)rhs<<32); }
+  public static bool operator<(Fixed64 lhs, int rhs) { return lhs.value<((long)rhs<<32); }
+  public static bool operator<=(Fixed64 lhs, int rhs) { return lhs.value<=((long)rhs<<32); }
+  public static bool operator>(Fixed64 lhs, int rhs) { return lhs.value>((long)rhs<<32); }
+  public static bool operator>=(Fixed64 lhs, int rhs) { return lhs.value>=((long)rhs<<32); }
+  public static bool operator==(Fixed64 lhs, int rhs) { return lhs.value==((long)rhs<<32); }
+  public static bool operator!=(Fixed64 lhs, int rhs) { return lhs.value!=((long)rhs<<32); }
 
   public static bool operator<(Fixed64 lhs, double rhs) { return lhs.ToDouble()<rhs; }
   public static bool operator<=(Fixed64 lhs, double rhs) { return lhs.ToDouble()<=rhs; }
@@ -765,12 +766,12 @@ public struct Fixed64 : IFormattable, IComparable, IConvertible
   public static bool operator==(Fixed64 lhs, double rhs) { return lhs.ToDouble()==rhs; }
   public static bool operator!=(Fixed64 lhs, double rhs) { return lhs.ToDouble()!=rhs; }
 
-  public static bool operator<(int lhs, Fixed64 rhs) { return ((long)lhs<<32)<rhs.val; }
-  public static bool operator<=(int lhs, Fixed64 rhs) { return ((long)lhs<<32)<=rhs.val; }
-  public static bool operator>(int lhs, Fixed64 rhs) { return ((long)lhs<<32)>rhs.val; }
-  public static bool operator>=(int lhs, Fixed64 rhs) { return ((long)lhs<<32)>=rhs.val; }
-  public static bool operator==(int lhs, Fixed64 rhs) { return ((long)lhs<<32)==rhs.val; }
-  public static bool operator!=(int lhs, Fixed64 rhs) { return ((long)lhs<<32)!=rhs.val; }
+  public static bool operator<(int lhs, Fixed64 rhs) { return ((long)lhs<<32)<rhs.value; }
+  public static bool operator<=(int lhs, Fixed64 rhs) { return ((long)lhs<<32)<=rhs.value; }
+  public static bool operator>(int lhs, Fixed64 rhs) { return ((long)lhs<<32)>rhs.value; }
+  public static bool operator>=(int lhs, Fixed64 rhs) { return ((long)lhs<<32)>=rhs.value; }
+  public static bool operator==(int lhs, Fixed64 rhs) { return ((long)lhs<<32)==rhs.value; }
+  public static bool operator!=(int lhs, Fixed64 rhs) { return ((long)lhs<<32)!=rhs.value; }
 
   public static bool operator<(double lhs, Fixed64 rhs) { return lhs<rhs.ToDouble(); }
   public static bool operator<=(double lhs, Fixed64 rhs) { return lhs<=rhs.ToDouble(); }
@@ -828,8 +829,8 @@ public struct Fixed64 : IFormattable, IComparable, IConvertible
   public int CompareTo(object obj)
   { if(obj==null) return 1;
     if(obj is Fixed64)
-    { long ov = ((Fixed64)obj).val;
-      return val<ov ? -1 : val>ov ? 1 : 0;
+    { long ov = ((Fixed64)obj).value;
+      return value<ov ? -1 : value>ov ? 1 : 0;
     }
     throw new ArgumentException("'obj' is not a Fixed64");
   }
@@ -862,7 +863,7 @@ public struct Fixed64 : IFormattable, IComparable, IConvertible
     return (float)d;
   }
   /// <include file="documentation.xml" path="//Mathematics/Fixed/ToBoolean/*"/>
-  public bool ToBoolean(IFormatProvider provider) { return val==0; }
+  public bool ToBoolean(IFormatProvider provider) { return value==0; }
   /// <include file="documentation.xml" path="//IConvertible/ToInt32/*"/>
   public int ToInt32(IFormatProvider provider) { return ToInt(); }
   /// <include file="documentation.xml" path="//IConvertible/ToUInt16/*"/>
@@ -933,7 +934,7 @@ public struct Fixed64 : IFormattable, IComparable, IConvertible
   public string ToString(string format, IFormatProvider provider)
   { if(format==null) return ToDouble().ToString();
     if(format.Length==0 || char.ToUpper(format[0])!='R') return ToDouble().ToString(format);
-    return wholePart.ToString() + '/' + ((uint)val).ToString();
+    return wholePart.ToString() + '/' + ((uint)value).ToString();
   }
   #endregion
 
@@ -953,9 +954,9 @@ public struct Fixed64 : IFormattable, IComparable, IConvertible
 
   #if BIGENDIAN
   [FieldOffset(0)] internal long val;
-  [FieldOffset(0)] int wholePart;
+  [FieldOffset(0), NonSerialized] int wholePart;
   #else
-  [FieldOffset(0)] internal long val;
+  [FieldOffset(0)] internal long value;
   [FieldOffset(4), NonSerialized] int wholePart;
   #endif
 }
@@ -2278,6 +2279,16 @@ public struct Circle
     return Math2D.Contains(ref this, poly);
   }
 
+  public override bool Equals(object obj)
+  {
+    return obj is Circle ? this == (Circle)obj : false;
+  }
+
+  public override int GetHashCode()
+  {
+    return Center.GetHashCode() ^ Radius.GetHashCode();
+  }
+
   /// <summary>Determines whether the given circle intersects this circle.</summary>
   public bool Intersects(Circle circle)
   {
@@ -2313,6 +2324,16 @@ public struct Circle
   
   /// <summary>The radius of this circle.</summary>
   public double Radius;
+
+  public static bool operator==(Circle a, Circle b)
+  {
+    return a.Center.X == b.Center.X && a.Center.Y == b.Center.Y && a.Radius == b.Radius;
+  }
+
+  public static bool operator!=(Circle a, Circle b)
+  {
+    return a.Center.X != b.Center.X || a.Center.Y != b.Center.Y || a.Radius != b.Radius;
+  }
 }
 #endregion
 
@@ -2681,7 +2702,7 @@ public sealed class Polygon : ICloneable, ISerializable
   /// <remarks>This constructor is used to deserialize a polygon, and generally does not need to be called from user
   /// code.
   /// </remarks>
-  public Polygon(SerializationInfo info, StreamingContext context)
+  private Polygon(SerializationInfo info, StreamingContext context)
   { length = info.GetInt32("length");
     points = new Point[Math.Max(3, length)];
     for(int i=0; i<length; i++) points[i] = (Point)info.GetValue(i.ToString(), typeof(Point));
@@ -2709,7 +2730,7 @@ public sealed class Polygon : ICloneable, ISerializable
   { get { return points.Length; }
     set
     { if(value<length)
-        throw new ArgumentOutOfRangeException("value", value, "The value cannot be set less than Length.");
+        throw new ArgumentOutOfRangeException("value", value, "The capacity cannot be less than Length.");
       if(value<3) value = 3;
       if(value==points.Length) return;
       Point[] narr = new Point[value];
@@ -3440,11 +3461,31 @@ public struct Line
 /// <summary>This structure represents a plane.</summary>
 [Serializable]
 public struct Plane
-{ 
+{
+  public override bool Equals(object obj)
+  {
+    return obj is Plane ? this == (Plane)obj : false;
+  }
+
+  public override int GetHashCode()
+  {
+    return Point.GetHashCode() ^ Normal.GetHashCode();
+  }
+
   /// <summary>A point on the plane.</summary>
   public Point  Point;
   /// <summary>A vector perpendicular to the plane.</summary>
   public Vector Normal;
+
+  public static bool operator==(Plane a, Plane b)
+  {
+    return a.Point == b.Point && a.Normal == b.Normal;
+  }
+
+  public static bool operator!=(Plane a, Plane b)
+  {
+    return a.Point != b.Point || a.Normal != b.Normal;
+  }
 }
 #endregion
 
@@ -3474,10 +3515,30 @@ public struct Sphere
   /// <returns>Returns true if <paramref name="point"/> is contained within this sphere.</returns>
   public bool Contains(Point point) { return (point-Center).LengthSqr < Radius*Radius; }
 
+  public override bool Equals(object obj)
+  {
+    return obj is Sphere ? this == (Sphere)obj : false;
+  }
+
+  public override int GetHashCode()
+  {
+    return Center.GetHashCode() ^ Radius.GetHashCode();
+  }
+
   /// <summary>The center point of this sphere.</summary>
   public Point Center;
   /// <summary>The radius of this sphere.</summary>
   public double Radius;
+
+  public static bool operator==(Sphere a, Sphere b)
+  {
+    return a.Radius == b.Radius && a.Center == b.Center;
+  }
+
+  public static bool operator!=(Sphere a, Sphere b)
+  {
+    return a.Radius != b.Radius || a.Center != b.Center;
+  }
 }
 #endregion
 
@@ -3578,26 +3639,24 @@ public sealed class Matrix3
 
   public unsafe double this[int index]
   { get
-    { if(index<0 || index>=Length)
-        throw new ArgumentOutOfRangeException("index", index, "must be from 0 to "+(Length-1));
+    { if(index<0 || index>=Length) throw new ArgumentOutOfRangeException();
       fixed(double* data=&M00) return data[index];
     }
     set
-    { if(index<0 || index>=Length)
-        throw new ArgumentOutOfRangeException("index", index, "must be from 0 to "+(Length-1));
+    { if(index<0 || index>=Length) throw new ArgumentOutOfRangeException();
       fixed(double* data=&M00) data[index]=value;
     }
   }
 
   public unsafe double this[int i, int j]
   { get
-    { if(i<0 || i>=Height || j<0 || j>=Width)
-        throw new ArgumentOutOfRangeException("indices must range from 0 to "+(Width-1));
+    {
+      if(i<0 || i>=Height || j<0 || j>=Width) throw new ArgumentOutOfRangeException();
       fixed(double* data=&M00) return data[i*Height+j];
     }
     set
-    { if(i<0 || i>=Height || j<0 || j>=Width)
-        throw new ArgumentOutOfRangeException("indices must range from 0 to "+(Width-1));
+    {
+      if(i<0 || i>=Height || j<0 || j>=Width) throw new ArgumentOutOfRangeException();
       fixed(double* data=&M00) data[i*Height+j]=value;
     }
   }
@@ -3615,15 +3674,19 @@ public sealed class Matrix3
   }
 
   public override bool Equals(object obj)
-  { Matrix3 other = obj as Matrix3;
-    return other==null ? false : Equals(other);
+  { 
+    Matrix3 other = obj as Matrix3;
+    return other==null ? false : this == other;
   }
-  public unsafe bool Equals(Matrix3 other)
-  { fixed(double* ap=&M00) fixed(double* bp=&other.M00) for(int i=0; i<Length; i++) if(ap[i]!=bp[i]) return false;
-    return true;
+
+  public bool Equals(Matrix3 other)
+  {
+    return this == other;
   }
+  
   public unsafe bool Equals(Matrix3 other, double epsilon)
-  { fixed(double* ap=&M00) fixed(double* bp=&other.M00)
+  { 
+    fixed(double* ap=&M00) fixed(double* bp=&other.M00)
       for(int i=0; i<Length; i++) if(Math.Abs(ap[i]-bp[i])>epsilon) return false;
     return true;
   }
@@ -3742,6 +3805,17 @@ public sealed class Matrix3
     return ret;
   }
 
+  public static unsafe bool operator==(Matrix3 a, Matrix3 b)
+  {
+    fixed(double* ap=&a.M00) fixed(double* bp=&b.M00) for(int i=0; i<Length; i++) if(ap[i]!=bp[i]) return false;
+    return true;
+  }
+
+  public static bool operator!=(Matrix3 a, Matrix3 b)
+  {
+    return !(a == b);
+  }
+
   public static Matrix3 operator+(Matrix3 a, Matrix3 b)
   { Matrix3 ret = new Matrix3(false);
     Add(a, b, ret);
@@ -3821,15 +3895,19 @@ public sealed class Matrix4
   }
 
   public override bool Equals(object obj)
-  { Matrix4 other = obj as Matrix4;
-    return other==null ? false : Equals(other);
+  { 
+    Matrix4 other = obj as Matrix4;
+    return other==null ? false : this == other;
   }
-  public unsafe bool Equals(Matrix4 other)
-  { fixed(double* ap=&M00) fixed(double* bp=&other.M00) for(int i=0; i<Length; i++) if(ap[i]!=bp[i]) return false;
-    return true;
+  
+  public bool Equals(Matrix4 other)
+  {
+    return this == other;
   }
+  
   public unsafe bool Equals(Matrix4 other, double epsilon)
-  { fixed(double* ap=&M00) fixed(double* bp=&other.M00)
+  { 
+    fixed(double* ap=&M00) fixed(double* bp=&other.M00)
       for(int i=0; i<Length; i++) if(Math.Abs(ap[i]-bp[i])>epsilon) return false;
     return true;
   }
@@ -3974,6 +4052,17 @@ public sealed class Matrix4
   { Matrix4 ret = new Matrix4(false);
     Subtract(a, b, ret);
     return ret;
+  }
+
+  public static unsafe bool operator==(Matrix4 a, Matrix4 b)
+  {
+    fixed(double* ap=&a.M00) fixed(double* bp=&b.M00) for(int i=0; i<Length; i++) if(ap[i]!=bp[i]) return false;
+    return true;
+  }
+
+  public static bool operator!=(Matrix4 a, Matrix4 b)
+  {
+    return !(a == b);
   }
 
   public static Matrix4 operator*(Matrix4 a, Matrix4 b)

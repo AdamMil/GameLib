@@ -23,7 +23,8 @@ namespace GameLib
 {
 
 /// <summary>This is the base class for all exceptions specific to GameLib.</summary>
-public class GameLibException : ApplicationException
+[Serializable]
+public class GameLibException : Exception
 { 
   /// <summary>Initializes this exception.</summary>
   /// <param name="message">The message associated with this exception.</param>
@@ -35,6 +36,7 @@ public class GameLibException : ApplicationException
 }
 
 /// <summary>This exception is thrown when the data given to a method is too large for it to handle.</summary>
+[Serializable]
 public class DataTooLargeException : GameLibException
 { 
   /// <summary>Initializes this exception.</summary>
@@ -65,6 +67,7 @@ public class DataTooLargeException : GameLibException
 }
 
 /// <summary>This exception is thrown when an encoder or decoder could not be found for the given data.</summary>
+[Serializable]
 public class CodecNotFoundException : GameLibException
 { 
   /// <summary>Initializes this exception.</summary>
@@ -78,6 +81,7 @@ public class CodecNotFoundException : GameLibException
 namespace Video
 {
 /// <summary>This is the base class for all video-related exceptions in GameLib.</summary>
+[Serializable]
 public class VideoException : GameLibException
 { 
   /// <summary>Initializes this exception.</summary>
@@ -89,6 +93,7 @@ public class VideoException : GameLibException
 /// <see cref="GameLib.Video.Surface"/>. The surface must be reloaded with image data. This should not happen on
 /// modern systems.
 /// </summary>
+[Serializable]
 public class SurfaceLostException : VideoException
 { 
   /// <summary>Initializes this exception.</summary>
@@ -96,6 +101,7 @@ public class SurfaceLostException : VideoException
 }
 
 /// <summary>This is the base class of all OpenGL-related exceptions in GameLib.</summary>
+[Serializable]
 public class OpenGLException : VideoException
 { 
   /// <summary>Initializes this exception.</summary>
@@ -104,6 +110,7 @@ public class OpenGLException : VideoException
 }
 
 /// <summary>This exception is thrown when OpenGL will not create any more texture handles.</summary>
+[Serializable]
 public class NoMoreTexturesException : OpenGLException
 { 
   /// <summary>Initializes this exception.</summary>
@@ -113,6 +120,7 @@ public class NoMoreTexturesException : OpenGLException
 /// <summary>This exception is thrown when OpenGL is will not create a texture because it would not fit in video
 /// memory.
 /// </summary>
+[Serializable]
 public class OutOfTextureMemoryException : OpenGLException
 { 
   /// <summary>Initializes this exception.</summary>
@@ -126,6 +134,7 @@ public class OutOfTextureMemoryException : OpenGLException
 namespace Network
 {
 /// <summary>This is the base class for all network-related exceptions in GameLib.</summary>
+[Serializable]
 public class NetworkException : GameLibException
 { 
   /// <summary>Initializes this exception.</summary>
@@ -134,6 +143,7 @@ public class NetworkException : GameLibException
 }
 
 /// <summary>This exception is thrown when a network connection has been lost.</summary>
+[Serializable]
 public class ConnectionLostException : NetworkException
 { 
   /// <summary>Initializes this exception.</summary>
@@ -144,6 +154,7 @@ public class ConnectionLostException : NetworkException
 }
 
 /// <summary>This exception is thrown when a remote connection did not use the expected handshake.</summary>
+[Serializable]
 public class HandshakeException : NetworkException
 { 
   /// <summary>Initializes this exception.</summary>
@@ -159,6 +170,7 @@ public class HandshakeException : NetworkException
 namespace Input
 {
 /// <summary>This is the base class for all input-related exceptions in GameLib.</summary>
+[Serializable]
 public class InputException : GameLibException
 { 
   /// <summary>Initializes this exception.</summary>
@@ -173,6 +185,7 @@ namespace Audio
 { 
 
 /// <summary>This is the base class for all audio-related exceptions in GameLib.</summary>
+[Serializable]
 public class AudioException : GameLibException
 { 
   /// <summary>Initializes this exception.</summary>
@@ -183,7 +196,8 @@ public class AudioException : GameLibException
 /// <summary>This enum contains values representing various types of Ogg Vorbis decoding errors.</summary>
 public enum OggError
 { 
-
+  /// <summary>No error occurred.</summary>
+  None = 0,
   /// <summary>Read error while fetching compressed data for decode.</summary>
   Read = Ogg.OggError.Read,
   /// <summary>Internal inconsistency in decode state. Continuing is likely not possible.</summary>
@@ -210,6 +224,7 @@ public enum OggError
 }
 
 /// <summary>This exception is thrown when the ogg vorbis decoder has a problem decoding a stream.</summary>
+[Serializable]
 public class OggVorbisException : AudioException
 { 
   /// <summary>Initializes this exception.</summary>

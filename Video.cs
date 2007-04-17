@@ -729,8 +729,6 @@ public static class Video
 /// </summary>
 public static class WM
 { 
-  static WM() { inputFocus = mouseFocus = minimized = true; }
-
   /// <summary>Gets whether the application window is active (focused) or not.</summary>
   /// <value>A boolean indicating whether the application window has input focus.</value>
   /// <remarks>This property is updated by the <see cref="Events.Events"/> class when it receives an event from
@@ -790,7 +788,7 @@ public static class WM
     minimized = true;
   }
   
-  internal static bool minimized, inputFocus, mouseFocus;
+  internal static bool minimized=true, inputFocus=true, mouseFocus=true;
 }
 
 #endregion

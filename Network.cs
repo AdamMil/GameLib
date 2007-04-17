@@ -524,16 +524,23 @@ public sealed class LinkMessage
   /// </remarks>
   public object Tag { get { return tag; } }
 
-  /// <summary>Returns the message data.</summary>
+  /// <summary>Returns the message data. Note that calling this method may alter the values of <see cref="Index"/> and
+  /// <see cref="Data"/>.
+  /// </summary>
   /// <returns>An array of <see cref="System.Byte"/> containing only the message data. The array's length will
   /// be equal to <see cref="Length"/>. If no copying is necessary, the returned array will be identical to
   /// <see cref="Data"/>.
   /// </returns>
-  public byte[] GetData()
-  { if(length==data.Length) return data;
-    byte[] ret = new byte[length];
-    Array.Copy(data, index, ret, 0, length);
-    return ret;
+  public byte[] Shrink()
+  {
+    if(length != data.Length)
+    {
+      byte[] newData = new byte[length];
+      Array.Copy(data, index, newData, 0, length);
+      index = 0;
+      data  = newData;
+    }
+    return data;
   }
 
   internal byte[]   data;
@@ -747,7 +754,7 @@ public class NetLink
         lock(recv) m = recv.Count==0 ? null : recv.Dequeue();
       if(m==null) return null;
     }
-    return m.GetData();
+    return m.Shrink();
   }
 
   /// <summary>Returns the next message if it exists.</summary>
@@ -870,7 +877,7 @@ public class NetLink
               if(nextSize==0)
               { nextSize = -1;
                 if((recvFlags&SendFlag.Sequential)!=0)
-                { if(BadSequence(recvSeq)) continue;
+                { if(IsBadSequence) continue;
                   else nextSeq = recvSeq;
                 }
 
@@ -902,7 +909,7 @@ public class NetLink
             recvSeq     = (ushort)(header>>22);
 
             if((recvFlags&SendFlag.Sequential)!=0)
-            { if(BadSequence(recvSeq)) continue;
+            { if(IsBadSequence) continue;
               else nextSeq = recvSeq;
             }
 
@@ -1105,7 +1112,10 @@ public class NetLink
   enum HeadFlag : byte { Ack=32, Mask=0xE0 }
   const int HeaderSize=4, SeqMax=1024;
 
-  bool BadSequence(ushort seq) { return recvSeq<nextSeq && nextSeq-recvSeq<=SeqMax*4/10; }
+  bool IsBadSequence
+  {
+    get { return recvSeq<nextSeq && nextSeq-recvSeq<=SeqMax*4/10; }
+  }
 
   void SizeBuffer(int len)
   { if(len<256) len=256;
@@ -1221,7 +1231,7 @@ public class NetLink
 #region Server class and supporting types
 /// <summary>This class represents a player connected to the server.</summary>
 public sealed class ServerPlayer
-{ internal ServerPlayer(NetLink link, uint id) { Link=link; ID=id; }
+{ internal ServerPlayer(NetLink link, int id) { Link=link; this.id=id; }
 
   /// <summary>Returns true if the player is being dropped.</summary>
   /// <remarks>This property will return true if the player has been dropped, or will be dropped. It is invalid to
@@ -1232,14 +1242,19 @@ public sealed class ServerPlayer
   /// <summary>Gets the player's remote endpoint.</summary>
   public IPEndPoint EndPoint { get { return Link.RemoteEndPoint; } }
 
+  /// <summary>Gets the player's unique Id.</summary>
+  public int Id { get { return id; } }
+
   /// <summary>Arbitrary data associated with this player. This field is not examined by the network code, so you can
   /// use it to hold any data you like.
   /// </summary>
   public object Data;
 
-  internal uint     ID, DropDelay, DropStart;
+  internal uint     DropDelay, DropStart;
   internal NetLink  Link;
   internal bool     DelayedDrop;
+
+  int id;
 }
 
 /// <summary>This delegate is used for the <see cref="Server.PlayerConnecting"/> event. It receives a reference to
@@ -1303,7 +1318,7 @@ public class Server
     }
   }
 
-  /// <summary>Gets a <see cref="PlayerCollection"/> holding the current players.</summary>
+  /// <summary>Gets a read-only collection of the current players.</summary>
   public ReadOnlyCollection<ServerPlayer> Players { get { return players.AsReadOnly(); } }
 
   /// <include file="documentation.xml" path="//Network/Common/LagAverage/*"/>
@@ -1434,7 +1449,7 @@ public class Server
   /// </remarks>
   public void DropPlayerDelayed(ServerPlayer p, int timeoutMs)
   {
-    if(timeoutMs < 0) throw new ArgumentOutOfRangeException();
+    if(timeoutMs < 0) throw new ArgumentOutOfRangeException("timeoutMs", "cannot be negative");
     p.DropDelay   = (uint)timeoutMs;
     p.DropStart   = Timing.Msecs;
     p.DelayedDrop = true;
@@ -1459,9 +1474,9 @@ public class Server
     else RawSend(toWho, data, index, length, flags, 0, data);
   }
   /// <include file="documentation.xml" path="//Network/Server/Send/*[self::Common or self::byteData or self::Flags or self::Timeout]/*"/>
-  public void Send(object toWho, byte[] data, SendFlag flags, int timeoutMs) { Send(toWho, data, 0, data.Length, flags); }
+  public void Send(object toWho, byte[] data, SendFlag flags, int timeoutMs) { Send(toWho, data, 0, data.Length, flags, timeoutMs); }
   /// <include file="documentation.xml" path="//Network/Server/Send/*[self::Common or self::byteData or self::Length or self::Flags or self::Timeout]/*"/>
-  public void Send(object toWho, byte[] data, int length, SendFlag flags, int timeoutMs) { Send(toWho, data, 0, length, flags); }
+  public void Send(object toWho, byte[] data, int length, SendFlag flags, int timeoutMs) { Send(toWho, data, 0, length, flags, timeoutMs); }
   /// <include file="documentation.xml" path="//Network/Server/Send/*[self::Common or self::byteData or self::Index or self::Length or self::Flags or self::Timeout]/*"/>
   public void Send(object toWho, byte[] data, int index, int length, SendFlag flags, int timeoutMs)
   { if(cvt.AltersByteArray) RawSend(toWho, cvt.Serialize(data, index, length), flags, timeoutMs, data);
@@ -1668,7 +1683,7 @@ public class Server
       { if(Events.Events.Initialized)
           Events.Events.PushEvent(new Events.ExceptionEvent(Events.ExceptionLocation.NetworkThread, e));
       }
-      catch { throw e; }
+      catch { throw; }
     }
   }
 
@@ -1678,8 +1693,7 @@ public class Server
   TcpListener        server;
   Thread             thread;
   SendFlag           defFlags = SendFlag.ReliableSequential;
-  uint               nextID=1;
-  int                lagAverage, lagVariance;
+  int                nextID=1, lagAverage, lagVariance;
   bool               quit, listening;
 }
 #endregion
@@ -1791,7 +1805,7 @@ public class Client
   /// </remarks>
   public void DelayedDisconnect(int timeoutMs)
   {
-    if(timeoutMs < 0) throw new ArgumentOutOfRangeException();
+    if(timeoutMs < 0) throw new ArgumentOutOfRangeException("timeoutMs", "Cannot be negative");
     dropDelay   = (uint)timeoutMs;
     dropStart   = Timing.Msecs;
     delayedDrop = true;
@@ -1845,9 +1859,9 @@ public class Client
     else DoSend(data, index, length, flags, 0, data);
   }
   /// <include file="documentation.xml" path="//Network/Client/Send/*[self::Common or self::byteData or self::Flags or self::Timeout]/*"/>
-  public void Send(byte[] data, SendFlag flags, int timeoutMs) { Send(data, 0, data.Length, flags); }
+  public void Send(byte[] data, SendFlag flags, int timeoutMs) { Send(data, 0, data.Length, flags, timeoutMs); }
   /// <include file="documentation.xml" path="//Network/Client/Send/*[self::Common or self::byteData or self::Length or self::Flags or self::Timeout]/*"/>
-  public void Send(byte[] data, int length, SendFlag flags, int timeoutMs) { Send(data, 0, length, flags); }
+  public void Send(byte[] data, int length, SendFlag flags, int timeoutMs) { Send(data, 0, length, flags, timeoutMs); }
   /// <include file="documentation.xml" path="//Network/Client/Send/*[self::Common or self::byteData or self::Index or self::Length or self::Flags or self::Timeout]/*"/>
   public void Send(byte[] data, int index, int length, SendFlag flags, int timeoutMs)
   { AssertLink();
@@ -1968,7 +1982,7 @@ public class Client
       { if(Events.Events.Initialized)
           Events.Events.PushEvent(new Events.ExceptionEvent(Events.ExceptionLocation.NetworkThread, e));
       }
-      catch { throw e; }
+      catch { throw; }
     }
   }
 

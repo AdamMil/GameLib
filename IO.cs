@@ -101,11 +101,14 @@ public class StreamStream : Stream
   /// <remarks>If this stream was constructed with the <c>closeInner</c> parameter set to true, the underlying
   /// stream will be closed as well.
   /// </remarks>
-  public override void Close()
-  { if(stream==null) return;
+  public override void Close() // Close() is called by base.Dispose()
+  { 
+    if(stream == null) return;
     if(closeInner) stream.Close();
-    stream=null;
+    stream = null;
+    base.Close();
   }
+
   /// <summary>Flushes the underlying stream.</summary>
   public override void Flush() { AssertOpen(); stream.Flush(); }
 
@@ -157,7 +160,9 @@ public class StreamStream : Stream
     if(origin==SeekOrigin.Current) offset+=position;
     else if(origin==SeekOrigin.End) offset+=length;
     if(offset<0 || offset>length)
-      throw new ArgumentOutOfRangeException("Cannot seek outside the bounds of this stream.");
+    {
+      throw new ArgumentOutOfRangeException("offset", "Cannot seek outside the bounds of this stream.");
+    }
     return position = stream.Seek(start+offset, SeekOrigin.Begin)-start;
   }
 
@@ -227,11 +232,6 @@ public class StreamStream : Stream
   protected void AssertOpen()
   { if(stream==null) throw new InvalidOperationException("The inner stream was already closed.");
   }
-
-  /// <summary>Disposes resources used by this stream.</summary>
-  /// <param name="finalizing">True if this method is being called from a finalizer and false otherwise.</param>
-  /// <remarks>If overriden in a derived class, remember to call the base implementation.</remarks>
-  protected override void Dispose(bool finalizing) { Close(); }
 
   Stream stream;
   long start, length, position;
@@ -449,7 +449,7 @@ public static class IOH
   /// <exception cref="EndOfStreamException">Thrown if the end of the stream is reached before all data could be read.
   /// </exception>
   public static int Read(Stream stream, byte[] buf, int offset, int length)
-  { return Read(stream, buf, 0, length, true);
+  { return Read(stream, buf, offset, length, true);
   }
   /// <summary>Tries to fill the given buffer with data from a stream.</summary>
   /// <param name="stream">The stream to read from.</param>

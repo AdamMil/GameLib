@@ -330,7 +330,7 @@ public sealed class PSDCodec
       }
       return layer;
     }
-    catch(Exception e) { Abort(); throw e; }
+    catch { Abort(); throw; }
   }
 
   /// <summary>Reads the flattened image.</summary>
@@ -351,7 +351,7 @@ public sealed class PSDCodec
     IOH.Skip(stream, savedPos-(int)stream.Position);
     ValidateChannels(image.Channels);
     try { return image.Flattened = ReadImageData(); }
-    catch(Exception e) { Abort(); throw e; }
+    catch { Abort(); throw; }
   }
 
   /// <summary>Reads all remaining layers from the PSD file.</summary>
@@ -378,7 +378,7 @@ public sealed class PSDCodec
       IOH.Skip(stream, layer.dataLength);
       return layer;
     }
-    catch(Exception e) { Abort(); throw e; }
+    catch { Abort(); throw; }
   }
 
   /// <summary>Skips all remaining layers in the PSD file.</summary>
@@ -435,7 +435,7 @@ public sealed class PSDCodec
         for(int i=0; i<numLayers; i++) img.Layers[i] = new PSDLayer(stream);
       }
     }
-    catch(Exception e) { if(autoClose) stream.Close(); throw e; }
+    catch { if(autoClose) stream.Close(); throw; }
 
     done:
     this.stream = stream;
@@ -527,7 +527,7 @@ public sealed class PSDCodec
       }
       else IOH.WriteBE4(stream, 0); // misc info section
     }
-    catch(Exception e) { if(autoClose) stream.Close(); throw e; }
+    catch { if(autoClose) stream.Close(); throw; }
 
     this.autoClose = autoClose;
     this.stream = stream;
@@ -596,7 +596,7 @@ public sealed class PSDCodec
     if(surface.Depth<24)
       surface = surface.Clone(new PixelFormat(surface.Format.AlphaMask==0 ? 24 : 32, surface.Format.AlphaMask!=0));
     try { WriteImageData(surface); state=State.Flattened; }
-    catch(Exception e) { Abort(); throw e; }
+    catch { Abort(); throw; }
   }
 
   /// <summary>Writes the next layer.</summary>
@@ -649,7 +649,7 @@ public sealed class PSDCodec
         state = State.Layers;
       }
     }
-    catch(Exception e) { Abort(); throw e; }
+    catch { Abort(); throw; }
   }
 
   /// <param name="filename">A path to the file to check.</param>
@@ -794,7 +794,7 @@ public sealed class PSDCodec
 
   unsafe Surface ReadImageData(int width, int height, PSDChannel[] chans, bool layer)
   { Surface surface = new Surface(width, height, chans.Length==3 ? 24 : 32,
-                                  chans.Length==3 ? SurfaceFlag.None : SurfaceFlag.SrcAlpha);
+                                  chans.Length==3 ? SurfaceFlag.None : SurfaceFlag.SourceAlpha);
 
     byte[] linebuf=null;
     int[]  lengths=null;

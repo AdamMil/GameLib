@@ -23,9 +23,8 @@ using GameLib.Interop.SDLGFX;
 namespace GameLib.Video
 {
 
-public unsafe class Primitives
-{ private Primitives() { }
-
+public static unsafe class Primitives
+{
   #region Pixels
   /// <include file="documentation.xml" path="//Video/Primitives/Pixel/*[self::Common or self::Pt or self::C]/*"/>
   public static void Pixel(Surface dest, Point pt, Color color) { Pixel(dest, pt.X, pt.Y, color); }

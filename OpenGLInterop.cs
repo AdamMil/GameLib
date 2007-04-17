@@ -1643,7 +1643,7 @@ public static class GL
   public unsafe static extern void glGetMapfv(int target, int query, float *v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glGetMapfv(int target, int query, [In] [Out] float[] v);
-  public static float glGetMapfv(int target, int query, int pname)
+  public static float glGetMapfv(int target, int query)
   { unsafe { float v; glGetMapfv(target, query, &v); return v; }
   }
   [CLSCompliant(false)]
@@ -3338,51 +3338,51 @@ public static class GLU
   #endregion
 
   #region Imports
-  [DllImport(Config.GLUImportPath, CallingConvention=CallingConvention.Winapi)]
+  [DllImport(Config.GluImportPath, CallingConvention=CallingConvention.Winapi)]
   public static extern string gluErrorString(int error);
-  [DllImport(Config.GLUImportPath, CallingConvention=CallingConvention.Winapi)]
+  [DllImport(Config.GluImportPath, CallingConvention=CallingConvention.Winapi)]
   public static extern string gluGetString(int str);
-  [DllImport(Config.GLUImportPath, CallingConvention=CallingConvention.Winapi)]
+  [DllImport(Config.GluImportPath, CallingConvention=CallingConvention.Winapi)]
   public static extern void gluOrtho2D(double left, double right, double bottom, double top);
-  [DllImport(Config.GLUImportPath, CallingConvention=CallingConvention.Winapi)]
+  [DllImport(Config.GluImportPath, CallingConvention=CallingConvention.Winapi)]
   public static extern void gluPerspective(double fovy, double aspect, double zNear, double zFar);
   [CLSCompliant(false)]
-  [DllImport(Config.GLUImportPath, CallingConvention=CallingConvention.Winapi)]
+  [DllImport(Config.GluImportPath, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void gluPickMatrix(double x, double y, double width, double height, int* viewport);
-  [DllImport(Config.GLUImportPath, CallingConvention=CallingConvention.Winapi)]
+  [DllImport(Config.GluImportPath, CallingConvention=CallingConvention.Winapi)]
   public static extern void gluPickMatrix(double x, double y, double width, double height, [In] int[] viewport);
-  [DllImport(Config.GLUImportPath, CallingConvention=CallingConvention.Winapi)]
+  [DllImport(Config.GluImportPath, CallingConvention=CallingConvention.Winapi)]
   public static extern void gluLookAt(double eyex, double eyey, double eyez, double centerx, double centery, double centerz, double upx, double upy, double upz);
   [CLSCompliant(false)]
-  [DllImport(Config.GLUImportPath, CallingConvention=CallingConvention.Winapi)]
+  [DllImport(Config.GluImportPath, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern int gluProject(double objx, double objy, double objz, /*const*/ double* modelMatrix, /*const*/ double* projMatrix, /*const*/ int* viewport, double* winx, double* winy, double* winz);
-  [DllImport(Config.GLUImportPath, CallingConvention=CallingConvention.Winapi)]
+  [DllImport(Config.GluImportPath, CallingConvention=CallingConvention.Winapi)]
   public static extern int gluProject(double objx, double objy, double objz, double[] modelMatrix, double[] projMatrix, int[] viewport, out double winx, out double winy, out double winz);
   [CLSCompliant(false)]
-  [DllImport(Config.GLUImportPath, CallingConvention=CallingConvention.Winapi)]
+  [DllImport(Config.GluImportPath, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern int gluUnProject(double winx, double winy, double winz, /*const*/ double* modelMatrix, /*const*/ double* projMatrix, /*const*/ int* viewport, double *objx, double *objy, double *objz);
-  [DllImport(Config.GLUImportPath, CallingConvention=CallingConvention.Winapi)]
+  [DllImport(Config.GluImportPath, CallingConvention=CallingConvention.Winapi)]
   public static extern int gluUnProject(double winx, double winy, double winz, double[] modelMatrix, double[] projMatrix, int[] viewport, out double objx, out double objy, out double objz);
   [CLSCompliant(false)]
-  [DllImport(Config.GLUImportPath, CallingConvention=CallingConvention.Winapi)]
+  [DllImport(Config.GluImportPath, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern int gluScaleImage(int format, int widthin, int heightin, int typein, /*const*/ void* datain, int widthout, int heightout, int typeout, void* dataout);
-  [DllImport(Config.GLUImportPath, CallingConvention=CallingConvention.Winapi)]
+  [DllImport(Config.GluImportPath, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern int gluScaleImage(int format, int widthin, int heightin, int typein, IntPtr datain, int widthout, int heightout, int typeout, IntPtr dataout);
-  [DllImport(Config.GLUImportPath, CallingConvention=CallingConvention.Winapi)]
+  [DllImport(Config.GluImportPath, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern int gluScaleImage(int format, int widthin, int heightin, int typein, [In] byte[] datain, int widthout, int heightout, int typeout, [Out] byte[] dataout);
   [CLSCompliant(false)]
-  [DllImport(Config.GLUImportPath, CallingConvention=CallingConvention.Winapi)]
+  [DllImport(Config.GluImportPath, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern int gluBuild1DMipmaps(int target, int components, int width, int format, int type, /*const*/ void* data);
-  [DllImport(Config.GLUImportPath, CallingConvention=CallingConvention.Winapi)]
+  [DllImport(Config.GluImportPath, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern int gluBuild1DMipmaps(int target, int components, int width, int format, int type, IntPtr data);
-  [DllImport(Config.GLUImportPath, CallingConvention=CallingConvention.Winapi)]
+  [DllImport(Config.GluImportPath, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern int gluBuild1DMipmaps(int target, int components, int width, int format, int type, [In] byte[] data);
   [CLSCompliant(false)]
-  [DllImport(Config.GLUImportPath, CallingConvention=CallingConvention.Winapi)]
+  [DllImport(Config.GluImportPath, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern int gluBuild2DMipmaps(int target, int components, int width, int height, int format, int type, /*const*/ void* data);
-  [DllImport(Config.GLUImportPath, CallingConvention=CallingConvention.Winapi)]
+  [DllImport(Config.GluImportPath, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern int gluBuild2DMipmaps(int target, int components, int width, int height, int format, int type, IntPtr data);
-  [DllImport(Config.GLUImportPath, CallingConvention=CallingConvention.Winapi)]
+  [DllImport(Config.GluImportPath, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern int gluBuild2DMipmaps(int target, int components, int width, int height, int format, int type, [In] byte[] data);
   #endregion
   #endregion
@@ -3431,56 +3431,56 @@ public static class GLU
   #endregion
   
   #region Delegates
-  [UnmanagedFunctionPointer(Config.GLUCallbackConvention)]
+  [UnmanagedFunctionPointer(Config.GluCallbackConvention)]
   public delegate void GLUtessBeginProc(int type);
-  [UnmanagedFunctionPointer(Config.GLUCallbackConvention)]
+  [UnmanagedFunctionPointer(Config.GluCallbackConvention)]
   public delegate void GLUtessEdgeFlagProc(byte isBoundaryEdge);
-  [UnmanagedFunctionPointer(Config.GLUCallbackConvention)]
+  [UnmanagedFunctionPointer(Config.GluCallbackConvention)]
   public delegate void GLUtessVertexProc(IntPtr vertex);
-  [UnmanagedFunctionPointer(Config.GLUCallbackConvention)]
+  [UnmanagedFunctionPointer(Config.GluCallbackConvention)]
   public delegate void GLUtessEndProc();
-  [UnmanagedFunctionPointer(Config.GLUCallbackConvention)]
+  [UnmanagedFunctionPointer(Config.GluCallbackConvention)]
   public delegate void GLUtessErrorProc(int error);
   [CLSCompliant(false)]
-  [UnmanagedFunctionPointer(Config.GLUCallbackConvention)]
+  [UnmanagedFunctionPointer(Config.GluCallbackConvention)]
   public unsafe delegate void GLUtessCombineProc(double* coords3, IntPtr* vertexContext4, float* weights4,
                                                  out IntPtr newVertex);
-  [UnmanagedFunctionPointer(Config.GLUCallbackConvention)]
+  [UnmanagedFunctionPointer(Config.GluCallbackConvention)]
   public delegate void GLUtessBeginDataProc(int type, IntPtr context);
-  [UnmanagedFunctionPointer(Config.GLUCallbackConvention)]
+  [UnmanagedFunctionPointer(Config.GluCallbackConvention)]
   public delegate void GLUtessEdgeFlagDataProc(byte isBoundaryEdge, IntPtr context);
-  [UnmanagedFunctionPointer(Config.GLUCallbackConvention)]
+  [UnmanagedFunctionPointer(Config.GluCallbackConvention)]
   public delegate void GLUtessVertexDataProc(IntPtr vertex, IntPtr context);
-  [UnmanagedFunctionPointer(Config.GLUCallbackConvention)]
+  [UnmanagedFunctionPointer(Config.GluCallbackConvention)]
   public delegate void GLUtessEndDataProc(IntPtr context);
-  [UnmanagedFunctionPointer(Config.GLUCallbackConvention)]
+  [UnmanagedFunctionPointer(Config.GluCallbackConvention)]
   public delegate void GLUtessErrorDataProc(int error, IntPtr context);
   [CLSCompliant(false)]
-  [UnmanagedFunctionPointer(Config.GLUCallbackConvention)]
+  [UnmanagedFunctionPointer(Config.GluCallbackConvention)]
   public unsafe delegate void GLUtessCombineDataProc(double* coords3, IntPtr* vertexContext4, float* weights4,
                                                      out IntPtr newVertex, IntPtr context);
   #endregion
 
   #region Imports
-  [DllImport(Config.GLUImportPath, CallingConvention=CallingConvention.Winapi)]
+  [DllImport(Config.GluImportPath, CallingConvention=CallingConvention.Winapi)]
   public static extern IntPtr gluNewTess();
-  [DllImport(Config.GLUImportPath, CallingConvention=CallingConvention.Winapi)]
+  [DllImport(Config.GluImportPath, CallingConvention=CallingConvention.Winapi)]
   public static extern void gluDeleteTess(IntPtr tessellator);
-  [DllImport(Config.GLUImportPath, CallingConvention=CallingConvention.Winapi)]
+  [DllImport(Config.GluImportPath, CallingConvention=CallingConvention.Winapi)]
   public static extern void gluTessBeginPolygon(IntPtr tessellator, IntPtr context);
   public static void gluTessBeginPolygon(IntPtr tessellator) { gluTessBeginPolygon(tessellator, IntPtr.Zero); }
-  [DllImport(Config.GLUImportPath, CallingConvention=CallingConvention.Winapi)]
+  [DllImport(Config.GluImportPath, CallingConvention=CallingConvention.Winapi)]
   public static extern void gluTessBeginContour(IntPtr tessellator);
   [CLSCompliant(false)]
-  [DllImport(Config.GLUImportPath, CallingConvention=CallingConvention.Winapi)]
+  [DllImport(Config.GluImportPath, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void gluTessVertex(IntPtr tessellator, double* coords3d, IntPtr context);
-  [DllImport(Config.GLUImportPath, CallingConvention=CallingConvention.Winapi)]
+  [DllImport(Config.GluImportPath, CallingConvention=CallingConvention.Winapi)]
   public static extern void gluTessEndContour(IntPtr tessellator);   
-  [DllImport(Config.GLUImportPath, CallingConvention=CallingConvention.Winapi)]
+  [DllImport(Config.GluImportPath, CallingConvention=CallingConvention.Winapi)]
   public static extern void gluTessEndPolygon(IntPtr tessellator);
-  [DllImport(Config.GLUImportPath, CallingConvention=CallingConvention.Winapi)]
+  [DllImport(Config.GluImportPath, CallingConvention=CallingConvention.Winapi)]
   public static extern void gluTessProperty(IntPtr tessellator, int which, double value);
-  [DllImport(Config.GLUImportPath, CallingConvention=CallingConvention.Winapi)]
+  [DllImport(Config.GluImportPath, CallingConvention=CallingConvention.Winapi)]
   public static extern void gluTessNormal(IntPtr tessellator, double x, double y, double z);
   public static void gluTessNormal(IntPtr tessellator, Mathematics.TwoD.Vector v)
   { gluTessNormal(tessellator, v.X, v.Y, 0);
@@ -3488,7 +3488,7 @@ public static class GLU
   public static void gluTessNormal(IntPtr tessellator, Mathematics.ThreeD.Vector v)
   { gluTessNormal(tessellator, v.X, v.Y, v.Z);
   }
-  [DllImport(Config.GLUImportPath, CallingConvention=CallingConvention.Winapi)]
+  [DllImport(Config.GluImportPath, CallingConvention=CallingConvention.Winapi)]
   public static extern void gluTessCallback(IntPtr tessellator, int which, Delegate callback);
   public static void gluTessCallback(IntPtr tessellator, GLUtessBeginProc callback)
   { gluTessCallback(tessellator, GLU_TESS_BEGIN, callback);
@@ -3529,7 +3529,7 @@ public static class GLU
   { gluTessCallback(tessellator, GLU_TESS_COMBINE_DATA, callback);
   }
 
-  [DllImport(Config.GLUImportPath, CallingConvention=CallingConvention.Winapi)]
+  [DllImport(Config.GluImportPath, CallingConvention=CallingConvention.Winapi)]
   public static extern void gluGetTessProperty(IntPtr tessellator, int which, out double value);
   #endregion
   #endregion
