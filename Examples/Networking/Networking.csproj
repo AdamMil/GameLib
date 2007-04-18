@@ -74,11 +74,6 @@
     <ErrorReport>prompt</ErrorReport>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\GameLib.csproj">
-      <Name>GameLib</Name>
-      <Project>{79014105-2BDA-4D27-98AE-2DE3F5254252}</Project>
-      <Package>{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</Package>
-    </ProjectReference>
     <Reference Include="System">
       <Name>System</Name>
     </Reference>
@@ -87,6 +82,16 @@
     <Compile Include="main.cs">
       <SubType>Code</SubType>
     </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\AdamMil.net\IO\AdamMil.IO.csproj">
+      <Project>{CEB9BC77-B63F-40A1-BEDE-7C32E9B90D55}</Project>
+      <Name>AdamMil.IO</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\Network\GameLib.Network.csproj">
+      <Project>{9D5BB62D-A391-4025-9DF1-88698FCC5978}</Project>
+      <Name>GameLib.Network</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

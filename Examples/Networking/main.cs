@@ -21,7 +21,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
 using System.Text;
-using GameLib.IO;
+using AdamMil.IO;
 using GameLib.Network;
 
 namespace NetworkingTest
