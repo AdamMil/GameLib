@@ -25,6 +25,7 @@ namespace GameLib
 /// <summary>This class contains all the compile-time configuration necessary to build GameLib.</summary>
 public static class Config
 {
+  /// <summary>The AdamMil.snk public key.</summary>
   internal const string PublicKey = "0024000004800000940000000602000000240000525341310004000001000100b308a842bed4daf1ec3c339d4082be77edd6ea720cdef3710ce9f6a6254a2960bc204598b97d8ad26a17054bca651c15f3a2e488d2111813313c2a7ceca0c05c2de053eed260a8c529b74ff74fc30886dbd0aba8f65780702e2404400c36e5a33f6cda6b24b925cd39acc0aa6c3bdea95cd6b42527064f41e4be491c0c9a01b3";
 
   /// <summary>The <see cref="DllImportAttribute"/> path to the SDL_image library.</summary>
@@ -40,11 +41,11 @@ public static class Config
   /// <summary>The <see cref="DllImportAttribute"/> path to the SDL_ttf library.</summary>
   public const string SdlTTFImportPath    = "SDL_ttf";
   /// <summary>The <see cref="DllImportAttribute"/> path to the GameLib Mixer library.</summary>
-  public const string GLMixerImportPath   = "Mixer";
+  public const string GLMixerImportPath   = "GameLib.Mixer.dll";
   /// <summary>The <see cref="DllImportAttribute"/> path to the GameLib Utility library.</summary>
-  public const string GLUtilityImportPath = "Utility";
+  public const string GLUtilityImportPath = "GameLib.Utility.dll";
   /// <summary>The <see cref="DllImportAttribute"/> path to the GameLib VorbisWrapper library.</summary>
-  public const string VorbisImportPath    = "VorbisWrapper";
+  public const string VorbisImportPath    = "GameLib.VorbisWrapper.dll";
   /// <summary>The <see cref="DllImportAttribute"/> path to the OpenGL library.</summary>
   public const string OpenGLImportPath    = "opengl32";
   /// <summary>The <see cref="DllImportAttribute"/> path to the GLU library.</summary>
@@ -85,7 +86,6 @@ public static class Config
   public const CallingConvention GluCallbackConvention = CallingConvention.Cdecl;
   #endif
 
-  // TODO: perhaps i should be using System.BitConverter.IsLittleEndian
   /// <summary>True if compiled for a big-endian system.</summary>
   /// <remarks>This value is controlled by the BIGENDIAN compile time declaration.</remarks>
   #if BIGENDIAN

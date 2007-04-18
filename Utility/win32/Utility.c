@@ -18,7 +18,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "../Utility.h"
 #include <windows.h>
-#include <wchar.h>
 
 static LARGE_INTEGER hrFreq, hrStart;
 static DWORD  msStart;
@@ -72,3 +71,7 @@ void GLU_ResetTimer()
 { if(hiRes) QueryPerformanceCounter(&hrStart);
   else msStart = GetTickCount();
 }
+
+void GLU_MemCopy(void *src, void *dest, int length) { CopyMemory(dest, src, length); }
+void GLU_MemFill(void *dest, Uint8 value, int length) { FillMemory(dest, length, value); }
+void GLU_MemMove(void *src, void *dest, int length) { MoveMemory(dest, src, length); }
