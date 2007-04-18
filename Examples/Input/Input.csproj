@@ -74,11 +74,6 @@
     <ErrorReport>prompt</ErrorReport>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\GameLib.csproj">
-      <Name>GameLib</Name>
-      <Project>{79014105-2BDA-4D27-98AE-2DE3F5254252}</Project>
-      <Package>{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</Package>
-    </ProjectReference>
     <Reference Include="System.Drawing">
       <Name>System.Drawing</Name>
     </Reference>
@@ -87,6 +82,16 @@
     <Compile Include="main.cs">
       <SubType>Code</SubType>
     </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\Base\GameLib.Base.csproj">
+      <Project>{711792B7-5B4A-4BAC-9FAE-1476F4A4D5C3}</Project>
+      <Name>GameLib.Base</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\Video\GameLib.Video.csproj">
+      <Project>{C54986D4-0E7D-461B-ACB8-1C19FF78481B}</Project>
+      <Name>GameLib.Video</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

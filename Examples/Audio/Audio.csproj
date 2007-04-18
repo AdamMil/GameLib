@@ -74,16 +74,15 @@
     <ErrorReport>prompt</ErrorReport>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\GameLib.csproj">
-      <Name>GameLib</Name>
-      <Project>{79014105-2BDA-4D27-98AE-2DE3F5254252}</Project>
-      <Package>{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</Package>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
     <Compile Include="main.cs">
       <SubType>Code</SubType>
     </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\Audio\GameLib.Audio.csproj">
+      <Project>{A1DB6052-FF6E-4A8D-A060-03DF5C49291D}</Project>
+      <Name>GameLib.Audio</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>

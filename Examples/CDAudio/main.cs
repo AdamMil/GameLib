@@ -30,7 +30,7 @@ namespace CDAudioTest
       Drive playDrive = null;
       int playTrack = -1;
 
-      foreach(Drive drive in CD.GetDrives())
+      foreach(Drive drive in CD.Drives)
       {
         Console.Write("Drive {0} - ", drive.Number);
         if(drive.CDInDrive)

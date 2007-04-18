@@ -142,7 +142,7 @@ namespace WindowingTest
       Random rand = new Random(); // change everything to a random color
       BackColor = bar.ForeColor = Color.FromArgb(rand.Next(255), rand.Next(255),
                                                  rand.Next(255));
-      bar.BackColor = Helpers.GetDarkColor(bar.ForeColor);
+      bar.BackColor = UIHelpers.GetDarkColor(bar.ForeColor);
     }
     #endregion
 
