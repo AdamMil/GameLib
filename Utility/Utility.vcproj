@@ -2,7 +2,7 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="8.00"
-	Name="Utility"
+	Name="GameLib.Utility"
 	ProjectGUID="{77863D03-19B6-41C4-AF5C-08B8D9CFE001}"
 	Keyword="Win32Proj"
 	>
@@ -65,14 +65,15 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				OutputFile="$(OutDir)/Utility.dll"
+				OutputFile="$(OutDir)/GameLib.Utility.dll"
 				LinkIncremental="2"
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile="$(OutDir)/Utility.pdb"
 				SubSystem="2"
 				EnableCOMDATFolding="0"
 				OptimizeForWindows98="1"
-				ImportLibrary="$(OutDir)/Utility.lib"
+				BaseAddress="0x01300000"
+				ImportLibrary="$(OutDir)/GameLib.Utility.lib"
 				TargetMachine="1"
 			/>
 			<Tool
@@ -126,6 +127,8 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
+				Optimization="1"
+				FavorSizeOrSpeed="2"
 				OmitFramePointers="true"
 				AdditionalIncludeDirectories="d:\adammil\code\sdl\include"
 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;UTILITY_EXPORTS;_UNICODE"
@@ -151,14 +154,15 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				OutputFile="$(OutDir)/Utility.dll"
+				OutputFile="$(OutDir)/GameLib.Utility.dll"
 				LinkIncremental="1"
 				GenerateDebugInformation="false"
 				SubSystem="2"
 				OptimizeReferences="2"
 				EnableCOMDATFolding="2"
 				OptimizeForWindows98="1"
-				ImportLibrary="$(OutDir)/Utility.lib"
+				BaseAddress="0x01300000"
+				ImportLibrary="$(OutDir)/GameLib.Utility.lib"
 				TargetMachine="1"
 			/>
 			<Tool
@@ -190,10 +194,6 @@
 	<References>
 	</References>
 	<Files>
-		<File
-			RelativePath=".\Common.c"
-			>
-		</File>
 		<File
 			RelativePath=".\win32\Utility.c"
 			>

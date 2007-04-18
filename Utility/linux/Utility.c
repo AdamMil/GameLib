@@ -20,6 +20,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include <sys/time.h>
 #include <termios.h>
 #include <stdio.h>
+#include <string.h>
 
 static struct timeval hrStart;
 static Uint32 initCount;
@@ -64,47 +65,6 @@ double GLU_GetSeconds()
 
 void GLU_ResetTimer() { gettimeofday(&hrStart, NULL); }
 
-/* TODO: make these return real wchars (maybe use ncurses, or look at ncurses code?) */
-
-wchar_t GLU_Getch()
-{ struct termios stored_ios, new_ios;
-  int c;
-  tcgetattr(0,&stored_ios);
-  new_ios = stored_ios;
-  new_ios.c_lflag &= ~(ICANON|ECHO);
-  new_ios.c_cc[VTIME] = 0;
-  new_ios.c_cc[VMIN]  = 1;
-  tcsetattr(0, TCSANOW, &new_ios);
-  c = getchar();
-  tcsetattr(0, TCSANOW, &stored_ios);
-  return c;
-}
-
-wchar_t GLU_Getche()
-{ struct termios stored_ios, new_ios;
-  int c;
-  tcgetattr(0,&stored_ios);
-  new_ios = stored_ios;
-  new_ios.c_lflag = (new_ios.c_lflag & ~ICANON) | ECHO;
-  new_ios.c_cc[VTIME] = 0;
-  new_ios.c_cc[VMIN]  = 1;
-  tcsetattr(0, TCSANOW, &new_ios);
-  c = getchar();
-  tcsetattr(0, TCSANOW, &stored_ios);
-  return c;
-}
-
-Uint8 GLU_KbHit()
-{ struct termios stored_ios, new_ios;
-  int c;
-  tcgetattr(0,&stored_ios);
-  new_ios = stored_ios;
-  new_ios.c_lflag &= ~ICANON;
-  new_ios.c_cc[VTIME] = 0;
-  new_ios.c_cc[VMIN]  = 1;
-  tcsetattr(0, TCSANOW, &new_ios);
-  c = getchar();
-  tcsetattr(0, TCSANOW, &stored_ios);
-  if(c!=-1) { ungetc(c, stdin); return 1; }
-  return 0;
-}
+void GLU_MemCopy(void *src, void *dest, int length) { memcpy(dest, src, length); }
+void GLU_MemFill(void *dest, Uint8 value, int length) { memset(dest, value, length); }
+void GLU_MemMove(void *src, void *dest, int length) { memmove(dest, src, length); }

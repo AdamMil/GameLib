@@ -17,8 +17,5 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 #include "Utility.h"
-#include <string.h>
+#include <windows.h>
 
-void GLU_MemCopy(void *src, void *dest, int length) { memcpy(dest, src, length); }
-void GLU_MemFill(void *dest, Uint8 value, int length) { memset(dest, value, length); }
-void GLU_MemMove(void *src, void *dest, int length) { memmove(dest, src, length); }
