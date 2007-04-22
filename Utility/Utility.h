@@ -19,13 +19,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #ifndef GAMELIB_UTILITY_H
 #define GAMELIB_UTILITY_H
 
-#ifdef _MSC_VER
-typedef unsigned __int8  Uint8;  /* Exclude the C runtime (from SDL_types) from the windows version to reduce size. */
-typedef unsigned __int32 Uint32;
-typedef unsigned __int64 Uint64;
-#else
 #include "SDL_types.h"
-#endif
 
 #include "begin_code.h"
 
