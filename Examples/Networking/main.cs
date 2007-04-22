@@ -42,7 +42,7 @@ namespace NetworkingTest
 
   enum SimpleEnum : byte { Zero, One, Two, Three }; // use a byte to save space
 
-  // simple structures/classes (containing only value types) such as these ones
+  // simple structures/classes (containing only blittable types) such as these ones
   // can be serialized automatically
   // StructLayout is required for automatic serialization (serialization
   // for classes that don't implement INetSerializable). also, set Pack=1
@@ -50,7 +50,9 @@ namespace NetworkingTest
   [StructLayout(LayoutKind.Sequential, Pack=1)]
   class Simple
   {
-    public Simple() { } // empty constructors are needed for deserialization
+    // default constructors are needed for deserialization of reference types
+    public Simple() { }
+
     public Simple(SimpleEnum e, int i, float f, Point p)
     {
       Enum=e; Int=i; Float=f; Point=p;
@@ -62,16 +64,16 @@ namespace NetworkingTest
                            GetType().Name, Enum, Int, Float, Point);
     }
 
-    public SimpleEnum Enum;
     public int Int;
     public float Float;
     public Point Point; // structures can contain other structures, too
+    public SimpleEnum Enum;
   }
 
   [StructLayout(LayoutKind.Sequential, Pack=1)]
   class OtherSimple : Simple // derivation is okay, too, so you can make a
-  {
-    public OtherSimple() { } // hierarchy with a root Message class or whatever
+  {                          // hierarchy with a root Message class or whatever
+    public OtherSimple() { }
     public OtherSimple(SimpleEnum e, int i, float f, Point p, char c)
       : base(e, i, f, p) { Char=c; }
 
@@ -83,8 +85,8 @@ namespace NetworkingTest
     public char Char;
   }
 
-  // complex structures/classes (classes containing non-value types) are okay
-  // if they implement INetSerializable
+  // complex structures/classes (classes containing non-blittable types) are
+  // okay if they implement INetSerializable
   class Complex : INetSerializable
   {
     public Complex() { }
@@ -98,20 +100,20 @@ namespace NetworkingTest
 
     #region INetSerializeable Members
     // use formatted binary IO (less efficient, but oh-so-simple)
-    public int SizeOf() { return IOH.CalculateSize(">d?dp", Array, String); }
+    public int SizeOf() { return IOH.CalculateSize(">*v?dp", Array, String); }
 
     public void SerializeTo(byte[] buf, int index)
     {
-      IOH.Write(buf, index, ">d?dp", Array.Length, Array, String);
+      IOH.Write(buf, index, ">*v?dp", Array, String);
     }
 
     public int DeserializeFrom(byte[] buf, int index)
     {
-      int length = IOH.ReadBE4(buf, index);
-      object[] data = IOH.Read(buf, index+4, ">"+length+"dp", out length);
+      int bytesRead;
+      object[] data = IOH.Read(buf, index, ">*v?dp", out bytesRead);
       Array  = (int[])data[0];
       String = (string)data[1];
-      return length+4;
+      return bytesRead;
     }
     #endregion
 
@@ -125,10 +127,6 @@ namespace NetworkingTest
     static void Main()
     { // change the following port if something is using it
       IPEndPoint ep = new IPEndPoint(IPAddress.Loopback, 3000);
-
-      Type[] types = new Type[] // types that we'll be serializing/deserializing
-    { typeof(Simple), typeof(OtherSimple), typeof(Complex), typeof(float),
-    };
 
       // Medium-level networking involves using NetLink objects directly
       #region Medium-level networking
@@ -146,7 +144,7 @@ namespace NetworkingTest
         client.Send(Encoding.ASCII.GetBytes(str));
         Console.WriteLine("Client sent: "+str);
         Console.WriteLine("Server received: "+
-                        Encoding.ASCII.GetString(server.Receive()));
+                          Encoding.ASCII.GetString(server.Receive()));
         Console.WriteLine();
 
         client.Close();
@@ -157,6 +155,10 @@ namespace NetworkingTest
       // High-level networking involves using the Client, Server, etc classes
       #region High-level networking
       {
+        Type[] types = new Type[] // types that we'll be serializing/deserializing
+        { typeof(Simple), typeof(OtherSimple), typeof(Complex), typeof(float),
+        };
+
         Console.WriteLine("Testing high-level networking...");
         Server server = new Server();
         server.MessageSent     += new ServerMessageHandler(server_MessageSent);
@@ -184,8 +186,8 @@ namespace NetworkingTest
         client.Send(new Simple(SimpleEnum.One, 1, 1, new Point(-1, -1)));
 
         client.Send(new Complex("hello!", 1, 2, 3, 4, 5));
-        client.DelayedDisconnect(1000); // give it up to 1 second to send
-        while(client.IsConnected) ;      // all remaining data
+        client.DelayedDisconnect(1000); // give it up to 1 second to send all remaining data
+        while(client.IsConnected) { }
         server.Deinitialize();
         Console.WriteLine();
       }
