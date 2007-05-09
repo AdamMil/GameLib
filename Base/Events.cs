@@ -713,35 +713,46 @@ public static class Events
   { AssertInit();
 
     lock(queue)
-    { if(waiting) waiting=false;
-      if(queue.Count>0) return remove ? queue.Dequeue() : queue.Peek();
+    {
+      if(waiting) waiting = false;
+      if(queue.Count > 0) return remove ? queue.Dequeue() : queue.Peek();
     }
 
-    Event ret;
+    Event ret = null;
 
     if(timeout==Infinite)
-    { ret = NextSDLEvent();
+    {
+      ret = NextSDLEvent();
       lock(queue)
-      { if(ret==null) { waiting=false; return remove ? queue.Dequeue() : queue.Peek(); }
+      {
+        if(ret==null) { waiting=false; return remove ? queue.Dequeue() : queue.Peek(); }
         else if(!remove) QueueEvent(ret);
-        return ret;
       }
     }
-
-    uint start = SDL.GetTicks();
-    do
-    { ret = PeekSDLEvent();
-      lock(queue)
-      { if(ret!=null)
-        { if(!remove) QueueEvent(ret);
-          if(waiting) { waiting=false; return remove ? queue.Dequeue() : queue.Peek(); }
-          return ret;
+    else
+    {
+      uint start = SDL.GetTicks();
+      do
+      {
+        ret = PeekSDLEvent();
+        if(ret != null)
+        {
+          lock(queue)
+          {
+            if(!remove) QueueEvent(ret);
+            if(waiting) { waiting=false; return remove ? queue.Dequeue() : queue.Peek(); }
+            break;
+          }
         }
-      }
-      System.Threading.Thread.Sleep(10); // i don't like this...
-      timeout -= (int)(SDL.GetTicks()-start);
-    } while(timeout>0);
-    return null;
+
+        if(timeout == 0) break;
+
+        System.Threading.Thread.Sleep(Math.Min(10, timeout)); // FIXME: i don't like this, but SDL doesn't provide a
+        timeout -= (int)(SDL.GetTicks()-start);               // version that waits for an arbitrary timeout
+      } while(timeout>0);
+    }
+
+    return ret;
   }
 
   /// <summary>This method adds an event to the queue.</summary>
