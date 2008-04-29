@@ -151,14 +151,14 @@ public enum SurfaceFlag
 [System.Security.SuppressUnmanagedCodeSecurity()]
 public sealed class Surface : IDisposable, IBlittable
 { 
-  /// <include file="documentation.xml" path="//Video/Surface/Cons/FromBmp/*"/>
+  /// <include file="../documentation.xml" path="//Video/Surface/Cons/FromBmp/*"/>
   /// <remarks>Using this is equivalent to using <see cref="Surface(Bitmap,SurfaceFlag)"/> and passing 
   /// <see cref="SurfaceFlag.None"/>. You may want to use <see cref="CloneDisplay"/> to convert the surface
   /// into something that matches the display surface, for efficiency.
   /// </remarks>
   public Surface(Bitmap bitmap) : this(bitmap, SurfaceFlag.None) { }
 
-  /// <include file="documentation.xml" path="//Video/Surface/Cons/FromBmp/*"/>
+  /// <include file="../documentation.xml" path="//Video/Surface/Cons/FromBmp/*"/>
   /// <param name="flags">The <see cref="SurfaceFlag">flags</see> to use when initializing this
   /// surface. The <see cref="SurfaceFlag.SourceAlpha"/> flag is automatically set if the bitmap contains an alpha
   /// channel. You may want to use <see cref="CloneDisplay"/> to convert the surface
@@ -214,14 +214,14 @@ public sealed class Surface : IDisposable, IBlittable
     finally { bitmap.UnlockBits(data); }
   }
 
-  /// <include file="documentation.xml" path="//Video/Surface/Cons/FromDims/*"/>
+  /// <include file="../documentation.xml" path="//Video/Surface/Cons/FromDims/*"/>
   /// <remarks>Using this is equivalent to using <see cref="Surface(int,int,int,SurfaceFlag)"/> and
   /// passing <see cref="SurfaceFlag.None"/>. The pixel format is the default format for the given bit depth (see
   /// <see cref="PixelFormat.GenerateDefaultMasks"/> for more information).
   /// </remarks>
   public Surface(int width, int height, int depth) : this(width, height, depth, SurfaceFlag.None) { }
 
-  /// <include file="documentation.xml" path="//Video/Surface/Cons/FromDims/*"/>
+  /// <include file="../documentation.xml" path="//Video/Surface/Cons/FromDims/*"/>
   /// <param name="flags">The <see cref="SurfaceFlag"/> flags to use when initializing this surface.</param>
   /// <remarks>The pixel format is the default format for the given bit depth (see
   /// <see cref="PixelFormat.GenerateDefaultMasks"/> for more information).
@@ -230,14 +230,14 @@ public sealed class Surface : IDisposable, IBlittable
   { InitFromFormat(width, height, new PixelFormat(depth, (flags&SurfaceFlag.SourceAlpha)!=0), flags);
   }
 
-  /// <include file="documentation.xml" path="//Video/Surface/Cons/FromFormat/*"/>
+  /// <include file="../documentation.xml" path="//Video/Surface/Cons/FromFormat/*"/>
   /// <remarks>Using this is equivalent to using <see cref="Surface(int,int,PixelFormat,SurfaceFlag)"/> and
   /// passing <see cref="SurfaceFlag.None"/>.
   /// </remarks>
   [CLSCompliant(false)]
   public Surface(int width, int height, PixelFormat format) : this(width, height, format, SurfaceFlag.None) { }
 
-  /// <include file="documentation.xml" path="//Video/Surface/Cons/FromFormat/*"/>
+  /// <include file="../documentation.xml" path="//Video/Surface/Cons/FromFormat/*"/>
   /// <param name="flags">The <see cref="SurfaceFlag"/> flags to use when initializing this surface.</param>
   [CLSCompliant(false)]
   public Surface(int width, int height, PixelFormat format, SurfaceFlag flags)
@@ -523,27 +523,34 @@ public sealed class Surface : IDisposable, IBlittable
   /// <summary>Determines whether this surface is compatible with the display surface (meaning that no conversion
   /// would be required between them.
   /// </summary>
+  /// <param name="ignoreAlphaChannel">If true, this surface will not be considered to be incompatible with the display
+  /// surface if the only difference is that this surface has an alpha channel and the display surface doesn't.
+  /// If false, any difference will result in this method returning false.
+  /// </param>
   /// <returns>True if the surface is compatible with the display surface, and false if not.</returns>
   /// <remarks>This method uses <see cref="PixelFormat.IsCompatible"/> to do the comparison. See that method for more
   /// details about how the check is performed.
   /// </remarks>
-  public bool IsCompatible() { return Format.IsCompatible(Video.DisplayFormat); }
+  public bool IsCompatible(bool ignoreAlphaChannel)
+  {
+    return Format.IsCompatible(Video.DisplayFormat, ignoreAlphaChannel);
+  }
 
   /// <summary>Fills the surface with black.</summary>
   /// <remarks>This method should not be called while the surface is locked.
   /// This method respects the <see cref="ClipRect"/> set on the surface.
   /// </remarks>
   public void Fill() { Fill(Bounds, MapColor(Color.Black)); }
-  /// <include file="documentation.xml" path="//Video/Surface/Fill/*[self::Rect]/*"/>
+  /// <include file="../documentation.xml" path="//Video/Surface/Fill/*[self::Rect]/*"/>
   public void Fill(Rectangle rect) { Fill(rect, MapColor(Color.Black)); }
-  /// <include file="documentation.xml" path="//Video/Surface/Fill/*[self::Whole or self::C]/*"/>
+  /// <include file="../documentation.xml" path="//Video/Surface/Fill/*[self::Whole or self::C]/*"/>
   public void Fill(Color color) { Fill(Bounds, MapColor(color)); }
-  /// <include file="documentation.xml" path="//Video/Surface/Fill/*[self::Whole or self::R]/*"/>
+  /// <include file="../documentation.xml" path="//Video/Surface/Fill/*[self::Whole or self::R]/*"/>
   [CLSCompliant(false)]
   public void Fill(uint color) { Fill(Bounds, color); }
-  /// <include file="documentation.xml" path="//Video/Surface/Fill/*[self::Rect or self::C]/*"/>
+  /// <include file="../documentation.xml" path="//Video/Surface/Fill/*[self::Rect or self::C]/*"/>
   public void Fill(Rectangle rect, Color color) { Fill(rect, MapColor(color)); }
-  /// <include file="documentation.xml" path="//Video/Surface/Fill/*[self::Rect or self::R]/*"/>
+  /// <include file="../documentation.xml" path="//Video/Surface/Fill/*[self::Rect or self::R]/*"/>
   [CLSCompliant(false)]
   public unsafe void Fill(Rectangle rect, uint color)
   { SDL.Rect drect = new SDL.Rect(rect);
@@ -558,14 +565,14 @@ public sealed class Surface : IDisposable, IBlittable
   /// This method should not be called when either surface is locked.
   /// </remarks>
   public void Blit(Surface dest) { Blit(dest, 0, 0); }
-  /// <include file="documentation.xml" path="//Video/Surface/Blit/*[self::Whole or self::Pt]/*"/>
+  /// <include file="../documentation.xml" path="//Video/Surface/Blit/*[self::Whole or self::Pt]/*"/>
   /// <remarks>Calling this method is equivalent to calling <see cref="Blit(Surface,int,int)"/> and passing the X and
   /// Y coordinates of the point. For details about how blitting works (including alpha blending), see
   /// <see cref="Blit(Surface,Rectangle,int,int)"/>.
   /// This method should not be called when either surface is locked.
   /// </remarks>
   public void Blit(Surface dest, Point dpt) { Blit(dest, dpt.X, dpt.Y); }
-  /// <include file="documentation.xml" path="//Video/Surface/Blit/*[self::Whole or self::XY]/*"/>
+  /// <include file="../documentation.xml" path="//Video/Surface/Blit/*[self::Whole or self::XY]/*"/>
   /// <remarks>This method blits the entire surface onto the destination surface, with the upper left corner of the
   /// blit beginning at the specified point. For details about how blitting works (including alpha blending), see
   /// <see cref="Blit(Surface,Rectangle,int,int)"/>.
@@ -575,14 +582,14 @@ public sealed class Surface : IDisposable, IBlittable
   { SDL.Rect drect = new SDL.Rect(dx, dy, Width, Height);
     SDL.Check(SDL.BlitSurface(surface, null, dest.surface, &drect));
   }
-  /// <include file="documentation.xml" path="//Video/Surface/Blit/*[self::Part or self::Pt]/*"/>
+  /// <include file="../documentation.xml" path="//Video/Surface/Blit/*[self::Part or self::Pt]/*"/>
   /// <remarks>Calling this method is equivalent to calling <see cref="Blit(Surface,Rectangle,int,int)"/> and passing
   /// the X and Y coordinates of the point. For details about how blitting works (including alpha blending), see
   /// <see cref="Blit(Surface,Rectangle,int,int)"/>.
   /// This method should not be called when either surface is locked.
   /// </remarks>
   public void Blit(Surface dest, Rectangle src, Point dpt) { Blit(dest, src, dpt.X, dpt.Y); }
-  /// <include file="documentation.xml" path="//Video/Surface/Blit/*[self::Part or self::XY]/*"/>
+  /// <include file="../documentation.xml" path="//Video/Surface/Blit/*[self::Part or self::XY]/*"/>
   /// <remarks>This method blits the given area of this surface onto the destination surface, with the upper left
   /// corner of the blit beginning at the specified point. Blitting respects the <see cref="ClipRect"/> set
   /// on the destination surface. This method should not be called when either surface is locked.
@@ -641,15 +648,15 @@ public sealed class Surface : IDisposable, IBlittable
     SDL.Check(SDL.BlitSurface(surface, &srect, dest.surface, &drect));
   }
 
-  /// <include file="documentation.xml" path="//Video/Surface/GetPixel/*[self::C or self::Pt]/*"/>
+  /// <include file="../documentation.xml" path="//Video/Surface/GetPixel/*[self::C or self::Pt]/*"/>
   public Color GetPixel(Point point) { return MapColor(GetPixelRaw(point.X, point.Y)); }
-  /// <include file="documentation.xml" path="//Video/Surface/GetPixel/*[self::C or self::XY]/*"/>
+  /// <include file="../documentation.xml" path="//Video/Surface/GetPixel/*[self::C or self::XY]/*"/>
   public Color GetPixel(int x, int y) { return MapColor(GetPixelRaw(x, y)); }
 
-  /// <include file="documentation.xml" path="//Video/Surface/GetPixel/*[self::R or self::Pt]/*"/>
+  /// <include file="../documentation.xml" path="//Video/Surface/GetPixel/*[self::R or self::Pt]/*"/>
   [CLSCompliant(false)]
   public uint GetPixelRaw(Point point) { return GetPixelRaw(point.X, point.Y); }
-  /// <include file="documentation.xml" path="//Video/Surface/GetPixel/*[self::R or self::XY]/*"/>
+  /// <include file="../documentation.xml" path="//Video/Surface/GetPixel/*[self::R or self::XY]/*"/>
   [CLSCompliant(false)]
   public uint GetPixelRaw(int x, int y)
   { if(!Bounds.Contains(x, y)) throw new ArgumentOutOfRangeException();
@@ -675,14 +682,14 @@ public sealed class Surface : IDisposable, IBlittable
     finally { Unlock(); }
   }
 
-  /// <include file="documentation.xml" path="//Video/Surface/PutPixel/*[self::C or self::Pt]/*"/>
+  /// <include file="../documentation.xml" path="//Video/Surface/PutPixel/*[self::C or self::Pt]/*"/>
   public void PutPixel(Point point, Color color) { PutPixel(point.X, point.Y, MapColor(color)); }
-  /// <include file="documentation.xml" path="//Video/Surface/PutPixel/*[self::C or self::XY]/*"/>
+  /// <include file="../documentation.xml" path="//Video/Surface/PutPixel/*[self::C or self::XY]/*"/>
   public void PutPixel(int x, int y, Color color) { PutPixel(x, y, MapColor(color)); }
-  /// <include file="documentation.xml" path="//Video/Surface/PutPixel/*[self::R or self::Pt]/*"/>
+  /// <include file="../documentation.xml" path="//Video/Surface/PutPixel/*[self::R or self::Pt]/*"/>
   [CLSCompliant(false)]
   public void PutPixel(Point point, uint color) { PutPixel(point.X, point.Y, color); }
-  /// <include file="documentation.xml" path="//Video/Surface/PutPixel/*[self::R or self::XY]/*"/>
+  /// <include file="../documentation.xml" path="//Video/Surface/PutPixel/*[self::R or self::XY]/*"/>
   [CLSCompliant(false)]
   public void PutPixel(int x, int y, uint color)
   { if(!ClipRect.Contains(x, y)) return;
@@ -821,22 +828,22 @@ public sealed class Surface : IDisposable, IBlittable
     }
   }
 
-  /// <include file="documentation.xml" path="//Video/Surface/SetPalette/*[self::Logical or self::A or self::EN]/*"/>
+  /// <include file="../documentation.xml" path="//Video/Surface/SetPalette/*[self::Logical or self::A or self::EN]/*"/>
   public bool SetPalette(Color[] colors)
   { if(colors==null) throw new ArgumentNullException("colors");
     return SetPalette(colors, 0, 0, colors.Length, PaletteType.Logical);
   }
-  /// <include file="documentation.xml" path="//Video/Surface/SetPalette/*[self::Logical or self::AN or self::EN]/*"/>
+  /// <include file="../documentation.xml" path="//Video/Surface/SetPalette/*[self::Logical or self::AN or self::EN]/*"/>
   public bool SetPalette(Color[] colors, int numColors)
   { return SetPalette(colors, 0, 0, numColors, PaletteType.Logical);
   }
-  /// <include file="documentation.xml" path="//Video/Surface/SetPalette/*[self::Logical or self::AA]/*"/>
+  /// <include file="../documentation.xml" path="//Video/Surface/SetPalette/*[self::Logical or self::AA]/*"/>
   public bool SetPalette(Color[] colors, int startIndex, int startColor, int numColors)
   { return SetPalette(colors, startIndex, startColor, numColors, PaletteType.Logical);
   }
   /// <summary>Sets palette colors.</summary>
   /// <param name="type">The palette to change (<see cref="PaletteType"/>).</param>
-  /// <include file="documentation.xml" path="//Video/Surface/SetPalette/*[self::Common or self::AA]/*"/>
+  /// <include file="../documentation.xml" path="//Video/Surface/SetPalette/*[self::Common or self::AA]/*"/>
   public unsafe bool SetPalette(Color[] colors, int startIndex, int startColor, int numColors, PaletteType type)
   { ValidatePaletteArgs(colors, startColor, numColors);
 
@@ -850,12 +857,12 @@ public sealed class Surface : IDisposable, IBlittable
     return SDL.SetPalette(surface, (uint)type, array, startColor, numColors)==1;
   }
 
-  /// <include file="documentation.xml" path="//Video/Surface/CreateCompatible/*"/>
+  /// <include file="../documentation.xml" path="//Video/Surface/CreateCompatible/*"/>
   /// <remarks>This is equivalent to calling <see cref="CreateCompatible(int,int,SurfaceFlag)"/> and passing
   /// the value of the <see cref="Flags"/> property.
   /// </remarks>
   public Surface CreateCompatible(int width, int height) { return CreateCompatible(width, height, Flags); }
-  /// <include file="documentation.xml" path="//Video/Surface/CreateCompatible/*"/>
+  /// <include file="../documentation.xml" path="//Video/Surface/CreateCompatible/*"/>
   /// <param name="flags">The surface flags for the new surface.</param>
   public unsafe Surface CreateCompatible(int width, int height, SurfaceFlag flags)
   { SDL.Surface* ret = SDL.CreateRGBSurface((uint)flags, width, height, format.Depth, format.RedMask,
@@ -890,9 +897,9 @@ public sealed class Surface : IDisposable, IBlittable
     return new Surface(ret, true);
   }
 
-  /// <include file="documentation.xml" path="//Video/Surface/CloneDisplay/*"/>
+  /// <include file="../documentation.xml" path="//Video/Surface/CloneDisplay/*"/>
   public unsafe Surface CloneDisplay() { return CloneDisplay(Format.AlphaMask!=0); }
-  /// <include file="documentation.xml" path="//Video/Surface/CloneDisplay/*"/>
+  /// <include file="../documentation.xml" path="//Video/Surface/CloneDisplay/*"/>
   /// <param name="alphaChannel">A boolean which determines whether the new surface should have an alpha channel.</param>
   public unsafe Surface CloneDisplay(bool alphaChannel)
   { SDL.Surface* ret = alphaChannel ? SDL.DisplayFormatAlpha(surface) : SDL.DisplayFormat(surface);
@@ -992,6 +999,57 @@ public sealed class Surface : IDisposable, IBlittable
         return;
       }
     throw new CodecNotFoundException("JPEG");
+  }
+
+  /// <summary>Given a surface, returns a possibly-new surface that is compatible with the display. If the surface is
+  /// already compatible, it is returned unchanged. Otherwise, the original surface is disposed and a new surface is
+  /// returned.
+  /// </summary>
+  /// <param name="surface">The surface to check.</param>
+  /// <remarks>If the surface has an alpha channel, the returned surface will also have an alpha channel. This may
+  /// cause the surface to be incompatible with the display on the basis of the alpha channel
+  /// </remarks>
+  public static Surface MakeCompatibleWithDisplay(Surface surface)
+  {
+    return MakeCompatibleWithDisplay(surface, true, true);
+  }
+
+  /// <summary>Given a surface, returns a possibly-new surface that is compatible with the display. If the surface is
+  /// already compatible, it is returned unchanged. Otherwise, the original surface is disposed and a new surface is
+  /// returned.
+  /// </summary>
+  /// <param name="surface">The surface to check.</param>
+  /// <param name="useAlphaChannel">If true and the surface has an alpha channel, the returned surface will also have
+  /// an alpha channel. If false or the surface has no alpha channel, the returned surface will not have an alpha
+  /// channel.
+  /// </param>
+  public static Surface MakeCompatibleWithDisplay(Surface surface, bool useAlphaChannel)
+  {
+    return MakeCompatibleWithDisplay(surface, useAlphaChannel, true);
+  }
+
+  /// <summary>Given a surface, returns a possibly-new surface that is compatible with the display. If the surface is
+  /// already compatible, it is returned unchanged.
+  /// </summary>
+  /// <param name="surface">The surface to check.</param>
+  /// <param name="useAlphaChannel">If true and the surface has an alpha channel, the returned surface will also have
+  /// an alpha channel. If false or the surface has no alpha channel, the returned surface will not have an alpha
+  /// channel.
+  /// </param>
+  /// <param name="disposeOriginal">If true and the surface needs to be converted, the original surface will be
+  /// disposed.
+  /// </param>
+  public static Surface MakeCompatibleWithDisplay(Surface surface, bool useAlphaChannel, bool disposeOriginal)
+  {
+    if(surface == null) throw new ArgumentNullException();
+
+    if(!surface.IsCompatible(useAlphaChannel))
+    {
+      Surface newSurface = surface.CloneDisplay();
+      if(disposeOriginal) surface.Dispose();
+      surface = newSurface;
+    }
+    return surface;
   }
 
   internal unsafe void InitFromSurface(Surface surface)

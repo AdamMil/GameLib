@@ -155,7 +155,7 @@ public static class OpenGL
   }
 
   #region TexImage2D
-  /// <include file="documentation.xml" path="//Video/OpenGL/TexImage2D/*"/>
+  /// <include file="../documentation.xml" path="//Video/OpenGL/TexImage2D/*"/>
   public static bool TexImage2D(Surface surface)
   { Size dummy;
     return TexImage2D(0, 0, 0, surface, out dummy);
@@ -164,7 +164,7 @@ public static class OpenGL
   /// created. This may be different from the dimensions of the surface because most OpenGL implementations require
   /// texture dimensions to be powers of two in length.
   /// </param>
-  /// <include file="documentation.xml" path="//Video/OpenGL/TexImage2D/*"/>
+  /// <include file="../documentation.xml" path="//Video/OpenGL/TexImage2D/*"/>
   public static bool TexImage2D(Surface surface, out Size texSize)
   { return TexImage2D(0, 0, 0, surface, out texSize);
   }
@@ -173,7 +173,7 @@ public static class OpenGL
   /// created. This may be different from the dimensions of the surface because most OpenGL implementations require
   /// texture dimensions to be powers of two in length.
   /// </param>
-  /// <include file="documentation.xml" path="//Video/OpenGL/TexImage2D/*"/>
+  /// <include file="../documentation.xml" path="//Video/OpenGL/TexImage2D/*"/>
   public static bool TexImage2D(int internalFormat, Surface surface, out Size texSize)
   { return TexImage2D(internalFormat, 0, 0, surface, out texSize);
   }
@@ -183,7 +183,7 @@ public static class OpenGL
   /// created. This may be different from the dimensions of the surface because most OpenGL implementations require
   /// texture dimensions to be powers of two in length.
   /// </param>
-  /// <include file="documentation.xml" path="//Video/OpenGL/TexImage2D/*"/>
+  /// <include file="../documentation.xml" path="//Video/OpenGL/TexImage2D/*"/>
   public static bool TexImage2D(int internalFormat, int level, Surface surface, out Size texSize)
   { return TexImage2D(internalFormat, level, 0, surface, out texSize);
   }
@@ -194,7 +194,7 @@ public static class OpenGL
   /// created. This may be different from the dimensions of the surface because most OpenGL implementations require
   /// texture dimensions to be powers of two in length.
   /// </param>
-  /// <include file="documentation.xml" path="//Video/OpenGL/TexImage2D/*"/>
+  /// <include file="../documentation.xml" path="//Video/OpenGL/TexImage2D/*"/>
   public static bool TexImage2D(int internalFormat, int level, int border, Surface surface, out Size texSize)
   { PixelFormat pf = surface.Format;
     int format=0, awidth=surface.Width-border*2, aheight=surface.Height-border*2;
@@ -303,18 +303,18 @@ public static class OpenGL
   #endregion
 
   #region WillTextureFit
-  /// <include file="documentation.xml" path="//Video/OpenGL/WillTextureFit/*"/>
+  /// <include file="../documentation.xml" path="//Video/OpenGL/WillTextureFit/*"/>
   public static bool WillTextureFit(int internalFormat, int width, int height)
   { return WillTextureFit(internalFormat, 0, 0, width, height);
   }
   /// <param name="level">The mipmap level of the texture.</param>
-  /// <include file="documentation.xml" path="//Video/OpenGL/WillTextureFit/*"/>
+  /// <include file="../documentation.xml" path="//Video/OpenGL/WillTextureFit/*"/>
   public static bool WillTextureFit(int internalFormat, int level, int width, int height)
   { return WillTextureFit(internalFormat, level, 0, width, height);
   }
   /// <param name="level">The mipmap level of the texture.</param>
   /// <param name="border">The width of the texture's border.</param>
-  /// <include file="documentation.xml" path="//Video/OpenGL/WillTextureFit/*"/>
+  /// <include file="../documentation.xml" path="//Video/OpenGL/WillTextureFit/*"/>
   public static bool WillTextureFit(int internalFormat, int level, int border, int width, int height)
   { int fits;
     unsafe

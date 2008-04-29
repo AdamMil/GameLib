@@ -22,7 +22,7 @@ using GLU=GameLib.Interop.GLUtility;
 namespace GameLib
 {
 
-/// <summary>This class provides methods to measure the passage of time.</summary>
+/// <summary>This class provides methods to accurately measure the passage of time.</summary>
 /// <remarks>Time is normally measured from when the timing system was initialized, but <see cref="Reset"/> can
 /// be used to reset the base time point. The class provides tick-based timing (<see cref="Frequency"/> and
 /// <see cref="Counter"/>) and real-time timing (<see cref="Msecs"/> and <see cref="Seconds"/>). The real-time

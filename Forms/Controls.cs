@@ -2655,7 +2655,8 @@ public abstract class MenuBase : ContainerControl
   public void Show(Control source, Point position) { Show(source, position, false, true); }
   public void Show(Control source, Point position, bool pullDown) { Show(source, position, pullDown, true); }
   public void Show(Control source, Point position, bool pullDown, bool wait)
-  { if(source==null) throw new ArgumentNullException("source");
+  { 
+    if(source==null) throw new ArgumentNullException("source");
     DesktopControl desktop = source.Desktop;
     if(desktop==null) throw new InvalidOperationException("The source control is not part of a desktop");
     this.source = source;
@@ -2668,7 +2669,7 @@ public abstract class MenuBase : ContainerControl
     Visible = true;
     SetModal(true);
     Capture = true;
-    if(wait) while(Events.Events.PumpEvent() && this.source!=null);
+    if(wait) while(Events.Events.PumpEvent(true) && this.source!=null);
   }
 
   protected virtual void OnPopup(EventArgs e) { if(Popup!=null) Popup(this, e); }
@@ -3278,7 +3279,7 @@ public abstract class FormBase : ContainerControl
     Parent  = desktop;
     Focus();
     SetModal(true);
-    while(Events.Events.PumpEvent() && Parent!=null);
+    while(Events.Events.PumpEvent(true) && Parent!=null);
     return returnValue;
   }
 

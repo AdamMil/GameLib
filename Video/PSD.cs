@@ -287,7 +287,7 @@ public sealed class PSDCodec
   }
 
   /// <param name="filename">The path to a PSD image file.</param>
-  /// <include file="documentation.xml" path="//Video/PSDCodec/Read/*"/>
+  /// <include file="../documentation.xml" path="//Video/PSDCodec/Read/*"/>
   public PSDImage Read(string filename)
   { StartReading(filename);
     ReadLayers();
@@ -297,7 +297,7 @@ public sealed class PSDCodec
   /// <param name="stream">A stream containing PSD image data. The stream does not need to be seekable.
   /// The stream will be closed automatically.
   /// </param>
-  /// <include file="documentation.xml" path="//Video/PSDCodec/Read/*"/>
+  /// <include file="../documentation.xml" path="//Video/PSDCodec/Read/*"/>
   public PSDImage Read(Stream stream)
   { StartReading(stream);
     ReadLayers();
@@ -306,7 +306,7 @@ public sealed class PSDCodec
   }
   /// <param name="stream">A stream containing PSD image data. The stream does not need to be seekable.</param>
   /// <param name="autoClose">If true, <paramref name="stream"/> will be closed when the reading process finishes.</param>
-  /// <include file="documentation.xml" path="//Video/PSDCodec/Read/*"/>
+  /// <include file="../documentation.xml" path="//Video/PSDCodec/Read/*"/>
   public PSDImage Read(Stream stream, bool autoClose)
   { StartReading(stream, autoClose);
     ReadLayers();
@@ -317,7 +317,7 @@ public sealed class PSDCodec
   /// <summary>Reads the current layer and advances to the next layer, or to the flattened image.</summary>
   /// <returns>The <see cref="PSDLayer"/> in <see cref="PSDImage.Layers"/> that contains the data for this layer.
   /// </returns>
-  /// <include file="documentation.xml" path="//Video/PSDCodec/LayerReading/*"/>
+  /// <include file="../documentation.xml" path="//Video/PSDCodec/LayerReading/*"/>
   public PSDLayer ReadLayer()
   { AssertLayerRead();
     try
@@ -370,7 +370,7 @@ public sealed class PSDCodec
   /// <returns>The <see cref="PSDLayer"/> in <see cref="PSDImage.Layers"/> that contains the layer information for
   /// this layer. The layer's <see cref="PSDLayer.Surface"/> field will be null after calling this.
   /// </returns>
-  /// <include file="documentation.xml" path="//Video/PSDCodec/LayerReading/*"/>
+  /// <include file="../documentation.xml" path="//Video/PSDCodec/LayerReading/*"/>
   public PSDLayer SkipLayer()
   { AssertLayerRead();
     try
@@ -394,18 +394,18 @@ public sealed class PSDCodec
   }
 
   /// <param name="filename">The path to a PSD image file.</param>
-  /// <include file="documentation.xml" path="//Video/PSDCodec/StartReading/*"/>
+  /// <include file="../documentation.xml" path="//Video/PSDCodec/StartReading/*"/>
   public PSDImage StartReading(string filename)
   { return StartReading(File.Open(filename, FileMode.Open, FileAccess.Read, FileShare.Read));
   }
   /// <param name="stream">A stream containing PSD image data. The stream does not need to be seekable.
   /// The stream will be closed automatically.
   /// </param>
-  /// <include file="documentation.xml" path="//Video/PSDCodec/StartReading/*"/>
+  /// <include file="../documentation.xml" path="//Video/PSDCodec/StartReading/*"/>
   public PSDImage StartReading(Stream stream) { return StartReading(stream, true); }
   /// <param name="stream">A stream containing PSD image data. The stream does not need to be seekable.</param>
   /// <param name="autoClose">If true, <paramref name="stream"/> will be closed when the reading process finishes.</param>
-  /// <include file="documentation.xml" path="//Video/PSDCodec/StartReading/*"/>
+  /// <include file="../documentation.xml" path="//Video/PSDCodec/StartReading/*"/>
   public PSDImage StartReading(Stream stream, bool autoClose)
   { PSDImage img = new PSDImage();
     try
@@ -449,20 +449,20 @@ public sealed class PSDCodec
   }
 
   /// <param name="filename">A path to the file into which the PSD data will be written.</param>
-  /// <include file="documentation.xml" path="//Video/PSDCodec/StartWriting/*"/>
+  /// <include file="../documentation.xml" path="//Video/PSDCodec/StartWriting/*"/>
   public void StartWriting(PSDImage image, string filename)
   { StartWriting(image, File.Open(filename, FileMode.Create), true);
   }
   /// <param name="stream">A stream into which PSD image data will be written. The stream must be seekable, with its
   /// entire range devoted to the PSD data for this image. The stream will be closed automatically.
   /// </param>
-  /// <include file="documentation.xml" path="//Video/PSDCodec/StartWriting/*"/>
+  /// <include file="../documentation.xml" path="//Video/PSDCodec/StartWriting/*"/>
   public void StartWriting(PSDImage image, Stream stream) { StartWriting(image, stream, true); }
   /// <param name="stream">A stream into which PSD image data will be written. The stream must be seekable, with its
   /// entire range devoted to the PSD data for this image.
   /// </param>
   /// <param name="autoClose">If true, <paramref name="stream"/> will be closed when the writing process finishes.</param>
-  /// <include file="documentation.xml" path="//Video/PSDCodec/StartWriting/*"/>
+  /// <include file="../documentation.xml" path="//Video/PSDCodec/StartWriting/*"/>
   public void StartWriting(PSDImage image, Stream stream, bool autoClose)
   { try
     { AssertNothing();
@@ -539,18 +539,18 @@ public sealed class PSDCodec
   }
 
   /// <param name="filename">A path to the file into which the PSD data will be written.</param>
-  /// <include file="documentation.xml" path="//Video/PSDCodec/Write/*"/>
+  /// <include file="../documentation.xml" path="//Video/PSDCodec/Write/*"/>
   public void Write(PSDImage image, string filename) { Write(image, File.Open(filename, FileMode.Create)); }
   /// <param name="stream">A stream into which PSD image data will be written. The stream must be seekable, with its
   /// entire range devoted to the PSD data for this image. The stream will be closed automatically.
   /// </param>
-  /// <include file="documentation.xml" path="//Video/PSDCodec/Write/*"/>
+  /// <include file="../documentation.xml" path="//Video/PSDCodec/Write/*"/>
   public void Write(PSDImage image, Stream stream) { Write(image, stream, true); }
   /// <param name="stream">A stream into which PSD image data will be written. The stream must be seekable, with its
   /// entire range devoted to the PSD data for this image.
   /// </param>
   /// <param name="autoClose">If true, <paramref name="stream"/> will be closed automatically.</param>
-  /// <include file="documentation.xml" path="//Video/PSDCodec/Write/*"/>
+  /// <include file="../documentation.xml" path="//Video/PSDCodec/Write/*"/>
   public void Write(PSDImage image, Stream stream, bool autoClose)
   { StartWriting(image, stream, autoClose);
     if(image.Layers!=null) foreach(PSDLayer layer in image.Layers) WriteLayer(layer.Surface);
@@ -559,18 +559,18 @@ public sealed class PSDCodec
   }
 
   /// <param name="filename">A path to the file into which the PSD data will be written.</param>
-  /// <include file="documentation.xml" path="//Video/PSDCodec/Write_Surface/*"/>
+  /// <include file="../documentation.xml" path="//Video/PSDCodec/Write_Surface/*"/>
   public void Write(Surface surface, string filename) { Write(surface, File.Open(filename, FileMode.Create)); }
   /// <param name="stream">A stream into which PSD image data will be written. The stream must be seekable, with its
   /// entire range devoted to the PSD data for this image. The stream will be closed automatically.
   /// </param>
-  /// <include file="documentation.xml" path="//Video/PSDCodec/Write_Surface/*"/>
+  /// <include file="../documentation.xml" path="//Video/PSDCodec/Write_Surface/*"/>
   public void Write(Surface surface, Stream stream) { Write(surface, stream, true); }
   /// <param name="stream">A stream into which PSD image data will be written. The stream must be seekable, with its
   /// entire range devoted to the PSD data for this image.
   /// </param>
   /// <param name="autoClose">If true, <paramref name="stream"/> will be closed automatically.</param>
-  /// <include file="documentation.xml" path="//Video/PSDCodec/Write_Surface/*"/>
+  /// <include file="../documentation.xml" path="//Video/PSDCodec/Write_Surface/*"/>
   public void Write(Surface surface, Stream stream, bool autoClose)
   { if(surface==null || stream==null) throw new ArgumentNullException();
     PSDImage image = new PSDImage();
@@ -654,20 +654,20 @@ public sealed class PSDCodec
   }
 
   /// <param name="filename">A path to the file to check.</param>
-  /// <include file="documentation.xml" path="//Video/PSDCodec/IsPSD/*"/>
+  /// <include file="../documentation.xml" path="//Video/PSDCodec/IsPSD/*"/>
   public static bool IsPSD(string filename)
   { return IsPSD(File.Open(filename, FileMode.Open, FileAccess.Read, FileShare.Read), true);
   }
   /// <param name="stream">A seekable stream positioned at the beginning of the data to check. The stream's position
   /// is unchanged (actually, changed and reset) by this function. The stream will not be closed automatically.
   /// </param>
-  /// <include file="documentation.xml" path="//Video/PSDCodec/IsPSD/*"/>
+  /// <include file="../documentation.xml" path="//Video/PSDCodec/IsPSD/*"/>
   public static bool IsPSD(Stream stream) { return IsPSD(stream, false); }
   /// <param name="stream">A seekable stream positioned at the beginning of the data to check. The stream's position
   /// is unchanged (actually, changed and reset) by this function.
   /// </param>
   /// <param name="autoClose">If true, the stream will be closed by this function.</param>
-  /// <include file="documentation.xml" path="//Video/PSDCodec/IsPSD/*"/>
+  /// <include file="../documentation.xml" path="//Video/PSDCodec/IsPSD/*"/>
   public static bool IsPSD(Stream stream, bool autoClose)
   { long position = autoClose ? 0 : stream.Position;
     if(stream.Length-stream.Position<6) return false;
@@ -679,20 +679,20 @@ public sealed class PSDCodec
   }
 
   /// <param name="filename">The path to a PSD image file.</param>
-  /// <include file="documentation.xml" path="//Video/PSDCodec/Read/*"/>
+  /// <include file="../documentation.xml" path="//Video/PSDCodec/Read/*"/>
   public static PSDImage ReadPSD(string filename) { return new PSDCodec().Read(filename); }
   /// <param name="stream">A stream containing PSD image data. The stream does not need to be seekable.
   /// The stream will be closed automatically.
   /// </param>
-  /// <include file="documentation.xml" path="//Video/PSDCodec/Read/*"/>
+  /// <include file="../documentation.xml" path="//Video/PSDCodec/Read/*"/>
   public static PSDImage ReadPSD(Stream stream) { return new PSDCodec().Read(stream); }
   /// <param name="stream">A stream containing PSD image data. The stream does not need to be seekable.</param>
   /// <param name="autoClose">If true, <paramref name="stream"/> will be closed when the reading process finishes.</param>
-  /// <include file="documentation.xml" path="//Video/PSDCodec/Read/*"/>
+  /// <include file="../documentation.xml" path="//Video/PSDCodec/Read/*"/>
   public static PSDImage ReadPSD(Stream stream, bool autoClose) { return new PSDCodec().Read(stream, autoClose); }
 
   /// <param name="filename">The path to a PSD image file.</param>
-  /// <include file="documentation.xml" path="//Video/PSDCodec/ReadComposite/*"/>
+  /// <include file="../documentation.xml" path="//Video/PSDCodec/ReadComposite/*"/>
   public static Surface ReadComposite(string filename)
   { PSDCodec codec = new PSDCodec();
     codec.StartReading(filename);
@@ -701,7 +701,7 @@ public sealed class PSDCodec
   /// <param name="stream">A stream containing PSD image data. The stream does not need to be seekable.
   /// The stream will be closed automatically.
   /// </param>
-  /// <include file="documentation.xml" path="//Video/PSDCodec/ReadComposite/*"/>
+  /// <include file="../documentation.xml" path="//Video/PSDCodec/ReadComposite/*"/>
   public static Surface ReadComposite(Stream stream)
   { PSDCodec codec = new PSDCodec();
     codec.StartReading(stream);
@@ -709,7 +709,7 @@ public sealed class PSDCodec
   }
   /// <param name="stream">A stream containing PSD image data. The stream does not need to be seekable.</param>
   /// <param name="autoClose">If true, <paramref name="stream"/> will be closed when the reading process finishes.</param>
-  /// <include file="documentation.xml" path="//Video/PSDCodec/ReadComposite/*"/>
+  /// <include file="../documentation.xml" path="//Video/PSDCodec/ReadComposite/*"/>
   public static Surface ReadComposite(Stream stream, bool autoClose)
   { PSDCodec codec = new PSDCodec();
     codec.StartReading(stream, autoClose);
@@ -717,35 +717,35 @@ public sealed class PSDCodec
   }
 
   /// <param name="filename">A path to the file into which the PSD data will be written.</param>
-  /// <include file="documentation.xml" path="//Video/PSDCodec/Write/*"/>
+  /// <include file="../documentation.xml" path="//Video/PSDCodec/Write/*"/>
   public static void WritePSD(PSDImage image, string filename) { new PSDCodec().Write(image, filename); }
   /// <param name="stream">A stream into which PSD image data will be written. The stream must be seekable, with its
   /// entire range devoted to the PSD data for this image. The stream will be closed automatically.
   /// </param>
-  /// <include file="documentation.xml" path="//Video/PSDCodec/Write/*"/>
+  /// <include file="../documentation.xml" path="//Video/PSDCodec/Write/*"/>
   public static void WritePSD(PSDImage image, Stream stream) { new PSDCodec().Write(image, stream); }
   /// <param name="stream">A stream into which PSD image data will be written. The stream must be seekable, with its
   /// entire range devoted to the PSD data for this image.
   /// </param>
   /// <param name="autoClose">If true, <paramref name="stream"/> will be closed automatically.</param>
-  /// <include file="documentation.xml" path="//Video/PSDCodec/Write/*"/>
+  /// <include file="../documentation.xml" path="//Video/PSDCodec/Write/*"/>
   public static void WritePSD(PSDImage image, Stream stream, bool autoClose)
   { new PSDCodec().Write(image, stream, autoClose);
   }
 
   /// <param name="filename">A path to the file into which the PSD data will be written.</param>
-  /// <include file="documentation.xml" path="//Video/PSDCodec/Write_Surface/*"/>
+  /// <include file="../documentation.xml" path="//Video/PSDCodec/Write_Surface/*"/>
   public static void WritePSD(Surface surface, string filename) { new PSDCodec().Write(surface, filename); }
   /// <param name="stream">A stream into which PSD image data will be written. The stream must be seekable, with its
   /// entire range devoted to the PSD data for this image. The stream will be closed automatically.
   /// </param>
-  /// <include file="documentation.xml" path="//Video/PSDCodec/Write_Surface/*"/>
+  /// <include file="../documentation.xml" path="//Video/PSDCodec/Write_Surface/*"/>
   public static void WritePSD(Surface surface, Stream stream) { new PSDCodec().Write(surface, stream); }
   /// <param name="stream">A stream into which PSD image data will be written. The stream must be seekable, with its
   /// entire range devoted to the PSD data for this image.
   /// </param>
   /// <param name="autoClose">If true, <paramref name="stream"/> will be closed automatically.</param>
-  /// <include file="documentation.xml" path="//Video/PSDCodec/Write_Surface/*"/>
+  /// <include file="../documentation.xml" path="//Video/PSDCodec/Write_Surface/*"/>
   public static void WritePSD(Surface surface, Stream stream, bool autoClose)
   { new PSDCodec().Write(surface, stream, autoClose);
   }
