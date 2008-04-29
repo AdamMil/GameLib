@@ -208,9 +208,29 @@ public sealed class PixelFormat
   /// formats, because the entire palettes need to be compared.
   /// </remarks>
   public bool IsCompatible(PixelFormat format)
-  { if(format.Depth!=Depth || format.RedMask!=RedMask || format.GreenMask!=GreenMask ||
-       format.BlueMask!=BlueMask || format.AlphaMask!=AlphaMask)
+  {
+    return IsCompatible(format, false);
+  }
+
+  /// <summary>Checks whether two pixel formats are compatible (whether conversion would be required between them).</summary>
+  /// <param name="format">The pixel format to check against.</param>
+  /// <param name="okayIfFormatHasNoAlpha">If true, and <paramref name="format"/> has no alpha channel, the two formats
+  /// will not be considered incompatible on the basis of this format having an alpha channel.
+  /// </param>
+  /// <returns>True if conversion would not be required between these two formats, and false if it would.</returns>
+  /// <remarks>If any of the color depth, channel masks, or palettes of the two formats are different,
+  /// they are not considered compatible. Comparing two paletted formats has more overhead than comparing nonpaletted
+  /// formats, because the entire palettes need to be compared.
+  /// </remarks>
+  public bool IsCompatible(PixelFormat format, bool okayIfFormatHasNoAlpha)
+  { 
+    if(format.Depth != Depth || format.RedMask != RedMask ||
+       format.GreenMask != GreenMask || format.BlueMask != BlueMask ||
+       format.AlphaMask != AlphaMask && (!okayIfFormatHasNoAlpha || format.AlphaMask != 0))
+    {
       return false;
+    }
+
     unsafe
     { SDL.Palette* p1=this.format.Palette, p2=format.format.Palette;
       if(p1==null && p2==null) return true;

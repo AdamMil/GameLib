@@ -34,13 +34,14 @@ namespace GameLib.Audio
 #region Structs, Enums, and Delegates
 [Flags]
 public enum SampleFormat
-{ Eight=GLMixer.Format.Eight, Sixteen=GLMixer.Format.Sixteen, BitsPart=GLMixer.Format.BitsPart,
+{
+  Eight=GLMixer.Format.Eight, Sixteen=GLMixer.Format.Sixteen, BitsPart=GLMixer.Format.BitsPart,
   Signed=GLMixer.Format.Signed, BigEndian=GLMixer.Format.BigEndian, FloatingPoint=GLMixer.Format.FloatingPoint,
 
   U8=Eight, U16=Sixteen, S8=Eight|Signed, S16=Sixteen|Signed,
   U8BE=U8|BigEndian, U16BE=U16|BigEndian, S8BE=S8|BigEndian, S16BE=S16|BigEndian,
   U8Sys=GLMixer.Format.U8Sys, U16Sys=GLMixer.Format.U16Sys, S8Sys=GLMixer.Format.S8Sys, S16Sys=GLMixer.Format.S16Sys,
-  
+
   Float=GLMixer.Format.Float, Double=GLMixer.Format.Double,
 
   Default=S16Sys
@@ -50,11 +51,12 @@ public enum Speakers { None, Mono=1, Stereo=2 }
 public enum ChannelStatus { Stopped, Playing, Paused }
 public enum Fade { None, In, Out }
 public enum PlayPolicy { Fail, Oldest, Priority, OldestPriority }
-public enum MixPolicy  { DontDivide, Divide }
+public enum MixPolicy { DontDivide, Divide }
 public enum FilterCombination { Series, ParallelSum, ParallelAverage }
 
 public struct SizedArray
-{ public SizedArray(byte[] array) { this.array=array; Length=array.Length; }
+{
+  public SizedArray(byte[] array) { this.array=array; Length=array.Length; }
 
   public SizedArray(byte[] array, int length)
   {
@@ -67,9 +69,9 @@ public struct SizedArray
   }
 
   public byte[] Shrink()
-  { 
+  {
     if(array.Length > Length)
-    { 
+    {
       byte[] ret = new byte[Length];
       System.Array.Copy(array, ret, Length);
       array = ret;
@@ -82,13 +84,15 @@ public struct SizedArray
 }
 
 public struct AudioFormat
-{ public AudioFormat(int frequency, SampleFormat format, byte channels)
-  { Frequency=frequency; Format=format; Channels=channels;
+{
+  public AudioFormat(int frequency, SampleFormat format, byte channels)
+  {
+    Frequency=frequency; Format=format; Channels=channels;
   }
 
-  public byte SampleSize  { get { return (byte)((int)(Format&SampleFormat.BitsPart)>>3); } }
-  public byte FrameSize   { get { return (byte)(SampleSize*Channels); } }
-  public int  ByteRate    { get { return FrameSize*Frequency; } }
+  public byte SampleSize { get { return (byte)((int)(Format&SampleFormat.BitsPart)>>3); } }
+  public byte FrameSize { get { return (byte)(SampleSize*Channels); } }
+  public int ByteRate { get { return FrameSize*Frequency; } }
 
   public override bool Equals(object obj)
   {
@@ -100,9 +104,9 @@ public struct AudioFormat
     return Frequency | ((int)Format<<16) | ((int)Channels<<24);
   }
 
-  public int          Frequency;
+  public int Frequency;
   public SampleFormat Format;
-  public byte         Channels;
+  public byte Channels;
 
   public static bool operator==(AudioFormat a, AudioFormat b)
   {
@@ -121,13 +125,15 @@ public delegate void ChannelFinishedHandler(Channel channel);
 #region Audio sources
 #region AudioSource
 public abstract class AudioSource : IDisposable
-{ public int Both
-  { get { return left; }
+{
+  public int Both
+  {
+    get { return left; }
     set { Audio.CheckVolume(value); left=right=value; }
   }
 
   public abstract bool CanRewind { get; }
-  public abstract bool CanSeek   { get; }
+  public abstract bool CanSeek { get; }
 
   public AudioFormat Format
   {
@@ -135,7 +141,8 @@ public abstract class AudioSource : IDisposable
   }
 
   public int Left
-  { get { return left; }
+  {
+    get { return left; }
     set { Audio.CheckVolume(value); left=value; }
   }
 
@@ -152,7 +159,8 @@ public abstract class AudioSource : IDisposable
   public int Priority { get { return priority; } set { priority=value; } }
 
   public int Right
-  { get { return right; }
+  {
+    get { return right; }
     set { Audio.CheckVolume(value); right=value; }
   }
 
@@ -172,11 +180,14 @@ public abstract class AudioSource : IDisposable
   public Channel Play(int loops, int timeoutMs) { return Play(loops, timeoutMs, 0, Audio.FreeChannel); }
   public Channel Play(int loops, int timeoutMs, int position) { return Play(loops, timeoutMs, position, Audio.FreeChannel); }
   public Channel Play(int loops, int timeoutMs, int position, int channel)
-  { if(channel<0) return Audio.StartPlaying(channel, this, loops, position, Fade.None, 0, timeoutMs);
+  {
+    if(channel<0) return Audio.StartPlaying(channel, this, loops, position, Fade.None, 0, timeoutMs);
     else
-    { Channel c = Audio.Channels[channel];
+    {
+      Channel c = Audio.Channels[channel];
       lock(c)
-      { c.StartPlaying(this, loops, position, Fade.None, 0, timeoutMs);
+      {
+        c.StartPlaying(this, loops, position, Fade.None, 0, timeoutMs);
         return c;
       }
     }
@@ -187,11 +198,14 @@ public abstract class AudioSource : IDisposable
   public Channel FadeIn(int fadeMs, int loops, int timeoutMs) { return FadeIn(fadeMs, loops, timeoutMs, Audio.FreeChannel, 0); }
   public Channel FadeIn(int fadeMs, int loops, int timeoutMs, int channel) { return FadeIn(fadeMs, loops, timeoutMs, channel, 0); }
   public Channel FadeIn(int fadeMs, int loops, int timeoutMs, int channel, int position)
-  { if(channel<0) return Audio.StartPlaying(channel, this, loops, position, Fade.In, fadeMs, timeoutMs);
+  {
+    if(channel<0) return Audio.StartPlaying(channel, this, loops, position, Fade.In, fadeMs, timeoutMs);
     else
-    { Channel c = Audio.Channels[channel];
+    {
+      Channel c = Audio.Channels[channel];
       lock(Audio.Channels[channel])
-      { c.StartPlaying(this, loops, position, Fade.In, fadeMs, timeoutMs);
+      {
+        c.StartPlaying(this, loops, position, Fade.In, fadeMs, timeoutMs);
         return c;
       }
     }
@@ -203,7 +217,8 @@ public abstract class AudioSource : IDisposable
   }
 
   protected int BytesToFrames(int bytes)
-  { int frames = bytes/format.FrameSize;
+  {
+    int frames = bytes/format.FrameSize;
     if(frames*format.FrameSize != bytes) throw new ArgumentException("length must be multiple of the frame size");
     return frames;
   }
@@ -212,15 +227,19 @@ public abstract class AudioSource : IDisposable
   public abstract int ReadBytes(byte[] buf, int index, int length);
 
   public virtual byte[] ReadAll()
-  { lock(this)
-    { byte[] ret;
+  {
+    lock(this)
+    {
+      byte[] ret;
       int pos=0;
       if(CanSeek)
-      { pos = Position;
+      {
+        pos = Position;
         Rewind();
       }
       if(length>=0)
-      { ret = new byte[length*format.FrameSize];
+      {
+        ret = new byte[length*format.FrameSize];
         if(ReadBytes(ret, ret.Length)!=ret.Length) throw new EndOfStreamException();
       }
       else ret=ReadAllUL();
@@ -230,10 +249,12 @@ public abstract class AudioSource : IDisposable
   }
 
   protected byte[] ReadAllUL()
-  { byte[] buf = new byte[16384];
+  {
+    byte[] buf = new byte[16384];
     int toRead=buf.Length, index=0, read = ReadBytes(buf, index, toRead), length;
     while(read!=0 && read==toRead)
-    { index = buf.Length;
+    {
+      index = buf.Length;
       byte[] nb = new byte[buf.Length*2];
       Array.Copy(buf, nb, buf.Length);
       buf = nb;
@@ -247,12 +268,12 @@ public abstract class AudioSource : IDisposable
   }
 
   public unsafe int ReadFrames(int[] dest, int index, int frames) { return ReadFrames(dest, index, frames, -1, -1); }
-  
-  public unsafe int ReadFrames(int[] dest, int index, int frames, int volume) 
-  { 
+
+  public unsafe int ReadFrames(int[] dest, int index, int frames, int volume)
+  {
     return ReadFrames(dest, index, frames, volume, volume);
   }
-  
+
   public unsafe int ReadFrames(int[] dest, int index, int frames, int left, int right)
   {
     if(index < 0 || frames < 0 || index+frames > dest.Length) throw new ArgumentOutOfRangeException();
@@ -261,14 +282,16 @@ public abstract class AudioSource : IDisposable
 
   [CLSCompliant(false)]
   public unsafe int ReadFrames(int* dest, int frames) { return ReadFrames(dest, frames, -1, -1); }
-  
+
   [CLSCompliant(false)]
   public unsafe int ReadFrames(int* dest, int frames, int volume) { return ReadFrames(dest, frames, volume, volume); }
 
   [CLSCompliant(false)]
   public virtual unsafe int ReadFrames(int* dest, int frames, int left, int right)
-  { lock(this)
-    { int toRead=length<0 ? frames : Math.Min(length-curPos, frames), bytes=toRead*format.FrameSize, read, samples;
+  {
+    lock(this)
+    {
+      int toRead=length<0 ? frames : Math.Min(length-curPos, frames), bytes=toRead*format.FrameSize, read, samples;
       SizeBuffer(bytes);
       read    = ReadBytes(buffer, bytes);
       samples = read/format.SampleSize;
@@ -284,7 +307,8 @@ public abstract class AudioSource : IDisposable
   protected void SizeBuffer(int size) { if(buffer==null || buffer.Length<size) buffer=new byte[size]; }
 
   protected byte[] buffer;
-  [CLSCompliant(false)] protected AudioFormat format;
+  [CLSCompliant(false)]
+  protected AudioFormat format;
   float rate=1f;
   protected int curPos;
   int left=Audio.MaxVolume, right=Audio.MaxVolume, length=-1, priority;
@@ -295,89 +319,125 @@ public abstract class AudioSource : IDisposable
 #region ToneGenerator
 public enum ToneType { Sine, Square, Saw, Triangle };
 public class ToneGenerator : AudioSource
-{ public ToneGenerator()
-  { format=new AudioFormat(Audio.Initialized ? Audio.Format.Frequency : 22050, SampleFormat.S16Sys, 1);
-    freq=200; num=float.NaN;
+{
+  public ToneGenerator()
+  {
+    format=new AudioFormat(Audio.Initialized ? Audio.Format.Frequency : 22050, SampleFormat.S16Sys, 1);
+    toneFreq=200;
   }
   public ToneGenerator(ToneType type) : this() { this.type=type; }
   public ToneGenerator(ToneType type, float frequency) : this() { this.type=type; Frequency=frequency; }
   public ToneGenerator(ToneType type, float frequency, int sampleRate) : this()
-  { this.type  = type;
+  {
+    this.type  = type;
     format     = new AudioFormat(0, SampleFormat.S16Sys, 1);
     Frequency  = frequency;
     SampleRate = sampleRate;
   }
 
   public override bool CanRewind { get { return true; } }
-  public override bool CanSeek   { get { return true; } }
-  
+  public override bool CanSeek { get { return true; } }
+
   public float Frequency
-  { get { return freq; }
+  {
+    get { return toneFreq; }
     set
-    { if(value<=0) throw new ArgumentOutOfRangeException("Frequency", value, "must be positive");
-      freq=value;
+    {
+      if(value<=0) throw new ArgumentOutOfRangeException("Frequency", value, "must be positive");
+      toneFreq=value;
     }
   }
 
-  public override int Position { get { return curPos; } set { curPos=value; num=float.NaN; } }
+  public override int Position { get { return curPos; } set { curPos=value; } }
 
   public int SampleRate
-  { get { return format.Frequency; }
+  {
+    get { return format.Frequency; }
     set
-    { if(value==0) throw new ArgumentOutOfRangeException("SampleRate", value, "cannot be zero");
-      lock(this) format.Frequency=value;
+    {
+      if(value <= 0) throw new ArgumentOutOfRangeException("SampleRate", value, "must be positive");
+      lock(this) format.Frequency = value;
     }
   }
-  
-  public ToneType Type { get { return type; } set { type=value; num=float.NaN; } }
-  
+
+  public ToneType Type { get { return type; } set { type=value; } }
+
   public override byte[] ReadAll()
-  { throw new InvalidOperationException("ToneGenerator is an infinite data source and can't be read in its entirety.");
+  {
+    throw new InvalidOperationException("ToneGenerator is an infinite data source and can't be read in its entirety.");
   }
 
   public unsafe override int ReadBytes(byte[] buf, int index, int length)
-  { length /= 2;
+  {
+    length /= 2;
     fixed(byte* bp=buf)
-    { short* data=(short*)bp;
+    {
+      short* data=(short*)bp;
       switch(type)
-      { case ToneType.Saw:
-        { float inc=Format.Frequency/freq;
-          if(float.IsNaN(num)) num=1-(float)Math.IEEERemainder(curPos, inc)*2/inc;
-          inc=2/inc;
+      {
+        case ToneType.Saw:
+        {
+          float samplesPerHertz = Format.Frequency/toneFreq, invSph = 1f / samplesPerHertz;
+          float tonePos = (float)Math.IEEERemainder(curPos, samplesPerHertz);
+          if(tonePos < 0) tonePos += samplesPerHertz;
+
           for(int i=0; i<length; i++)
-          { data[i] = (short)(num*32767);
-            num -= inc;
-            if(num<-1) num+=2;
+          {
+            data[i] = (short)((int)(tonePos*invSph*65534)-32767);
+            tonePos += 1;
+            if(tonePos > samplesPerHertz) tonePos -= samplesPerHertz;
           }
           break;
         }
 
         case ToneType.Square:
-        { float inc=Format.Frequency/freq;
-          if(float.IsNaN(num)) num=1-(float)Math.IEEERemainder(curPos, inc)*2/inc;
-          inc=2/inc;
+        {
+          float samplesPerHertz = Format.Frequency / toneFreq, halfSph = samplesPerHertz*0.5f;
+          float negOutThresh = samplesPerHertz-1, posOutThresh = halfSph-1, negInThresh = halfSph+1;
+          //float posOutThresh = samplesPerHertz*0.5f, negInThresh = posOutThresh+2;
+          float tonePos = (float)Math.IEEERemainder(curPos, samplesPerHertz);
+          if(tonePos < 0) tonePos += samplesPerHertz;
+          //tonePos += 1; // rotate the number space by one so that we can save one if statement evaluation per iteration
+
           for(int i=0; i<length; i++)
-          { data[i] = num<=0 ? (short)-32767 : (short)32767;
-            num -= inc;
-            if(num<-1) num+=2;
+          {
+            // this is the simplified version
+            if(tonePos < 1) data[i] = (short)((1-tonePos)*32767);
+            else if(tonePos > negOutThresh) data[i] = (short)((tonePos-samplesPerHertz)*32767);
+            else if(tonePos < posOutThresh) data[i] = (short)32767;
+            else if(tonePos > negInThresh) data[i] = (short)-32767;
+            else data[i] = (short)((halfSph-tonePos)*32767);
+
+            // this is the more optimized version with the rotated number space
+            /*if(tonePos < 2) data[i] = (short)((tonePos < 1 ? tonePos-1 : 2-tonePos)*32767);
+            else if(tonePos < posOutThresh) data[i] = (short)32767;
+            else if(tonePos < negInThresh) data[i] = (short)((negInThresh-tonePos-1)*32767);
+            else data[i] = (short)-32767;**/
+
+            tonePos += 1;
+            if(tonePos >= samplesPerHertz) tonePos -= samplesPerHertz;
           }
           break;
         }
 
         case ToneType.Sine:
-        { float scale=2*(float)Math.PI*freq/SampleRate;
+        {
+          float scale = 2*(float)Math.PI*toneFreq/SampleRate;
           for(int i=0; i<length; i++) data[i] = (short)(Math.Sin((i+curPos)*scale)*32767);
           break;
         }
-        
+
         case ToneType.Triangle:
-        { float inc=Format.Frequency/freq;
-          if(float.IsNaN(num)) num=2-(float)Math.IEEERemainder(curPos, inc)*4/inc;
-          inc=4/inc;
+        {
+          float samplesPerHertz = Format.Frequency / toneFreq, halfSph = samplesPerHertz*0.5f, invHalf = 1/halfSph;
+          float tonePos = (float)Math.IEEERemainder(curPos, samplesPerHertz);
+          if(tonePos < 0) tonePos += samplesPerHertz;
+
           for(int i=0; i<length; i++)
-          { data[i] = (short)((num<=0 ? -1-num : 1+num)*32767);
-            num -= inc;
-            if(num<-2) num+=4;
+          {
+            data[i] = (short)((int)((tonePos > halfSph ? samplesPerHertz-tonePos : tonePos)*invHalf*65534)-32767);
+            tonePos += 1;
+            if(tonePos >= samplesPerHertz) tonePos -= samplesPerHertz;
           }
           break;
         }
@@ -388,23 +448,27 @@ public class ToneGenerator : AudioSource
   }
 
   ToneType type;
-  float freq, num;
+  float toneFreq;
 }
 #endregion
 
 #region StreamSource
 public abstract class StreamSource : AudioSource
-{ public override bool CanRewind { get { return stream.CanSeek; } }
-  public override bool CanSeek   { get { return stream.CanSeek; } }
-  public override int  Position
-  { get { return curPos; }
+{
+  public override bool CanRewind { get { return stream.CanSeek; } }
+  public override bool CanSeek { get { return stream.CanSeek; } }
+  public override int Position
+  {
+    get { return curPos; }
     set { if(value!=curPos) lock(this) { stream.Position=startPos+value*format.FrameSize; curPos=value; } }
   }
 
   public override int ReadBytes(byte[] buf, int index, int length)
-  { BytesToFrames(length);
+  {
+    BytesToFrames(length);
     lock(this)
-    { int read = stream.Read(buf, index, length);
+    {
+      int read = stream.Read(buf, index, length);
       if(read>=0) curPos += read/format.FrameSize;
       return read;
     }
@@ -421,7 +485,8 @@ public abstract class StreamSource : AudioSource
   }
 
   protected void Init(Stream stream, AudioFormat format, int startPos, int length, bool autoClose)
-  { if(stream==null) throw new ArgumentNullException("stream");
+  {
+    if(stream==null) throw new ArgumentNullException("stream");
     if(this.stream!=null) throw new InvalidOperationException("This object has already been initialized");
     this.stream=stream;
     this.format=format;
@@ -432,55 +497,64 @@ public abstract class StreamSource : AudioSource
   }
 
   protected Stream stream;
-  protected int    startPos;
-  protected bool   autoClose;
+  protected int startPos;
+  protected bool autoClose;
 }
 #endregion
 
 #region RawSource
 public class RawSource : StreamSource
-{ public RawSource(string filename, AudioFormat format) : this(new FileStream(filename, FileMode.Open, FileAccess.Read, FileShare.Read), format) { }
+{
+  public RawSource(string filename, AudioFormat format) : this(new FileStream(filename, FileMode.Open, FileAccess.Read, FileShare.Read), format) { }
   public RawSource(string filename, AudioFormat format, int start, int length) : this(new FileStream(filename, FileMode.Open, FileAccess.Read, FileShare.Read), format, start, length) { }
   public RawSource(Stream stream, AudioFormat format) : this(stream, format, 0, stream.CanSeek ? (int)stream.Length : -1, true) { }
   public RawSource(Stream stream, AudioFormat format, bool autoClose) : this(stream, format, 0, stream.CanSeek ? (int)stream.Length : -1, autoClose) { }
   public RawSource(Stream stream, AudioFormat format, int start, int length) : this(stream, format, start, length, true) { }
   public RawSource(Stream stream, AudioFormat format, int start, int length, bool autoClose)
-  { Init(stream, format, start, length, autoClose);
+  {
+    Init(stream, format, start, length, autoClose);
   }
 }
 #endregion
 
 #region SoundFileSource
 public class SoundFileSource : AudioSource
-{ public SoundFileSource(string filename)
-  { SF.Info info = new SF.Info();
+{
+  public SoundFileSource(string filename)
+  {
+    SF.Info info = new SF.Info();
     info.format = SF.Format.CPUEndian;
     sndfile = SF.Open(filename, SF.OpenMode.Read, ref info);
     Init(ref info);
   }
   public SoundFileSource(string filename, AudioFormat format) // for RAW
-  { SF.Info info = new SF.Info();
+  {
+    SF.Info info = new SF.Info();
     InitInfo(ref info, format);
     sndfile = SF.Open(filename, SF.OpenMode.Read, ref info);
     Init(ref info);
   }
   public SoundFileSource(Stream stream) : this(stream, true) { }
   public SoundFileSource(Stream stream, bool autoClose)
-  { SF.Info info = new SF.Info();
+  {
+    SF.Info info = new SF.Info();
     virtualIO = new StreamVirtualIO(stream, autoClose);
     unsafe
-    { fixed(SF.VirtualIO* io = &virtualIO.virtualIO)
+    {
+      fixed(SF.VirtualIO* io = &virtualIO.virtualIO)
         sndfile = SF.OpenVirtual(io, SF.OpenMode.Read, ref info, new IntPtr(null));
     }
     Init(ref info);
   }
   public SoundFileSource(Stream stream, AudioFormat format) : this(stream, format, true) { } // for RAW
   public SoundFileSource(Stream stream, AudioFormat format, bool autoClose)
-  { SF.Info info = new SF.Info();
+  {
+    SF.Info info = new SF.Info();
     InitInfo(ref info, format);
     virtualIO = new StreamVirtualIO(stream, autoClose);
     unsafe
-    { fixed(SF.VirtualIO* io = &virtualIO.virtualIO)
+    {
+      fixed(SF.VirtualIO* io = &virtualIO.virtualIO)
         sndfile = SF.OpenVirtual(io, SF.OpenMode.Read, ref info, new IntPtr(null));
     }
     Init(ref info);
@@ -489,19 +563,23 @@ public class SoundFileSource : AudioSource
   ~SoundFileSource() { Dispose(true); }
 
   public override bool CanRewind { get { return true; } }
-  public override bool CanSeek   { get { return true; } }
-  public override int  Position
-  { get { return curPos; }
+  public override bool CanSeek { get { return true; } }
+  public override int Position
+  {
+    get { return curPos; }
     set
-    { if(value==curPos) return;
+    {
+      if(value==curPos) return;
       lock(this) curPos=(int)SF.Seek(sndfile, value, SF.SeekType.Absolute);
     }
   }
 
   public override int ReadBytes(byte[] buf, int index, int length)
-  { int frames = BytesToFrames(length);
+  {
+    int frames = BytesToFrames(length);
     lock(this)
-    { int read;
+    {
+      int read;
       unsafe { fixed(byte* pbuf = buf) read=(int)SF.ReadShorts(sndfile, (short*)(pbuf+index), frames); }
       if(read>=0) curPos += read;
       return read*format.FrameSize;
@@ -509,13 +587,14 @@ public class SoundFileSource : AudioSource
   }
 
   protected unsafe override void Dispose(bool finalizing)
-  { 
+  {
     if(sndfile.ToPointer()!=null)
-    { 
+    {
       SF.Close(sndfile);
       sndfile = new IntPtr(null);
       if(virtualIO!=null)
-      { virtualIO.Dispose();
+      {
+        virtualIO.Dispose();
         virtualIO = null;
       }
     }
@@ -523,23 +602,26 @@ public class SoundFileSource : AudioSource
   }
 
   void Init(ref SF.Info info)
-  { unsafe { if(sndfile.ToPointer()==null) throw new FileNotFoundException(); }
+  {
+    unsafe { if(sndfile.ToPointer()==null) throw new FileNotFoundException(); }
     format.Channels  = (byte)info.channels;
     format.Frequency = info.samplerate;
     format.Format    = SampleFormat.S16;
-    #if BIGENDIAN
-    if(info.Has(SF.Format.CPUEndian) || info.Has(SF.Format.BigEndian))
-    #else
+#if BIGENDIAN
+  if(info.Has(SF.Format.CPUEndian) || info.Has(SF.Format.BigEndian))
+#else
     if(!info.Has(SF.Format.CPUEndian) && info.Has(SF.Format.BigEndian))
-    #endif
-    { format.Format |= SampleFormat.BigEndian;
+#endif
+    {
+      format.Format |= SampleFormat.BigEndian;
     }
 
     Length = (int)info.frames;
   }
 
   static void InitInfo(ref SF.Info info, AudioFormat format)
-  { info.channels   = format.Channels;
+  {
+    info.channels   = format.Channels;
     info.samplerate = (int)format.Frequency;
     info.format     = SF.Format.RAW;
     if((format.Format&SampleFormat.S16)==SampleFormat.S16) info.format |= SF.Format.PCM_S16;
@@ -556,29 +638,36 @@ public class SoundFileSource : AudioSource
 
 #region SampleSource
 public class SampleSource : AudioSource
-{ public SampleSource(AudioSource stream) : this(stream, true) { }
+{
+  public SampleSource(AudioSource stream) : this(stream, true) { }
   public SampleSource(AudioSource stream, bool mixerFormat)
-  { data   = stream.ReadAll();
+  {
+    data   = stream.ReadAll();
     format = stream.Format;
 
     if(mixerFormat)
-    { data = Audio.Convert(data, format, Audio.Format).Shrink();
+    {
+      data = Audio.Convert(data, format, Audio.Format).Shrink();
       format = Audio.Format;
     }
     Length = data.Length/format.FrameSize;
   }
   public SampleSource(AudioSource stream, AudioFormat convertTo)
-  { data = Audio.Convert(stream.ReadAll(), stream.Format, format=convertTo).Shrink();
+  {
+    data = Audio.Convert(stream.ReadAll(), stream.Format, format=convertTo).Shrink();
     Length = data.Length/format.FrameSize;
   }
 
   public override bool CanRewind { get { return true; } }
-  public override bool CanSeek   { get { return true; } }
-  public override int  Position
-  { get { return curPos; }
+  public override bool CanSeek { get { return true; } }
+  public override int Position
+  {
+    get { return curPos; }
     set
-    { if(value!=curPos)
-      { if(value<0 || value>Length) throw new ArgumentOutOfRangeException("Position");
+    {
+      if(value!=curPos)
+      {
+        if(value<0 || value>Length) throw new ArgumentOutOfRangeException("Position");
         lock(this) curPos = value;
       }
     }
@@ -587,9 +676,11 @@ public class SampleSource : AudioSource
   public override byte[] ReadAll() { return (byte[])data.Clone(); }
 
   public override int ReadBytes(byte[] buf, int index, int length)
-  { int frames = BytesToFrames(length);
+  {
+    int frames = BytesToFrames(length);
     lock(this)
-    { int toRead = Math.Min(frames, this.Length-curPos);
+    {
+      int toRead = Math.Min(frames, this.Length-curPos);
       Array.Copy(data, curPos*format.FrameSize, buf, index, toRead*format.FrameSize);
       curPos += toRead;
       return toRead*format.FrameSize;
@@ -597,9 +688,11 @@ public class SampleSource : AudioSource
   }
 
   [CLSCompliant(false)]
-  public override unsafe int ReadFrames(int *dest, int frames, int left, int right)
-  { lock(this)
-    { int toRead=Math.Min(Length-curPos, frames), samples=toRead*format.Channels;
+  public override unsafe int ReadFrames(int* dest, int frames, int left, int right)
+  {
+    lock(this)
+    {
+      int toRead=Math.Min(Length-curPos, frames), samples=toRead*format.Channels;
       fixed(byte* src = data)
         GLMixer.Check(GLMixer.ConvertMix(dest, src+curPos*format.FrameSize, (uint)samples,
                                          (ushort)format.Format, format.Channels,
@@ -622,21 +715,25 @@ public class SampleSource : AudioSource
 
 #region VorbisSource
 public class VorbisSource : AudioSource
-{ public VorbisSource(string filename)
+{
+  public VorbisSource(string filename)
     : this(new FileStream(filename, FileMode.Open, FileAccess.Read, FileShare.Read), true) { }
   public VorbisSource(Stream stream) : this(stream, true) { }
 
   public unsafe VorbisSource(Stream stream, bool autoClose)
-  { calls = new VorbisCallbacks(stream, autoClose);
+  {
+    calls = new VorbisCallbacks(stream, autoClose);
     unsafe
-    { fixed(Ogg.VorbisFile** fp=&file) Ogg.Check(Ogg.Open(fp, calls.calls));
+    {
+      fixed(Ogg.VorbisFile** fp=&file) Ogg.Check(Ogg.Open(fp, calls.calls));
       Init(new AudioFormat(file->Info->Rate, Audio.Initialized ? Audio.Format.Format : SampleFormat.S16Sys,
                            (byte)file->Info->Channels));
     }
   }
-  
+
   public VorbisSource(Stream stream, bool autoClose, AudioFormat format)
-  { calls = new VorbisCallbacks(stream, autoClose);
+  {
+    calls = new VorbisCallbacks(stream, autoClose);
     unsafe { fixed(Ogg.VorbisFile** fp=&file) Ogg.Check(Ogg.Open(fp, calls.calls)); }
     Init(format);
   }
@@ -644,28 +741,35 @@ public class VorbisSource : AudioSource
   ~VorbisSource() { Dispose(true); }
 
   public unsafe override bool CanRewind { get { return file->Seekable!=0; } }
-  public unsafe override bool CanSeek   { get { return file->Seekable!=0; } }
+  public unsafe override bool CanSeek { get { return file->Seekable!=0; } }
 
   public unsafe override int Position
-  { get { return curPos; }
+  {
+    get { return curPos; }
     set
-    { if(value==curPos) return;
+    {
+      if(value==curPos) return;
       if(!CanSeek) Ogg.Check((int)Ogg.OggError.NoSeek);
       lock(this)
-      { if(links==null) Ogg.Check(Ogg.PcmSeek(file, value));
+      {
+        if(links==null) Ogg.Check(Ogg.PcmSeek(file, value));
         else
-        { int i, pos=value, pbase=0;
+        {
+          int i, pos=value, pbase=0;
           for(i=0; i<links.Length && links[i].CvtLen<=pos; i++)
-          { pos   -= links[i].CvtLen;
+          {
+            pos   -= links[i].CvtLen;
             pbase += links[i].RealLen;
           }
           if(i==links.Length)
-          { Ogg.Check(Ogg.PcmSeek(file, pbase));
+          {
+            Ogg.Check(Ogg.PcmSeek(file, pbase));
             value = Length;
             curLink = 0;
           }
           else
-          { Ogg.Check(Ogg.PcmSeek(file, pbase+(int)((long)pos*links[i].CVT.lenDiv/links[i].CVT.lenMul)));
+          {
+            Ogg.Check(Ogg.PcmSeek(file, pbase+(int)((long)pos*links[i].CVT.lenDiv/links[i].CVT.lenMul)));
             curLink = i;
           }
         }
@@ -675,21 +779,26 @@ public class VorbisSource : AudioSource
   }
 
   public unsafe override int ReadBytes(byte[] buf, int index, int length)
-  { BytesToFrames(length);
+  {
+    BytesToFrames(length);
     fixed(byte* dest = buf)
-    { Ogg.VorbisInfo* info;
+    {
+      Ogg.VorbisInfo* info;
       int read, toRead, total=0, section, be=(format.Format&SampleFormat.BigEndian)==0 ? 0 : 1;
       int signed = (format.Format&SampleFormat.Signed)==0 ? 0 : 1;
       do
-      { info = file->Info+curLink; // TODO: test with nonseekable streams! (this may be illegal!!)
+      {
+        info = file->Info+curLink; // TODO: test with nonseekable streams! (this may be illegal!!)
         if(info->Rate!=format.Frequency || info->Channels!=format.Channels)
-        { Link link = links[curLink];
-          int   len = Math.Min(length, 16384);
+        {
+          Link link = links[curLink];
+          int len = Math.Min(length, 16384);
           toRead = (int)((long)len*link.CVT.lenDiv/link.CVT.lenMul);
           len = Math.Max(toRead, len);
           if(cvtBuf==null || cvtBuf.Length<len) cvtBuf = new byte[len];
           fixed(byte* cvtbuf = cvtBuf)
-          { read = Ogg.Read(file, cvtbuf, toRead, be, format.SampleSize, signed, out section);
+          {
+            read = Ogg.Read(file, cvtbuf, toRead, be, format.SampleSize, signed, out section);
             Ogg.Check(read);
             if(read==0) break;
             link.CVT.buf = cvtbuf;
@@ -701,7 +810,8 @@ public class VorbisSource : AudioSource
           }
         }
         else
-        { read = Ogg.Read(file, dest+index, length, be, format.SampleSize, signed, out section);
+        {
+          read = Ogg.Read(file, dest+index, length, be, format.SampleSize, signed, out section);
           Ogg.Check(read);
           if(read==0) break;
         }
@@ -716,8 +826,10 @@ public class VorbisSource : AudioSource
 
   [CLSCompliant(false)]
   protected class Link
-  { public Link(AudioFormat format, GLMixer.AudioConversion cvt, int realLen, int cvtLen)
-    { Format=format; CVT=cvt; RealLen=realLen; CvtLen=cvtLen;
+  {
+    public Link(AudioFormat format, GLMixer.AudioConversion cvt, int realLen, int cvtLen)
+    {
+      Format=format; CVT=cvt; RealLen=realLen; CvtLen=cvtLen;
     }
     public AudioFormat Format;
     public GLMixer.AudioConversion CVT;
@@ -741,16 +853,19 @@ public class VorbisSource : AudioSource
   }
 
   unsafe void Init(AudioFormat format)
-  { if(CanSeek) // TODO: do more testing with nonseekable streams
-    { Length = 0;
+  {
+    if(CanSeek) // TODO: do more testing with nonseekable streams
+    {
+      Length = 0;
       links  = new Link[file->NumLinks];
       GLMixer.AudioConversion cvt;
       AudioFormat sf;
-      int  len;
+      int len;
       bool grr = false;
       for(int i=0; i<file->NumLinks; i++)
         unsafe
-        { Ogg.VorbisInfo* info = file->Info+i;
+        {
+          Ogg.VorbisInfo* info = file->Info+i;
           sf  = new AudioFormat(info->Rate, format.Format, (byte)info->Channels);
           if(!sf.Equals(format)) grr=true;
           cvt = Audio.SetupConversion(sf, format);
@@ -766,11 +881,12 @@ public class VorbisSource : AudioSource
   }
 
   unsafe Ogg.VorbisFile* file;
-  VorbisCallbacks  calls;
+  VorbisCallbacks calls;
   protected byte[] cvtBuf;
-  protected int    curLink;
-  [CLSCompliant(false)] protected Link[] links;
-  protected bool   open;
+  protected int curLink;
+  [CLSCompliant(false)]
+  protected Link[] links;
+  protected bool open;
 }
 #endregion
 #endregion
@@ -778,33 +894,39 @@ public class VorbisSource : AudioSource
 #region Audio filters
 #region FilterCollection
 public sealed class FilterCollection : Collection<AudioFilter>
-{ public FilterCollection() { }
+{
+  public FilterCollection() { }
   public FilterCollection(object lockObj) { LockObj = lockObj; }
 
   protected override void ClearItems()
-  { if(LockObj!=null) lock(LockObj) base.ClearItems();
+  {
+    if(LockObj!=null) lock(LockObj) base.ClearItems();
     else base.ClearItems();
   }
 
   protected override void InsertItem(int index, AudioFilter item)
-  { Validate(item);
+  {
+    Validate(item);
     if(LockObj!=null) lock(LockObj) base.InsertItem(index, item);
     else base.InsertItem(index, item);
   }
 
   protected override void RemoveItem(int index)
-  { if(LockObj!=null) lock(LockObj) base.RemoveItem(index);
+  {
+    if(LockObj!=null) lock(LockObj) base.RemoveItem(index);
     else base.RemoveItem(index);
   }
 
   protected override void SetItem(int index, AudioFilter item)
-  { Validate(item);
+  {
+    Validate(item);
     if(LockObj!=null) lock(LockObj) base.SetItem(index, item);
     else base.SetItem(index, item);
   }
 
   static void Validate(AudioFilter item)
-  { if(item==null) throw new ArgumentNullException("filter", "Filter must not be null.");
+  {
+    if(item==null) throw new ArgumentNullException("filter", "Filter must not be null.");
   }
 
   internal object LockObj;
@@ -813,20 +935,24 @@ public sealed class FilterCollection : Collection<AudioFilter>
 
 #region AudioFilter
 public class AudioFilter
-{ public AudioFilter() { type=FilterCombination.Series; }
+{
+  public AudioFilter() { type=FilterCombination.Series; }
   public AudioFilter(FilterCombination type) { this.type=type; }
 
   public FilterCombination Combination
-  { get { return type; }
+  {
+    get { return type; }
     set { type=value; if(value==FilterCombination.Series) parallel=null; }
   }
 
   public FilterCollection Filters
-  { get { if(filters==null) filters=new FilterCollection(); return filters; }
+  {
+    get { if(filters==null) filters=new FilterCollection(); return filters; }
   }
 
   public virtual void Stop(Channel channel)
-  { if(filters!=null) foreach(AudioFilter filter in filters) filter.Stop(channel);
+  {
+    if(filters!=null) foreach(AudioFilter filter in filters) filter.Stop(channel);
   }
 
   [CLSCompliant(false)]
@@ -835,23 +961,29 @@ public class AudioFilter
 
   [CLSCompliant(false)]
   protected virtual unsafe void Filter(Channel channel, float** channels, int samples, AudioFormat format)
-  { if(filters!=null && filters.Count!=0)
-    { if(type==FilterCombination.Series || filters.Count==1)
+  {
+    if(filters!=null && filters.Count!=0)
+    {
+      if(type==FilterCombination.Series || filters.Count==1)
         for(int i=0; i<format.Channels; i++)
           for(int j=0; j<filters.Count; j++) filters[j].Filter(channel, i, channels[i], channels[i], samples, format);
       else
-      { if(parallel==null || parallel.Length!=samples*filters.Count) parallel = new float[samples*filters.Count];
+      {
+        if(parallel==null || parallel.Length!=samples*filters.Count) parallel = new float[samples*filters.Count];
         for(int i=0; i<format.Channels; i++)
           fixed(float* buf=parallel)
-          { for(int j=0; j<filters.Count; j++)
+          {
+            for(int j=0; j<filters.Count; j++)
               filters[j].Filter(channel, i, channels[i], buf+j*samples, samples, format);
-            for(int j=samples,k=0,len=parallel.Length; j<len; j++)
-            { buf[k] += buf[j];
+            for(int j=samples, k=0, len=parallel.Length; j<len; j++)
+            {
+              buf[k] += buf[j];
               if(++k==samples) k=0;
             }
             if(type==FilterCombination.ParallelAverage)
-            { float* dest=channels[i];
-              float   mul=1f/filters.Count;
+            {
+              float* dest=channels[i];
+              float mul=1f/filters.Count;
               for(int j=0; j<samples; j++) dest[j] = buf[j]*mul;
             }
             else Unsafe.Copy(buf, channels[i], samples*sizeof(float));
@@ -863,9 +995,11 @@ public class AudioFilter
 
   [CLSCompliant(false)]
   internal protected unsafe virtual void MixFilter(Channel channel, int* buffer, int frames, AudioFormat format)
-  { float** channels = stackalloc float*[format.Channels];
+  {
+    float** channels = stackalloc float*[format.Channels];
     for(int i=0; i<format.Channels; i++)
-    { float* data = stackalloc float[frames];
+    {
+      float* data = stackalloc float[frames];
       channels[i] = data;
     }
 
@@ -883,48 +1017,57 @@ public class AudioFilter
 
 #region BiquadFilter
 public class BiquadFilter : AudioFilter
-{ public BiquadFilter() { }
+{
+  public BiquadFilter() { }
   public BiquadFilter(float c0, float c1, float c2, float c3, float c4) { Set(c0, c1, c2, c3, c4); }
   public BiquadFilter(float a0, float a1, float a2, float b0, float b1, float b2) { Set(a0, a1, a2, b0, b1, b2); }
 
   [CLSCompliant(false)]
   protected unsafe override void Filter(Channel channel, int nchannel, float* input, float* output, int samples,
                                         AudioFormat format)
-  { float c0, c1, c2, c3, c4, in0, in1, in2, out1, out2;
+  {
+    float c0, c1, c2, c3, c4, in0, in1, in2, out1, out2;
     Context[] history;
 
     lock(this)
-    { c0=C0; c1=C1; c2=C2; c3=C3; c4=C4;
+    {
+      c0=C0; c1=C1; c2=C2; c3=C3; c4=C4;
       history = History;
       if(history==null || history.Length!=format.Channels)
-      { Context[] narr = new Context[format.Channels];
+      {
+        Context[] narr = new Context[format.Channels];
         if(history!=null) Array.Copy(history, narr, Math.Min(history.Length, format.Channels));
         History = history = narr;
       }
-      in1 =history[nchannel].In1;  in2 =history[nchannel].In2;
+      in1 =history[nchannel].In1; in2 =history[nchannel].In2;
       out1=history[nchannel].Out1; out2=history[nchannel].Out2;
     }
 
     for(int i=0; i<samples; i++)
-    { in0 = input[i];
+    {
+      in0 = input[i];
       output[i] = c0*in0 + c1*in1 + c2*in2 - c3*out1 - c4*out2;
       in2=in1; in1=in0; out2=out1; out1=output[i];
     }
 
-    history[nchannel].In1=in1;   history[nchannel].In2=in2;
+    history[nchannel].In1=in1; history[nchannel].In2=in2;
     history[nchannel].Out1=out1; history[nchannel].Out2=out2;
   }
 
   public void Set(float c0, float c1, float c2, float c3, float c4)
-  { lock(this)
-    { C0=c0; C1=c1; C2=c2; C3=c3; C4=c4;
+  {
+    lock(this)
+    {
+      C0=c0; C1=c1; C2=c2; C3=c3; C4=c4;
       History=null;
     }
   }
 
   public void Set(float a0, float a1, float a2, float b0, float b1, float b2)
-  { lock(this)
-    { C0=b0/a0; C1=b1/a0; C2=b2/a0; C3=a1/a0; C4=a2/a0;
+  {
+    lock(this)
+    {
+      C0=b0/a0; C1=b1/a0; C2=b2/a0; C3=a1/a0; C4=a2/a0;
       History=null;
     }
   }
@@ -938,55 +1081,66 @@ public class BiquadFilter : AudioFilter
 
 #region EqFilter
 public enum EqFilterType
-{ BandPass, LowPass, HighPass, BandPassWithGain, Notch, AllPass, Peaking, LowShelf, HighShelf
+{
+  BandPass, LowPass, HighPass, BandPassWithGain, Notch, AllPass, Peaking, LowShelf, HighShelf
 }
 public enum EqParamType { Bandwidth, Q, Slope };
 
 public class EqFilter : BiquadFilter
-{ public EqFilter() { type=EqFilterType.BandPass; paramType=EqParamType.Q; }
+{
+  public EqFilter() { type=EqFilterType.BandPass; paramType=EqParamType.Q; }
   public EqFilter(EqFilterType type, float frequency)
-  { this.type=type; freq=frequency; paramType=EqParamType.Q;
+  {
+    this.type=type; freq=frequency; paramType=EqParamType.Q;
   }
   public EqFilter(EqFilterType type, float frequency, EqParamType paramType, float parameter)
-  { this.type=type; freq=frequency; this.paramType=paramType; param=parameter;
+  {
+    this.type=type; freq=frequency; this.paramType=paramType; param=parameter;
   }
 
   public EqFilterType Type { get { return type; } set { type=value; changed=true; } }
 
   public float Gain
-  { get { return gain; }
+  {
+    get { return gain; }
     set { gain=value; changed=true; }
   }
   public float Frequency
-  { get { return freq; }
+  {
+    get { return freq; }
     set { freq=value; changed=true; }
   }
   public float Parameter
-  { get { return param; }
+  {
+    get { return param; }
     set { param=value; changed=true; }
   }
   public EqParamType ParameterType
-  { get { return paramType; }
+  {
+    get { return paramType; }
     set { paramType=value; changed=true; }
   }
-  
+
   [CLSCompliant(false)]
   protected override unsafe void Filter(Channel channel, int nchannel, float* input, float* output, int samples,
                                         AudioFormat format)
-  { if(changed) Recalculate();
+  {
+    if(changed) Recalculate();
     base.Filter(channel, nchannel, input, output, samples, format);
   }
 
   // http://www.musicdsp.org/files/Audio-EQ-Cookbook.txt
   void Recalculate()
-  { changed=false;
+  {
+    changed=false;
     double A = (type==EqFilterType.Peaking || type==EqFilterType.LowShelf || type==EqFilterType.HighShelf)
-               ? Math.Pow(10, gain/40) : Math.Sqrt(Math.Pow(10, gain/20));
+             ? Math.Pow(10, gain/40) : Math.Sqrt(Math.Pow(10, gain/20));
     double w0 = Math.PI*2*freq/Audio.Format.Frequency, w0cos=Math.Cos(w0), w0sin=Math.Sin(w0);
     double alpha, p=param, a0, a1, a2, b0, b1, b2;
 
     switch(paramType)
-    { case EqParamType.Q: alpha = w0sin/(p*2); break;
+    {
+      case EqParamType.Q: alpha = w0sin/(p*2); break;
       case EqParamType.Bandwidth: alpha = w0sin*Math.Sinh(Math.Log(2)/2 * p * w0/w0sin); break;
       case EqParamType.Slope:
         if(type==EqFilterType.LowShelf || type==EqFilterType.HighShelf)
@@ -997,7 +1151,8 @@ public class EqFilter : BiquadFilter
     }
 
     switch(type)
-    { case EqFilterType.LowPass:
+    {
+      case EqFilterType.LowPass:
         b0 = (1-w0cos)/2;
         b1 = 1 - w0cos;
         b2 = (1-w0cos)/2;
@@ -1053,10 +1208,12 @@ public class EqFilter : BiquadFilter
         a1 = -2*w0cos;
         a2 = 1 - alpha/A;
         break;
-      case EqFilterType.LowShelf: case EqFilterType.HighShelf:
+      case EqFilterType.LowShelf:
+      case EqFilterType.HighShelf:
         double beta = w0sin * Math.Sqrt((A*A+1)*(1/p-1)+2*A);
         if(type==EqFilterType.LowShelf)
-        { b0 =    A*((A+1) - (A-1)*w0cos + beta);
+        {
+          b0 =    A*((A+1) - (A-1)*w0cos + beta);
           b1 =  2*A*((A-1) - (A+1)*w0cos);
           b2 =    A*((A+1) - (A-1)*w0cos - beta);
           a0 =       (A+1) + (A-1)*w0cos + beta;
@@ -1064,7 +1221,8 @@ public class EqFilter : BiquadFilter
           a2 =       (A+1) + (A-1)*w0cos - beta;
         }
         else
-        { b0 =    A*((A+1) + (A-1)*w0cos + beta);
+        {
+          b0 =    A*((A+1) + (A-1)*w0cos + beta);
           b1 = -2*A*((A-1) + (A+1)*w0cos);
           b2 =    A*((A+1) + (A-1)*w0cos - beta);
           a0 =       (A+1) - (A-1)*w0cos + beta;
@@ -1086,24 +1244,27 @@ public class EqFilter : BiquadFilter
 
 #region GraphicEqualizer
 public static class GraphicEqualizer
-{ 
+{
   public static AudioFilter Make(int nbands)
-  { if(nbands==5) return Make(5, 62.5, 2);
+  {
+    if(nbands==5) return Make(5, 62.5, 2);
     else if(nbands==10) return Make(10, 31.25, 1);
     else if(nbands==15) return Make(15, 25, 2.0/3);
     else if(nbands==30) return Make(30, 25, 1.0/3);
-    else throw new NotSupportedException("Unsupported number of bands: "+nbands.ToString()+
-                                         ". Try specifying the frequency and bandwidth manually.");
+    else throw new NotSupportedException("Unsupported number of bands: "+nbands.ToString()+". Either use 5, 10, 15, "+
+                                         "or 30 bands, or specify the frequency and bandwidth manually.");
   }
 
   public static AudioFilter Make(int nbands, double startFreq, double bandwidth)
-  { if(nbands<=0 || startFreq<=0 || bandwidth<=0)
+  {
+    if(nbands<=0 || startFreq<=0 || bandwidth<=0)
       throw new ArgumentException("nbands, startFreq, and bandwidth must all be positive.");
 
     AudioFilter filter = new AudioFilter();
     double mul = (float)Math.Pow(2, bandwidth);
     for(int i=0; i<nbands; i++)
-    { filter.Filters.Add(new EqFilter(EqFilterType.Peaking, (float)startFreq,
+    {
+      filter.Filters.Add(new EqFilter(EqFilterType.Peaking, (float)startFreq,
                                       EqParamType.Bandwidth, (float)bandwidth));
       startFreq *= mul;
     }
@@ -1116,14 +1277,16 @@ public static class GraphicEqualizer
 
 #region Channel class
 public sealed class Channel
-{ internal Channel(int channel) { number=channel; Reset(); }
+{
+  internal Channel(int channel) { number=channel; Reset(); }
 
   public event ChannelFinishedHandler Finished;
 
   public int Age { get { return source==null ? 0 : (int)(Timing.Msecs-startTime); } }
 
   public int Both
-  { get { return left; }
+  {
+    get { return left; }
     set { Audio.CheckVolume(value); left = right = value; }
   }
 
@@ -1132,7 +1295,8 @@ public sealed class Channel
   public FilterCollection Filters { get { if(filters==null) filters=new FilterCollection(this); return filters; } }
 
   public int Left
-  { get { return left; }
+  {
+    get { return left; }
     set { Audio.CheckVolume(value); left=value; }
   }
 
@@ -1144,14 +1308,16 @@ public sealed class Channel
   public int Priority { get { return priority; } }
 
   public int Right
-  { get { return right; }
+  {
+    get { return right; }
     set { Audio.CheckVolume(value); right=value; }
   }
 
   public AudioSource Source { get { return source; } }
 
   public ChannelStatus Status
-  { get { return source==null ? ChannelStatus.Stopped : paused ? ChannelStatus.Paused : ChannelStatus.Playing; }
+  {
+    get { return source==null ? ChannelStatus.Stopped : paused ? ChannelStatus.Paused : ChannelStatus.Playing; }
   }
 
   public bool Stopped { get { return Status==ChannelStatus.Stopped; } }
@@ -1160,7 +1326,8 @@ public sealed class Channel
   {
     if(fadeMs < 0) throw new ArgumentOutOfRangeException("fadeMs", "cannot be negative");
     lock(this)
-    { if(source==null) return;
+    {
+      if(source==null) return;
       fade      = Fade.Out;
       fadeTime  = (uint)fadeMs;
       fadeStart = Timing.Msecs;
@@ -1172,9 +1339,9 @@ public sealed class Channel
   public void GetVolume(out int left, out int right) { left=this.left; right=this.right; }
   public void SetVolume(int left, int right) { Left=left; Right=right; }
 
-  public void Pause()  { paused=true; }
+  public void Pause() { paused=true; }
   public void Resume() { paused=false; }
-  public void Stop()   { lock(this) StopPlaying(); }
+  public void Stop() { lock(this) StopPlaying(); }
 
   internal void Reset() { rate=1f; left=Audio.MaxVolume; right=Audio.MaxVolume; }
 
@@ -1183,7 +1350,8 @@ public sealed class Channel
     if(fadeMs < 0) throw new ArgumentOutOfRangeException();
     StopPlaying();
     lock(source)
-    { if(!source.CanRewind && loops!=0) throw new ArgumentException("Can't play loop sources that can't be rewound");
+    {
+      if(!source.CanRewind && loops!=0) throw new ArgumentException("Can't play loop sources that can't be rewound");
       if(!source.CanSeek && source.playing>0)
         throw new ArgumentException("Can't play unseekable streams more than once at a time");
       this.source   = source;
@@ -1198,12 +1366,14 @@ public sealed class Channel
       source.playing++;
       convert = !source.Format.Equals(Audio.Format);
       if(convert)
-      { GLMixer.AudioConversion cvt = Audio.SetupConversion(source.Format, Audio.Format);
+      {
+        GLMixer.AudioConversion cvt = Audio.SetupConversion(source.Format, Audio.Format);
         sdMul=cvt.lenMul; sdDiv=cvt.lenDiv;
       }
       else convBuf=null;
       if(fade!=Fade.None)
-      { fadeTime  = (uint)fadeMs;
+      {
+        fadeTime  = (uint)fadeMs;
         fadeLeft  = fade==Fade.In ? 0 : EffectiveLeft;
         fadeRight = fade==Fade.In ? 0 : EffectiveRight;
         fadeStart = Timing.Msecs;
@@ -1212,9 +1382,11 @@ public sealed class Channel
   }
 
   internal void StopPlaying()
-  { if(source==null) return;
+  {
+    if(source==null) return;
     lock(source)
-    { if(filters!=null) for(int i=0; i<filters.Count; i++) filters[i].Stop(this);
+    {
+      if(filters!=null) for(int i=0; i<filters.Count; i++) filters[i].Stop(this);
       Audio.OnFiltersFinished(this);
       if(Finished!=null) Finished(this);
       Audio.OnChannelFinished(this);
@@ -1223,42 +1395,50 @@ public sealed class Channel
   }
 
   internal unsafe void Mix(int* stream, int frames, FilterCollection filters)
-  { if(source==null || paused) return;
+  {
+    if(source==null || paused) return;
     lock(source)
-    { if(source.Length==0) return;
+    {
+      if(source.Length==0) return;
       AudioFormat format = source.Format;
       float rate = EffectiveRate;
-      int   left = EffectiveLeft, right=EffectiveRight, read, toRead, samples;
-      bool  convert = this.convert;
+      int left = EffectiveLeft, right=EffectiveRight, read, toRead, samples;
+      bool convert = this.convert;
 
       if(timeout!=Audio.Infinite && Age>timeout)
-      { StopPlaying();
+      {
+        StopPlaying();
         return;
       }
       if(fade!=Fade.None)
-      { uint fadeSoFar = Timing.Msecs-fadeStart;
-        int  ltarg, rtarg;
+      {
+        uint fadeSoFar = Timing.Msecs-fadeStart;
+        int ltarg, rtarg;
         if(fade==Fade.In) { ltarg=left; rtarg=right; }
         else ltarg=rtarg=0;
         if(fadeSoFar>fadeTime)
-        { if(fade==Fade.Out) { StopPlaying(); return; }
+        {
+          if(fade==Fade.Out) { StopPlaying(); return; }
           left  = ltarg;
           right = rtarg;
           fade  = Fade.None;
         }
         else
-        { left  = fadeLeft  + (ltarg-fadeLeft )*(int)fadeSoFar/(int)fadeTime;
+        {
+          left  = fadeLeft  + (ltarg-fadeLeft)*(int)fadeSoFar/(int)fadeTime;
           right = fadeRight + (rtarg-fadeRight)*(int)fadeSoFar/(int)fadeTime;
         }
       }
 
       if(source.CanSeek) source.Position = position;
       if(convert || rate!=1f) // FIXME: this path can result in 'toRead' not being a frame multiple!!!
-      { int index=0, mustWrite = frames*Audio.Format.FrameSize, framesRead;
+      {
+        int index=0, mustWrite = frames*Audio.Format.FrameSize, framesRead;
         bool stop=false;
         if(rate==1f) toRead = (int)((long)mustWrite*sdDiv/sdMul);
         else
-        { int shift = format.FrameSize>>1;
+        {
+          int shift = format.FrameSize>>1;
           format.Frequency = (int)(format.Frequency*rate);
           if(format.Frequency==0) return;
           convert = true;
@@ -1269,7 +1449,8 @@ public sealed class Channel
         // FIXME: HACK: this hacks the 'toRead' not frame multiple problem by duplicating samples
         // this means it's possible that a few samples may be added each buffer fill. this is not correct output!
         if(format.FrameSize>1)
-        { int diff = toRead & (format.FrameSize-1);
+        {
+          int diff = toRead & (format.FrameSize-1);
           if(diff>0) toRead += format.FrameSize-diff;
         }
 
@@ -1277,15 +1458,19 @@ public sealed class Channel
         if(convBuf==null || convBuf.Length<len) convBuf = new byte[len];
 
         while(index<toRead)
-        { read = source.ReadBytes(convBuf, index, toRead-index);
+        {
+          read = source.ReadBytes(convBuf, index, toRead-index);
           if(read==0)
-          { if(loops==0)
-            { Array.Clear(convBuf, index, toRead-index);
+          {
+            if(loops==0)
+            {
+              Array.Clear(convBuf, index, toRead-index);
               stop = true;
               break;
             }
             else
-            { source.Rewind();
+            {
+              source.Rewind();
               position = source.Position;
               if(loops!=Audio.Infinite) loops--;
             }
@@ -1301,7 +1486,8 @@ public sealed class Channel
             GLMixer.Check(GLMixer.ConvertMix(stream, src, (uint)samples, (ushort)Audio.Format.Format,
                                              Audio.Format.Channels, (ushort)left, (ushort)right));
         else
-        { int* buffer = stackalloc int[samples];
+        {
+          int* buffer = stackalloc int[samples];
           GameLib.Interop.Unsafe.Fill(buffer, 0, samples*sizeof(int));
           fixed(byte* src = convBuf)
             GLMixer.Check(GLMixer.ConvertMix(buffer, src, (uint)samples,
@@ -1317,19 +1503,24 @@ public sealed class Channel
         if(stop) { StopPlaying(); return; }
       }
       else
-      { toRead=frames;
+      {
+        toRead=frames;
         while(true)
-        { if((this.filters==null || this.filters.Count==0) && (filters==null || filters.Count==0))
-          { read    = source.ReadFrames(stream, toRead, left, right);
+        {
+          if((this.filters==null || this.filters.Count==0) && (filters==null || filters.Count==0))
+          {
+            read    = source.ReadFrames(stream, toRead, left, right);
             samples = read*Audio.Format.Channels;
           }
           else
-          { int* buffer = stackalloc int[toRead];
+          {
+            int* buffer = stackalloc int[toRead];
             GameLib.Interop.Unsafe.Fill(buffer, 0, toRead*sizeof(int));
             read    = source.ReadFrames(buffer, toRead, -1, -1);
             samples = read*Audio.Format.Channels;
             if(read>0)
-            { if(this.filters!=null)
+            {
+              if(this.filters!=null)
                 for(int i=0; i<this.filters.Count; i++) this.filters[i].MixFilter(this, buffer, read, format);
               if(filters!=null) for(int i=0; i<filters.Count; i++) filters[i].MixFilter(this, buffer, read, format);
               GLMixer.Check(GLMixer.Mix(stream, buffer, (uint)samples, (ushort)left, (ushort)right));
@@ -1339,9 +1530,11 @@ public sealed class Channel
           if(toRead<=0) break;
           stream += samples;
           if(read==0)
-          { if(loops==0) { StopPlaying(); return; }
+          {
+            if(loops==0) { StopPlaying(); return; }
             else
-            { source.Rewind();
+            {
+              source.Rewind();
               position = source.Position;
               if(loops!=Audio.Infinite) loops--;
             }
@@ -1352,17 +1545,17 @@ public sealed class Channel
     }
   }
 
-  int   EffectiveLeft  { get { int v=source.Left;  return v==Audio.MaxVolume ? left  : (left *v)>>8; } }
-  int   EffectiveRight { get { int v=source.Right; return v==Audio.MaxVolume ? right : (right*v)>>8; } }
-  float EffectiveRate  { get { return source.PlaybackRate*rate; } }
+  int EffectiveLeft { get { int v=source.Left; return v==Audio.MaxVolume ? left  : (left *v)>>8; } }
+  int EffectiveRight { get { int v=source.Right; return v==Audio.MaxVolume ? right : (right*v)>>8; } }
+  float EffectiveRate { get { return source.PlaybackRate*rate; } }
 
   AudioSource source;
   FilterCollection filters;
   byte[] convBuf;
   float rate=1f;
   uint startTime, fadeStart, fadeTime;
-  int  left=Audio.MaxVolume, right=Audio.MaxVolume, fadeLeft, fadeRight;
-  int  timeout, number, position, loops, priority, sdMul, sdDiv;
+  int left=Audio.MaxVolume, right=Audio.MaxVolume, fadeLeft, fadeRight;
+  int timeout, number, position, loops, priority, sdMul, sdDiv;
   Fade fade;
   bool paused, convert;
 }
@@ -1370,15 +1563,17 @@ public sealed class Channel
 
 #region Audio class
 public static class Audio
-{ 
+{
   public const int Infinite=-1, FreeChannel=-1, MaxVolume=256;
 
   public static FilterCollection Filters
-  { get { if(filters==null) filters=new FilterCollection(callback); return filters; }
+  {
+    get { if(filters==null) filters=new FilterCollection(callback); return filters; }
   }
 
   public static FilterCollection PostFilters
-  { get { if(postFilters==null) postFilters=new FilterCollection(callback); return postFilters; }
+  {
+    get { if(postFilters==null) postFilters=new FilterCollection(callback); return postFilters; }
   }
 
   public static event ChannelFinishedHandler ChannelFinished;
@@ -1388,13 +1583,16 @@ public static class Audio
   public static object SyncRoot { get { AssertInit(); return callback; } }
 
   public static int MasterVolume
-  { get { AssertInit(); return (int)GLMixer.GetMixVolume(); }
+  {
+    get { AssertInit(); return (int)GLMixer.GetMixVolume(); }
     set { AssertInit(); CheckVolume(value); GLMixer.SetMixVolume((ushort)value); }
   }
   public static int ReservedChannels
-  { get { AssertInit(); return reserved; }
+  {
+    get { AssertInit(); return reserved; }
     set
-    { AssertInit();
+    {
+      AssertInit();
       if(reserved<0 || reserved>chans.Length) throw new ArgumentOutOfRangeException("value");
       reserved=value;
     }
@@ -1402,7 +1600,7 @@ public static class Audio
 
   public static ReadOnlyCollection<Channel> Channels { get { return Array.AsReadOnly(chans); } }
   public static PlayPolicy PlayPolicy { get { return playPolicy; } set { playPolicy=value; } }
-  public static MixPolicy  MixPolicy  { get { return mixPolicy; } set { mixPolicy=value; } }
+  public static MixPolicy MixPolicy { get { return mixPolicy; } set { mixPolicy=value; } }
 
   // TODO: should this be counted like the others?
   public static bool Initialize() { return Initialize(22050, SampleFormat.Default, Speakers.Stereo, 50); }
@@ -1422,11 +1620,12 @@ public static class Audio
     init        = true;
 
     try
-    { GLMixer.Check(GLMixer.Init((uint)frequency, (ushort)format, (byte)chans, (uint)bufferMs, callback, new IntPtr(null)));
+    {
+      GLMixer.Check(GLMixer.Init((uint)frequency, (ushort)format, (byte)chans, (uint)bufferMs, callback, new IntPtr(null)));
 
       uint freq, bytes;
       ushort form;
-      byte   chan;
+      byte chan;
       GLMixer.Check(GLMixer.GetFormat(out freq, out form, out chan, out bytes));
       Audio.format = new AudioFormat((int)freq, (SampleFormat)form, chan);
 
@@ -1440,10 +1639,13 @@ public static class Audio
   }
 
   public static void Deinitialize()
-  { if(init)
-    { SDL.PauseAudio(1);
+  {
+    if(init)
+    {
+      SDL.PauseAudio(1);
       lock(callback)
-      { Stop();
+      {
+        Stop();
         if(postFilters!=null) for(int i=0; i<postFilters.Count; i++) postFilters[i].Stop(null);
         GLMixer.Quit();
         SDL.Deinitialize(SDL.InitFlag.Audio);
@@ -1457,11 +1659,14 @@ public static class Audio
 
   public static void AllocateChannels(int numChannels) { AllocateChannels(numChannels, true); }
   public static void AllocateChannels(int numChannels, bool resetChannels)
-  { AssertInit();
+  {
+    AssertInit();
     if(numChannels<0) throw new ArgumentOutOfRangeException("numChannels");
     lock(callback)
-    { for(int i=numChannels; i<chans.Length; i++)
-      { chans[i].Stop();
+    {
+      for(int i=numChannels; i<chans.Length; i++)
+      {
+        chans[i].Stop();
         if(resetChannels) chans[i].Reset();
       }
       Channel[] narr = new Channel[numChannels];
@@ -1473,11 +1678,14 @@ public static class Audio
   }
 
   public static int AddGroup()
-  { AssertInit();
+  {
+    AssertInit();
     lock(groups)
-    { for(int i=0; i<groups.Count; i++)
+    {
+      for(int i=0; i<groups.Count; i++)
         if(groups[i]==null)
-        { groups[i] = new List<int>();
+        {
+          groups[i] = new List<int>();
           return i;
         }
       groups.Add(new List<int>());
@@ -1488,18 +1696,22 @@ public static class Audio
   public static void RemoveGroup(int group) { lock(groups) { GetGroup(group); groups[ToGroup(group)]=null; } }
 
   public static void GroupChannel(int channel, int group)
-  { CheckChannel(channel);
+  {
+    CheckChannel(channel);
     lock(groups)
-    { List<int> list = GetGroup(group);
+    {
+      List<int> list = GetGroup(group);
       if(!list.Contains(channel)) list.Add(channel);
     }
   }
 
   public static void GroupRange(int start, int end, int group)
-  { CheckChannel(start); CheckChannel(end);
+  {
+    CheckChannel(start); CheckChannel(end);
     if(start>end) throw new ArgumentException("start should be <= end");
     lock(groups)
-    { List<int> list = GetGroup(group);
+    {
+      List<int> list = GetGroup(group);
       for(; start<=end; start++) if(!list.Contains(start)) list.Add(start);
     }
   }
@@ -1509,23 +1721,28 @@ public static class Audio
   public static int GroupSize(int group) { lock(groups) return GetGroup(group).Count; }
 
   public static ReadOnlyCollection<int> GetGroupChannels(int group)
-  { lock(groups) return GetGroup(group).AsReadOnly();
+  {
+    lock(groups) return GetGroup(group).AsReadOnly();
   }
 
   public static int OldestChannel(bool unreserved) { return OldestChannel(-1, unreserved); }
   public static int OldestChannel(int group, bool unreserved)
-  { int  i,oi;
+  {
+    int i, oi;
     int age=0;
     if(group==-1)
-    { AssertInit();
+    {
+      AssertInit();
       lock(callback)
-        for(oi=unreserved ? 0 : reserved,i=oi; i<chans.Length; i++) if(chans[i].Age>age) { age=chans[i].Age; oi=i; }
+        for(oi=unreserved ? 0 : reserved, i=oi; i<chans.Length; i++) if(chans[i].Age>age) { age=chans[i].Age; oi=i; }
     }
     else
       lock(groups)
-      { List<int> list = GetGroup(group);
+      {
+        List<int> list = GetGroup(group);
         for(oi=i=0; i<list.Count; i++)
-        { int chan = list[i];
+        {
+          int chan = list[i];
           if(!unreserved && chan<reserved) continue;
           if(chans[chan].Age>age) { age=chans[chan].Age; oi=chan; }
         }
@@ -1535,47 +1752,56 @@ public static class Audio
 
   public static void FadeOut(int fadeMs) { FadeOut(-1, fadeMs); }
   public static void FadeOut(int group, int fadeMs)
-  { if(group==-1) lock(callback) for(int i=0; i<chans.Length; i++) chans[i].FadeOut(fadeMs);
+  {
+    if(group==-1) lock(callback) for(int i=0; i<chans.Length; i++) chans[i].FadeOut(fadeMs);
     else
       lock(groups)
-      { List<int> list = GetGroup(group);
+      {
+        List<int> list = GetGroup(group);
         for(int i=0; i<list.Count; i++) chans[list[i]].FadeOut(fadeMs);
       }
   }
 
   public static void Pause() { Pause(-1); }
   public static void Pause(int group)
-  { if(group==-1) lock(callback) for(int i=0; i<chans.Length; i++) chans[i].Pause();
+  {
+    if(group==-1) lock(callback) for(int i=0; i<chans.Length; i++) chans[i].Pause();
     else
       lock(groups)
-      { List<int> list = GetGroup(group);
+      {
+        List<int> list = GetGroup(group);
         for(int i=0; i<list.Count; i++) chans[list[i]].Pause();
       }
   }
 
   public static void Resume() { Resume(-1); }
   public static void Resume(int group)
-  { if(group==-1) lock(callback) for(int i=0; i<chans.Length; i++) chans[i].Resume();
+  {
+    if(group==-1) lock(callback) for(int i=0; i<chans.Length; i++) chans[i].Resume();
     else
       lock(groups)
-      { List<int> list = GetGroup(group);
+      {
+        List<int> list = GetGroup(group);
         for(int i=0; i<list.Count; i++) chans[list[i]].Resume();
       }
   }
 
   public static void Stop() { Stop(-1); }
   public static void Stop(int group)
-  { if(group==-1) lock(callback) for(int i=0; i<chans.Length; i++) chans[i].Stop();
+  {
+    if(group==-1) lock(callback) for(int i=0; i<chans.Length; i++) chans[i].Stop();
     else
       lock(groups)
-      { List<int> list = GetGroup(group);
+      {
+        List<int> list = GetGroup(group);
         for(int i=0; i<list.Count; i++) chans[list[i]].Stop();
       }
   }
 
   [CLSCompliant(false)]
   public static GLMixer.AudioConversion SetupConversion(AudioFormat srcFormat, AudioFormat destFormat)
-  { GLMixer.AudioConversion cvt = new GLMixer.AudioConversion();
+  {
+    GLMixer.AudioConversion cvt = new GLMixer.AudioConversion();
     if(srcFormat.Equals(destFormat)) { cvt.lenMul=cvt.lenDiv=1; }
     cvt.srcRate    = (int)srcFormat.Frequency;
     cvt.srcFormat  = (ushort)srcFormat.Format;
@@ -1588,24 +1814,30 @@ public static class Audio
   }
 
   public static SizedArray Convert(byte[] srcData, AudioFormat srcFormat, SampleFormat destFormat)
-  { return Convert(srcData, srcFormat, destFormat, -1);
+  {
+    return Convert(srcData, srcFormat, destFormat, -1);
   }
   public static SizedArray Convert(byte[] srcData, AudioFormat srcFormat, SampleFormat destFormat, int length)
-  { AudioFormat df = srcFormat;
+  {
+    AudioFormat df = srcFormat;
     df.Format = destFormat;
     return Convert(srcData, srcFormat, df, length, -1);
   }
   public static SizedArray Convert(byte[] srcData, AudioFormat srcFormat, AudioFormat destFormat)
-  { return Convert(srcData, srcFormat, destFormat, -1, -1);
+  {
+    return Convert(srcData, srcFormat, destFormat, -1, -1);
   }
   public static SizedArray Convert(byte[] srcData, AudioFormat srcFormat, AudioFormat destFormat, int length)
-  { return Convert(srcData, srcFormat, destFormat, length, -1);
+  {
+    return Convert(srcData, srcFormat, destFormat, length, -1);
   }
   public static SizedArray Convert(byte[] srcData, AudioFormat srcFormat, AudioFormat destFormat,
                                    int length, int mustWrite)
-  { if(srcFormat.Equals(destFormat)) return new SizedArray(srcData);
+  {
+    if(srcFormat.Equals(destFormat)) return new SizedArray(srcData);
     unsafe
-    { GLMixer.AudioConversion cvt = new GLMixer.AudioConversion();
+    {
+      GLMixer.AudioConversion cvt = new GLMixer.AudioConversion();
       if(length<0) length = srcData.Length;
       cvt.srcRate    = (int)srcFormat.Frequency;
       cvt.srcFormat  = (ushort)srcFormat.Format;
@@ -1619,17 +1851,21 @@ public static class Audio
       if(mustWrite!=-1) cvt.lenCvt=mustWrite;
 
       if(srcData.Length>=cvt.lenCvt)
-      { fixed(byte* buf = srcData)
-        { cvt.buf = buf;
+      {
+        fixed(byte* buf = srcData)
+        {
+          cvt.buf = buf;
           GLMixer.Check(GLMixer.Convert(ref cvt));
         }
         return new SizedArray(srcData, cvt.lenCvt);
       }
       else
-      { byte[] ret = new byte[cvt.lenCvt];
+      {
+        byte[] ret = new byte[cvt.lenCvt];
         Array.Copy(srcData, ret, length);
         fixed(byte* buf = ret)
-        { cvt.buf = buf;
+        {
+          cvt.buf = buf;
           GLMixer.Check(GLMixer.Convert(ref cvt));
         }
         return new SizedArray(ret, cvt.lenCvt);
@@ -1638,87 +1874,108 @@ public static class Audio
   }
 
   internal static unsafe void Deinterlace(int* buffer, float** channels, int frames, AudioFormat format)
-  { if(format.Channels==1) GLMixer.ConvertAccumulator(channels[0], buffer, (uint)frames, (ushort)SampleFormat.Float);
+  {
+    if(format.Channels==1) GLMixer.ConvertAccumulator(channels[0], buffer, (uint)frames, (ushort)SampleFormat.Float);
     else if(format.Channels==2)
-    { int* left=stackalloc int[frames], right=stackalloc int[frames];
+    {
+      int* left=stackalloc int[frames], right=stackalloc int[frames];
       for(int i=0; i<frames; i++)
-      { left[i]  = *buffer++;
+      {
+        left[i]  = *buffer++;
         right[i] = *buffer++;
       }
-      GLMixer.ConvertAccumulator(channels[0], left,  (uint)frames, (ushort)SampleFormat.Float);
+      GLMixer.ConvertAccumulator(channels[0], left, (uint)frames, (ushort)SampleFormat.Float);
       GLMixer.ConvertAccumulator(channels[1], right, (uint)frames, (ushort)SampleFormat.Float);
     }
     else
-    { int* src=stackalloc int[frames];
-      for(int c=0,inc=format.Channels; c<inc; c++)
-      { for(int i=c,j=0; j<frames; i+=inc,j++) src[j]=buffer[i];
+    {
+      int* src=stackalloc int[frames];
+      for(int c=0, inc=format.Channels; c<inc; c++)
+      {
+        for(int i=c, j=0; j<frames; i+=inc, j++) src[j]=buffer[i];
         GLMixer.ConvertAccumulator(channels[c], src, (uint)frames, (ushort)SampleFormat.Float);
       }
     }
   }
 
   internal static unsafe void Interlace(int* buffer, float** channels, int frames, AudioFormat format)
-  { if(format.Channels==1)
+  {
+    if(format.Channels==1)
       GLMixer.ConvertMix(buffer, channels[0], (uint)frames, (ushort)SampleFormat.Float,
                          format.Channels, MaxVolume, MaxVolume);
     else if(format.Channels==2)
-    { int* left=stackalloc int[frames], right=stackalloc int[frames];
-      GLMixer.ConvertMix(left,  channels[0], (uint)frames, (ushort)SampleFormat.Float,
+    {
+      int* left=stackalloc int[frames], right=stackalloc int[frames];
+      GLMixer.ConvertMix(left, channels[0], (uint)frames, (ushort)SampleFormat.Float,
                          format.Channels, MaxVolume, MaxVolume);
       GLMixer.ConvertMix(right, channels[1], (uint)frames, (ushort)SampleFormat.Float,
                          format.Channels, MaxVolume, MaxVolume);
       for(int i=0; i<frames; i++)
-      { *buffer++ = left[i];
+      {
+        *buffer++ = left[i];
         *buffer++ = right[i];
       }
     }
     else
-    { int* src=stackalloc int[frames];
-      for(int c=0,inc=format.Channels; c<inc; c++)
-      { GLMixer.ConvertMix(src, channels[c], (uint)frames, (ushort)SampleFormat.Float,
+    {
+      int* src=stackalloc int[frames];
+      for(int c=0, inc=format.Channels; c<inc; c++)
+      {
+        GLMixer.ConvertMix(src, channels[c], (uint)frames, (ushort)SampleFormat.Float,
                            format.Channels, MaxVolume, MaxVolume);
-        for(int i=c,j=0; j<frames; i+=inc,j++) buffer[i]=src[j];
+        for(int i=c, j=0; j<frames; i+=inc, j++) buffer[i]=src[j];
       }
     }
   }
 
   internal static void OnFiltersFinished(Channel channel)
-  { if(filters!=null) lock(callback) for(int i=0; i<filters.Count; i++) filters[i].Stop(channel);
+  {
+    if(filters!=null) lock(callback) for(int i=0; i<filters.Count; i++) filters[i].Stop(channel);
   }
 
   internal static void OnChannelFinished(Channel channel)
-  { if(ChannelFinished!=null) ChannelFinished(channel);
+  {
+    if(ChannelFinished!=null) ChannelFinished(channel);
   }
 
   internal static Channel StartPlaying(int channel, AudioSource source, int loops, int position, Fade fade, int fadeMs, int timeoutMs)
-  { AssertInit();
+  {
+    AssertInit();
     if(reserved==chans.Length) return null;
 
     IList<int> group = null;
     bool tried = false;
     do
-    { if(channel==FreeChannel)
-      { for(int i=reserved; i<chans.Length; i++)
+    {
+      if(channel==FreeChannel)
+      {
+        for(int i=reserved; i<chans.Length; i++)
           if(chans[i].Status==ChannelStatus.Stopped) // try to lock as little as possible
-          { tried=true;
+          {
+            tried=true;
             lock(chans[i])
               if(chans[i].Status==ChannelStatus.Stopped)
-              { chans[i].StartPlaying(source, loops, position, fade, fadeMs, timeoutMs);
+              {
+                chans[i].StartPlaying(source, loops, position, fade, fadeMs, timeoutMs);
                 return chans[i];
               }
           }
       }
       else
         lock(groups)
-        { group = GetGroup(channel);
+        {
+          group = GetGroup(channel);
           for(int i=0; i<group.Count; i++)
-          { int chan = group[i];
+          {
+            int chan = group[i];
             if(chan<reserved) continue;
             if(chans[chan].Status==ChannelStatus.Stopped) // try to lock as little as possible
-            { tried = true;
+            {
+              tried = true;
               lock(chans[chan])
                 if(chans[chan].Status==ChannelStatus.Stopped)
-                { chans[chan].StartPlaying(source, loops, position, fade, fadeMs, timeoutMs);
+                {
+                  chans[chan].StartPlaying(source, loops, position, fade, fadeMs, timeoutMs);
                   return chans[chan];
                 }
             }
@@ -1727,15 +1984,18 @@ public static class Audio
     } while(!tried);
 
     switch(playPolicy)
-    { case PlayPolicy.Oldest:
+    {
+      case PlayPolicy.Oldest:
         lock(callback)
-        { int oi = reserved, age = 0;
+        {
+          int oi = reserved, age = 0;
           if(channel==FreeChannel)
             for(int i=reserved; i<chans.Length; i++) { if(chans[i].Age>age) { age=chans[i].Age; oi=i; } }
           else
             lock(groups)
               for(int i=0; i<group.Count; i++)
-              { int chan = group[i];
+              {
+                int chan = group[i];
                 if(chan<reserved) continue;
                 if(chans[chan].Age>age) { age=chans[chan].Age; oi=chan; }
               }
@@ -1744,13 +2004,15 @@ public static class Audio
         }
       case PlayPolicy.Priority:
         lock(callback)
-        { int pi=reserved, prio=int.MaxValue;
+        {
+          int pi=reserved, prio=int.MaxValue;
           if(channel==FreeChannel)
             for(int i=reserved; i<chans.Length; i++) { if(chans[i].Priority<prio) { prio=chans[i].Priority; pi=i; } }
           else
             lock(groups)
               for(int i=0; i<group.Count; i++)
-              { int chan = group[i];
+              {
+                int chan = group[i];
                 if(chan<reserved) continue;
                 if(chans[chan].Priority<prio) { prio=chans[chan].Priority; pi=chan; }
               }
@@ -1759,23 +2021,28 @@ public static class Audio
         }
       case PlayPolicy.OldestPriority:
         lock(callback)
-        { int  pi=reserved, oi, prio=int.MaxValue, age=0;
+        {
+          int pi=reserved, oi, prio=int.MaxValue, age=0;
           if(channel==FreeChannel)
-          { for(int i=reserved; i<chans.Length; i++) if(chans[i].Priority<prio) { prio=chans[i].Priority; pi=i; }
+          {
+            for(int i=reserved; i<chans.Length; i++) if(chans[i].Priority<prio) { prio=chans[i].Priority; pi=i; }
             oi=pi;
             for(int i=reserved; i<chans.Length; i++)
               if(chans[i].Priority==prio && chans[i].Age>age) { oi=i; age=chans[i].Age; }
           }
           else
             lock(groups)
-            { for(int i=0; i<group.Count; i++)
-              { int chan = group[i];
+            {
+              for(int i=0; i<group.Count; i++)
+              {
+                int chan = group[i];
                 if(chan<reserved) continue;
                 if(chans[chan].Priority<prio) { prio=chans[chan].Priority; pi=chan; }
               }
               oi=pi;
               for(int i=0; i<group.Count; i++)
-              { int chan = group[i];
+              {
+                int chan = group[i];
                 if(chan<reserved) continue;
                 if(chans[chan].Priority==prio && chans[chan].Age>age) { oi=chan; age=chans[chan].Age; }
               }
@@ -1788,19 +2055,23 @@ public static class Audio
   }
 
   internal static void CheckRate(float rate)
-  { if(rate<0f) throw new ArgumentOutOfRangeException("PlaybackRate");
+  {
+    if(rate<0f) throw new ArgumentOutOfRangeException("PlaybackRate");
   }
   internal static void CheckChannel(int channel)
-  { AssertInit();
+  {
+    AssertInit();
     if(channel!=FreeChannel && (channel<0 || channel>=chans.Length)) throw new ArgumentOutOfRangeException("channel");
   }
   internal static void CheckVolume(int volume)
-  { if(volume<0 || volume>Audio.MaxVolume) throw new ArgumentOutOfRangeException("volume");
+  {
+    if(volume<0 || volume>Audio.MaxVolume) throw new ArgumentOutOfRangeException("volume");
   }
 
   static int ToGroup(int group) { return -group-2; }
   static List<int> GetGroup(int group)
-  { AssertInit();
+  {
+    AssertInit();
     int index = ToGroup(group);
     if(index<0 || index>=groups.Count) throw new ArgumentException("Invalid group ID");
     List<int> list = (List<int>)groups[ToGroup(group)];
@@ -1809,20 +2080,25 @@ public static class Audio
   }
 
   static void AssertInit()
-  { if(!init) throw new InvalidOperationException("Audio has not been initialized.");
+  {
+    if(!init) throw new InvalidOperationException("Audio has not been initialized.");
   }
-  
+
   static unsafe void FillBuffer(int* stream, uint frames, IntPtr context)
-  { try
-    { lock(callback)
-      { for(int i=0; i<chans.Length; i++) lock(chans[i]) chans[i].Mix(stream, (int)frames, filters);
+  {
+    try
+    {
+      lock(callback)
+      {
+        for(int i=0; i<chans.Length; i++) lock(chans[i]) chans[i].Mix(stream, (int)frames, filters);
         if(postFilters!=null)
           for(int i=0; i<postFilters.Count; i++) postFilters[i].MixFilter(null, stream, (int)frames, format);
         if(MixPolicy==MixPolicy.Divide) GLMixer.Check(GLMixer.DivideAccumulator(chans.Length));
       }
     }
     catch(Exception e)
-    { if(Events.Events.Initialized)
+    {
+      if(Events.Events.Initialized)
         try { Events.Events.PushEvent(new Events.ExceptionEvent(Events.ExceptionLocation.AudioThread, e)); }
         catch { }
     }
@@ -1835,7 +2111,7 @@ public static class Audio
   static List<List<int>> groups;
   static int reserved;
   static PlayPolicy playPolicy = PlayPolicy.Fail;
-  static MixPolicy  mixPolicy  = MixPolicy.DontDivide;
+  static MixPolicy mixPolicy  = MixPolicy.DontDivide;
   static bool init;
 }
 #endregion

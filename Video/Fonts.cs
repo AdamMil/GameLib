@@ -50,7 +50,7 @@ public abstract class Font : IDisposable
 
   /// <summary>Gets the height of the font, in pixels.</summary>
   public abstract int Height { get; }
-  /// <include file="documentation.xml" path="//Fonts/LineSkip/*"/>
+  /// <include file="../documentation.xml" path="//Fonts/LineSkip/*"/>
   public abstract int LineSkip { get; }
   /// <summary>Gets/sets the color of the font.</summary>
   /// <remarks>The interpretation of this property is up to the implementing class, so see the documentation for
@@ -64,30 +64,30 @@ public abstract class Font : IDisposable
   /// </remarks>
   public abstract Color BackColor { get; set; }
 
-  /// <include file="documentation.xml" path="//Fonts/CalculateSize/*"/>
+  /// <include file="../documentation.xml" path="//Fonts/CalculateSize/*"/>
   public abstract Size CalculateSize(string text);
-  /// <include file="documentation.xml" path="//Fonts/HowManyFit/*"/>
+  /// <include file="../documentation.xml" path="//Fonts/HowManyFit/*"/>
   public abstract int HowManyFit(string text, int width);
 
-  /// <include file="documentation.xml" path="//Fonts/Render/Point/Pt/*"/>
+  /// <include file="../documentation.xml" path="//Fonts/Render/Point/Pt/*"/>
   public int Render(Surface dest, string text, Point pt) { return Render(dest, text, pt.X, pt.Y); }
-  /// <include file="documentation.xml" path="//Fonts/Render/Point/XY/*"/>
+  /// <include file="../documentation.xml" path="//Fonts/Render/Point/XY/*"/>
   public abstract int Render(Surface dest, string text, int x, int y);
 
-  /// <include file="documentation.xml" path="//Fonts/Render/Rect/NoAlign/*"/>
+  /// <include file="../documentation.xml" path="//Fonts/Render/Rect/NoAlign/*"/>
   public Point Render(Surface dest, string text, Rectangle rect)
   { return Render(dest, text, rect, ContentAlignment.TopLeft, 0, 0, breakers);
   }
-  /// <include file="documentation.xml" path="//Fonts/Render/Rect/Align/*"/>
+  /// <include file="../documentation.xml" path="//Fonts/Render/Rect/Align/*"/>
   public Point Render(Surface dest, string text, Rectangle rect, ContentAlignment align)
   { return Render(dest, text, rect, align, 0, 0, breakers);
   }
-  /// <include file="documentation.xml" path="//Fonts/Render/Rect/*[self::NoAlign or self::Offset]/*"/>
+  /// <include file="../documentation.xml" path="//Fonts/Render/Rect/*[self::NoAlign or self::Offset]/*"/>
   /// <remarks>The X and Y offsets into the rectangle are provided to allow continuing rendering where you left off.</remarks>
   public Point Render(Surface dest, string text, Rectangle rect, int startx, int starty)
   { return Render(dest, text, rect, ContentAlignment.TopLeft, startx, starty, breakers);
   }
-  /// <include file="documentation.xml" path="//Fonts/Render/Rect/*[self::Align or self::Offset]/*"/>
+  /// <include file="../documentation.xml" path="//Fonts/Render/Rect/*[self::Align or self::Offset]/*"/>
   /// <param name="breakers">An array of characters that will be used to break the text. Those characters will
   /// mark preferred places within the string to break to a new line.
   /// </param>
@@ -144,31 +144,31 @@ public abstract class Font : IDisposable
     Render(dest, text, (dest.Width-width)/2, y);
   }
 
-  /// <include file="documentation.xml" path="//Fonts/WordWrap/Dims/*"/>
+  /// <include file="../documentation.xml" path="//Fonts/WordWrap/Dims/*"/>
   public int[] WordWrap(string text, int width, int height)
   { return WordWrap(text, new Rectangle(0, 0, width, height), 0, 0, breakers);
   }
-  /// <include file="documentation.xml" path="//Fonts/WordWrap/*[self::Dims or self::Breakers]/*"/>
+  /// <include file="../documentation.xml" path="//Fonts/WordWrap/*[self::Dims or self::Breakers]/*"/>
   public int[] WordWrap(string text, int width, int height, char[] breakers)
   { return WordWrap(text, new Rectangle(0, 0, width, height), 0, 0, breakers);
   }
-  /// <include file="documentation.xml" path="//Fonts/WordWrap/Size/*"/>
+  /// <include file="../documentation.xml" path="//Fonts/WordWrap/Size/*"/>
   public int[] WordWrap(string text, Size size)
   { return WordWrap(text, new Rectangle(0, 0, size.Width, size.Height), 0, 0, breakers);
   }
-  /// <include file="documentation.xml" path="//Fonts/WordWrap/*[self::Size or self::Breakers]/*"/>
+  /// <include file="../documentation.xml" path="//Fonts/WordWrap/*[self::Size or self::Breakers]/*"/>
   public int[] WordWrap(string text, Size size, char[] breakers)
   { return WordWrap(text, new Rectangle(0, 0, size.Width, size.Height), 0, 0, breakers);
   }
-  /// <include file="documentation.xml" path="//Fonts/WordWrap/Rect/*"/>
+  /// <include file="../documentation.xml" path="//Fonts/WordWrap/Rect/*"/>
   public int[] WordWrap(string text, Rectangle rect) { return WordWrap(text, rect, 0, 0, breakers); }
-  /// <include file="documentation.xml" path="//Fonts/WordWrap/*[self::Rect or self::Breakers]/*"/>
+  /// <include file="../documentation.xml" path="//Fonts/WordWrap/*[self::Rect or self::Breakers]/*"/>
   public int[] WordWrap(string text, Rectangle rect, char[] breakers) { return WordWrap(text, rect, 0, 0, breakers); }
-  /// <include file="documentation.xml" path="//Fonts/WordWrap/*[self::Rect or self::Offset]/*"/>
+  /// <include file="../documentation.xml" path="//Fonts/WordWrap/*[self::Rect or self::Offset]/*"/>
   public int[] WordWrap(string text, Rectangle rect, int startx, int starty)
   { return WordWrap(text, rect, startx, starty, breakers);
   }
-  /// <include file="documentation.xml" path="//Fonts/WordWrap/*[self::Rect or self::Breakers or self::Offset]/*"/>
+  /// <include file="../documentation.xml" path="//Fonts/WordWrap/*[self::Rect or self::Breakers or self::Offset]/*"/>
   // TODO: respect newline characters in text
   public virtual int[] WordWrap(string text, Rectangle rect, int startx, int starty, char[] breakers)
   { if(text.Length==0) return new int[0];
@@ -274,12 +274,12 @@ public abstract class StyledFont : Font
 public class BitmapFont : Font
 { 
   /// <summary>Initializes a fixed-width font with default spacing.</summary>
-  /// <include file="documentation.xml" path="//Fonts/BitmapFont/BitmapFont1/*"/>
+  /// <include file="../documentation.xml" path="//Fonts/BitmapFont/BitmapFont1/*"/>
   public BitmapFont(Surface font, string charset, int charWidth) : this(font, charset, charWidth, 1, 2) { }
   /// <summary>Initializes a fixed-width font.</summary>
   /// <param name="horzSpacing">The horizontal spacing that will be added after each character.</param>
   /// <param name="vertSpacing">The vertical spacing that will be added between lines.</param>
-  /// <include file="documentation.xml" path="//Fonts/BitmapFont/BitmapFont1/*"/>
+  /// <include file="../documentation.xml" path="//Fonts/BitmapFont/BitmapFont1/*"/>
   public BitmapFont(Surface font, string charset, int charWidth, int horzSpacing, int vertSpacing)
   { orig     = font;
     width    = charWidth;
@@ -291,12 +291,12 @@ public class BitmapFont : Font
     Init();
   }
   /// <summary>Initializes a variable-width font with default spacing.</summary>
-  /// <include file="documentation.xml" path="//Fonts/BitmapFont/BitmapFont2/*"/>
+  /// <include file="../documentation.xml" path="//Fonts/BitmapFont/BitmapFont2/*"/>
   public BitmapFont(Surface font, string charset, int[] charWidths) : this(font, charset, charWidths, 1, 2) { }
   /// <summary>Initializes a variable-width font with default spacing.</summary>
   /// <param name="horzSpacing">The horizontal spacing that will be added after each character.</param>
   /// <param name="vertSpacing">The vertical spacing that will be added between lines.</param>
-  /// <include file="documentation.xml" path="//Fonts/BitmapFont/BitmapFont2/*"/>
+  /// <include file="../documentation.xml" path="//Fonts/BitmapFont/BitmapFont2/*"/>
   public BitmapFont(Surface font, string charset, int[] charWidths, int horzSpacing, int vertSpacing)
   { if(charWidths==null) throw new ArgumentNullException("charWidths");
     if(charset.Length != charWidths.Length)
@@ -315,7 +315,7 @@ public class BitmapFont : Font
 
   /// <summary>Gets the height of the font, in pixels.</summary>
   public override int Height { get { return font.Height; } }
-  /// <include file="documentation.xml" path="//Fonts/LineSkip/*"/>
+  /// <include file="../documentation.xml" path="//Fonts/LineSkip/*"/>
   public override int LineSkip { get { return lineSkip; } }
   /// <summary>Since the source of data for this font is a bitmap, this property does nothing.</summary>
   public override Color Color { get { return Color.White; } set { } }
@@ -328,7 +328,7 @@ public class BitmapFont : Font
     set { bgColor=value; }
   }
 
-  /// <include file="documentation.xml" path="//Fonts/CalculateSize/*"/>
+  /// <include file="../documentation.xml" path="//Fonts/CalculateSize/*"/>
   public override Size CalculateSize(string text)
   { if(text.Length==0) return new Size(Height, 0);
     if(widths==null)
@@ -343,7 +343,7 @@ public class BitmapFont : Font
     return ret;
   }
 
-  /// <include file="documentation.xml" path="//Fonts/HowManyFit/*"/>
+  /// <include file="../documentation.xml" path="//Fonts/HowManyFit/*"/>
   public override int HowManyFit(string text, int width)
   { if(text.Length==0) return 0;
     width += xAdd;
@@ -357,7 +357,7 @@ public class BitmapFont : Font
     return text.Length;
   }
 
-  /// <include file="documentation.xml" path="//Fonts/Render/Point/XY/*"/>
+  /// <include file="../documentation.xml" path="//Fonts/Render/Point/XY/*"/>
   public override int Render(Surface dest, string text, int x, int y)
   { int start=x;
     if(widths==null)
@@ -381,7 +381,10 @@ public class BitmapFont : Font
   }
 
   /// <summary>See <see cref="Font.OnDisplayFormatChanged"/> for more details regarding this method.</summary>
-  protected override void OnDisplayFormatChanged() { font = orig.IsCompatible() ? orig : orig.CloneDisplay(); }
+  protected override void OnDisplayFormatChanged()
+  {
+    font = Surface.MakeCompatibleWithDisplay(orig, true, false);
+  }
 
   /// <summary>See <see cref="Font.Dispose(bool)"/> for more details regarding this method.</summary>
   protected override void Dispose(bool finalizing)
@@ -450,30 +453,30 @@ public enum RenderStyle
 /// </remarks>
 public class TrueTypeFont : StyledFont
 { 
-  /// <include file="documentation.xml" path="//Fonts/TrueTypeFont/Cons/File/*"/>
+  /// <include file="../documentation.xml" path="//Fonts/TrueTypeFont/Cons/File/*"/>
   public TrueTypeFont(string filename, int pointSize)
   { TTF.Initialize();
     try { font = TTF.OpenFont(filename, pointSize); }
     catch(NullReferenceException) { unsafe { font = new IntPtr(null); } }
     Init();
   }
-  /// <include file="documentation.xml" path="//Fonts/TrueTypeFont/Cons/*[self::File or self::Index]/*"/>
+  /// <include file="../documentation.xml" path="//Fonts/TrueTypeFont/Cons/*[self::File or self::Index]/*"/>
   public TrueTypeFont(string filename, int pointSize, int fontIndex)
   { try { font = TTF.OpenFontIndex(filename, pointSize, fontIndex); }
     catch(NullReferenceException) { unsafe { font = new IntPtr(null); } }
     Init();
   }
-  /// <include file="documentation.xml" path="//Fonts/TrueTypeFont/Cons/*[self::Stream or self::WillClose]/*"/>
+  /// <include file="../documentation.xml" path="//Fonts/TrueTypeFont/Cons/*[self::Stream or self::WillClose]/*"/>
   public TrueTypeFont(System.IO.Stream stream, int pointSize) : this(stream, pointSize, true) { }
-  /// <include file="documentation.xml" path="//Fonts/TrueTypeFont/Cons/*[self::Stream or self::AutoClose]/*"/>
+  /// <include file="../documentation.xml" path="//Fonts/TrueTypeFont/Cons/*[self::Stream or self::AutoClose]/*"/>
   public TrueTypeFont(System.IO.Stream stream, int pointSize, bool autoClose)
   { SeekableStreamRWOps source = new SeekableStreamRWOps(stream, autoClose);
     unsafe { fixed(SDL.RWOps* ops = &source.ops) font = TTF.OpenFontRW(ops, 0, pointSize); }
     Init();
   }
-  /// <include file="documentation.xml" path="//Fonts/TrueTypeFont/Cons/*[self::Stream or self::Index or self::WillClose]/*"/>
+  /// <include file="../documentation.xml" path="//Fonts/TrueTypeFont/Cons/*[self::Stream or self::Index or self::WillClose]/*"/>
   public TrueTypeFont(System.IO.Stream stream, int pointSize, int fontIndex) : this(stream, pointSize, fontIndex, true) { }
-  /// <include file="documentation.xml" path="//Fonts/TrueTypeFont/Cons/*[self::Stream or self::Index or self::AutoClose]/*"/>
+  /// <include file="../documentation.xml" path="//Fonts/TrueTypeFont/Cons/*[self::Stream or self::Index or self::AutoClose]/*"/>
   public TrueTypeFont(System.IO.Stream stream, int pointSize, int fontIndex, bool autoClose)
   { SeekableStreamRWOps source = new SeekableStreamRWOps(stream, autoClose);
     unsafe { fixed(SDL.RWOps* ops = &source.ops) font = TTF.OpenFontIndexRW(ops, 0, pointSize, fontIndex); }
@@ -565,7 +568,7 @@ public class TrueTypeFont : StyledFont
 
   /// <summary>Gets the height of the font, in pixels.</summary>
   public override int Height { get { return TTF.FontHeight(font); } }
-  /// <include file="documentation.xml" path="//Fonts/LineSkip/*"/>
+  /// <include file="../documentation.xml" path="//Fonts/LineSkip/*"/>
   public override int LineSkip { get { return TTF.FontLineSkip(font); } }
   /// <summary>Gets the maximum pixel ascent of all glyphs in the font.</summary>
   /// <remarks>The maximum pixel ascent can also be interpreted as the distance from the top of the font to the
@@ -603,7 +606,7 @@ public class TrueTypeFont : StyledFont
     }
   }
 
-  /// <include file="documentation.xml" path="//Fonts/CalculateSize/*"/>
+  /// <include file="../documentation.xml" path="//Fonts/CalculateSize/*"/>
   public override Size CalculateSize(string text)
   { /*int width, height;
     TTF.SizeUNICODE(font, text, out width, out height); -- DOESN'T WORK CONSISTENTLY */
@@ -615,7 +618,7 @@ public class TrueTypeFont : StyledFont
     return size;
   }
 
-  /// <include file="documentation.xml" path="//Fonts/HowManyFit/*"/>
+  /// <include file="../documentation.xml" path="//Fonts/HowManyFit/*"/>
   public override int HowManyFit(string text, int width)
   { int pixels=0;
     for(int i=0; i<text.Length; i++)
@@ -628,7 +631,7 @@ public class TrueTypeFont : StyledFont
     return text.Length;
   }
 
-  /// <include file="documentation.xml" path="//Fonts/Render/Point/XY/*"/>
+  /// <include file="../documentation.xml" path="//Fonts/Render/Point/XY/*"/>
   public override int Render(Surface dest, string text, int x, int y)
   { int start = x;
     if(bgColor != Color.Transparent)
@@ -705,10 +708,12 @@ public class TrueTypeFont : StyledFont
       map[ind] = list.AddFirst(cc);
     }
     done:
-    if(Video.Video.DisplaySurface!=null)
-    { if(compatible==-1) compatible = cc.Surface.IsCompatible() ? 1 : 0;
+    if(Video.Video.DisplaySurface != null)
+    { 
+      if(compatible == -1) compatible = cc.Surface.IsCompatible(true) ? 1 : 0;
       if(!cc.Compatible && compatible==0)
-      { cc.Surface = cc.Surface.CloneDisplay();
+      {
+        cc.Surface = Surface.MakeCompatibleWithDisplay(cc.Surface);
         cc.Compatible = true;
       }
     }

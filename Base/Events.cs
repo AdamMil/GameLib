@@ -1,7 +1,7 @@
 /*
 GameLib is a library for developing games and other multimedia applications.
 http://www.adammil.net/
-Copyright (C) 2002-2007 Adam Milazzo
+Copyright (C) 2002-2008 Adam Milazzo
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -17,6 +17,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 using System;
+using System.Collections.Generic;
 using GameLib.Input;
 using GameLib.Interop.SDL;
 
@@ -540,14 +541,12 @@ public class JoyButtonEvent : Event
 #endregion
 
 #region Events class
-/// <summary>This delegate is used in conjunction with <see cref="Events.EventFilter"/> to filter events.</summary>
+/// <summary>This delegate is used to filter incoming events.</summary>
 /// <remarks>The function should return a <see cref="FilterAction"/> value to determine how the incoming event will
 /// be treated.
 /// </remarks>
 public delegate FilterAction EventFilter(Event e);
-/// <summary>This delegate is used by <see cref="Events.EventProcedure"/>, <see cref="Events.PumpEvent"/>, and
-/// <see cref="Events.PumpEvents"/> to handle a given event.
-/// </summary>
+/// <summary>This delegate is used to handle a given event.</summary>
 /// <remarks>The function should handle the event passed to it in a way meaningful to the application.
 /// The function should return true if the event loop should continue working, and false if it should stop. False
 /// should generally be returned only when the application is quitting, but it can be returned in order to break out
@@ -558,16 +557,14 @@ public delegate FilterAction EventFilter(Event e);
 /// to indicate anything besides that the application should quit is considered bad style).
 /// </remarks>
 public delegate bool EventProcedure(Event e);
-/// <summary>This delegate is used by <see cref="Events.IdleProcedure"/>, <see cref="Events.PumpEvent"/>, and
-/// <see cref="Events.PumpEvents"/> to do something when no other events are executing.
-/// </summary>
-/// <remarks>This function can be used to do something when no other events are pending, such as paint the screen
-/// or work on a low-priority background task. The function should not wait too long, however, as it will hold up
-/// the event queue if it does. If the function returns true, the event loop will check for events and if none
-/// are available yet, call the idle procedure again immediately. If the function returns false, the event loop will
-/// wait for the next event. Thus, returning true regularly during a long background task ensures that the event
-/// loop is not held up for too long. False should be returned when there is no more work to be done to prevent the
-/// event loop from calling the idle procedure in a tight loop, consuming all the CPU resources.
+/// <summary>This delegate is used to do something when no events are pending.</summary>
+/// <remarks>This function can be used to do something when no events are pending, such as painting the screen or
+/// working on a low-priority background task. The function should not wait too long, however, as it will hold up the
+/// event queue if it does. If any idle procedure returns true, the event loop will check for events and if none are
+/// available yet, call the idle procedures again immediately. If all idle procedures return false, the event loop will
+/// wait for the next event. Thus, returning true regularly during a long background task ensures that the event loop
+/// is not held up for too long. False should be returned when there is no more work to be done to prevent the event
+/// loop from calling the idle procedure in a tight loop, consuming CPU resources unnecessarily.
 /// </remarks>
 public delegate bool IdleProcedure();
 
@@ -586,71 +583,82 @@ public static class Events
   /// <remarks>This value can be passed to <see cref="NextEvent"/> and <see cref="PeekEvent"/> to request that
   /// they block until an event becomes available.
   /// </remarks>
-  public const int Infinite=-1;
-
-  /// <summary>Occurs when an event is received, but before the event is added to the queue. This can be used to
-  /// filter incoming events. See <see cref="EventFilter"/> for more information.
-  /// </summary>
-  public static event EventFilter EventFilter;
-  /// <summary>Called to handle an event removed from the queue by <see cref="PumpEvent"/> or
-  /// <see cref="PumpEvents"/>. See <see cref="GameLib.Events.EventProcedure"/> for more information.
-  /// </summary>
-  public static event EventProcedure EventProcedure;
-  /// <summary>Called by <see cref="PumpEvent"/> and <see cref="PumpEvents"/> when the queue is empty. See
-  /// <see cref="GameLib.Events.IdleProcedure"/> for more information.
-  /// </summary>
-  public static event IdleProcedure IdleProcedure;
+  public const int Infinite = -1;
 
   /// <summary>Returns true if the event subsystem has been initialized.</summary>
-  public static bool Initialized { get { return initCount>0; } }
+  public static bool Initialized 
+  {
+    get { return initCount > 0; } 
+  }
 
   /// <summary>Gets/sets the maximum size of the event queue.</summary>
   /// <value>The maximum size of the event queue, in number of events.</value>
   /// <remarks>If set to a size smaller than the number of events in the queue, the oldest events in the queue
-  /// will be dropped to reduce it to the maximum. This can be very destructive, so set the maximum queue size
-  /// before receiving events with this class -- ideally before calling <see cref="Initialize"/>, even.
+  /// will be dropped to reduce it to the maximum, so it's best to set the maximum queue size
+  /// before before calling <see cref="Initialize"/>.
   /// </remarks>
   /// <exception cref="ArgumentOutOfRangeException">Thrown if the value is less than or equal to zero.</exception>
   public static int MaxQueueSize
-  { get { return max; }
+  { 
+    get { return maxEvents; }
     set
-    { if(value<=0) throw new ArgumentOutOfRangeException("value", value, "must be greater than zero");
+    {
+      if(value <= 0) throw new ArgumentOutOfRangeException("value", value, "must be greater than zero");
+
       lock(queue)
-      { if(value<max) while(queue.Count>value) queue.Dequeue();
-        max=value;
+      {
+        if(value < maxEvents)
+        {
+          while(queue.Count > value) queue.Dequeue();
+        }
+        maxEvents = value;
       }
     }
   }
 
-  /// <summary>Gets an object that can be locked to synchronize access to the event queue.</summary>
-  /// <remarks>While it's strongly recommended that only one thread read events from the queue, it should be
-  /// possible to have multiple threads reading the queue if each thread locks this property with a
-  /// <see cref="System.Threading.Monitor"/> or the C# <c>lock</c> statement. Note that it is not possible to
-  /// add events from other threads using <see cref="PushEvent"/> while this is locked.
-  /// </remarks>
-  public static object SyncRoot { get { return queue; } }
-
   /// <summary>Gets the number of events waiting in the queue.</summary>
-  public static int Count { get { return queue.Count; } }
+  /// <remarks>This property can be queried even while the queue is locked.</remarks>
+  public static int Count
+  {
+    get { return queue.Count; }
+  }
 
-  /// <summary>Gets/sets the quit flag, which indicates that the application has shown an intention to quit.</summary>
-  /// <remarks>If the application returns false from an <see cref="GameLib.Events.EventProcedure"/>, the quit flag
-  /// will be set to true. The quit flag will cause some methods to do no work and
-  /// return immediately, with the assumption being that the application is about to quit. See
-  /// <see cref="GameLib.Events.EventProcedure"/> for more information on this.
+  /// <summary>Gets an object that can be locked to synchronize access to the event queue.</summary>
+  /// <remarks>While it's strongly recommended that only one thread read events from the queue, it is possible
+  /// possible to have multiple threads reading the queue if each thread locks this property with a
+  /// <see cref="System.Threading.Monitor"/> or the C# <c>lock</c> statement. Note that attempting to add events from
+  /// other threads using <see cref="PushEvent"/> will block until the lock is released.
   /// </remarks>
-  public static bool QuitFlag { get { return quit; } set { quit=value; } }
+  public static object SyncRoot 
+  {
+    get { return queue; }
+  }
+
+  /// <summary>Gets or sets the quit flag, which indicates that the application has shown an intention to quit.</summary>
+  /// <remarks>If the application returns false from an <see cref="GameLib.Events.EventProcedure"/>, the quit flag will
+  /// be set to true. The quit flag will cause some methods to do no work and return immediately, with the assumption
+  /// being that the application is about to quit. See <see cref="GameLib.Events.EventProcedure"/> for more information
+  /// on this.
+  /// </remarks>
+  public static bool QuitFlag 
+  {
+    get { return quit; } 
+    set { quit = value; } 
+  }
 
   /// <summary>Initializes the event subsystem.</summary>
-  /// <remarks>This method can be called multiple times. The <see cref="Deinitialize"/> method should be called the
+  /// <remarks>This method can be called multiple times, but <see cref="Deinitialize"/> should be called the
   /// same number of times to finally deinitialize the system.
   /// </remarks>
   public static void Initialize()
-  { if(initCount++==0)
-    { mods = (KeyMod)SDL.GetModState();
+  { 
+    if(initCount++ == 0)
+    { 
+      mods = (KeyMod)SDL.GetModState();
       SDL.Initialize(SDL.InitFlag.Video);
       SDL.Initialize(SDL.InitFlag.EventThread); // SDL quirk: this must be done AFTER video
-      SDL.EnableUNICODE(1); // SDL quirk: must be AFTER Initialize(EventThread)
+      SDL.EnableUNICODE(1); // SDL quirk: must be done AFTER Initialize(EventThread)
+      quit = false;
     }
   }
 
@@ -659,39 +667,204 @@ public static class Events
   /// in order to deinitialize the event subsystem. All messages still waiting in the queue will be lost.
   /// </remarks>
   public static void Deinitialize()
-  { if(initCount==0) throw new InvalidOperationException("Deinitialize called too many times!");
-    if(--initCount==0)
+  { 
+    if(initCount == 0) throw new InvalidOperationException("Deinitialize called too many times!");
+    if(--initCount == 0)
+    {
       lock(queue)
-      { SDL.Deinitialize(SDL.InitFlag.Video|SDL.InitFlag.EventThread);
+      {
+        SDL.Deinitialize(SDL.InitFlag.Video | SDL.InitFlag.EventThread);
         queue.Clear();
-        waiting = false;
       }
+    }
+  }
+
+  /// <summary>Adds an event filter to the end of the list of filters, so that it will be executed after the rest of
+  /// the filters in the list.
+  /// </summary>
+  /// <seealso cref="GameLib.Events.EventFilter"/>
+  public static void AppendEventFilter(EventFilter filter)
+  {
+    if(filter == null) throw new ArgumentNullException();
+    filters.Add(filter);
+  }
+
+  /// <summary>Adds an event filter to the beginning of the list of filters, so that it will be executed before the
+  /// rest of the filters in the list.
+  /// </summary>
+  /// <seealso cref="GameLib.Events.EventFilter"/>
+  public static void PrependEventFilter(EventFilter filter)
+  {
+    if(filter == null) throw new ArgumentNullException();
+    filters.Insert(0, filter);
+  }
+
+  /// <summary>Removes an event filter from the list of filters.</summary>
+  /// <seealso cref="GameLib.Events.EventFilter"/>
+  public static void RemoveEventFilter(EventFilter filter)
+  {
+    if(filter == null) throw new ArgumentNullException();
+    filters.Remove(filter);
+  }
+
+  /// <summary>Adds an event handler to the end of the list of handlers, so that it will be executed after the rest of
+  /// the handlers in the list.
+  /// </summary>
+  /// <seealso cref="GameLib.Events.EventProcedure"/>
+  public static void AppendEventHandler(EventProcedure handler)
+  {
+    if(handler == null) throw new ArgumentNullException();
+    eventProcs.Add(handler);
+  }
+
+  /// <summary>Adds an event handler to the beginning of the list of handlers, so that it will be executed before the
+  /// rest of the handlers in the list.
+  /// </summary>
+  /// <seealso cref="GameLib.Events.EventProcedure"/>
+  public static void PrependEventHandler(EventProcedure handler)
+  {
+    if(handler == null) throw new ArgumentNullException();
+    eventProcs.Insert(0, handler);
+  }
+
+  /// <summary>Removes an event handler from the list of handlers.</summary>
+  /// <seealso cref="GameLib.Events.EventProcedure"/>
+  public static void RemoveEventHandler(EventProcedure handler)
+  {
+    if(handler == null) throw new ArgumentNullException();
+    eventProcs.Remove(handler);
+  }
+
+  /// <summary>Adds an idle procedure to the end of the list, so that it will be executed after the rest of the idle
+  /// procedures in the list.
+  /// </summary>
+  /// <seealso cref="GameLib.Events.IdleProcedure"/>
+  public static void AppendIdleProcedure(IdleProcedure idleProc)
+  {
+    if(idleProc == null) throw new ArgumentNullException();
+    idleProcs.Add(idleProc);
+  }
+
+  /// <summary>Adds an idle procedure to the beginning of the list, so that it will be executed before the rest of the
+  /// idle procedures in the list.
+  /// </summary>
+  /// <seealso cref="GameLib.Events.IdleProcedure"/>
+  public static void PrependIdleProcedure(IdleProcedure idleProc)
+  {
+    if(idleProc == null) throw new ArgumentNullException();
+    idleProcs.Insert(0, idleProc);
+  }
+
+  /// <summary>Removes an idle procedure from the list of idle procedures.</summary>
+  /// <seealso cref="GameLib.Events.IdleProcedure"/>
+  public static void RemoveIdleProcedure(IdleProcedure idleProc)
+  {
+    if(idleProc == null) throw new ArgumentNullException();
+    idleProcs.Remove(idleProc);
+  }
+
+  /// <summary>Returns the next event from the queue, optionally removing it as well.</summary>
+  /// <param name="timeout">The amount of time to wait for an event. <see cref="Infinite"/> can be passed to
+  /// specify an infinite timeout.
+  /// </param>
+  /// <param name="remove">Set to true if the event is to be removed, and false if not.</param>
+  /// <returns>The next event in the queue, or null if no events arrive in the specified timeout period.</returns>
+  /// <exception cref="InvalidOperationException">Thrown if the event subsystem has not been initialized.</exception>
+  public static Event GetEvent(int timeout, bool remove)
+  {
+    AssertInit();
+    if(timeout != Infinite && timeout < 0) throw new ArgumentOutOfRangeException();
+
+    lock(queue)
+    {
+      if(queue.Count != 0) return remove ? queue.Dequeue() : queue.Peek();
+    }
+
+    Event ret = null;
+
+    if(timeout == Infinite)
+    {
+      ret = NextSDLEvent();
+      lock(queue)
+      {
+        if(ret == null) // the only time NextSDLEvent() returns null is when an event was pushed using PushEvent()
+        {
+          return remove ? queue.Dequeue() : queue.Peek(); 
+        }
+        else if(!remove) QueueEvent(ret);
+      }
+    }
+    else
+    {
+      uint start = SDL.GetTicks();
+      while(true)
+      {
+        ret = PollSDLEvent();
+        if(ret != null)
+        {
+          lock(queue)
+          {
+            if(!remove) QueueEvent(ret);
+            break;
+          }
+        }
+
+        if(timeout == 0) break;
+
+        System.Threading.Thread.Sleep(Math.Min(5, timeout)); // i don't like this, but SDL doesn't provide a
+        timeout -= (int)(SDL.GetTicks()-start);              // version that waits for an arbitrary timeout
+
+        if(timeout <= 0) break;
+
+        if(queue.Count != 0) // this may happen if an event is pushed using PushEvent()
+        {
+          lock(queue)
+          {
+            if(queue.Count != 0) return remove ? queue.Dequeue() : queue.Peek();
+          }
+        }
+      }
+    }
+
+    return ret;
   }
 
   /// <summary>Returns the next event without removing it from the queue.</summary>
   /// <returns>The next event in the queue, or null if the queue is empty.</returns>
-  /// <remarks>Calling this method is equivalent to calling <see cref="NextEvent(int,bool)"/> with a timeout of
+  /// <remarks>Calling this method is equivalent to calling <see cref="GetEvent(int,bool)"/> with a timeout of
   /// zero and passing false to signal that the event is not to be removed from the queue.
   /// </remarks>
   /// <exception cref="InvalidOperationException">Thrown if the event subsystem has not been initialized.</exception>
-  public static Event PeekEvent() { return NextEvent(0, false); }
+  public static Event PeekEvent() 
+  {
+    return GetEvent(0, false); 
+  }
+
   /// <summary>Removes and returns the next event from the queue.</summary>
   /// <returns>The next event in the queue.</returns>
-  /// <remarks>Calling this method is equivalent to calling <see cref="NextEvent(int,bool)"/> with a timeout of
+  /// <remarks>Calling this method is equivalent to calling <see cref="GetEvent(int,bool)"/> with a timeout of
   /// <see cref="Infinite"/> and passing true to signal that the event should be removed from the queue.
   /// </remarks>
   /// <exception cref="InvalidOperationException">Thrown if the event subsystem has not been initialized.</exception>
-  public static Event NextEvent() { return NextEvent(Infinite, true);  }
+  public static Event NextEvent()
+  {
+    return GetEvent(Infinite, true);
+  }
+
   /// <summary>Returns the next event without removing it from the queue.</summary>
   /// <param name="timeout">The amount of time to wait for an event. <see cref="Infinite"/> can be passed to
   /// specify an infinite timeout.
   /// </param>
   /// <returns>The next event in the queue, or null if no events arrive in the specified timeout period.</returns>
-  /// <remarks>Calling this method is equivalent to calling <see cref="NextEvent(int,bool)"/> and passing false to
+  /// <remarks>Calling this method is equivalent to calling <see cref="GetEvent(int,bool)"/> and passing false to
   /// signal that the event is not to be removed from the queue.
   /// </remarks>
   /// <exception cref="InvalidOperationException">Thrown if the event subsystem has not been initialized.</exception>
-  public static Event PeekEvent(int timeout) { return NextEvent(timeout, false); }
+  public static Event PeekEvent(int timeout) 
+  { 
+    return GetEvent(timeout, false); 
+  }
+
   /// <summary>Removes and returns the next event from the queue.</summary>
   /// <param name="timeout">The amount of time to wait for an event. <see cref="Infinite"/> can be passed to
   /// specify an infinite timeout.
@@ -701,64 +874,16 @@ public static class Events
   /// signal that the event should be removed from the queue.
   /// </remarks>
   /// <exception cref="InvalidOperationException">Thrown if the event subsystem has not been initialized.</exception>
-  public static Event NextEvent(int timeout) { return NextEvent(timeout, true);  }
-  /// <summary>Returns the next event from the queue, optionally removing it as well.</summary>
-  /// <param name="timeout">The amount of time to wait for an event. <see cref="Infinite"/> can be passed to
-  /// specify an infinite timeout.
-  /// </param>
-  /// <param name="remove">Set to true if the event is to be removed, and false if not.</param>
-  /// <returns>The next event in the queue, or null if no events arrive in the specified timeout period.</returns>
-  /// <exception cref="InvalidOperationException">Thrown if the event subsystem has not been initialized.</exception>
-  public static Event NextEvent(int timeout, bool remove)
-  { AssertInit();
-
-    lock(queue)
-    {
-      if(waiting) waiting = false;
-      if(queue.Count > 0) return remove ? queue.Dequeue() : queue.Peek();
-    }
-
-    Event ret = null;
-
-    if(timeout==Infinite)
-    {
-      ret = NextSDLEvent();
-      lock(queue)
-      {
-        if(ret==null) { waiting=false; return remove ? queue.Dequeue() : queue.Peek(); }
-        else if(!remove) QueueEvent(ret);
-      }
-    }
-    else
-    {
-      uint start = SDL.GetTicks();
-      do
-      {
-        ret = PeekSDLEvent();
-        if(ret != null)
-        {
-          lock(queue)
-          {
-            if(!remove) QueueEvent(ret);
-            if(waiting) { waiting=false; return remove ? queue.Dequeue() : queue.Peek(); }
-            break;
-          }
-        }
-
-        if(timeout == 0) break;
-
-        System.Threading.Thread.Sleep(Math.Min(10, timeout)); // FIXME: i don't like this, but SDL doesn't provide a
-        timeout -= (int)(SDL.GetTicks()-start);               // version that waits for an arbitrary timeout
-      } while(timeout>0);
-    }
-
-    return ret;
+  public static Event NextEvent(int timeout)
+  { 
+    return GetEvent(timeout, true);
   }
 
-  /// <summary>This method adds an event to the queue.</summary>
+  /// <summary>This method adds an event to the queue without passing it through any event filters.</summary>
   /// <param name="evt">The event to add.</param>
   /// <exception cref="ArgumentNullException">Thrown if <paramref name="evt"/> is null.</exception>
   public static void PushEvent(Event evt) { PushEvent(evt, false); }
+
   /// <summary>This method adds an event to the queue.</summary>
   /// <param name="evt">The event to add.</param>
   /// <param name="filter">If true, the event will be passed through the registered event filters. Otherwise, it
@@ -769,13 +894,21 @@ public static class Events
   /// </returns>
   /// <exception cref="ArgumentNullException">Thrown if <paramref name="evt"/> is null.</exception>
   public static bool PushEvent(Event evt, bool filter)
-  { if(evt==null) throw new ArgumentNullException("evt");
+  { 
+    if(evt == null) throw new ArgumentNullException();
     AssertInit();
-    if(filter && !FilterEvent(evt)) return false;
-    lock(queue)
-    { QueueEvent(evt);
-      waiting = true;
+    if(filter && !ShouldAllowEvent(evt)) return false;
 
+    lock(queue)
+    {
+      // first add any pending SDL events to the queue, because they belong there first
+      Event sdlEvent;
+      while((sdlEvent=PollSDLEvent()) != null) QueueEvent(sdlEvent);
+
+      // then add the new event
+      QueueEvent(evt);
+
+      // this is done so that if the code is stuck in the NextSDLEvent() call in NextEvent(), it will wake up
       SDL.Event e = new SDL.Event();
       e.Type = SDL.EventType.UserEvent0;
       SDL.PushEvent(ref e);
@@ -784,160 +917,180 @@ public static class Events
     return true;
   }
 
+  /// <summary>Processes all events that are waiting in the queue.</summary>
+  /// <remarks>This method essentially calls <see cref="PumpEvent"/> repeatedly until it returns false.</remarks>
+  public static void PumpAvailableEvents()
+  {
+    while(PumpEvent(false)) { }
+  }
+
   /// <summary>Handles the next event.</summary>
-  /// <returns>Returns true if the application should continue working or false if it should quit.</returns>
+  /// <param name="waitForEvent">Whether the method should wait for an event to process if the event queue is currently
+  /// empty.
+  /// </param>
+  /// <returns>Returns true if an event was handled and false if not.</returns>
   /// <remarks>
   /// <para>
-  /// This method requires that at least one <see cref="GameLib.Events.EventProcedure"/> has been registered
-  /// with the <see cref="EventProcedure"/> event. If the <see cref="QuitFlag"/> is true, this method will return
-  /// immediately without doing anything. Otherwise, this method will wait until an event arrives, calling the
-  /// <see cref="IdleProcedure"/> event until all return false as long as no events are waiting in the queue. After
-  /// an event arrives, it is processed with <see cref="EventProcedure"/>. If any event procedure returns false, the
-  /// <see cref="QuitFlag"/> is set to true and processing of further event procedures is not done.
-  /// The logical negation of the <see cref="QuitFlag"/> is then returned.
+  /// If <see cref="EventProcedure">EventProcedures</see> have been registered, they will be called to process events.
+  /// Otherwise, the default event processing will occur, which ignores all messages except quit messages, which set
+  /// the <see cref="QuitFlag"/> to true. If the <see cref="QuitFlag"/> is true, this method will return immediately
+  /// without doing anything. Otherwise, this method will wait until an event arrives, calling the <see
+  /// cref="IdleProcedure"/> methods, if any, until all return false as long as no events are waiting in the queue.
+  /// After an event arrives, it is processed with the registered <see cref="EventProcedure"/> methods or the default
+  /// behavior described above. If any event procedure returns false, the <see cref="QuitFlag"/> is set to true and
+  /// execution of further event procedures is not done.
   /// </para>
   /// See <see cref="GameLib.Events.EventProcedure"/> for more information.
   /// </remarks>
-  /// <exception cref="InvalidOperationException">Thrown if no event procedure has been registered.</exception>
-  public static bool PumpEvent()
-  { if(EventProcedure==null) throw new InvalidOperationException("No event procedure has been registered");
-    if(quit) return false;
+  public static bool PumpEvent(bool waitForEvent)
+  { 
+    if(QuitFlag) return false;
+
     Event e = NextEvent(0);
-    if(e==null)
-    { if(IdleProcedure!=null)
-      { Delegate[] idles = IdleProcedure.GetInvocationList();
+    if(e == null)
+    { 
+      if(idleProcs.Count != 0)
+      { 
         bool morework;
         do
-        { morework = false;
-          for(int i=0; i<idles.Length; i++) if(((IdleProcedure)idles[i])()) morework=true;
-        } while(morework && !quit && PeekEvent(0)==null);
+        { 
+          morework = false;
+          foreach(IdleProcedure idleProc in idleProcs)
+          {
+            if(idleProc()) morework = true;
+          }
+        } while(morework && !QuitFlag && PeekEvent(0) == null);
       }
-      e = NextEvent();
+      if(waitForEvent) e = NextEvent();
     }
-    Delegate[] procs = EventProcedure.GetInvocationList();
-    for(int i=0; i<procs.Length; i++) if(!((EventProcedure)procs[i])(e)) { quit=true; break; }
-    return !quit;
+
+    if(e != null)
+    {
+      if(eventProcs.Count != 0)
+      {
+        foreach(EventProcedure eventProc in eventProcs)
+        {
+          if(!eventProc(e))
+          {
+            QuitFlag = true;
+            break;
+          }
+        }
+      }
+      else if(e.Type == EventType.Quit) QuitFlag = true;
+    }
+
+    return e != null;
   }
 
   /// <summary>Handle events until the application decides to quit.</summary>
   /// <remarks>Calling this method is equivalent to calling <see cref="PumpEvents(EventProcedure,IdleProcedure)"/>
   /// and passing null for both parameters.
   /// </remarks>
-  public static void PumpEvents() { PumpEvents(null, null); }
+  public static void PumpEvents()
+  {
+    PumpEvents(null, null); 
+  }
+
   /// <summary>Handle events until the application decides to quit.</summary>
-  /// <param name="proc">A <see cref="GameLib.Events.EventProcedure"/> that will be added to the
-  /// <see cref="EventProcedure"/> event, or null to not register any.
+  /// <param name="proc">A <see cref="GameLib.Events.EventProcedure"/> that will be prepended to the list of event
+  /// handlers, or null to not add any.
   /// </param>
   /// <remarks>Calling this method is equivalent to calling <see cref="PumpEvents(EventProcedure,IdleProcedure)"/>
-  /// and passing null for the <see cref="GameLib.Events.IdleProcedure"/> parameter. Beware of calling this procedure
-  /// multiple times with the same value for <paramref name="proc"/>. That may cause the given event procedure to be
-  /// registered multiple times and thus executed multiple times per event.
+  /// and passing null for the <see cref="IdleProcedure"/> parameter.
   /// </remarks>
-  public static void PumpEvents(EventProcedure proc) { PumpEvents(proc, null); }
+  public static void PumpEvents(EventProcedure proc) 
+  {
+    PumpEvents(proc, null); 
+  }
+
   /// <summary>Handle events until the application decides to quit.</summary>
-  /// <param name="proc">A <see cref="GameLib.Events.EventProcedure"/> that will be added to the
-  /// <see cref="EventProcedure"/> event, or null to not register any.
+  /// <param name="proc">A <see cref="GameLib.Events.EventProcedure"/> that will be prepended to the list of event
+  /// handlers, or null to not add any.
   /// </param>
-  /// <param name="idle">A <see cref="GameLib.Events.IdleProcedure"/> that will be added to the
-  /// <see cref="IdleProcedure"/> event, or null to not register any.
+  /// <param name="idle">A <see cref="GameLib.Events.IdleProcedure"/> that will be prepended to the list of idle
+  /// procedures, or null to not add any.
   /// </param>
   /// <remarks>
   /// <para>
-  /// This method requires that at least one <see cref="GameLib.Events.EventProcedure"/> has been registered
-  /// with the <see cref="EventProcedure"/> event. However, one can be passed in and it will be registered at the
-  /// start.
+  /// If <see cref="EventProcedure">EventProcedures</see> have been registered, they will be called to process events.
+  /// Otherwise, the default event processing will occur, which ignores all messages except quit messages, which set
+  /// the <see cref="QuitFlag"/> to true.
   /// </para>
   /// <para>
   /// If the <see cref="QuitFlag"/> is true, this method will return immediately without doing anything. Otherwise,
-  /// this method will wait until an event arrives, calling the <see cref="IdleProcedure"/> event until all return
-  /// false as long as no events are waiting in the queue. After an event arrives, it is processed with
-  /// <see cref="EventProcedure"/>. If any event procedure returns false, the <see cref="QuitFlag"/> is set to true
-  /// and processing of further event procedures will not be done. If the <see cref="QuitFlag"/> is not true after
-  /// that, the whole process is repeated. If it's false, the method will return.
-  /// See <see cref="GameLib.Events.EventProcedure"/> for more information.
-  /// </para>
-  /// <para>
-  /// Beware of calling this procedure multiple times with the same value for <paramref name="proc"/> or
-  /// <paramref name="idle"/>. That may cause the given event or idle procedure to be registered multiple times and
-  /// thus executed multiple times per event. Also, the lists of registered event and idle handlers are only
-  /// retrieved once during the call to this method, so if additional handlers are added, they will not be used.
-  /// You should register any handlers you want to use before calling this method or by passing them in the
-  /// <paramref name="proc"/> and <paramref name="idle"/> parameters. This restriction may be lifted in the future.
+  /// this method will wait until an event arrives, calling the <see cref="IdleProcedure"/> methods until all return
+  /// false as long as no events are waiting in the queue. After an event arrives, it is processed with the registered
+  /// <see cref="EventProcedure"/> methods or the default event processing described above. If any event procedure
+  /// returns false, the <see cref="QuitFlag"/> is set to true and processing of further event procedures will not be
+  /// done. If the <see cref="QuitFlag"/> is false after that, the whole process is repeated. If it's true, the
+  /// method will return. See <see cref="EventProcedure"/> for more information.
   /// </para>
   /// </remarks>
   /// <exception cref="InvalidOperationException">Thrown if no event procedure has been registered.</exception>
   public static void PumpEvents(EventProcedure proc, IdleProcedure idle)
-  { if(proc!=null) EventProcedure += proc;
-    if(idle!=null) IdleProcedure += idle;
-    if(EventProcedure==null) throw new InvalidOperationException("No event procedure has been registered");
-    Delegate[] procs = EventProcedure.GetInvocationList();
-    Delegate[] idles = IdleProcedure==null ? null : IdleProcedure.GetInvocationList();
-    while(!quit)
-    { Event e = NextEvent(0);
-      if(e==null)
-      { if(idles!=null)
-        { bool morework;
-          do
-          { morework = false;
-            for(int i=0; i<idles.Length; i++) if(((IdleProcedure)idles[i])()) morework=true;
-          } while(morework && !quit && PeekEvent(0)==null);
-        }
-        if(quit) break;
-        e = NextEvent();
-      }
-      for(int i=0; i<procs.Length; i++) if(!((EventProcedure)procs[i])(e)) { goto done; }
-    }
-    done:
-    quit=true;
+  {
+    if(eventProcs.Count == 0 && proc == null) throw new InvalidOperationException();
+
+    if(proc != null) PrependEventHandler(proc);
+    if(idle != null) PrependIdleProcedure(idle);
+
+    while(PumpEvent(true)) { }
+
+    if(idle != null) RemoveIdleProcedure(idle);
+    if(proc != null) RemoveEventHandler(proc);
   }
 
-  sealed class UserEventPushed : UserEvent { }
-
-  static unsafe Event PeekSDLEvent()
-  { Event ret=null;
+  /// <summary>Retrieves the next SDL event that passes the event filters if there's one waiting, or null if there is
+  /// not.
+  /// </summary>
+  static unsafe Event PollSDLEvent()
+  { 
+    Event ret = null;
     SDL.Event evt;
     do
-    { unsafe
-      { if(SDL.PollEvent(out evt)!=0)
-        { ret = ConvertEvent(ref evt);
-          if(!FilterEvent(ret)) ret=null;
-        }
-        else break;
+    {
+      if(SDL.PollEvent(out evt) != 0) // if there's an SDL event waiting
+      {
+        ret = ConvertEvent(ref evt);
+        if(!ShouldAllowEvent(ret)) ret = null;
       }
-    } while(ret==null);
+      else break;
+    } while(ret == null);
     return ret;
   }
 
+  /// <summary>Waits for and retrieves the next SDL event that passes the event filters.</summary>
   static unsafe Event NextSDLEvent()
-  { Event ret;
+  { 
+    Event ret;
     SDL.Event evt;
     while(true)
-    { unsafe
-      { if(SDL.WaitEvent(out evt)!=0)
-        { ret = ConvertEvent(ref evt);
-          if(FilterEvent(ret)) return ret;
-        }
+    { 
+      if(SDL.WaitEvent(out evt) != 0)
+      {
+        // the UserEvent0 event is used to wake up this method when an event is pushed into the queue with PushEvent()
+        if(evt.Type == SDL.EventType.UserEvent0) return null;
+
+        ret = ConvertEvent(ref evt);
+        if(ShouldAllowEvent(ret)) return ret;
       }
     }
   }
 
-  static void AssertInit() { if(initCount==0) throw new InvalidOperationException("Events not initialized yet"); }
-  static bool FilterEvent(Event evt)
-  { if(evt==null) return false;
-    if(evt==userEvent) return true;
-    if(EventFilter!=null)
-      foreach(EventFilter ef in EventFilter.GetInvocationList())
-        switch(ef(evt))
-        { case FilterAction.Drop:  return false;
-          case FilterAction.Queue: break;
-        }
-    return true;
+  static void AssertInit()
+  { 
+    if(initCount == 0) throw new InvalidOperationException("Events not initialized yet"); 
   }
 
+  /// <summary>Converts an SDL event into a GameLib event.</summary>
   static unsafe Event ConvertEvent(ref SDL.Event evt)
-  { switch(evt.Type)
-    { case SDL.EventType.Active:
-      { FocusEvent e = new FocusEvent(ref evt.Active);
+  {
+    switch(evt.Type)
+    { 
+      case SDL.EventType.Active:
+      { 
+        FocusEvent e = new FocusEvent(ref evt.Active);
 
         if((e.FocusType&FocusType.Application) != 0) minimized = e.Focused;
         if((e.FocusType&FocusType.Input) != 0) inputFocus = e.Focused;
@@ -949,7 +1102,8 @@ public static class Events
       }
 
       case SDL.EventType.KeyDown: case SDL.EventType.KeyUp:
-      { KeyboardEvent e = new KeyboardEvent(ref evt.Keyboard);
+      { 
+        KeyboardEvent e = new KeyboardEvent(ref evt.Keyboard);
         mods = mods & ~KeyMod.StatusMask | e.StatusMods;
         if(e.Down) switch(e.Key) // SDL's mod handling is quirky, so i'll do it myself
         { case Key.LShift: mods |= KeyMod.LShift; break;
@@ -984,23 +1138,48 @@ public static class Events
       case SDL.EventType.Quit: return new QuitEvent();
       case SDL.EventType.VideoResize: return new ResizeEvent(ref evt.Resize);
       case SDL.EventType.VideoExposed: return new RepaintEvent();
-      case SDL.EventType.UserEvent0: return userEvent;
+      case SDL.EventType.UserEvent0: return null;
       default: return null;
     }
   }
 
+  /// <summary>Adds an event to the queue, first dequeueing the oldest event if the queue is full.</summary>
   static void QueueEvent(Event evt)
-  { if(queue.Count>=max) queue.Dequeue();
+  { 
+    if(queue.Count >= maxEvents) queue.Dequeue();
     queue.Enqueue(evt);
   }
 
-  static System.Collections.Generic.Queue<Event> queue = new System.Collections.Generic.Queue<Event>();
-  static UserEvent userEvent = new UserEventPushed();
-  static uint initCount;
-  static int  max=128;
+  /// <summary>Returns true if the event should be allowed into the queue and false if not.</summary>
+  static bool ShouldAllowEvent(Event evt)
+  {
+    if(evt == null) return false;
+
+    if(filters.Count != 0)
+    {
+      foreach(EventFilter ef in filters)
+      {
+        switch(ef(evt))
+        {
+          case FilterAction.Drop: return false;
+          case FilterAction.Queue: break;
+        }
+      }
+    }
+
+    return true;
+  }
+
   internal static KeyMod mods;
   internal static bool minimized=true, inputFocus=true, mouseFocus=true;
-  static bool waiting, quit;
+
+  static System.Collections.Generic.Queue<Event> queue = new System.Collections.Generic.Queue<Event>();
+  static readonly List<EventFilter> filters = new List<EventFilter>(4);
+  static readonly List<EventProcedure> eventProcs = new List<EventProcedure>(4);
+  static readonly List<IdleProcedure> idleProcs = new List<IdleProcedure>(4);
+  static uint initCount;
+  static int  maxEvents = 128;
+  static bool quit;
 }
 #endregion
 

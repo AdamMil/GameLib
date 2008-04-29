@@ -224,12 +224,12 @@ public sealed class MessageConverter
 
   /// <summary>Registers a list of types.</summary>
   /// <param name="types">An array of <see cref="System.Type"/> holding types to be registered.</param>
-  /// <include file="documentation.xml" path="//Network/MessageConverter/RegisterType/*"/>
+  /// <include file="../documentation.xml" path="//Network/MessageConverter/RegisterType/*"/>
   public void RegisterTypes(params Type[] types) { foreach(Type type in types) RegisterType(type); }
 
   /// <summary>Registers a given type, allowing it to be serialized and deserialized by this class.</summary>
   /// <param name="type">The <see cref="System.Type"/> to be registered.</param>
-  /// <include file="documentation.xml" path="//Network/MessageConverter/RegisterType/*"/>
+  /// <include file="../documentation.xml" path="//Network/MessageConverter/RegisterType/*"/>
   public void RegisterType(Type type)
   { if(type==null) throw new ArgumentNullException("type");
     if(typeIDs.ContainsKey(type)) throw new ArgumentException(type.ToString()+" has already been registered.", "type");
@@ -624,10 +624,10 @@ public class NetLink
   /// </remarks>
   public event LinkMessageHandler RemoteReceived;
 
-  /// <include file="documentation.xml" path="//Network/Common/DefaultFlags/*"/>
+  /// <include file="../documentation.xml" path="//Network/Common/DefaultFlags/*"/>
   public SendFlag DefaultFlags { get { return defFlags; } set { defFlags=value; } }
 
-  /// <include file="documentation.xml" path="//Network/Common/IsConnected/*"/>
+  /// <include file="../documentation.xml" path="//Network/Common/IsConnected/*"/>
   public bool IsConnected
   { get
     { if(!connected) return false;
@@ -636,9 +636,9 @@ public class NetLink
     }
   }
 
-  /// <include file="documentation.xml" path="//Network/Common/LagAverage/*"/>
+  /// <include file="../documentation.xml" path="//Network/Common/LagAverage/*"/>
   public int LagAverage { get { return lagAverage;  } set { lagAverage =value; } }
-  /// <include file="documentation.xml" path="//Network/Common/LagVariance/*"/>
+  /// <include file="../documentation.xml" path="//Network/Common/LagVariance/*"/>
   public int LagVariance { get { return lagVariance; } set { lagVariance=value; } }
 
   /// <summary>Returns true if a message is waiting to be retrieved.</summary>
@@ -730,7 +730,7 @@ public class NetLink
     sendQueue=0; // duplicated just in case SendPoll() changes it
   }
 
-  /// <include file="documentation.xml" path="//Network/Common/GetQueueStatus/*"/>
+  /// <include file="../documentation.xml" path="//Network/Common/GetQueueStatus/*"/>
   public QueueStatus GetQueueStatus(QueueStat flags)
   { QueueStatus status = new QueueStatus();
     if(connected)
@@ -788,24 +788,24 @@ public class NetLink
     }
   }
 
-  /// <include file="documentation.xml" path="//Network/NetLink/Send/Common/*"/>
+  /// <include file="../documentation.xml" path="//Network/NetLink/Send/Common/*"/>
   public void Send(byte[] data) { Send(data, 0, data.Length, defFlags, 0, null); }
   public void Send(byte[] data, int length) { Send(data, 0, length, defFlags, 0, null); }
-  /// <include file="documentation.xml" path="//Network/NetLink/Send/*[self::Common or self::Length or self::Index]/*"/>
+  /// <include file="../documentation.xml" path="//Network/NetLink/Send/*[self::Common or self::Length or self::Index]/*"/>
   public void Send(byte[] data, int index, int length) { Send(data, index, length, defFlags, 0, null); }
-  /// <include file="documentation.xml" path="//Network/NetLink/Send/*[self::Common or self::Length or self::Index or self::Flags]/*"/>
+  /// <include file="../documentation.xml" path="//Network/NetLink/Send/*[self::Common or self::Length or self::Index or self::Flags]/*"/>
   public void Send(byte[] data, int index, int length, SendFlag flags) { Send(data, index, length, flags, 0, null); }
-  /// <include file="documentation.xml" path="//Network/NetLink/Send/*[self::Common or self::Length or self::Index or self::Flags or self::Timeout]/*"/>
+  /// <include file="../documentation.xml" path="//Network/NetLink/Send/*[self::Common or self::Length or self::Index or self::Flags or self::Timeout]/*"/>
   public void Send(byte[] data, int index, int length, SendFlag flags, int timeoutMs) { Send(data, index, length, flags, timeoutMs, null); }
-  /// <include file="documentation.xml" path="//Network/NetLink/Send/*[self::Common or self::Length or self::Flags]/*"/>
+  /// <include file="../documentation.xml" path="//Network/NetLink/Send/*[self::Common or self::Length or self::Flags]/*"/>
   public void Send(byte[] data, int length, SendFlag flags) { Send(data, 0, length, flags, 0, null); }
-  /// <include file="documentation.xml" path="//Network/NetLink/Send/*[self::Common or self::Length or self::Flags or self::Timeout]/*"/>
+  /// <include file="../documentation.xml" path="//Network/NetLink/Send/*[self::Common or self::Length or self::Flags or self::Timeout]/*"/>
   public void Send(byte[] data, int length, SendFlag flags, int timeoutMs) { Send(data, 0, length, flags, timeoutMs, null); }
-  /// <include file="documentation.xml" path="//Network/NetLink/Send/*[self::Common or self::Flags]/*"/>
+  /// <include file="../documentation.xml" path="//Network/NetLink/Send/*[self::Common or self::Flags]/*"/>
   public void Send(byte[] data, SendFlag flags) { Send(data, 0, data.Length, flags, 0, null); }
-  /// <include file="documentation.xml" path="//Network/NetLink/Send/*[self::Common or self::Flags or self::Timeout]/*"/>
+  /// <include file="../documentation.xml" path="//Network/NetLink/Send/*[self::Common or self::Flags or self::Timeout]/*"/>
   public void Send(byte[] data, SendFlag flags, int timeoutMs) { Send(data, 0, data.Length, flags, timeoutMs, null); }
-  /// <include file="documentation.xml" path="//Network/NetLink/Send/*[self::Common or self::Length or self::Index or self::Flags or self::Timeout]/*"/>
+  /// <include file="../documentation.xml" path="//Network/NetLink/Send/*[self::Common or self::Length or self::Index or self::Flags or self::Timeout]/*"/>
   /// <param name="tag">Arbitrary data that will be associated with this message and that can be accessed via
   /// <see cref="LinkMessage.Tag"/>. The data is not examined or modified by the network engine. Note that this means
   /// <see cref="LinkMessage.Tag"/> will always be null on the receiving end.
@@ -1328,7 +1328,7 @@ public class Server
   /// </remarks>
   public event ServerMessageHandler MessageSent;
 
-  /// <include file="documentation.xml" path="//Network/Common/DefaultFlags/*"/>
+  /// <include file="../documentation.xml" path="//Network/Common/DefaultFlags/*"/>
   public SendFlag DefaultFlags { get { return defFlags; } set { defFlags=value; } }
 
   /// <summary>Gets the local endpoint upon which the server is listening.</summary>
@@ -1342,7 +1342,7 @@ public class Server
   /// <summary>Gets a read-only collection of the current players.</summary>
   public ReadOnlyCollection<ServerPlayer> Players { get { return players.AsReadOnly(); } }
 
-  /// <include file="documentation.xml" path="//Network/Common/LagAverage/*"/>
+  /// <include file="../documentation.xml" path="//Network/Common/LagAverage/*"/>
   public int LagAverage
   { get { return lagAverage; }
     set
@@ -1351,7 +1351,7 @@ public class Server
     }
   }
 
-  /// <include file="documentation.xml" path="//Network/Common/LagVariance/*"/>
+  /// <include file="../documentation.xml" path="//Network/Common/LagVariance/*"/>
   public int LagVariance
   { get { return lagVariance; }
     set
@@ -1360,15 +1360,15 @@ public class Server
     }
   }
 
-  /// <include file="documentation.xml" path="//Network/Common/RegisterTypes/*"/>
+  /// <include file="../documentation.xml" path="//Network/Common/RegisterTypes/*"/>
   public void RegisterTypes(params Type[] types) { AssertClosed(); cvt.RegisterTypes(types); }
-  /// <include file="documentation.xml" path="//Network/Common/RegisterType/*"/>
+  /// <include file="../documentation.xml" path="//Network/Common/RegisterType/*"/>
   public void RegisterType(Type type) { AssertClosed(); cvt.RegisterType(type); }
-  /// <include file="documentation.xml" path="//Network/Common/UnregisterTypes/*"/>
+  /// <include file="../documentation.xml" path="//Network/Common/UnregisterTypes/*"/>
   public void UnregisterTypes(params Type[] types) { AssertClosed(); cvt.UnregisterTypes(types); }
-  /// <include file="documentation.xml" path="//Network/Common/UnregisterType/*"/>
+  /// <include file="../documentation.xml" path="//Network/Common/UnregisterType/*"/>
   public void UnregisterType(Type type) { AssertClosed(); cvt.UnregisterType(type); }
-  /// <include file="documentation.xml" path="//Network/Common/ClearTypes/*"/>
+  /// <include file="../documentation.xml" path="//Network/Common/ClearTypes/*"/>
   public void ClearTypes() { AssertClosed(); cvt.ClearTypes(); }
 
   /// <summary>Stops listening for connections and deinitializes the server.</summary>
@@ -1476,38 +1476,38 @@ public class Server
     p.DelayedDrop = true;
   }
 
-  /// <include file="documentation.xml" path="//Network/Server/Send/*[self::Common or self::byteData]/*"/>
+  /// <include file="../documentation.xml" path="//Network/Server/Send/*[self::Common or self::byteData]/*"/>
   public void Send(object toWho, byte[] data) { Send(toWho, data, 0, data.Length, defFlags); }
-  /// <include file="documentation.xml" path="//Network/Server/Send/*[self::Common or self::byteData or self::Length]/*"/>
+  /// <include file="../documentation.xml" path="//Network/Server/Send/*[self::Common or self::byteData or self::Length]/*"/>
   public void Send(object toWho, byte[] data, int length) { Send(toWho, data, 0, length, defFlags); }
-  /// <include file="documentation.xml" path="//Network/Server/Send/*[self::Common or self::byteData or self::Length or self::Index]/*"/>
+  /// <include file="../documentation.xml" path="//Network/Server/Send/*[self::Common or self::byteData or self::Length or self::Index]/*"/>
   public void Send(object toWho, byte[] data, int index, int length)
   { if(cvt.AltersByteArray) RawSend(toWho, cvt.Serialize(data, index, length), defFlags, 0, data);
     else RawSend(toWho, data, index, length, defFlags, 0, data);
   }
-  /// <include file="documentation.xml" path="//Network/Server/Send/*[self::Common or self::byteData or self::Flags]/*"/>
+  /// <include file="../documentation.xml" path="//Network/Server/Send/*[self::Common or self::byteData or self::Flags]/*"/>
   public void Send(object toWho, byte[] data, SendFlag flags) { Send(toWho, data, 0, data.Length, flags); }
-  /// <include file="documentation.xml" path="//Network/Server/Send/*[self::Common or self::byteData or self::Length or self::Flags]/*"/>
+  /// <include file="../documentation.xml" path="//Network/Server/Send/*[self::Common or self::byteData or self::Length or self::Flags]/*"/>
   public void Send(object toWho, byte[] data, int length, SendFlag flags) { Send(toWho, data, 0, length, flags); }
-  /// <include file="documentation.xml" path="//Network/Server/Send/*[self::Common or self::byteData or self::Length or self::Index or self::Flags]/*"/>
+  /// <include file="../documentation.xml" path="//Network/Server/Send/*[self::Common or self::byteData or self::Length or self::Index or self::Flags]/*"/>
   public void Send(object toWho, byte[] data, int index, int length, SendFlag flags)
   { if(cvt.AltersByteArray) RawSend(toWho, cvt.Serialize(data, index, length), flags, 0, data);
     else RawSend(toWho, data, index, length, flags, 0, data);
   }
-  /// <include file="documentation.xml" path="//Network/Server/Send/*[self::Common or self::byteData or self::Flags or self::Timeout]/*"/>
+  /// <include file="../documentation.xml" path="//Network/Server/Send/*[self::Common or self::byteData or self::Flags or self::Timeout]/*"/>
   public void Send(object toWho, byte[] data, SendFlag flags, int timeoutMs) { Send(toWho, data, 0, data.Length, flags, timeoutMs); }
-  /// <include file="documentation.xml" path="//Network/Server/Send/*[self::Common or self::byteData or self::Length or self::Flags or self::Timeout]/*"/>
+  /// <include file="../documentation.xml" path="//Network/Server/Send/*[self::Common or self::byteData or self::Length or self::Flags or self::Timeout]/*"/>
   public void Send(object toWho, byte[] data, int length, SendFlag flags, int timeoutMs) { Send(toWho, data, 0, length, flags, timeoutMs); }
-  /// <include file="documentation.xml" path="//Network/Server/Send/*[self::Common or self::byteData or self::Index or self::Length or self::Flags or self::Timeout]/*"/>
+  /// <include file="../documentation.xml" path="//Network/Server/Send/*[self::Common or self::byteData or self::Index or self::Length or self::Flags or self::Timeout]/*"/>
   public void Send(object toWho, byte[] data, int index, int length, SendFlag flags, int timeoutMs)
   { if(cvt.AltersByteArray) RawSend(toWho, cvt.Serialize(data, index, length), flags, timeoutMs, data);
     else RawSend(toWho, data, index, length, flags, timeoutMs, data);
   }
-  /// <include file="documentation.xml" path="//Network/Server/Send/*[self::Common or self::objData]/*"/>
+  /// <include file="../documentation.xml" path="//Network/Server/Send/*[self::Common or self::objData]/*"/>
   public void Send(object toWho, object data) { RawSend(toWho, cvt.Serialize(data), defFlags, 0, data); }
-  /// <include file="documentation.xml" path="//Network/Server/Send/*[self::Common or self::objData or self::Flags]/*"/>
+  /// <include file="../documentation.xml" path="//Network/Server/Send/*[self::Common or self::objData or self::Flags]/*"/>
   public void Send(object toWho, object data, SendFlag flags) { RawSend(toWho, cvt.Serialize(data), flags, 0, data); }
-  /// <include file="documentation.xml" path="//Network/Server/Send/*[self::Common or self::objData or self::Flags or self::Timeout]/*"/>
+  /// <include file="../documentation.xml" path="//Network/Server/Send/*[self::Common or self::objData or self::Flags or self::Timeout]/*"/>
   public void Send(object toWho, object data, SendFlag flags, int timeoutMs)
   { RawSend(toWho, cvt.Serialize(data), flags, timeoutMs, data);
   }
@@ -1518,11 +1518,11 @@ public class Server
   /// </remarks>
   protected MessageConverter Converter { get { return cvt; } }
 
-  /// <include file="documentation.xml" path="//Network/Server/Send/*[self::Common or self::RawSend or self::Flags or self::Timeout]/*"/>
+  /// <include file="../documentation.xml" path="//Network/Server/Send/*[self::Common or self::RawSend or self::Flags or self::Timeout]/*"/>
   protected void RawSend(object toWho, byte[] data, SendFlag flags, int timeoutMs, object orig)
   { RawSend(toWho, data, 0, data.Length, flags, timeoutMs, orig);
   }
-  /// <include file="documentation.xml" path="//Network/Server/Send/*[self::Common or self::RawSend or self::Index or self::Length or self::Flags or self::Timeout]/*"/>
+  /// <include file="../documentation.xml" path="//Network/Server/Send/*[self::Common or self::RawSend or self::Index or self::Length or self::Flags or self::Timeout]/*"/>
   protected void RawSend(object toWho, byte[] data, int index, int length, SendFlag flags, int timeoutMs, object orig)
   {
     if(timeoutMs < 0) throw new ArgumentOutOfRangeException();
@@ -1760,10 +1760,10 @@ public class Client
   /// </remarks>
   public event ClientMessageHandler MessageSent;
 
-  /// <include file="documentation.xml" path="//Network/Common/DefaultFlags/*"/>
+  /// <include file="../documentation.xml" path="//Network/Common/DefaultFlags/*"/>
   public SendFlag DefaultFlags { get { return defFlags; } set { defFlags=value; } }
 
-  /// <include file="documentation.xml" path="//Network/Common/IsConnected/*"/>
+  /// <include file="../documentation.xml" path="//Network/Common/IsConnected/*"/>
   public bool IsConnected
   { get
     { NetLink link = this.link;
@@ -1771,12 +1771,12 @@ public class Client
     }
   }
 
-  /// <include file="documentation.xml" path="//Network/Common/LagAverage/*"/>
+  /// <include file="../documentation.xml" path="//Network/Common/LagAverage/*"/>
   public int LagAverage
   { get { return AssertLink().LagAverage; }
     set { AssertLink().LagAverage=value; }
   }
-  /// <include file="documentation.xml" path="//Network/Common/LagVariance/*"/>
+  /// <include file="../documentation.xml" path="//Network/Common/LagVariance/*"/>
   public int LagVariance
   { get { return AssertLink().LagVariance; }
     set { AssertLink().LagVariance=value; }
@@ -1845,61 +1845,61 @@ public class Client
     link = null;
   }
 
-  /// <include file="documentation.xml" path="//Network/Common/RegisterTypes/*"/>
+  /// <include file="../documentation.xml" path="//Network/Common/RegisterTypes/*"/>
   public void RegisterTypes(params Type[] types) { AssertClosed(); cvt.RegisterTypes(types); }
-  /// <include file="documentation.xml" path="//Network/Common/RegisterType/*"/>
+  /// <include file="../documentation.xml" path="//Network/Common/RegisterType/*"/>
   public void RegisterType(Type type) { AssertClosed(); cvt.RegisterType(type); }
-  /// <include file="documentation.xml" path="//Network/Common/UnregisterTypes/*"/>
+  /// <include file="../documentation.xml" path="//Network/Common/UnregisterTypes/*"/>
   public void UnregisterTypes(params Type[] types) { AssertClosed(); cvt.UnregisterTypes(types); }
-  /// <include file="documentation.xml" path="//Network/Common/UnregisterType/*"/>
+  /// <include file="../documentation.xml" path="//Network/Common/UnregisterType/*"/>
   public void UnregisterType(Type type) { AssertClosed(); cvt.UnregisterType(type); }
-  /// <include file="documentation.xml" path="//Network/Common/ClearTypes/*"/>
+  /// <include file="../documentation.xml" path="//Network/Common/ClearTypes/*"/>
   public void ClearTypes() { AssertClosed(); cvt.ClearTypes(); }
 
-  /// <include file="documentation.xml" path="//Network/Common/GetQueueStatus/*"/>
+  /// <include file="../documentation.xml" path="//Network/Common/GetQueueStatus/*"/>
   public QueueStatus GetQueueStatus(QueueStat flags) { AssertLink(); return link.GetQueueStatus(flags); }
 
-  /// <include file="documentation.xml" path="//Network/Client/Send/*[self::Common or self::byteData]/*"/>
+  /// <include file="../documentation.xml" path="//Network/Client/Send/*[self::Common or self::byteData]/*"/>
   public void Send(byte[] data) { Send(data, 0, data.Length, defFlags); }
-  /// <include file="documentation.xml" path="//Network/Client/Send/*[self::Common or self::byteData or self::Length]/*"/>
+  /// <include file="../documentation.xml" path="//Network/Client/Send/*[self::Common or self::byteData or self::Length]/*"/>
   public void Send(byte[] data, int length) { Send(data, 0, length, defFlags); }
-  /// <include file="documentation.xml" path="//Network/Client/Send/*[self::Common or self::byteData or self::Length or self::Index]/*"/>
+  /// <include file="../documentation.xml" path="//Network/Client/Send/*[self::Common or self::byteData or self::Length or self::Index]/*"/>
   public void Send(byte[] data, int index, int length)
   { AssertLink();
     if(cvt.AltersByteArray) DoSend(cvt.Serialize(data, index, length), defFlags, 0, data);
     else DoSend(data, index, length, defFlags, 0, data);
   }
-  /// <include file="documentation.xml" path="//Network/Client/Send/*[self::Common or self::byteData or self::Flags]/*"/>
+  /// <include file="../documentation.xml" path="//Network/Client/Send/*[self::Common or self::byteData or self::Flags]/*"/>
   public void Send(byte[] data, SendFlag flags) { Send(data, 0, data.Length, flags); }
-  /// <include file="documentation.xml" path="//Network/Client/Send/*[self::Common or self::byteData or self::Length or self::Flags]/*"/>
+  /// <include file="../documentation.xml" path="//Network/Client/Send/*[self::Common or self::byteData or self::Length or self::Flags]/*"/>
   public void Send(byte[] data, int length, SendFlag flags) { Send(data, 0, length, flags); }
-  /// <include file="documentation.xml" path="//Network/Client/Send/*[self::Common or self::byteData or self::Index or self::Length or self::Flags]/*"/>
+  /// <include file="../documentation.xml" path="//Network/Client/Send/*[self::Common or self::byteData or self::Index or self::Length or self::Flags]/*"/>
   public void Send(byte[] data, int index, int length, SendFlag flags)
   { AssertLink();
     if(cvt.AltersByteArray) DoSend(cvt.Serialize(data, index, length), flags, 0, data);
     else DoSend(data, index, length, flags, 0, data);
   }
-  /// <include file="documentation.xml" path="//Network/Client/Send/*[self::Common or self::byteData or self::Flags or self::Timeout]/*"/>
+  /// <include file="../documentation.xml" path="//Network/Client/Send/*[self::Common or self::byteData or self::Flags or self::Timeout]/*"/>
   public void Send(byte[] data, SendFlag flags, int timeoutMs) { Send(data, 0, data.Length, flags, timeoutMs); }
-  /// <include file="documentation.xml" path="//Network/Client/Send/*[self::Common or self::byteData or self::Length or self::Flags or self::Timeout]/*"/>
+  /// <include file="../documentation.xml" path="//Network/Client/Send/*[self::Common or self::byteData or self::Length or self::Flags or self::Timeout]/*"/>
   public void Send(byte[] data, int length, SendFlag flags, int timeoutMs) { Send(data, 0, length, flags, timeoutMs); }
-  /// <include file="documentation.xml" path="//Network/Client/Send/*[self::Common or self::byteData or self::Index or self::Length or self::Flags or self::Timeout]/*"/>
+  /// <include file="../documentation.xml" path="//Network/Client/Send/*[self::Common or self::byteData or self::Index or self::Length or self::Flags or self::Timeout]/*"/>
   public void Send(byte[] data, int index, int length, SendFlag flags, int timeoutMs)
   { AssertLink();
     if(cvt.AltersByteArray) DoSend(cvt.Serialize(data, index, length), flags, timeoutMs, data);
     else DoSend(data, index, length, flags, timeoutMs, data);
   }
-  /// <include file="documentation.xml" path="//Network/Client/Send/*[self::Common or self::objData]/*"/>
+  /// <include file="../documentation.xml" path="//Network/Client/Send/*[self::Common or self::objData]/*"/>
   public void Send(object data)
   { AssertLink();
     DoSend(cvt.Serialize(data), defFlags, 0, data);
   }
-  /// <include file="documentation.xml" path="//Network/Client/Send/*[self::Common or self::objData or self::Flags]/*"/>
+  /// <include file="../documentation.xml" path="//Network/Client/Send/*[self::Common or self::objData or self::Flags]/*"/>
   public void Send(object data, SendFlag flags)
   { AssertLink();
     DoSend(cvt.Serialize(data), flags, 0, data);
   }
-  /// <include file="documentation.xml" path="//Network/Client/Send/*[self::Common or self::objData or self::Flags or self::Timeout]/*"/>
+  /// <include file="../documentation.xml" path="//Network/Client/Send/*[self::Common or self::objData or self::Flags or self::Timeout]/*"/>
   public void Send(object data, SendFlag flags, int timeoutMs)
   { AssertLink();
     DoSend(cvt.Serialize(data), flags, timeoutMs, data);

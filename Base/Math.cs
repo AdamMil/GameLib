@@ -279,7 +279,7 @@ public struct Fixed32 : IFormattable, IComparable, IConvertible
   /// <summary>Converts this fixed-point number into a string.</summary>
   /// <returns>A string representing this fixed-point number.</returns>
   public override string ToString() { return ToString(null, null); }
-  /// <include file="documentation.xml" path="//Mathematics/Fixed/ToString1/*"/>
+  /// <include file="../documentation.xml" path="//Mathematics/Fixed/ToString1/*"/>
   public string ToString(string format) { return ToString(format, null); }
   /// <summary>Converts a string into a fixed-point value.</summary>
   /// <param name="s">The string to convert.</param>
@@ -410,7 +410,7 @@ public struct Fixed32 : IFormattable, IComparable, IConvertible
   #endregion
 
   #region IComparable Members
-  /// <include file="documentation.xml" path="//IComparable/CompareTo/*"/>
+  /// <include file="../documentation.xml" path="//IComparable/CompareTo/*"/>
   public int CompareTo(object obj)
   { if(obj==null) return 1;
     if(obj is Fixed32) { return value-((Fixed32)obj).value; }
@@ -420,69 +420,69 @@ public struct Fixed32 : IFormattable, IComparable, IConvertible
 
   #region IConvertible Members
   // FIXME: these should probably do rounding
-  /// <include file="documentation.xml" path="//IConvertible/ToUInt64/*"/>
+  /// <include file="../documentation.xml" path="//IConvertible/ToUInt64/*"/>
   [CLSCompliant(false)]
   public ulong ToUInt64(IFormatProvider provider)
   { int n = ToInt();
     if(n<0) throw new OverflowException();
     return (ulong)n;
   }
-  /// <include file="documentation.xml" path="//IConvertible/ToSByte/*"/>
+  /// <include file="../documentation.xml" path="//IConvertible/ToSByte/*"/>
   [CLSCompliant(false)]
   public sbyte ToSByte(IFormatProvider provider)
   { int n = ToInt();
     if(n<sbyte.MinValue || n>sbyte.MaxValue) throw new OverflowException();
     return (sbyte)n;
   }
-  /// <include file="documentation.xml" path="//IConvertible/ToDouble/*"/>
+  /// <include file="../documentation.xml" path="//IConvertible/ToDouble/*"/>
   public double ToDouble(IFormatProvider provider) { return ToDouble(); }
-  /// <include file="documentation.xml" path="//Mathematics/Fixed/ToDateTime/*"/>
+  /// <include file="../documentation.xml" path="//Mathematics/Fixed/ToDateTime/*"/>
   public DateTime ToDateTime(IFormatProvider provider) { throw new InvalidCastException(); }
-  /// <include file="documentation.xml" path="//IConvertible/ToSingle/*"/>
+  /// <include file="../documentation.xml" path="//IConvertible/ToSingle/*"/>
   public float ToSingle(IFormatProvider provider)
   { double d = ToDouble();
     if(d<float.MinValue || d>float.MaxValue) throw new OverflowException();
     return (float)d;
   }
-  /// <include file="documentation.xml" path="//Mathematics/Fixed/ToBoolean/*"/>
+  /// <include file="../documentation.xml" path="//Mathematics/Fixed/ToBoolean/*"/>
   public bool ToBoolean(IFormatProvider provider) { return value==0; }
-  /// <include file="documentation.xml" path="//IConvertible/ToInt32/*"/>
+  /// <include file="../documentation.xml" path="//IConvertible/ToInt32/*"/>
   public int ToInt32(IFormatProvider provider) { return ToInt(); }
-  /// <include file="documentation.xml" path="//IConvertible/ToUInt16/*"/>
+  /// <include file="../documentation.xml" path="//IConvertible/ToUInt16/*"/>
   [CLSCompliant(false)]
   public ushort ToUInt16(IFormatProvider provider)
   { int n = ToInt();
     if(n<ushort.MinValue || n>ushort.MaxValue) throw new OverflowException();
     return (ushort)n;
   }
-  /// <include file="documentation.xml" path="//IConvertible/ToInt16/*"/>
+  /// <include file="../documentation.xml" path="//IConvertible/ToInt16/*"/>
   public short ToInt16(IFormatProvider provider)
   { int n = ToInt();
     if(n<short.MinValue || n>short.MaxValue) throw new OverflowException();
     return (short)n;
   }
-  /// <include file="documentation.xml" path="//IConvertible/ToString/*"/>
+  /// <include file="../documentation.xml" path="//IConvertible/ToString/*"/>
   public string ToString(IFormatProvider provider) { return ToString(null, provider); }
-  /// <include file="documentation.xml" path="//IConvertible/ToByte/*"/>
+  /// <include file="../documentation.xml" path="//IConvertible/ToByte/*"/>
   public byte ToByte(IFormatProvider provider)
   { int n = ToInt();
     if(n<byte.MinValue || n>byte.MaxValue) throw new OverflowException();
     return (byte)n;
   }
-  /// <include file="documentation.xml" path="//IConvertible/ToChar/*"/>
+  /// <include file="../documentation.xml" path="//IConvertible/ToChar/*"/>
   public char ToChar(IFormatProvider provider)
   { int n = ToInt();
     if(n<ushort.MinValue || n>ushort.MaxValue) throw new OverflowException();
     return (char)n;
   }
-  /// <include file="documentation.xml" path="//IConvertible/ToInt64/*"/>
+  /// <include file="../documentation.xml" path="//IConvertible/ToInt64/*"/>
   public long ToInt64(IFormatProvider provider) { return ToInt(); }
   /// <summary>Returns the <see cref="TypeCode"/> for the <see cref="Fixed32"/> type.</summary>
   /// <returns>Returns <see cref="TypeCode.Object"/>.</returns>
   public TypeCode GetTypeCode() { return TypeCode.Object; }
-  /// <include file="documentation.xml" path="//IConvertible/ToDecimal/*"/>
+  /// <include file="../documentation.xml" path="//IConvertible/ToDecimal/*"/>
   public decimal ToDecimal(IFormatProvider provider) { return new decimal(ToDouble()); }
-  /// <include file="documentation.xml" path="//IConvertible/ToType/*"/>
+  /// <include file="../documentation.xml" path="//IConvertible/ToType/*"/>
   public object ToType(Type conversionType, IFormatProvider provider)
   { if(conversionType==typeof(int)) return ToInt32(provider);
     if(conversionType==typeof(double)) return ToDouble();
@@ -503,7 +503,7 @@ public struct Fixed32 : IFormattable, IComparable, IConvertible
     if(conversionType==typeof(Fixed64)) return ToFixed64();
     throw new InvalidCastException();
   }
-  /// <include file="documentation.xml" path="//IConvertible/ToUInt32/*"/>
+  /// <include file="../documentation.xml" path="//IConvertible/ToUInt32/*"/>
   [CLSCompliant(false)]
   public uint ToUInt32(IFormatProvider provider)
   { int n = ToInt();
@@ -513,7 +513,7 @@ public struct Fixed32 : IFormattable, IComparable, IConvertible
   #endregion
 
   #region IFormattable Members
-  /// <include file="documentation.xml" path="//Mathematics/Fixed/ToString2/*"/>
+  /// <include file="../documentation.xml" path="//Mathematics/Fixed/ToString2/*"/>
   public string ToString(string format, IFormatProvider provider)
   { if(format==null) return ToDouble().ToString();
     if(format.Length==0 || char.ToUpper(format[0])!='R') return ToDouble().ToString(format);
@@ -623,7 +623,7 @@ public struct Fixed64 : IFormattable, IComparable, IConvertible
   /// <summary>Converts this fixed-point number into a string.</summary>
   /// <returns>A string representing this fixed-point number.</returns>
   public override string ToString() { return ToString(null, null); }
-  /// <include file="documentation.xml" path="//Mathematics/Fixed/ToString1/*"/>
+  /// <include file="../documentation.xml" path="//Mathematics/Fixed/ToString1/*"/>
   public string ToString(string format) { return ToString(format, null); }
   /// <summary>Converts a string into a fixed-point value.</summary>
   /// <param name="s">The string to convert.</param>
@@ -825,7 +825,7 @@ public struct Fixed64 : IFormattable, IComparable, IConvertible
   }
 
   #region IComparable Members
-  /// <include file="documentation.xml" path="//IComparable/CompareTo/*"/>
+  /// <include file="../documentation.xml" path="//IComparable/CompareTo/*"/>
   public int CompareTo(object obj)
   { if(obj==null) return 1;
     if(obj is Fixed64)
@@ -838,69 +838,69 @@ public struct Fixed64 : IFormattable, IComparable, IConvertible
 
   #region IConvertible Members
   // FIXME: these should probably do rounding
-  /// <include file="documentation.xml" path="//IConvertible/ToUInt64/*"/>
+  /// <include file="../documentation.xml" path="//IConvertible/ToUInt64/*"/>
   [CLSCompliant(false)]
   public ulong ToUInt64(IFormatProvider provider)
   { int n = ToInt();
     if(n<0) throw new OverflowException();
     return (ulong)n;
   }
-  /// <include file="documentation.xml" path="//IConvertible/ToSByte/*"/>
+  /// <include file="../documentation.xml" path="//IConvertible/ToSByte/*"/>
   [CLSCompliant(false)]
   public sbyte ToSByte(IFormatProvider provider)
   { int n = ToInt();
     if(n<sbyte.MinValue || n>sbyte.MaxValue) throw new OverflowException();
     return (sbyte)n;
   }
-  /// <include file="documentation.xml" path="//IConvertible/ToDouble/*"/>
+  /// <include file="../documentation.xml" path="//IConvertible/ToDouble/*"/>
   public double ToDouble(IFormatProvider provider) { return ToDouble(); }
-  /// <include file="documentation.xml" path="//Mathematics/Fixed/ToDateTime/*"/>
+  /// <include file="../documentation.xml" path="//Mathematics/Fixed/ToDateTime/*"/>
   public DateTime ToDateTime(IFormatProvider provider) { throw new InvalidCastException(); }
-  /// <include file="documentation.xml" path="//IConvertible/ToSingle/*"/>
+  /// <include file="../documentation.xml" path="//IConvertible/ToSingle/*"/>
   public float ToSingle(IFormatProvider provider)
   { double d = ToDouble();
     if(d<float.MinValue || d>float.MaxValue) throw new OverflowException();
     return (float)d;
   }
-  /// <include file="documentation.xml" path="//Mathematics/Fixed/ToBoolean/*"/>
+  /// <include file="../documentation.xml" path="//Mathematics/Fixed/ToBoolean/*"/>
   public bool ToBoolean(IFormatProvider provider) { return value==0; }
-  /// <include file="documentation.xml" path="//IConvertible/ToInt32/*"/>
+  /// <include file="../documentation.xml" path="//IConvertible/ToInt32/*"/>
   public int ToInt32(IFormatProvider provider) { return ToInt(); }
-  /// <include file="documentation.xml" path="//IConvertible/ToUInt16/*"/>
+  /// <include file="../documentation.xml" path="//IConvertible/ToUInt16/*"/>
   [CLSCompliant(false)]
   public ushort ToUInt16(IFormatProvider provider)
   { int n = ToInt();
     if(n<ushort.MinValue || n>ushort.MaxValue) throw new OverflowException();
     return (ushort)n;
   }
-  /// <include file="documentation.xml" path="//IConvertible/ToInt16/*"/>
+  /// <include file="../documentation.xml" path="//IConvertible/ToInt16/*"/>
   public short ToInt16(IFormatProvider provider)
   { int n = ToInt();
     if(n<short.MinValue || n>short.MaxValue) throw new OverflowException();
     return (short)n;
   }
-  /// <include file="documentation.xml" path="//IConvertible/ToString/*"/>
+  /// <include file="../documentation.xml" path="//IConvertible/ToString/*"/>
   public string ToString(IFormatProvider provider) { return ToString(null, provider); }
-  /// <include file="documentation.xml" path="//IConvertible/ToByte/*"/>
+  /// <include file="../documentation.xml" path="//IConvertible/ToByte/*"/>
   public byte ToByte(IFormatProvider provider)
   { int n = ToInt();
     if(n<byte.MinValue || n>byte.MaxValue) throw new OverflowException();
     return (byte)n;
   }
-  /// <include file="documentation.xml" path="//IConvertible/ToChar/*"/>
+  /// <include file="../documentation.xml" path="//IConvertible/ToChar/*"/>
   public char ToChar(IFormatProvider provider)
   { int n = ToInt();
     if(n<ushort.MinValue || n>ushort.MaxValue) throw new OverflowException();
     return (char)n;
   }
-  /// <include file="documentation.xml" path="//IConvertible/ToInt64/*"/>
+  /// <include file="../documentation.xml" path="//IConvertible/ToInt64/*"/>
   public long ToInt64(IFormatProvider provider) { return ToInt(); }
   /// <summary>Returns the <see cref="TypeCode"/> for the <see cref="Fixed64"/> type.</summary>
   /// <returns>Returns <see cref="TypeCode.Object"/>.</returns>
   public System.TypeCode GetTypeCode() { return System.TypeCode.Object; }
-  /// <include file="documentation.xml" path="//IConvertible/ToDecimal/*"/>
+  /// <include file="../documentation.xml" path="//IConvertible/ToDecimal/*"/>
   public decimal ToDecimal(IFormatProvider provider) { return new decimal(ToDouble()); }
-  /// <include file="documentation.xml" path="//IConvertible/ToType/*"/>
+  /// <include file="../documentation.xml" path="//IConvertible/ToType/*"/>
   public object ToType(Type conversionType, IFormatProvider provider)
   { if(conversionType==typeof(int)) return ToInt32(provider);
     if(conversionType==typeof(double)) return ToDouble();
@@ -920,7 +920,7 @@ public struct Fixed64 : IFormattable, IComparable, IConvertible
     if(conversionType==typeof(Fixed64)) return this;
     throw new InvalidCastException();
   }
-  /// <include file="documentation.xml" path="//IConvertible/ToUInt32/*"/>
+  /// <include file="../documentation.xml" path="//IConvertible/ToUInt32/*"/>
   [CLSCompliant(false)]
   public uint ToUInt32(IFormatProvider provider)
   { int n = ToInt();
@@ -930,7 +930,7 @@ public struct Fixed64 : IFormattable, IComparable, IConvertible
   #endregion
 
   #region IFormattable Members
-  /// <include file="documentation.xml" path="//Mathematics/Fixed/ToString2/*"/>
+  /// <include file="../documentation.xml" path="//Mathematics/Fixed/ToString2/*"/>
   public string ToString(string format, IFormatProvider provider)
   { if(format==null) return ToDouble().ToString();
     if(format.Length==0 || char.ToUpper(format[0])!='R') return ToDouble().ToString(format);
@@ -972,9 +972,9 @@ namespace TwoD
 /// </summary>
 public static class Math2D
 {
-  /// <include file="documentation.xml" path="//Mathematics/GLMath/AngleBetween/*"/>
+  /// <include file="../documentation.xml" path="//Mathematics/GLMath/AngleBetween/*"/>
   public static double AngleBetween(Point start, Point end) { return (end-start).Angle; }
-  /// <include file="documentation.xml" path="//Mathematics/GLMath/AngleBetween/*"/>
+  /// <include file="../documentation.xml" path="//Mathematics/GLMath/AngleBetween/*"/>
   public static double AngleBetween(System.Drawing.Point start, System.Drawing.Point end)
   {
     return (new Point(end)-new Point(start)).Angle;
@@ -1792,26 +1792,36 @@ public struct Vector
   /// returns a perpendicular vector.
   /// </remarks>
   public Vector CrossVector { get { return new Vector(Y, -X); } }
-  /// <include file="documentation.xml" path="//Mathematics/Vector/Length/*"/>
+  /// <include file="../documentation.xml" path="//Mathematics/Vector/Length/*"/>
   public double Length
   { get { return System.Math.Sqrt(X*X+Y*Y); }
     set { Normalize(value); }
   }
   /// <summary>Returns the length of this vector, squared.</summary>
   public double LengthSqr { get { return X*X+Y*Y; } }
-  /// <include file="documentation.xml" path="//Mathematics/Vector/Normal/*"/>
+  /// <include file="../documentation.xml" path="//Mathematics/Vector/Normal/*"/>
   public Vector Normal { get { return this/Length; } }
   /// <summary>Determines whether the vector is valid.</summary>
   /// <remarks>Invalid vectors are returned by some mathematical functions to signal that the function is undefined
   /// given the input. A vector returned by such a function can be tested for validity using this property.
   /// </remarks>
   public bool Valid { get { return !double.IsNaN(X); } }
-  /// <include file="documentation.xml" path="//Mathematics/Vector/DotProduct/*"/>
+  /// <include file="../documentation.xml" path="//Mathematics/Vector/DotProduct/*"/>
   public double DotProduct(Vector v) { return X*v.X + Y*v.Y; }
-  /// <include file="documentation.xml" path="//Mathematics/Vector/Normalize/*"/>
+  /// <include file="../documentation.xml" path="//Mathematics/Vector/Normalize/*"/>
   public void Normalize() { this/=Length; }
-  /// <include file="documentation.xml" path="//Mathematics/Vector/Normalize2/*"/>
+  /// <include file="../documentation.xml" path="//Mathematics/Vector/Normalize2/*"/>
   public void Normalize(double length) { this /= Length/length; }
+  /// <summary>Returns a copy of this vector, normalized to the given length.</summary>
+  /// <remarks>Calling this method is invalid when the length of the vector is zero, since the vector would not be
+  /// pointing in any direction and could not possibly be scaled to the correct length.
+  /// </remarks>
+  public Vector Normalized(double length)
+  {
+    Vector vector = this;
+    vector.Normalize(length);
+    return vector;
+  }
   /// <summary>Rotates this vector by the given number of radians.</summary>
   /// <param name="angle">The angle to rotate by, in radians.</param>
   public void Rotate(double angle) { this = Rotated(angle); }
@@ -1822,9 +1832,9 @@ public struct Vector
   { double sin = Math.Sin(angle), cos = Math.Cos(angle);
     return new Vector(X*cos-Y*sin, X*sin+Y*cos);
   }
-  /// <include file="documentation.xml" path="//Mathematics/Vector/Equals/*"/>
+  /// <include file="../documentation.xml" path="//Mathematics/Vector/Equals/*"/>
   public override bool Equals(object obj) { return obj is Vector ? (Vector)obj==this : false; }
-  /// <include file="documentation.xml" path="//Mathematics/Vector/Equals3/*"/>
+  /// <include file="../documentation.xml" path="//Mathematics/Vector/Equals3/*"/>
   public bool Equals(Vector vect, double epsilon)
   { return Math.Abs(vect.X-X)<=epsilon && Math.Abs(vect.Y-Y)<=epsilon;
   }
@@ -1886,12 +1896,12 @@ public struct Point
   /// given the input. A point returned by such a function can be tested for validity using this property.
   /// </remarks>
   public bool Valid { get { return !double.IsNaN(X); } }
-  /// <include file="documentation.xml" path="//Mathematics/Point/DistanceTo/*"/>
+  /// <include file="../documentation.xml" path="//Mathematics/Point/DistanceTo/*"/>
   public double DistanceTo(Point point)
   { double xd=point.X-X, yd=point.Y-Y;
     return Math.Sqrt(xd*xd+yd*yd);
   }
-  /// <include file="documentation.xml" path="//Mathematics/Point/DistanceSquaredTo/*"/>
+  /// <include file="../documentation.xml" path="//Mathematics/Point/DistanceSquaredTo/*"/>
   public double DistanceSquaredTo(Point point)
   { double xd=point.X-X, yd=point.Y-Y;
     return xd*xd+yd*yd;
@@ -1908,9 +1918,9 @@ public struct Point
   /// <summary>Converts this point to a <see cref="System.Drawing.PointF"/>.</summary>
   /// <returns>A <see cref="System.Drawing.PointF"/> containing approximately the same coordinates.</returns>
   public System.Drawing.PointF ToPointF() { return new System.Drawing.PointF((float)X, (float)Y); }
-  /// <include file="documentation.xml" path="//Mathematics/Point/Equals/*"/>
+  /// <include file="../documentation.xml" path="//Mathematics/Point/Equals/*"/>
   public override bool Equals(object obj) { return obj is Point ? (Point)obj==this : false; }
-  /// <include file="documentation.xml" path="//Mathematics/Point/Equals3/*"/>
+  /// <include file="../documentation.xml" path="//Mathematics/Point/Equals3/*"/>
   public bool Equals(Point point, double epsilon)
   { return Math.Abs(point.X-X)<=epsilon && Math.Abs(point.Y-Y)<=epsilon;
   }
@@ -2005,9 +2015,9 @@ public struct Line
   /// this should be the distance from <paramref name="y"/> to the endpoint's Y coordinate.
   /// </param>
   public Line(double x, double y, double xd, double yd) { Start=new Point(x, y); Vector=new Vector(xd, yd); }
-  /// <include file="documentation.xml" path="//Mathematics/Line/Line/*"/>
+  /// <include file="../documentation.xml" path="//Mathematics/Line/Line/*"/>
   public Line(Point start, Vector vector) { Start=start; Vector=vector; }
-  /// <include file="documentation.xml" path="//Mathematics/Line/Line2/*"/>
+  /// <include file="../documentation.xml" path="//Mathematics/Line/Line2/*"/>
   public Line(Point start, Point end) { Start=start; Vector=end-start; }
 
   /// <summary>Returns the endpoint of the line segment.</summary>
@@ -2055,7 +2065,7 @@ public struct Line
   /// to know which side of the line a point is on, use <see cref="WhichSide"/>, which is more efficient.
   /// </returns>
   public double DistanceTo(Point point) { return Vector.CrossVector.Normal.DotProduct(point-Start); }
-  /// <include file="documentation.xml" path="//Mathematics/Line/GetPoint/*"/>
+  /// <include file="../documentation.xml" path="//Mathematics/Line/GetPoint/*"/>
   public Point GetPoint(int point)
   { if(point<0 || point>1) throw new ArgumentOutOfRangeException("point", point, "must be 0 or 1");
     return point==0 ? Start : End;
@@ -2179,9 +2189,9 @@ public struct Line
   /// polygon. The point would be inside the polygon if it was "inside" all of the lines defining it.
   /// </returns>
   public double WhichSide(Point point) { return Vector.CrossVector.DotProduct(point-Start); }
-  /// <include file="documentation.xml" path="//Mathematics/Line/Equals/*"/>
+  /// <include file="../documentation.xml" path="//Mathematics/Line/Equals/*"/>
   public override bool Equals(object obj) { return obj is Line ? (Line)obj==this : false; }
-  /// <include file="documentation.xml" path="//Mathematics/Line/Equals3/*"/>
+  /// <include file="../documentation.xml" path="//Mathematics/Line/Equals3/*"/>
   public bool Equals(Line line, double epsilon)
   { return Start.Equals(line.Start, epsilon) && Vector.Equals(line.Vector, epsilon);
   }
@@ -2748,7 +2758,9 @@ public sealed class Polygon : ICloneable, ISerializable
   #region ICloneable Members
   /// <summary>Returns a clone of this polygon.</summary>
   /// <returns>Returns a new <see cref="Polygon"/> with the same points as this one.</returns>
-  public object Clone() { return new Polygon(points, length); }
+  public Polygon Clone() { return new Polygon(points, length); }
+
+  object ICloneable.Clone() { return Clone(); }
   #endregion
 
   #region ISerializable Members
@@ -2940,7 +2952,9 @@ public sealed class Polygon : ICloneable, ISerializable
   }
   /// <summary>Gets the specified edge of the polygon.</summary>
   /// <param name="index">The index of the edge to retrieve, from 0 to <see cref="Length"/>-1.</param>
-  /// <returns>A <see cref="Line"/> segment representing the requested edge.</returns>
+  /// <returns>A <see cref="Line"/> segment representing the requested edge, built from the vertex at the given index
+  /// and the next vertex (wrapping around to zero if <paramref name="index"/> is the last vertex).
+  /// </returns>
   public Line GetEdge(int index)
   { if(length<2) throw new InvalidOperationException("Polygon has no edges [not enough points]!");
     return new Line(this[index], GetPoint(index+1));
@@ -3216,24 +3230,24 @@ public struct Vector
   /// </param>
   public Vector(Point pt) { X=pt.X; Y=pt.Y; Z=pt.Z; }
 
-  /// <include file="documentation.xml" path="//Mathematics/Vector/Length/*"/>
+  /// <include file="../documentation.xml" path="//Mathematics/Vector/Length/*"/>
   public double Length
   { get { return System.Math.Sqrt(X*X+Y*Y+Z*Z); }
     set { Normalize(value); }
   }
   /// <summary>Returns the length of this vector, squared.</summary>
   public double LengthSqr { get { return X*X+Y*Y+Z*Z; } }
-  /// <include file="documentation.xml" path="//Mathematics/Vector/Normal/*"/>
+  /// <include file="../documentation.xml" path="//Mathematics/Vector/Normal/*"/>
   public Vector Normal { get { return this/Length; } }
   /// <summary>Returns the cross product of this vector with another vector.</summary>
   /// <param name="v">The other operand.</param>
   /// <returns>A <see cref="Vector"/> perpendicular to both this vector and <paramref name="v"/>.</returns>
   public Vector CrossProduct(Vector v) { return new Vector(X*v.Z-Z*v.Y, Z*v.X-X*v.Z, X*v.Y-Y*v.X); }
-  /// <include file="documentation.xml" path="//Mathematics/Vector/DotProduct/*"/>
+  /// <include file="../documentation.xml" path="//Mathematics/Vector/DotProduct/*"/>
   public double DotProduct(Vector v) { return X*v.X + Y*v.Y + Z*v.Z; }
-  /// <include file="documentation.xml" path="//Mathematics/Vector/Normalize/*"/>
+  /// <include file="../documentation.xml" path="//Mathematics/Vector/Normalize/*"/>
   public void Normalize() { this /= Length; }
-  /// <include file="documentation.xml" path="//Mathematics/Vector/Normalize2/*"/>
+  /// <include file="../documentation.xml" path="//Mathematics/Vector/Normalize2/*"/>
   public void Normalize(double length) { this /= Length/length; }
   /// <summary>Rotates this vector around the X axis.</summary>
   /// <param name="angle">The angle to rotate by, in radians.</param>
@@ -3279,9 +3293,9 @@ public struct Vector
     return (a*b*a.Conjugate).V;
   }
 
-  /// <include file="documentation.xml" path="//Mathematics/Vector/Equals/*"/>
+  /// <include file="../documentation.xml" path="//Mathematics/Vector/Equals/*"/>
   public override bool Equals(object obj) { return obj is Vector ? (Vector)obj==this : false; }
-  /// <include file="documentation.xml" path="//Mathematics/Vector/Equals3/*"/>
+  /// <include file="../documentation.xml" path="//Mathematics/Vector/Equals3/*"/>
   public bool Equals(Vector vect, double epsilon)
   { return Math.Abs(vect.X-X)<=epsilon && Math.Abs(vect.Y-Y)<=epsilon && Math.Abs(vect.Z-Z)<=epsilon;
   }
@@ -3328,12 +3342,12 @@ public struct Point
   /// <param name="y">The point's Y coordinate.</param>
   /// <param name="z">The point's Z coordinate.</param>
   public Point(double x, double y, double z) { X=x; Y=y; Z=z; }
-  /// <include file="documentation.xml" path="//Mathematics/Point/DistanceTo/*"/>
+  /// <include file="../documentation.xml" path="//Mathematics/Point/DistanceTo/*"/>
   public double DistanceTo(Point point)
   { double xd=point.X-X, yd=point.Y-Y, zd=point.Z-Z;
     return Math.Sqrt(xd*xd+yd*yd+zd*zd);
   }
-  /// <include file="documentation.xml" path="//Mathematics/Point/DistanceSquaredTo/*"/>
+  /// <include file="../documentation.xml" path="//Mathematics/Point/DistanceSquaredTo/*"/>
   public double DistanceCubedTo(Point point)
   { double xd=point.X-X, yd=point.Y-Y, zd=point.Z-Z;
     return xd*xd+yd*yd+zd*zd;
@@ -3344,9 +3358,9 @@ public struct Point
   /// <param name="zd">The value to add to the point's Z coordinate.</param>
   public void Offset(double xd, double yd, double zd) { X+=xd; Y+=yd; Z+=zd; }
 
-  /// <include file="documentation.xml" path="//Mathematics/Point/Equals/*"/>
+  /// <include file="../documentation.xml" path="//Mathematics/Point/Equals/*"/>
   public override bool Equals(object obj) { return obj is Point ? (Point)obj==this : false; }
-  /// <include file="documentation.xml" path="//Mathematics/Point/Equals3/*"/>
+  /// <include file="../documentation.xml" path="//Mathematics/Point/Equals3/*"/>
   public bool Equals(Point point, double epsilon)
   { return Math.Abs(point.X-X)<=epsilon && Math.Abs(point.Y-Y)<=epsilon && Math.Abs(point.Z-Z)<=epsilon;
   }
@@ -3396,9 +3410,9 @@ public struct Line
   public Line(double x, double y, double z, double xd, double yd, double zd)
   { Start=new Point(x, y, z); Vector=new Vector(xd, yd, zd);
   }
-  /// <include file="documentation.xml" path="//Mathematics/Line/Line/*"/>
+  /// <include file="../documentation.xml" path="//Mathematics/Line/Line/*"/>
   public Line(Point start, Vector vector) { Start=start; Vector=vector; }
-  /// <include file="documentation.xml" path="//Mathematics/Line/Line2/*"/>
+  /// <include file="../documentation.xml" path="//Mathematics/Line/Line2/*"/>
   public Line(Point start, Point end) { Start=start; Vector=end-start; }
   /// <summary>Returns the endpoint of the line segment.</summary>
   /// <remarks>This is equivalent to <see cref="Start"/> + <see cref="Vector"/>.</remarks>
@@ -3409,14 +3423,14 @@ public struct Line
   /// <summary>Calculates and returns the square of the line segment's length.</summary>
   /// <remarks>This returns the square of the length of <see cref="Vector"/>.</remarks>
   public double LengthSqr { get { return Vector.LengthSqr; } }
-  /// <include file="documentation.xml" path="//Mathematics/Line/GetPoint/*"/>
+  /// <include file="../documentation.xml" path="//Mathematics/Line/GetPoint/*"/>
   public Point GetPoint(int point)
   { if(point<0 || point>1) throw new ArgumentOutOfRangeException("point", point, "must be 0 or 1");
     return point==0 ? Start : End;
   }
-  /// <include file="documentation.xml" path="//Mathematics/Line/Equals/*"/>
+  /// <include file="../documentation.xml" path="//Mathematics/Line/Equals/*"/>
   public override bool Equals(object obj) { return obj is Line ? (Line)obj==this : false; }
-  /// <include file="documentation.xml" path="//Mathematics/Line/Equals3/*"/>
+  /// <include file="../documentation.xml" path="//Mathematics/Line/Equals3/*"/>
   public bool Equals(Line line, double epsilon)
   { return Start.Equals(line.Start, epsilon) && Vector.Equals(line.Vector, epsilon);
   }
