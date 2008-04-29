@@ -29,7 +29,7 @@ namespace AudioTest
 #if DEBUG
       string dataPath = "../../../"; // set to something correct
 #else
-    string dataPath = "data/"; // set to something correct
+      string dataPath = "data/"; // set to something correct
 #endif
 
       Audio.Initialize(44100); // 44100 hz 16-bit stereo

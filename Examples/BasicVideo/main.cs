@@ -31,7 +31,7 @@ namespace BasicVideo
 #if DEBUG
     static string dataPath = "../../../"; // set to something correct
 #else
-  static string dataPath = "data/"; // set to something correct
+    static string dataPath = "data/"; // set to something correct
 #endif
 
     static void Main()
