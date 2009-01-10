@@ -784,15 +784,18 @@ public static class Events
 
     if(timeout == Infinite)
     {
-      ret = NextSDLEvent();
-      lock(queue)
+      do
       {
-        if(ret == null) // the only time NextSDLEvent() returns null is when an event was pushed using PushEvent()
+        ret = NextSDLEvent();
+        lock(queue)
         {
-          return remove ? queue.Dequeue() : queue.Peek(); 
+          if(ret == null) // the only time NextSDLEvent() returns null is after an event was pushed using PushEvent()
+          {
+            if(queue.Count != 0) ret = remove ? queue.Dequeue() : queue.Peek();
+          }
+          else if(!remove) QueueEvent(ret);
         }
-        else if(!remove) QueueEvent(ret);
-      }
+      } while(ret == null);
     }
     else
     {
@@ -870,7 +873,7 @@ public static class Events
   /// specify an infinite timeout.
   /// </param>
   /// <returns>The next event in the queue, or null if no events arrive in the specified timeout period.</returns>
-  /// <remarks>Calling this method is equivalent to calling <see cref="NextEvent(int,bool)"/> and passing true to
+  /// <remarks>Calling this method is equivalent to calling <see cref="GetEvent(int,bool)"/> and passing true to
   /// signal that the event should be removed from the queue.
   /// </remarks>
   /// <exception cref="InvalidOperationException">Thrown if the event subsystem has not been initialized.</exception>
@@ -917,11 +920,12 @@ public static class Events
     return true;
   }
 
-  /// <summary>Processes all events that are waiting in the queue.</summary>
+  /// <summary>Processes all events that are waiting in the queue, and returns the complement of the quit flag.</summary>
   /// <remarks>This method essentially calls <see cref="PumpEvent"/> repeatedly until it returns false.</remarks>
-  public static void PumpAvailableEvents()
+  public static bool PumpAvailableEvents()
   {
     while(PumpEvent(false)) { }
+    return !QuitFlag;
   }
 
   /// <summary>Handles the next event.</summary>
@@ -1105,25 +1109,33 @@ public static class Events
       { 
         KeyboardEvent e = new KeyboardEvent(ref evt.Keyboard);
         mods = mods & ~KeyMod.StatusMask | e.StatusMods;
-        if(e.Down) switch(e.Key) // SDL's mod handling is quirky, so i'll do it myself
-        { case Key.LShift: mods |= KeyMod.LShift; break;
-          case Key.RShift: mods |= KeyMod.RShift; break;
-          case Key.LCtrl:  mods |= KeyMod.LCtrl;  break;
-          case Key.RCtrl:  mods |= KeyMod.RCtrl;  break;
-          case Key.LAlt:   mods |= KeyMod.LAlt;   break;
-          case Key.RAlt:   mods |= KeyMod.RAlt;   break;
-          case Key.LMeta:  mods |= KeyMod.LMeta;  break;
-          case Key.RMeta:  mods |= KeyMod.RMeta;  break;
+        if(e.Down)
+        {
+          switch(e.Key) // SDL's mod handling is quirky, so i'll do it myself
+          { 
+            case Key.LShift: mods |= KeyMod.LShift; break;
+            case Key.RShift: mods |= KeyMod.RShift; break;
+            case Key.LCtrl:  mods |= KeyMod.LCtrl;  break;
+            case Key.RCtrl:  mods |= KeyMod.RCtrl;  break;
+            case Key.LAlt:   mods |= KeyMod.LAlt;   break;
+            case Key.RAlt:   mods |= KeyMod.RAlt;   break;
+            case Key.LMeta:  mods |= KeyMod.LMeta;  break;
+            case Key.RMeta:  mods |= KeyMod.RMeta;  break;
+          }
         }
-        else switch(e.Key)
-        { case Key.LShift: mods &= ~KeyMod.LShift; break;
-          case Key.RShift: mods &= ~KeyMod.RShift; break;
-          case Key.LCtrl:  mods &= ~KeyMod.LCtrl;  break;
-          case Key.RCtrl:  mods &= ~KeyMod.RCtrl;  break;
-          case Key.LAlt:   mods &= ~KeyMod.LAlt;   break;
-          case Key.RAlt:   mods &= ~KeyMod.RAlt;   break;
-          case Key.LMeta:  mods &= ~KeyMod.LMeta;  break;
-          case Key.RMeta:  mods &= ~KeyMod.RMeta;  break;
+        else
+        {
+          switch(e.Key)
+          { 
+            case Key.LShift: mods &= ~KeyMod.LShift; break;
+            case Key.RShift: mods &= ~KeyMod.RShift; break;
+            case Key.LCtrl:  mods &= ~KeyMod.LCtrl;  break;
+            case Key.RCtrl:  mods &= ~KeyMod.RCtrl;  break;
+            case Key.LAlt:   mods &= ~KeyMod.LAlt;   break;
+            case Key.RAlt:   mods &= ~KeyMod.RAlt;   break;
+            case Key.LMeta:  mods &= ~KeyMod.LMeta;  break;
+            case Key.RMeta:  mods &= ~KeyMod.RMeta;  break;
+          }
         }
         e.Mods = mods;
         return e;
