@@ -2024,6 +2024,10 @@ public static class GL
   public static extern void glMultMatrixf([In] float[] m);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glNewList(int list, int mode);
+  public static void glNormal(Mathematics.ThreeD.Vector v)
+  {
+    glNormal3d(v.X, v.Y, v.Z);
+  }
   [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glNormal3b(sbyte nx, sbyte ny, sbyte nz);

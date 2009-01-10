@@ -782,6 +782,20 @@ public sealed class Surface : IDisposable, IBlittable
   public unsafe uint MapColor(Color color, byte alpha)
   { return SDL.MapRGBA(surface->Format, color.R, color.G, color.B, alpha);
   }
+  /// <summary>Maps a color specified as RGB components to the nearest raw pixel value.</summary>
+  /// <returns>The raw pixel value closest to the color given.</returns>
+  [CLSCompliant(false)]
+  public uint MapColor(byte r, byte g, byte b)
+  {
+    return MapColor(r, g, b, 255);
+  }
+  /// <summary>Maps a color specified as RGBA components to the nearest raw pixel value.</summary>
+  /// <returns>The raw pixel value closest to the color given.</returns>
+  [CLSCompliant(false)]
+  public unsafe uint MapColor(byte r, byte g, byte b, byte a)
+  {
+    return SDL.MapRGBA(surface->Format, r, g, b, a);
+  }
   /// <summary>Maps a raw pixel value to the corresponding <see cref="Color"/>.</summary>
   /// <param name="color">The raw pixel value to map.</param>
   /// <returns>The <see cref="Color"/> corresponding to <paramref name="color"/>.</returns>
