@@ -27,7 +27,7 @@ using GameLib.Interop.OpenGL;
 namespace GameLib.Video
 {
 
-#region OpenGL class
+#region OpenGL
 /// <summary>This class provides some high-level support for interfacing with the OpenGL API.</summary>
 // TODO: add more methods
 public static class OpenGL
@@ -328,14 +328,14 @@ public static class OpenGL
 
   static void InitExtensions()
   { string str = GL.glGetString(GL.GL_EXTENSIONS);
-    if(str==null) throw new InvalidOperationException("OpenGL not initialized yet!");
+    if(str == null) throw new InvalidOperationException("OpenGL not initialized yet!");
     extensions = str.Split(' ');
     Array.Sort(extensions);
   }
 
   static void InitVersion()
   { string str = GL.glGetString(GL.GL_VERSION);
-    if(str==null) throw new InvalidOperationException("OpenGL not initialized yet!");
+    if(str == null) throw new InvalidOperationException("OpenGL not initialized yet!");
     int pos = str.IndexOf(' ');
     string[] bits = (pos==-1 ? str : str.Substring(0, pos)).Split('.');
     version = (int.Parse(bits[0])<<16) + int.Parse(bits[1]);
