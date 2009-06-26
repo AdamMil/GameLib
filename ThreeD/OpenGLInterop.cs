@@ -18,6 +18,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 using System;
 using System.Runtime.InteropServices;
+using Geometry = AdamMil.Mathematics.Geometry;
 
 namespace GameLib.Interop.OpenGL
 {
@@ -1896,7 +1897,7 @@ public static class GL
     p[3] = w;
     glLightfv(light, GL_POSITION, p);
   }
-  public unsafe static void glLightPosition(int light, Mathematics.ThreeD.Point pt, float w)
+  public unsafe static void glLightPosition(int light, Geometry.ThreeD.Point pt, float w)
   { float* p = stackalloc float[4];
     p[0] = (float)pt.X;
     p[1] = (float)pt.Y;
@@ -2024,7 +2025,7 @@ public static class GL
   public static extern void glMultMatrixf([In] float[] m);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glNewList(int list, int mode);
-  public static void glNormal(Mathematics.ThreeD.Vector v)
+  public static void glNormal(Geometry.ThreeD.Vector v)
   {
     glNormal3d(v.X, v.Y, v.Z);
   }
@@ -2039,7 +2040,7 @@ public static class GL
   public static extern void glNormal3bv([In] sbyte[] v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glNormal3d(double nx, double ny, double nz);
-  public static void glNormal3d(Mathematics.ThreeD.Vector v) { glNormal3d(v.X, v.Y, v.Z); }
+  public static void glNormal3d(Geometry.ThreeD.Vector v) { glNormal3d(v.X, v.Y, v.Z); }
   [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glNormal3dv(/*const*/ double *v);
@@ -2300,7 +2301,7 @@ public static class GL
   public static extern int glRenderMode(int mode);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glRotated(double angle, double x, double y, double z);
-  public static void glRotated(double angle, Mathematics.ThreeD.Vector axis)
+  public static void glRotated(double angle, Geometry.ThreeD.Vector axis)
   { glRotated(angle, axis.X, axis.Y, axis.Z);
   }
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
@@ -2361,7 +2362,7 @@ public static class GL
   public static extern void glTexCoord1sv([In] ref short v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glTexCoord2d(double s, double t);
-  public static void glTexCoord2d(Mathematics.TwoD.Point pt) { glTexCoord2d(pt.X, pt.Y); }
+  public static void glTexCoord2d(Geometry.TwoD.Point pt) { glTexCoord2d(pt.X, pt.Y); }
   [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glTexCoord2dv(/*const*/ double *v);
@@ -2390,7 +2391,7 @@ public static class GL
   public static extern void glTexCoord2sv([In] short[] v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glTexCoord3d(double s, double t, double r);
-  public static void glTexCoord3d(Mathematics.ThreeD.Point pt) { glTexCoord3d(pt.X, pt.Y, pt.Z); }
+  public static void glTexCoord3d(Geometry.ThreeD.Point pt) { glTexCoord3d(pt.X, pt.Y, pt.Z); }
   [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glTexCoord3dv(/*const*/ double *v);
@@ -2543,13 +2544,13 @@ public static class GL
   public unsafe static extern void glTexSubImage2D(int target, int level, int xoffset, int yoffset, int width, int height, int format, int type, [In] byte[] pixels);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glTranslated(double x, double y, double z);
-  public static void glTranslated(Mathematics.ThreeD.Vector v) { glTranslated(v.X, v.Y, v.Z); }
+  public static void glTranslated(Geometry.ThreeD.Vector v) { glTranslated(v.X, v.Y, v.Z); }
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glTranslatef(float x, float y, float z);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glVertex2d(double x, double y);
-  public static void glVertex2d(Mathematics.TwoD.Point pt) { glVertex2d(pt.X, pt.Y); }
-  public static void glVertex2d(Mathematics.TwoD.Vector vector) { glVertex2d(vector.X, vector.Y); }
+  public static void glVertex2d(Geometry.TwoD.Point pt) { glVertex2d(pt.X, pt.Y); }
+  public static void glVertex2d(Geometry.TwoD.Vector vector) { glVertex2d(vector.X, vector.Y); }
   [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glVertex2dv(/*const*/ double *v);
@@ -2578,8 +2579,8 @@ public static class GL
   public static extern void glVertex2sv([In] short[] v);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glVertex3d(double x, double y, double z);
-  public static void glVertex3d(Mathematics.ThreeD.Point pt) { glVertex3d(pt.X, pt.Y, pt.Z); }
-  public static void glVertex3d(Mathematics.ThreeD.Vector vector) { glVertex3d(vector.X, vector.Y, vector.Z); }
+  public static void glVertex3d(Geometry.ThreeD.Point pt) { glVertex3d(pt.X, pt.Y, pt.Z); }
+  public static void glVertex3d(Geometry.ThreeD.Vector vector) { glVertex3d(vector.X, vector.Y, vector.Z); }
   [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void glVertex3dv(/*const*/ double *v);
@@ -3486,10 +3487,10 @@ public static class GLU
   public static extern void gluTessProperty(IntPtr tessellator, int which, double value);
   [DllImport(Config.GluImportPath, CallingConvention=CallingConvention.Winapi)]
   public static extern void gluTessNormal(IntPtr tessellator, double x, double y, double z);
-  public static void gluTessNormal(IntPtr tessellator, Mathematics.TwoD.Vector v)
+  public static void gluTessNormal(IntPtr tessellator, Geometry.TwoD.Vector v)
   { gluTessNormal(tessellator, v.X, v.Y, 0);
   }
-  public static void gluTessNormal(IntPtr tessellator, Mathematics.ThreeD.Vector v)
+  public static void gluTessNormal(IntPtr tessellator, Geometry.ThreeD.Vector v)
   { gluTessNormal(tessellator, v.X, v.Y, v.Z);
   }
   [DllImport(Config.GluImportPath, CallingConvention=CallingConvention.Winapi)]

@@ -194,7 +194,7 @@ public sealed class Surface : IDisposable, IBlittable
         break;
     }
 
-    PixelFormat pf = new PixelFormat(depth);
+    PixelFormat pf = new PixelFormat(depth, true, false);
     if(depth==32) { pf.AlphaMask=0xFF; pf.RedMask=0xFF00; pf.GreenMask=0xFF0000; pf.BlueMask=0xFF000000; }
 
     InitFromFormat(bitmap.Width, bitmap.Height, pf, depth==32 ? flags|SurfaceFlag.SourceAlpha : flags);

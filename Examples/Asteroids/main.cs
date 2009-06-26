@@ -25,7 +25,7 @@ using GameLib.Events;
 using GameLib.Input;
 using GameLib.Video;
 using GameLib.Interop.OpenGL;
-using GameLib.Mathematics.TwoD;
+using AdamMil.Mathematics.Geometry.TwoD;
 
 namespace Asteroids
 {
