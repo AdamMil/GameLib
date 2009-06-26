@@ -51,14 +51,22 @@ public class RectanglePacker
   /// </summary>
   public Point? TryAdd(int width, int height)
   {
-    if(width <= 0 || height <= 0) throw new ArgumentOutOfRangeException();
-
-    Point? pt = root.TryAdd(width, height);
-    if(pt.HasValue)
+    if(width < 0 || height < 0) throw new ArgumentOutOfRangeException();
+    
+    Point? pt;
+    if(width == 0 || height == 0)
     {
-      int right = pt.Value.X + width, bottom = pt.Value.Y + height;
-      if(right  > size.Width)  size.Width  = right;
-      if(bottom > size.Height) size.Height = bottom;
+      pt = Point.Empty;
+    }
+    else
+    {
+      pt = root.TryAdd(width, height);
+      if(pt.HasValue)
+      {
+        int right = pt.Value.X + width, bottom = pt.Value.Y + height;
+        if(right  > size.Width)  size.Width  = right;
+        if(bottom > size.Height) size.Height = bottom;
+      }
     }
     return pt;
   }
@@ -99,7 +107,7 @@ public class RectanglePacker
 
     for(int i=0; i<sizes.Length; i++)
     {
-      if(sizes[i].Width <= 0 || sizes[i].Height <= 0) throw new ArgumentOutOfRangeException();
+      if(sizes[i].Width < 0 || sizes[i].Height < 0) throw new ArgumentOutOfRangeException();
     }
   }
 
@@ -168,6 +176,7 @@ public class RectanglePacker
           }
           if(pt.HasValue || Child2 == null) return pt;
         }
+
         if(Child2 != null) // if we couldn't add it to the first child, try adding it to the second
         {
           Point? pt = Child2.TryAdd(width, height);
@@ -186,9 +195,9 @@ public class RectanglePacker
       }
       else // this node does not have a rectangle stored here yet, so store it here and subdivide this space
       {
-        // only add children that have a non-empty area
-        if(this.Width  != width) Child1 = new Node(this, X+width, Y, this.Width - width, height);
-        if(this.Height != height) Child2 = new Node(this, X, Y+height, this.Width, this.Height - height);
+        // only add children if they'd have a non-empty area
+        if(this.Width  != width) Child1 = new Node(this, X + width, Y, this.Width - width, height);
+        if(this.Height != height) Child2 = new Node(this, X, Y + height, this.Width, this.Height - height);
         RectangleStored = true;
         return new Point(X, Y);
       }
@@ -255,7 +264,7 @@ public static class TexturePacker
     for(int i=0; i<sizes.Length; i++)
     {
       Size size = sizes[i];
-      if(addBorder)
+      if(addBorder && size.Width != 0 && size.Height != 0)
       {
         size.Width  += 2;
         size.Height += 2;
@@ -309,7 +318,11 @@ public static class TexturePacker
       {
         Point? point = packer.TryAdd(sizes[i]);
         if(!point.HasValue) goto enlargePacker;
-        if(addBorder) point = new Point(point.Value.X+1, point.Value.Y+1);
+
+        if(addBorder && sizes[i].Width != 0 && sizes[i].Height != 0)
+        {
+          point = new Point(point.Value.X+1, point.Value.Y+1);
+        }
         points[indices[i]] = point.Value;
       }
       return points;
@@ -322,6 +335,7 @@ public static class TexturePacker
       }
       else
       {
+        // if we don't require a power of two, enlarge the image by 25% (unless it's small, in which case it's doubled)
         if(height < width) height += (height <= 32 ? height : height/4);
         else width += (width <= 32 ? width : width/4);
       }

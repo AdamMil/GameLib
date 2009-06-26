@@ -200,18 +200,18 @@ public enum Key : int
   NumLock         =SDL.Key.NumLock,
   CapsLock        =SDL.Key.CapsLock,
   ScrollLock      =SDL.Key.ScrollLock,
-  RShift          =SDL.Key.RShift,
-  LShift          =SDL.Key.LShift,
-  RCtrl           =SDL.Key.RCtrl,
-  LCtrl           =SDL.Key.LCtrl,
-  RAlt            =SDL.Key.RAlt,
-  LAlt            =SDL.Key.LAlt,
-  RMeta           =SDL.Key.RMeta,
-  LMeta           =SDL.Key.LMeta,
-  /// <summary>Left Windows key.</summary>
-  LSuper          =SDL.Key.LSuper, // left Windows key
+  RightShift      =SDL.Key.RShift,
+  LeftShift       =SDL.Key.LShift,
+  RightCtrl       =SDL.Key.RCtrl,
+  LeftCtrl        =SDL.Key.LCtrl,
+  RightAlt        =SDL.Key.RAlt,
+  LeftAlt         =SDL.Key.LAlt,
+  RightMeta       =SDL.Key.RMeta,
+  LeftMeta        =SDL.Key.LMeta,
   /// <summary>Right Windows key.</summary>
-  RSuper          =SDL.Key.RSuper, // right Windows key
+  RightSuper      =SDL.Key.RSuper, // right Windows key
+  /// <summary>Left Windows key.</summary>
+  LeftSuper       =SDL.Key.LSuper, // left Windows key
   /// <summary>"Alt Gr" key.</summary>
   Mode            =SDL.Key.Mode,
   /// <summary>Multi-key compose key.</summary>
@@ -242,29 +242,29 @@ public enum KeyMod
   /// <summary>No keyboard modifiers.</summary>
   None=0,
   /// <summary>Left shift key.</summary>
-  LShift=(int)SDL.KeyMod.LShift,
+  LeftShift=(int)SDL.KeyMod.LShift,
   /// <summary>Right shift key.</summary>
-  RShift=(int)SDL.KeyMod.RShift,
+  RightShift=(int)SDL.KeyMod.RShift,
   /// <summary>Left ctrl key.</summary>
-  LCtrl=(int)SDL.KeyMod.LCtrl,
+  LeftCtrl=(int)SDL.KeyMod.LCtrl,
   /// <summary>Right ctrl key.</summary>
-  RCtrl=(int)SDL.KeyMod.RCtrl,
+  RightCtrl=(int)SDL.KeyMod.RCtrl,
   /// <summary>Left alt key.</summary>
-  LAlt=(int)SDL.KeyMod.LAlt,
+  LeftAlt=(int)SDL.KeyMod.LAlt,
   /// <summary>Right alt key.</summary>
-  RAlt=(int)SDL.KeyMod.RAlt,
+  RightAlt=(int)SDL.KeyMod.RAlt,
   /// <summary>Left meta key.</summary>
-  LMeta=(int)SDL.KeyMod.LMeta,
+  LeftMeta=(int)SDL.KeyMod.LMeta,
   /// <summary>Right meta key.</summary>
-  RMeta=(int)SDL.KeyMod.RMeta,
+  RightMeta=(int)SDL.KeyMod.RMeta,
   /// <summary>A mask containing the left and right shift keys.</summary>
-  Shift=LShift|RShift,
+  Shift=LeftShift|RightShift,
   /// <summary>A mask containing the left and right ctrl keys.</summary>
-  Ctrl=LCtrl|RCtrl,
+  Ctrl=LeftCtrl|RightCtrl,
   /// <summary>A mask containing the left and right alt keys.</summary>
-  Alt=LAlt|RAlt,
+  Alt=LeftAlt|RightAlt,
   /// <summary>A mask containing the left and right meta keys.</summary>
-  Meta=LMeta|RMeta,
+  Meta=LeftMeta|RightMeta,
   /// <summary>Num lock status.</summary>
   NumLock=(int)SDL.KeyMod.NumLock,
   /// <summary>Caps lock status.</summary>
@@ -394,23 +394,23 @@ public struct KeyCombo
   { if(Char==0 && Key==Key.None) return string.Empty;
     string ret=string.Empty;
     if((KeyMods&KeyMod.Shift) != 0)
-    { if((KeyMods&KeyMod.LShift)==0) ret += 'R';
-      else if((KeyMods&KeyMod.RShift)==0) ret += 'L';
+    { if((KeyMods&KeyMod.LeftShift)==0) ret += 'R';
+      else if((KeyMods&KeyMod.RightShift)==0) ret += 'L';
       ret += "Shift-";
     }
     if((KeyMods&KeyMod.Ctrl) != 0)
-    { if((KeyMods&KeyMod.LCtrl)==0) ret += 'R';
-      else if((KeyMods&KeyMod.RCtrl)==0) ret += 'L';
+    { if((KeyMods&KeyMod.LeftCtrl)==0) ret += 'R';
+      else if((KeyMods&KeyMod.RightCtrl)==0) ret += 'L';
       ret += "Ctrl-";
     }
     if((KeyMods&KeyMod.Alt) != 0)
-    { if((KeyMods&KeyMod.LAlt)==0) ret += 'R';
-      else if((KeyMods&KeyMod.RAlt)==0) ret += 'L';
+    { if((KeyMods&KeyMod.LeftAlt)==0) ret += 'R';
+      else if((KeyMods&KeyMod.RightAlt)==0) ret += 'L';
       ret += "Alt-";
     }
     if((KeyMods&KeyMod.Meta) != 0)
-    { if((KeyMods&KeyMod.LMeta)==0) ret += 'R';
-      else if((KeyMods&KeyMod.RMeta)==0) ret += 'L';
+    { if((KeyMods&KeyMod.LeftMeta)==0) ret += 'R';
+      else if((KeyMods&KeyMod.RightMeta)==0) ret += 'L';
       ret += "Meta-";
     }
     return ret += Char==0 ? Key.ToString() : Char.ToString();
@@ -501,9 +501,9 @@ public static class Keyboard
   /// otherwise.
   /// </returns>
   public static bool IsModKey(Key key)
-  { return key==Key.LShift || key==Key.LCtrl || key==Key.LAlt   ||
-           key==Key.RShift || key==Key.RCtrl || key==Key.RAlt   ||
-           key==Key.LMeta  || key==Key.RMeta || key==Key.LSuper || key==Key.RSuper;
+  { return key==Key.LeftShift || key==Key.LeftCtrl || key==Key.LeftAlt   ||
+           key==Key.RightShift || key==Key.RightCtrl || key==Key.RightAlt   ||
+           key==Key.LeftMeta  || key==Key.RightMeta || key==Key.LeftSuper || key==Key.RightSuper;
   }
   /// <summary>Returns true if any of the given modifiers are in effect.</summary>
   /// <param name="mod">A set of <see cref="KeyMod"/> modifiers, ORed together.</param>

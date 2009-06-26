@@ -24,7 +24,6 @@ using GameLib.Interop;
 using GameLib.Interop.SDL;
 using GameLib.Interop.GLMixer;
 using GameLib.Interop.SndFile;
-using GameLib.Interop.OggVorbis;
 
 // FIXME: find out why vorbis is unstable
 
@@ -712,183 +711,6 @@ public class SampleSource : AudioSource
   protected byte[] data;
 }
 #endregion
-
-#region VorbisSource
-public class VorbisSource : AudioSource
-{
-  public VorbisSource(string filename)
-    : this(new FileStream(filename, FileMode.Open, FileAccess.Read, FileShare.Read), true) { }
-  public VorbisSource(Stream stream) : this(stream, true) { }
-
-  public unsafe VorbisSource(Stream stream, bool autoClose)
-  {
-    calls = new VorbisCallbacks(stream, autoClose);
-    unsafe
-    {
-      fixed(Ogg.VorbisFile** fp=&file) Ogg.Check(Ogg.Open(fp, calls.calls));
-      Init(new AudioFormat(file->Info->Rate, Audio.Initialized ? Audio.Format.Format : SampleFormat.S16Sys,
-                           (byte)file->Info->Channels));
-    }
-  }
-
-  public VorbisSource(Stream stream, bool autoClose, AudioFormat format)
-  {
-    calls = new VorbisCallbacks(stream, autoClose);
-    unsafe { fixed(Ogg.VorbisFile** fp=&file) Ogg.Check(Ogg.Open(fp, calls.calls)); }
-    Init(format);
-  }
-
-  ~VorbisSource() { Dispose(true); }
-
-  public unsafe override bool CanRewind { get { return file->Seekable!=0; } }
-  public unsafe override bool CanSeek { get { return file->Seekable!=0; } }
-
-  public unsafe override int Position
-  {
-    get { return curPos; }
-    set
-    {
-      if(value==curPos) return;
-      if(!CanSeek) Ogg.Check((int)Ogg.OggError.NoSeek);
-      lock(this)
-      {
-        if(links==null) Ogg.Check(Ogg.PcmSeek(file, value));
-        else
-        {
-          int i, pos=value, pbase=0;
-          for(i=0; i<links.Length && links[i].CvtLen<=pos; i++)
-          {
-            pos   -= links[i].CvtLen;
-            pbase += links[i].RealLen;
-          }
-          if(i==links.Length)
-          {
-            Ogg.Check(Ogg.PcmSeek(file, pbase));
-            value = Length;
-            curLink = 0;
-          }
-          else
-          {
-            Ogg.Check(Ogg.PcmSeek(file, pbase+(int)((long)pos*links[i].CVT.lenDiv/links[i].CVT.lenMul)));
-            curLink = i;
-          }
-        }
-        curPos = value;
-      }
-    }
-  }
-
-  public unsafe override int ReadBytes(byte[] buf, int index, int length)
-  {
-    BytesToFrames(length);
-    fixed(byte* dest = buf)
-    {
-      Ogg.VorbisInfo* info;
-      int read, toRead, total=0, section, be=(format.Format&SampleFormat.BigEndian)==0 ? 0 : 1;
-      int signed = (format.Format&SampleFormat.Signed)==0 ? 0 : 1;
-      do
-      {
-        info = file->Info+curLink; // TODO: test with nonseekable streams! (this may be illegal!!)
-        if(info->Rate!=format.Frequency || info->Channels!=format.Channels)
-        {
-          Link link = links[curLink];
-          int len = Math.Min(length, 16384);
-          toRead = (int)((long)len*link.CVT.lenDiv/link.CVT.lenMul);
-          len = Math.Max(toRead, len);
-          if(cvtBuf==null || cvtBuf.Length<len) cvtBuf = new byte[len];
-          fixed(byte* cvtbuf = cvtBuf)
-          {
-            read = Ogg.Read(file, cvtbuf, toRead, be, format.SampleSize, signed, out section);
-            Ogg.Check(read);
-            if(read==0) break;
-            link.CVT.buf = cvtbuf;
-            link.CVT.len = read;
-            link.CVT.CalcLenCvt();
-            GLMixer.Check(GLMixer.Convert(ref link.CVT));
-            read=link.CVT.lenCvt;
-            GameLib.Interop.Unsafe.Copy(cvtbuf, dest+index, read);
-          }
-        }
-        else
-        {
-          read = Ogg.Read(file, dest+index, length, be, format.SampleSize, signed, out section);
-          Ogg.Check(read);
-          if(read==0) break;
-        }
-
-        curLink = section;
-        total += read; index += read; length -= read;
-      } while(length>0);
-      curPos += total/format.FrameSize;
-      return total;
-    }
-  }
-
-  [CLSCompliant(false)]
-  protected class Link
-  {
-    public Link(AudioFormat format, GLMixer.AudioConversion cvt, int realLen, int cvtLen)
-    {
-      Format=format; CVT=cvt; RealLen=realLen; CvtLen=cvtLen;
-    }
-    public AudioFormat Format;
-    public GLMixer.AudioConversion CVT;
-    public int RealLen, CvtLen;
-  }
-
-  protected override void Dispose(bool finalizing)
-  {
-    if(open)
-    {
-      lock(this)
-      {
-        unsafe { Ogg.Close(file); file=null; }
-        calls.Dispose();
-        calls  = null;
-        cvtBuf = null;
-        open   = false;
-      }
-    }
-    base.Dispose(finalizing);
-  }
-
-  unsafe void Init(AudioFormat format)
-  {
-    if(CanSeek) // TODO: do more testing with nonseekable streams
-    {
-      Length = 0;
-      links  = new Link[file->NumLinks];
-      GLMixer.AudioConversion cvt;
-      AudioFormat sf;
-      int len;
-      bool grr = false;
-      for(int i=0; i<file->NumLinks; i++)
-        unsafe
-        {
-          Ogg.VorbisInfo* info = file->Info+i;
-          sf  = new AudioFormat(info->Rate, format.Format, (byte)info->Channels);
-          if(!sf.Equals(format)) grr=true;
-          cvt = Audio.SetupConversion(sf, format);
-          len = Ogg.PcmLength(file, i);
-          Ogg.Check(len);
-          links[i] = new Link(sf, cvt, len, (int)((long)len*cvt.lenMul/cvt.lenDiv));
-          Length += links[i].CvtLen;
-        }
-      if(!grr) links = null; // yay, it's all in the right format
-    }
-    this.format = format;
-    open = true;
-  }
-
-  unsafe Ogg.VorbisFile* file;
-  VorbisCallbacks calls;
-  protected byte[] cvtBuf;
-  protected int curLink;
-  [CLSCompliant(false)]
-  protected Link[] links;
-  protected bool open;
-}
-#endregion
 #endregion
 
 #region Audio filters
@@ -1005,7 +827,7 @@ public class AudioFilter
 
     Audio.Deinterlace(buffer, channels, frames, format);
     Filter(channel, channels, frames, format);
-    Unsafe.Fill(buffer, 0, frames*sizeof(int));
+    Unsafe.Clear(buffer, frames*sizeof(int));
     Audio.Interlace(buffer, channels, frames, format);
   }
 
@@ -1488,7 +1310,7 @@ public sealed class Channel
         else
         {
           int* buffer = stackalloc int[samples];
-          GameLib.Interop.Unsafe.Fill(buffer, 0, samples*sizeof(int));
+          GameLib.Interop.Unsafe.Clear(buffer, samples*sizeof(int));
           fixed(byte* src = convBuf)
             GLMixer.Check(GLMixer.ConvertMix(buffer, src, (uint)samples,
                                              (ushort)Audio.Format.Format, Audio.Format.Channels,
@@ -1515,7 +1337,7 @@ public sealed class Channel
           else
           {
             int* buffer = stackalloc int[toRead];
-            GameLib.Interop.Unsafe.Fill(buffer, 0, toRead*sizeof(int));
+            GameLib.Interop.Unsafe.Clear(buffer, toRead*sizeof(int));
             read    = source.ReadFrames(buffer, toRead, -1, -1);
             samples = read*Audio.Format.Channels;
             if(read>0)

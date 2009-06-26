@@ -37,7 +37,7 @@ namespace AudioTest
       Audio.ReservedChannels = 1; // reserve the first channel for the music
 
       // by default, audio sources are streamed from the disk, even wav/au/etc
-      VorbisSource ogg = new VorbisSource(dataPath+"music.ogg");
+      SoundFileSource ogg = new SoundFileSource(dataPath+"music.ogg");
       // but a SampleSource converts any other audio source into a sample,
       // which means it's loaded completely into memory
       SampleSource smp = new SampleSource(new SoundFileSource(dataPath+"woot.wav"));

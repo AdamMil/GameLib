@@ -259,7 +259,7 @@ public class Label : LabelBase
       Image.Blit(e.Surface, at.X, at.Y);
     }
     if(Text.Length>0)
-    { GameLib.Fonts.Font f = Font;
+    { GameLib.Fonts.SurfaceFont f = Font;
       if(f != null)
       { f.Color     = Enabled ? ForeColor : SystemColors.GrayText;
         f.BackColor = BackColor;
@@ -368,7 +368,7 @@ public class Button : ButtonBase
       Image.Blit(e.Surface, at.X, at.Y);
     }
     if(Text.Length>0)
-    { GameLib.Fonts.Font f = Font;
+    { SurfaceFont f = Font;
       if(f!=null)
       { if(pressed) rect.Offset(1, 1);
         f.Color     = Enabled ? ForeColor : SystemColors.GrayText;
@@ -455,7 +455,7 @@ public class CheckBox : CheckBoxBase
                              UIHelpers.AlignedMiddle(TextAlign) ? ContentAlignment.MiddleLeft :
                              ContentAlignment.BottomLeft;
 
-    GameLib.Fonts.Font font = Font;
+    SurfaceFont font = Font;
     if(font!=null)
     { font.BackColor = BackColor;
       font.Color = Enabled ? ForeColor : SystemColors.GrayText;
@@ -1205,7 +1205,7 @@ public class TextBox : TextBoxBase
   protected internal override void OnPaintBackground(PaintEventArgs e)
   { base.OnPaintBackground(e);
 
-    GameLib.Fonts.Font font = Font;
+    SurfaceFont font = Font;
     Rectangle rect = ContentDrawRect;
     if(font!=null && Text.Length>0)
     { int caret = CaretPosition;
@@ -1232,7 +1232,7 @@ public class TextBox : TextBoxBase
   protected internal override void OnPaint(PaintEventArgs e)
   { base.OnPaint(e);
 
-    GameLib.Fonts.Font font = Font;
+    SurfaceFont font = Font;
     if(font!=null)
     { Rectangle rect = ContentDrawRect;
       Point location = rect.Location;
@@ -1302,7 +1302,7 @@ public class TextBox : TextBoxBase
   { if(BackingSurface!=null) Invalidate(ContentRect); // TODO: optimize this!
     else
     { DesktopControl desktop = Desktop;
-      GameLib.Fonts.Font font = Font;
+      SurfaceFont font = Font;
       if(desktop!=null && desktop.Surface!=null && font!=null)
       { Rectangle rect = ContentDrawRect;
         rect.Y += 2; rect.Height -= 4; rect.Width = 1;
@@ -1319,7 +1319,7 @@ public class TextBox : TextBoxBase
     if(x<rect.X) return start;
     else if(x>rect.Width) return end;
     else
-    { GameLib.Fonts.Font font = Font;
+    { SurfaceFont font = Font;
       return font==null ? 0 : start + font.HowManyFit(Text.Substring(start, end-start), x-rect.X);
     }
   }
@@ -2323,7 +2323,7 @@ public class ListBox : ListBoxBase
     else { back=BackColor; fore=ForeColor; }
     if(!Enabled) fore = SystemColors.GrayText;
 
-    GameLib.Fonts.Font font = Font;
+    SurfaceFont font = Font;
     if(font!=null)
     { font.Color     = fore;
       font.BackColor = back;
@@ -2333,7 +2333,7 @@ public class ListBox : ListBoxBase
   }
 
   protected override Size MeasureItem(int index)
-  { GameLib.Fonts.Font font = Font;
+  { SurfaceFont font = Font;
     return font==null ? new Size(Width, 14) : font.CalculateSize(GetItemText(index)); // guess 14 for font size
   }
 }
@@ -2457,7 +2457,7 @@ public abstract class ComboBoxBase : ListControl
 
   protected override void OnFontChanged(ValueChangedEventArgs e)
   { base.OnFontChanged(e);
-    GameLib.Fonts.Font font = Font;
+    SurfaceFont font = Font;
     if(font==null) return;
     int height = font.LineSkip + TextBox.ContentOffset.Vertical;
     if(TextBox.Height!=height)
@@ -2931,7 +2931,7 @@ public abstract class MenuBarBase : Control
   protected MenuButton[] Buttons { get { return buttons; } }
 
   protected internal void Relayout()
-  { GameLib.Fonts.Font font = Font;
+  { SurfaceFont font = Font;
     if(font==null) { buttons = new MenuButton[0]; return; }
 
     buttons = new MenuButton[menus.Count];
@@ -3014,7 +3014,7 @@ public class MenuItem : MenuItemBase
   protected internal override void OnPaint(PaintEventArgs e)
   { base.OnPaint(e);
     if(Text.Length>0)
-    { GameLib.Fonts.Font f = Font;
+    { SurfaceFont f = Font;
       if(f != null)
       { Rectangle rect = ContentDrawRect;
         if(Enabled)
@@ -3030,7 +3030,7 @@ public class MenuItem : MenuItemBase
   }
 
   public override Size MeasureItem()
-  { GameLib.Fonts.Font f = Font;
+  { SurfaceFont f = Font;
     if(f==null) return base.MeasureItem();
     Size size = f.CalculateSize(Text);
     if(GlobalHotKey.Valid)
@@ -3112,7 +3112,7 @@ public class MenuBar : MenuBarBase
 
   protected internal override void OnPaint(PaintEventArgs e)
   { base.OnPaint(e);
-    GameLib.Fonts.Font font = Font;
+    SurfaceFont font = Font;
     if(font==null) return;
 
     font.BackColor = BackColor;
@@ -3387,7 +3387,7 @@ public class Form : FormBase
   #region OurTitleBar
   class OurTitleBar : TitleBarBase
   { public OurTitleBar(FormBase parent) : base(parent)
-    { GameLib.Fonts.Font font = parent.Font;
+    { SurfaceFont font = parent.Font;
       Height = parent.Font==null ? 24 : font.LineSkip*4/3;
       CloseBox = true;
     }
@@ -3412,7 +3412,7 @@ public class Form : FormBase
 
     protected internal override void OnPaint(PaintEventArgs e)
     { base.OnPaint(e);
-      GameLib.Fonts.Font font = Font;
+      SurfaceFont font = Font;
       if(font!=null)
       { Rectangle rect = DrawRect;
         rect.X += (font.LineSkip+3)/6;
@@ -3436,7 +3436,7 @@ public class Form : FormBase
     void UpdateSize()
     { if(!Visible) Height=0;
       else
-      { GameLib.Fonts.Font font = Font;
+      { SurfaceFont font = Font;
         if(font!=null) Height = font.LineSkip*4/3;
       }
     }
@@ -3525,7 +3525,7 @@ public sealed class MessageBox : Form
   public int Show(DesktopControl desktop)
   { Parent = desktop;
     if(!init)
-    { GameLib.Fonts.Font font = Font;
+    { SurfaceFont font = Font;
       if(font!=null)
       { int sidePadding = font.LineSkip*2;
 

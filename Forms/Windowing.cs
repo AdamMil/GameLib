@@ -28,6 +28,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Drawing;
 using GameLib.Events;
+using GameLib.Fonts;
 using GameLib.Video;
 
 namespace GameLib.Forms
@@ -946,7 +947,7 @@ public class Control
   /// take inheritance into account and return the effective font for this control. Since the font is likely
   /// shared with other controls, you should set the font's properties (such as the color) before using it.
   /// </remarks>
-  public GameLib.Fonts.Font Font
+  public SurfaceFont Font
   { get
     { Control c = this;
       while(c!=null) { if(c.font!=null) return c.font; c=c.parent; }
@@ -954,7 +955,7 @@ public class Control
     }
     set
     { if(value!=font)
-      { GameLib.Fonts.Font old = Font;
+      { SurfaceFont old = Font;
         font = value;
         if(Font!=old) OnFontChanged(new ValueChangedEventArgs(old));
       }
@@ -1135,7 +1136,7 @@ public class Control
   /// <remarks>Generally, the <see cref="Font"/> property should be used to get the font, but if you want
   /// to get it without taking inheritance into account, use this one.
   /// </remarks>
-  public GameLib.Fonts.Font RawFont { get { return font; } }
+  public SurfaceFont RawFont { get { return font; } }
 
   /// <summary>Gets this control's raw foreground color.</summary>
   /// <remarks>Generally, the <see cref="ForeColor"/> property should be used to get the foreground color,
@@ -2026,7 +2027,7 @@ public class Control
       }
       if(enabled && !oldPar.Enabled) OnEnabledChanged(new ValueChangedEventArgs(false));
       if(font==null)
-      { GameLib.Fonts.Font old = oldPar.Font;
+      { SurfaceFont old = oldPar.Font;
         if(old!=font) OnFontChanged(new ValueChangedEventArgs(old));
       }
       if(fore==Color.Transparent)
@@ -2562,7 +2563,7 @@ public class Control
 
   ControlCollection controls;
   Control parent, focused;
-  GameLib.Fonts.Font font;
+  SurfaceFont font;
   Color back=Color.Transparent, fore=Color.Transparent, borderColor=Color.Transparent;
   Surface backImage, cursor;
   string name=string.Empty, text=string.Empty;
