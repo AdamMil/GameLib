@@ -241,12 +241,12 @@ public static class OpenGL
         if(pf.RedMask==0xFF000000 && pf.GreenMask==0xFF0000 && pf.BlueMask==0xFF00 && pf.AlphaMask==0xFF)
           format = GL.GL_RGBA;
         else if(pf.RedMask==0xFF00 && pf.GreenMask==0xFF0000 && pf.BlueMask==0xFF000000 && pf.AlphaMask==0xFF)
-          format = hasBGR ? GL.GL_BGR_EXT : 0;
+          format = hasBGR ? GL.GL_BGRA_EXT : 0;
         #else
         if(pf.RedMask==0xFF && pf.GreenMask==0xFF00 && pf.BlueMask==0xFF0000 && pf.AlphaMask==0xFF000000)
           format = GL.GL_RGBA;
         else if(pf.RedMask==0xFF0000 && pf.GreenMask==0xFF00 && pf.BlueMask==0xFF && pf.AlphaMask==0xFF000000)
-          format = hasBGR ? GL.GL_BGR_EXT : 0;
+          format = hasBGR ? GL.GL_BGRA_EXT : 0;
         #endif
       }
       if(format!=0)
@@ -500,11 +500,11 @@ public class GLTexture2D : IDisposable
   public bool Load(int internalFormat, int level, int border, Surface surface)
   { Unload();
 
-    int tex=0, old;
+    int tex;
     GL.glGenTexture(out tex);
-    if(tex==0) throw new NoMoreTexturesException();
+    if(tex == 0) throw new NoMoreTexturesException();
 
-    GL.glGetIntegerv(GL.GL_TEXTURE_BINDING_2D, out old);
+    int old = GL.glGetIntegerv(GL.GL_TEXTURE_BINDING_2D);
     GL.glBindTexture(GL.GL_TEXTURE_2D, tex);
     try
     { if(!OpenGL.TexImage2D(internalFormat, level, border, surface, out size))
@@ -520,8 +520,11 @@ public class GLTexture2D : IDisposable
   /// <summary>Unloads the texture from video memory.</summary>
   /// <remarks>If no texture is loaded, this method will do nothing.</remarks>
   public void Unload()
-  { if(texture!=0)
-    { GL.glDeleteTexture(texture);
+  { 
+    if(texture != 0)
+    {
+      if(GL.glGetIntegerv(GL.GL_TEXTURE_BINDING_2D) == texture) GL.glBindTexture(GL.GL_TEXTURE_2D, 0);
+      GL.glDeleteTexture(texture);
       texture = 0;
     }
   }

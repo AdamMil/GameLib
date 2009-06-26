@@ -1862,11 +1862,11 @@ public static class GL
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void interleavedArrays(int format, int stride, /*const*/ void* pointer);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern byte glIsEnabled(int cap);
+  public static extern bool glIsEnabled(int cap);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern byte glIsList(int list);
+  public static extern bool glIsList(int list);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
-  public static extern byte glIsTexture(int texture);
+  public static extern bool glIsTexture(int texture);
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glLightModelf(int pname, float param);
   [CLSCompliant(false)]

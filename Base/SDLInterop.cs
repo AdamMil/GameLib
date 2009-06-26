@@ -148,7 +148,10 @@ internal static class SDL
   }
   [StructLayout(LayoutKind.Explicit, Size=4)]
   public struct Color
-  { public Color(System.Drawing.Color c) { Value=0; Red=c.R; Green=c.G; Blue=c.B; Alpha=c.A; }
+  { 
+    public Color(System.Drawing.Color c) { Value=0; Red=c.R; Green=c.G; Blue=c.B; Alpha=c.A; }
+    public Color(byte red, byte green, byte blue) { Value=0; Red=red; Green=green; Blue=blue; Alpha=255; }
+    public Color(byte red, byte green, byte blue, byte alpha) { Value=0; Red=red; Green=green; Blue=blue; Alpha=alpha; }
     public override string ToString() { return string.Format("{0},{1},{2},{3}",Red,Green,Blue,Alpha); }
     [FieldOffset(0)] public byte Red;
     [FieldOffset(1)] public byte Green;

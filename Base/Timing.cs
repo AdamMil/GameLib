@@ -17,7 +17,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 using System;
-using GLU=GameLib.Interop.GLUtility;
 
 namespace GameLib
 {
@@ -31,39 +30,49 @@ namespace GameLib
 /// </remarks>
 public static class Timing
 {
-  static Timing() // FIXME: Utility never deinitialized
-  { GLU.Utility.Check(GLU.Utility.Init());
-    timerFreq = GLU.Utility.GetTimerFrequency();
+  static Timing()
+  {
+    timer = new System.Diagnostics.Stopwatch();
+    timer.Start();
   }
 
   /// <summary>Gets the frequency of the counter, in ticks per second.</summary>
   /// <remarks>This property represents how many ticks are added to <see cref="Counter"/> in one second.</remarks>
-  public static long Frequency { get { return timerFreq; } }
+  public static long Frequency { get { return System.Diagnostics.Stopwatch.Frequency; } }
+
   /// <summary>Gets the current counter value, in ticks.</summary>
   /// <remarks><see cref="Frequency"/> ticks will be added to the counter each second.</remarks>
-  public static long Counter { get { return GLU.Utility.GetTimerCounter(); } }
+  public static long Counter { get { return timer.ElapsedTicks; } }
 
   /// <summary>Gets the number of milliseconds that have elapsed since the timer started counting.</summary>
   /// <remarks>This property will overflow after about 49 days of timing, though <see cref="Reset"/> can be
   /// used to reset the base time point, extending the time until overflow.
   /// </remarks>
   [CLSCompliant(false)]
-  public static uint Msecs { get { return GLU.Utility.GetMilliseconds(); } }
+  public static uint Msecs { get { return (uint)timer.ElapsedMilliseconds; } }
+
+  /// <summary>Gets the number of milliseconds that have elapsed since the timer started counting.</summary>
+  public static long LongMsecs { get { return timer.ElapsedMilliseconds; } }
+
   /// <summary>Gets the number of seconds that have elapsed since the timer started counting.</summary>
   /// <remarks>While likely insignificant, this property will lose precision as time goes on due to the nature of
   /// floating point numbers. In applications where this cannot be tolerated, <see cref="Reset"/> can be used to
   /// reset the timer to zero, restoring the precision. Alternately, you might be able to use <see cref="Counter"/>
   /// for your timing, as it always provides the maximum precision possible.
   /// </remarks>
-  public static double Seconds { get { return GLU.Utility.GetSeconds(); } }
+  public static double Seconds { get { return (double)timer.ElapsedTicks / Frequency; } }
 
   /// <summary>Resets the timer to zero.</summary>
   /// <remarks>After calling this method, the timer will be reset to zero, so <see cref="Counter"/>,
   /// <see cref="Msecs"/>, and <see cref="Seconds"/> will all start over from zero.
   /// </remarks>
-  public static void Reset() { GLU.Utility.ResetTimer(); }
+  public static void Reset()
+  {
+    timer.Reset();
+    timer.Start();
+  }
 
-  static long timerFreq;
+  static readonly System.Diagnostics.Stopwatch timer;
 }
 
 } // namespace GameLib

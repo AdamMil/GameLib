@@ -106,17 +106,15 @@ public sealed class PixelFormat
   /// </summary>
   public PixelFormat() { }
 
-  /// <summary>This constructor initializes the PixelFormat class with default values for the given bit depth.
-  /// </summary>
+  /// <summary>This constructor initializes the PixelFormat class with default values for the given bit depth.</summary>
   /// <param name="depth">The color depth of the surface in bits per pixel.</param>
   /// <remarks>Calling this is equivalent to calling <see cref="PixelFormat(int, bool)"/> and passing false,
   /// creating a surface without an alpha channel. See <see cref="GenerateDefaultMasks(bool)"/> for more
   /// information on how the pixel format will be initialized.
   /// </remarks>
-  public PixelFormat(int depth) : this(depth, false) { }
+  public PixelFormat(int depth) : this(depth, false, true) { }
 
-  /// <summary>This constructor initializes the PixelFormat class with default values for the given bit depth.
-  /// </summary>
+  /// <summary>This constructor initializes the PixelFormat class with default values for the given bit depth.</summary>
   /// <param name="depth">The color depth of the surface in bits per pixel.</param>
   /// <param name="withAlpha">If true, an alpha channel will be specified. Currently this only has an effect
   /// when <paramref name="depth"/> is 32.
@@ -124,7 +122,25 @@ public sealed class PixelFormat
   /// <remarks>See <see cref="GenerateDefaultMasks(bool)"/> for more information on how the pixel format will be
   /// initialized.
   /// </remarks>
-  public PixelFormat(int depth, bool withAlpha) { Depth=depth; GenerateDefaultMasks(withAlpha); }
+  public PixelFormat(int depth, bool withAlpha) : this(depth, withAlpha, true) { }
+
+  /// <summary>This constructor initializes the PixelFormat class with default values for the given bit depth.</summary>
+  /// <param name="depth">The color depth of the surface in bits per pixel.</param>
+  /// <param name="withAlpha">If true and <paramref name="depth"/> equals 32, an alpha channel will be specified.</param>
+  /// <param name="queryVideoInfo">If true, the method will query the video information to see what the hardware is
+  /// using. This is not always reliable. For instance, if the hardware is currently using a 16 bit video mode, it
+  /// won't be of any help in constructing masks for a 24 or 32 bit mode. Also, passing true means that the
+  /// pixel format my change depending on the video hardware or video mode.
+  /// </param>
+  /// <remarks>See <see cref="GenerateDefaultMasks(bool,bool)"/> for more information on how the pixel format will be
+  /// initialized.
+  /// </remarks>
+  public PixelFormat(int depth, bool withAlpha, bool queryVideoInfo)
+  {
+    Depth = depth; 
+    GenerateDefaultMasks(withAlpha, queryVideoInfo);
+  }
+
   internal unsafe PixelFormat(SDL.PixelFormat* pf) { format = *pf; }
 
   /// <summary>Gets or sets the color depth of the pixel format in bits per pixel.</summary>
@@ -170,33 +186,64 @@ public sealed class PixelFormat
   }
 
   public override int GetHashCode()
-  { return (int)(RedMask ^ GreenMask ^ BlueMask ^ AlphaMask) ^ Depth;
+  {
+    return Depth ^ (int)GreenMask;
+  }
+
+  /// <summary>Generates default channel masks for the current bit depth, without an alpha channel and querying the
+  /// video hardware to get the best masks.
+  /// </summary>
+  public void GenerateDefaultMasks() 
+  {
+    GenerateDefaultMasks(false, true); 
+  }
+
+  /// <summary>Generates default channel masks for the current bit depth, querying the
+  /// video hardware to get the best masks.
+  /// </summary>
+  public void GenerateDefaultMasks(bool withAlpha)
+  {
+    GenerateDefaultMasks(withAlpha, true);
   }
 
   /// <summary>Generates default channel masks for the current bit depth.</summary>
-  /// <remarks>Calling this is equivalent to calling <see cref="GenerateDefaultMasks(bool)"/> and passing false.
-  /// </remarks>
-  public void GenerateDefaultMasks() { GenerateDefaultMasks(false); }
-
-  /// <summary>Generates default channel masks for the current bit depth.</summary>
-  /// <param name="withAlpha">If true, an alpha channel will be created. Currently this only has an effect
-  /// when <see cref="Depth"/> is 32.
+  /// <param name="withAlpha">If true and <see cref="Depth"/> equals 32, an alpha channel will be created.</param>
+  /// <param name="queryVideoInfo">If true, the method will query the video information to see what the hardware is
+  /// using. This is not always reliable. For instance, if the hardware is currently using a 16 bit video mode, it
+  /// won't be of any help in constructing masks for a 24 or 32 bit mode. Also, passing true means that the
+  /// pixel format my change depending on the video hardware or video mode.
   /// </param>
-  /// <remarks>Currently this function doesn't attempt to query the video card to determine the most efficient
-  /// defaults for the channel masks. It simply makes BRGA masks for little endian machines and ARGB masks for
-  /// big endian machines. This behavior will be changed in the future.
-  /// </remarks>
-  // FIXNOW: this makes BGRA by default. (it's what my card uses...)
-  // is this what we want? perhaps the default should be based upon the current/available video modes?
-  public void GenerateDefaultMasks(bool withAlpha)
-  { switch(Depth) // TODO: make big-endian compatible (?)
-    { case 16: RedMask=0x0000F800; GreenMask=0x000007E0; BlueMask=0x0000001F; AlphaMask=0; break;
-      case 24: RedMask=0x00FF0000; GreenMask=0x0000FF00; BlueMask=0x000000FF; AlphaMask=0; break;
-      case 32:
-        RedMask=0x00FF0000; GreenMask=0x0000FF00; BlueMask=0x000000FF;
-        AlphaMask=withAlpha ? 0xFF000000 : 0;
+  public void GenerateDefaultMasks(bool withAlpha, bool queryVideoInfo)
+  {
+    switch(Depth) // TODO: make big-endian compatible (?)
+    { 
+      case 16:
+        RedMask   = 0xF800;
+        GreenMask = 0x07E0;
+        BlueMask  = 0x001F;
+        AlphaMask = 0;
         break;
-      default: RedMask=GreenMask=BlueMask=AlphaMask=0; break;
+
+      case 24: case 32:
+        if(queryVideoInfo && Video.Info.Format.Depth >= 24)
+        {
+          RedMask   = Video.Info.Format.RedMask;
+          GreenMask = Video.Info.Format.GreenMask;
+          BlueMask  = Video.Info.Format.BlueMask;
+          AlphaMask = Depth == 24 || !withAlpha     ? 0 :
+                      Video.Info.Format.Depth == 32 ? Video.Info.Format.AlphaMask :
+                      RedMask == 0xFF || BlueMask == 0xFF ? (uint)0xFF000000 : 0xFF;
+        }
+        else
+        {
+          RedMask   = 0x000000FF;
+          GreenMask = 0x0000FF00;
+          BlueMask  = 0x00FF0000;
+          AlphaMask = Depth == 24 || !withAlpha ? 0 : 0xFF000000;
+        }
+        break;
+      
+      default: RedMask = GreenMask = BlueMask = AlphaMask = 0; break;
     }
   }
 
@@ -356,7 +403,14 @@ public static class Video
   /// <summary>Returns information about the video hardware.</summary>
   /// <value>A <see cref="VideoInfo"/> object describing the hardware capabilities.</value>
   /// <exception cref="InvalidOperationException">Thrown if the video subsystem has not been initialized.</exception>
-  public static VideoInfo Info { get { AssertInit(); return info; } }
+  public static VideoInfo Info
+  {
+    get 
+    {
+      AssertInit();
+      return info; 
+    }
+  }
 
   /// <summary>Returns the primary display surface.</summary>
   /// <value>A <see cref="Surface"/> representing the primary display surface.</value>

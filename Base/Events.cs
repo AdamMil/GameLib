@@ -937,9 +937,10 @@ public static class Events
   /// <para>
   /// If <see cref="EventProcedure">EventProcedures</see> have been registered, they will be called to process events.
   /// Otherwise, the default event processing will occur, which ignores all messages except quit messages, which set
-  /// the <see cref="QuitFlag"/> to true. If the <see cref="QuitFlag"/> is true, this method will return immediately
-  /// without doing anything. Otherwise, this method will wait until an event arrives, calling the <see
-  /// cref="IdleProcedure"/> methods, if any, until all return false as long as no events are waiting in the queue.
+  /// the <see cref="QuitFlag"/> to true. If <paramref name="waitForEvent"/> and the <see cref="QuitFlag"/> are true,
+  /// this method will return immediately without doing anything. Otherwise, if <paramref name="waitForEvent"/> is
+  /// true, this method will wait until an event arrives, calling the <see cref="IdleProcedure"/> methods, if any,
+  /// until all return false as long as no events are waiting in the queue.
   /// After an event arrives, it is processed with the registered <see cref="EventProcedure"/> methods or the default
   /// behavior described above. If any event procedure returns false, the <see cref="QuitFlag"/> is set to true and
   /// execution of further event procedures is not done.
@@ -948,7 +949,7 @@ public static class Events
   /// </remarks>
   public static bool PumpEvent(bool waitForEvent)
   { 
-    if(QuitFlag) return false;
+    if(waitForEvent && QuitFlag) return false;
 
     Event e = NextEvent(0);
     if(e == null)
@@ -1034,15 +1035,17 @@ public static class Events
   /// <exception cref="InvalidOperationException">Thrown if no event procedure has been registered.</exception>
   public static void PumpEvents(EventProcedure proc, IdleProcedure idle)
   {
-    if(eventProcs.Count == 0 && proc == null) throw new InvalidOperationException();
-
-    if(proc != null) PrependEventHandler(proc);
-    if(idle != null) PrependIdleProcedure(idle);
-
-    while(PumpEvent(true)) { }
-
-    if(idle != null) RemoveIdleProcedure(idle);
-    if(proc != null) RemoveEventHandler(proc);
+    try
+    {
+      if(proc != null) PrependEventHandler(proc);
+      if(idle != null) PrependIdleProcedure(idle);
+      while(PumpEvent(true)) { }
+    }
+    finally
+    {
+      if(idle != null) RemoveIdleProcedure(idle);
+      if(proc != null) RemoveEventHandler(proc);
+    }
   }
 
   /// <summary>Retrieves the next SDL event that passes the event filters if there's one waiting, or null if there is
@@ -1113,28 +1116,28 @@ public static class Events
         {
           switch(e.Key) // SDL's mod handling is quirky, so i'll do it myself
           { 
-            case Key.LShift: mods |= KeyMod.LShift; break;
-            case Key.RShift: mods |= KeyMod.RShift; break;
-            case Key.LCtrl:  mods |= KeyMod.LCtrl;  break;
-            case Key.RCtrl:  mods |= KeyMod.RCtrl;  break;
-            case Key.LAlt:   mods |= KeyMod.LAlt;   break;
-            case Key.RAlt:   mods |= KeyMod.RAlt;   break;
-            case Key.LMeta:  mods |= KeyMod.LMeta;  break;
-            case Key.RMeta:  mods |= KeyMod.RMeta;  break;
+            case Key.LeftShift: mods |= KeyMod.LeftShift; break;
+            case Key.RightShift: mods |= KeyMod.RightShift; break;
+            case Key.LeftCtrl:  mods |= KeyMod.LeftCtrl;  break;
+            case Key.RightCtrl:  mods |= KeyMod.RightCtrl;  break;
+            case Key.LeftAlt:   mods |= KeyMod.LeftAlt;   break;
+            case Key.RightAlt:   mods |= KeyMod.RightAlt;   break;
+            case Key.LeftMeta:  mods |= KeyMod.LeftMeta;  break;
+            case Key.RightMeta:  mods |= KeyMod.RightMeta;  break;
           }
         }
         else
         {
           switch(e.Key)
           { 
-            case Key.LShift: mods &= ~KeyMod.LShift; break;
-            case Key.RShift: mods &= ~KeyMod.RShift; break;
-            case Key.LCtrl:  mods &= ~KeyMod.LCtrl;  break;
-            case Key.RCtrl:  mods &= ~KeyMod.RCtrl;  break;
-            case Key.LAlt:   mods &= ~KeyMod.LAlt;   break;
-            case Key.RAlt:   mods &= ~KeyMod.RAlt;   break;
-            case Key.LMeta:  mods &= ~KeyMod.LMeta;  break;
-            case Key.RMeta:  mods &= ~KeyMod.RMeta;  break;
+            case Key.LeftShift: mods &= ~KeyMod.LeftShift; break;
+            case Key.RightShift: mods &= ~KeyMod.RightShift; break;
+            case Key.LeftCtrl:  mods &= ~KeyMod.LeftCtrl;  break;
+            case Key.RightCtrl:  mods &= ~KeyMod.RightCtrl;  break;
+            case Key.LeftAlt:   mods &= ~KeyMod.LeftAlt;   break;
+            case Key.RightAlt:   mods &= ~KeyMod.RightAlt;   break;
+            case Key.LeftMeta:  mods &= ~KeyMod.LeftMeta;  break;
+            case Key.RightMeta:  mods &= ~KeyMod.RightMeta;  break;
           }
         }
         e.Mods = mods;

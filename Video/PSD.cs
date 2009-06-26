@@ -141,9 +141,9 @@ public sealed class PSDLayer
 
     if(IOH.ReadString(stream, 4)!="8BIM") throw new ArgumentException("Unknown blend signature");
     Blend    = IOH.ReadString(stream, 4);
-    Opacity  = IOH.Read1(stream);
-    Clipping = IOH.Read1(stream);
-    Flags    = IOH.Read1(stream);
+    Opacity  = IOH.ReadByte(stream);
+    Clipping = IOH.ReadByte(stream);
+    Flags    = IOH.ReadByte(stream);
     IOH.Skip(stream, 1); // reserved
 
     int extraBytes = IOH.ReadBE4(stream); // extra layer data
@@ -152,7 +152,7 @@ public sealed class PSDLayer
     bytes = IOH.ReadBE4(stream); // layer blending size
     IOH.Skip(stream, bytes); extraBytes -= bytes+4;
 
-    bytes = IOH.Read1(stream); extraBytes -= bytes+1;
+    bytes = IOH.ReadByte(stream); extraBytes -= bytes+1;
     Name = bytes==0 ? "" : IOH.ReadString(stream, bytes);
     IOH.Skip(stream, extraBytes);
   }

@@ -29,7 +29,7 @@ namespace GameLib.Fonts
 
 // TODO: allow fonts to be optimized for surfaces other than the display
 
-#region Abstract classes
+#region Font
 /// <summary>This abstract class provides the base for all types of fonts in GameLib.</summary>
 /// <remarks>Most fonts are fairly large objects, so you should not create multiple copies of the same font in your
 /// application. It's better to keep them in one central place and share them with code that needs to render text.
@@ -69,81 +69,6 @@ public abstract class Font : IDisposable
   /// <include file="../documentation.xml" path="//Fonts/HowManyFit/*"/>
   public abstract int HowManyFit(string text, int width);
 
-  /// <include file="../documentation.xml" path="//Fonts/Render/Point/Pt/*"/>
-  public int Render(Surface dest, string text, Point pt) { return Render(dest, text, pt.X, pt.Y); }
-  /// <include file="../documentation.xml" path="//Fonts/Render/Point/XY/*"/>
-  public abstract int Render(Surface dest, string text, int x, int y);
-
-  /// <include file="../documentation.xml" path="//Fonts/Render/Rect/NoAlign/*"/>
-  public Point Render(Surface dest, string text, Rectangle rect)
-  { return Render(dest, text, rect, ContentAlignment.TopLeft, 0, 0, breakers);
-  }
-  /// <include file="../documentation.xml" path="//Fonts/Render/Rect/Align/*"/>
-  public Point Render(Surface dest, string text, Rectangle rect, ContentAlignment align)
-  { return Render(dest, text, rect, align, 0, 0, breakers);
-  }
-  /// <include file="../documentation.xml" path="//Fonts/Render/Rect/*[self::NoAlign or self::Offset]/*"/>
-  /// <remarks>The X and Y offsets into the rectangle are provided to allow continuing rendering where you left off.</remarks>
-  public Point Render(Surface dest, string text, Rectangle rect, int startx, int starty)
-  { return Render(dest, text, rect, ContentAlignment.TopLeft, startx, starty, breakers);
-  }
-  /// <include file="../documentation.xml" path="//Fonts/Render/Rect/*[self::Align or self::Offset]/*"/>
-  /// <param name="breakers">An array of characters that will be used to break the text. Those characters will
-  /// mark preferred places within the string to break to a new line.
-  /// </param>
-  /// <remarks>The X and Y offsets into the rectangle are provided to allow continuing rendering where you left off,
-  /// but they can only be used (nonzero) if the alignment is <see cref="ContentAlignment.TopLeft"/>.
-  /// </remarks>
-  public virtual Point Render(Surface dest, string text, Rectangle rect, ContentAlignment align,
-                              int startx, int starty, char[] breakers)
-  { if(align!=ContentAlignment.TopLeft && (startx!=0 || starty!=0))
-      throw new ArgumentException("'startx' and 'starty' can only be used with 'align'==TopLeft");
-    if(startx<0 || starty<0) throw new ArgumentException("'startx' and 'starty' must be positive");
-
-    int[] lines = WordWrap(text, rect, startx, starty, breakers);
-
-    int  start=0, x=rect.X+startx, y=rect.Y+starty, length=0, horz;
-    if(lines.Length==0) return new Point(x, y);
-
-    horz = UIHelpers.AlignedLeft(align) ? 0 : UIHelpers.AlignedCenter(align) ? 1 : 2;
-    if(UIHelpers.AlignedMiddle(align)) y = rect.Y + (rect.Height-lines.Length*LineSkip)/2;
-    else if(UIHelpers.AlignedBottom(align)) y = rect.Bottom-lines.Length*LineSkip;
-    y-=LineSkip;
-
-    for(int i=0; i<lines.Length; i++)
-    { if(i==1) { x=rect.X; y=rect.Y; }
-      y += LineSkip;
-      string chunk = text.Substring(start, lines[i]);
-      if(horz==0) length = Render(dest, chunk, x, y);
-      else
-      { length = CalculateSize(chunk).Width;
-        if(horz==1) Render(dest, chunk, rect.X+(rect.Width-length)/2, y);
-        else Render(dest, chunk, rect.Right-length, y);
-      }
-      start += lines[i];
-    }
-    // FIXME: fix this
-    x = UIHelpers.AlignedLeft(align) ? length + (lines.Length==1 ? startx : 0) : -1;
-    if(!UIHelpers.AlignedTop(align)) y = -1;
-    return new Point(x, y);
-  }
-
-  /// <summary>Renders text centered within a surface.</summary>
-  /// <param name="dest">The surface to render into.</param>
-  /// <param name="text">The text to render.</param>
-  public void Center(Surface dest, string text)
-  { Size size = CalculateSize(text);
-    Render(dest, text, (dest.Width-size.Width)/2, (dest.Height-size.Height)/2);
-  }
-  /// <summary>Renders text centered horizontally within a surface at a specified vertical location.</summary>
-  /// <param name="dest">The surface to render into.</param>
-  /// <param name="text">The text to render.</param>
-  /// <param name="y">The Y coordinate to begin rendering at.</param>
-  public void Center(Surface dest, string text, int y)
-  { int width = CalculateSize(text).Width;
-    Render(dest, text, (dest.Width-width)/2, y);
-  }
-
   /// <include file="../documentation.xml" path="//Fonts/WordWrap/Dims/*"/>
   public int[] WordWrap(string text, int width, int height)
   { return WordWrap(text, new Rectangle(0, 0, width, height), 0, 0, breakers);
@@ -173,7 +98,7 @@ public abstract class Font : IDisposable
   public virtual int[] WordWrap(string text, Rectangle rect, int startx, int starty, char[] breakers)
   { if(text.Length==0) return new int[0];
 
-    List<int> list = new List<int>(); // make this a class member?
+    List<int> list = new List<int>(); // TODO: cache this in a class member?
     int start=0, end=0, pend, length=0, plen=0, height=LineSkip;
     int rwidth=rect.Width-startx, rheight=rect.Height-starty;
     if(height>rheight) return new int[0];
@@ -239,13 +164,101 @@ public abstract class Font : IDisposable
   /// </remarks>
   protected virtual void OnDisplayFormatChanged() { }
 
-  static readonly char[] breakers = new char[] { ' ', '-', '\n' };
+  internal static readonly char[] breakers = new char[] { ' ', '-', '\n' };
   Video.ModeChangedHandler handler;
 }
+#endregion
 
+#region SurfaceFont
+public abstract class SurfaceFont : Font
+{
+  /// <include file="../documentation.xml" path="//Fonts/Render/Point/Pt/*"/>
+  public int Render(Surface dest, string text, Point pt) { return Render(dest, text, pt.X, pt.Y); }
+
+  /// <include file="../documentation.xml" path="//Fonts/Render/Point/XY/*"/>
+  public abstract int Render(Surface dest, string text, int x, int y);
+
+  /// <include file="../documentation.xml" path="//Fonts/Render/Rect/NoAlign/*"/>
+  public Point Render(Surface dest, string text, Rectangle rect)
+  { return Render(dest, text, rect, ContentAlignment.TopLeft, 0, 0, breakers);
+  }
+  
+  /// <include file="../documentation.xml" path="//Fonts/Render/Rect/Align/*"/>
+  public Point Render(Surface dest, string text, Rectangle rect, ContentAlignment align)
+  { return Render(dest, text, rect, align, 0, 0, breakers);
+  }
+  
+  /// <include file="../documentation.xml" path="//Fonts/Render/Rect/*[self::NoAlign or self::Offset]/*"/>
+  /// <remarks>The X and Y offsets into the rectangle are provided to allow continuing rendering where you left off.</remarks>
+  public Point Render(Surface dest, string text, Rectangle rect, int startx, int starty)
+  { return Render(dest, text, rect, ContentAlignment.TopLeft, startx, starty, breakers);
+  }
+  
+  /// <include file="../documentation.xml" path="//Fonts/Render/Rect/*[self::Align or self::Offset]/*"/>
+  /// <param name="breakers">An array of characters that will be used to break the text. Those characters will
+  /// mark preferred places within the string to break to a new line.
+  /// </param>
+  /// <remarks>The X and Y offsets into the rectangle are provided to allow continuing rendering where you left off,
+  /// but they can only be used (nonzero) if the alignment is <see cref="ContentAlignment.TopLeft"/>.
+  /// </remarks>
+  public virtual Point Render(Surface dest, string text, Rectangle rect, ContentAlignment align,
+                              int startx, int starty, char[] breakers)
+  { if(align!=ContentAlignment.TopLeft && (startx!=0 || starty!=0))
+      throw new ArgumentException("'startx' and 'starty' can only be used with 'align'==TopLeft");
+    if(startx<0 || starty<0) throw new ArgumentException("'startx' and 'starty' must be positive");
+
+    int[] lines = WordWrap(text, rect, startx, starty, breakers);
+
+    int  start=0, x=rect.X+startx, y=rect.Y+starty, length=0, horz;
+    if(lines.Length==0) return new Point(x, y);
+
+    horz = UIHelpers.AlignedLeft(align) ? 0 : UIHelpers.AlignedCenter(align) ? 1 : 2;
+    if(UIHelpers.AlignedMiddle(align)) y = rect.Y + (rect.Height-lines.Length*LineSkip)/2;
+    else if(UIHelpers.AlignedBottom(align)) y = rect.Bottom-lines.Length*LineSkip;
+    y-=LineSkip;
+
+    for(int i=0; i<lines.Length; i++)
+    {
+      if(i==1 && align == ContentAlignment.TopLeft) { x=rect.X; y=rect.Y; } // undo the effect of startx and starty
+      y += LineSkip;
+      string chunk = text.Substring(start, lines[i]);
+      if(horz==0) length = Render(dest, chunk, x, y);
+      else
+      { length = CalculateSize(chunk).Width;
+        if(horz==1) Render(dest, chunk, rect.X+(rect.Width-length)/2, y);
+        else Render(dest, chunk, rect.Right-length, y);
+      }
+      start += lines[i];
+    }
+    // FIXME: fix this
+    x = UIHelpers.AlignedLeft(align) ? length + (lines.Length==1 ? startx : 0) : -1;
+    if(!UIHelpers.AlignedTop(align)) y = -1;
+    return new Point(x, y);
+  }
+
+  /// <summary>Renders text centered within a surface.</summary>
+  /// <param name="dest">The surface to render into.</param>
+  /// <param name="text">The text to render.</param>
+  public void Center(Surface dest, string text)
+  { Size size = CalculateSize(text);
+    Render(dest, text, (dest.Width-size.Width)/2, (dest.Height-size.Height)/2);
+  }
+  
+  /// <summary>Renders text centered horizontally within a surface at a specified vertical location.</summary>
+  /// <param name="dest">The surface to render into.</param>
+  /// <param name="text">The text to render.</param>
+  /// <param name="y">The Y coordinate to begin rendering at.</param>
+  public void Center(Surface dest, string text, int y)
+  { int width = CalculateSize(text).Width;
+    Render(dest, text, (dest.Width-width)/2, y);
+  }
+}
+#endregion
+
+#region FontStyle
 /// <summary>This enum contains different types of font styles, which can be ORed together.</summary>
 [Flags]
-public enum FontStyle
+public enum FontStyle : byte
 { 
   /// <summary>Normal font rendering.</summary>
   Normal=0,
@@ -256,22 +269,16 @@ public enum FontStyle
   /// <summary>Renders the font underlined.</summary>
   Underlined=4
 }
-/// <summary>This class serves as a base for fonts that can render with different font styles.</summary>
-public abstract class StyledFont : Font
-{ 
-  /// <summary>Gets/sets the rendering style to use with this font.</summary>
-  public abstract FontStyle Style { get; set; }
-}
 #endregion
 
-#region BitmapFont class
+#region BitmapFont
 /// <summary>This class provides a simple bitmap-based font. It can handle both fixed-width and variable-width fonts.
 /// </summary>
 /// <remarks>Since this font uses a bitmap for rendering, the foreground color of the font cannot be set.
 /// The bitmap associated with this font should be considered to be owned by this font object, and specifically
 /// should not be used by other threads simultaneously.
 /// </remarks>
-public class BitmapFont : Font
+public class BitmapFont : SurfaceFont
 { 
   /// <summary>Initializes a fixed-width font with default spacing.</summary>
   /// <include file="../documentation.xml" path="//Fonts/BitmapFont/BitmapFont1/*"/>
@@ -419,31 +426,36 @@ public class BitmapFont : Font
 }
 #endregion
 
-#region TrueType enums & class
+#region RenderStyle
 /// <summary>This enum contains values which specify how font glyphs should be rendered.</summary>
-public enum RenderStyle
+public enum RenderStyle : byte
 { 
   /// <summary>The glyphs will be rendered solid using the foreground color, with no antialiasing.
-  /// This method provides the highest performance, and crisp text.
+  /// With <see cref="SurfaceFont"/>-based fonts, this method provides the highest performance, and crisp text.
+  /// With OpenGL-based fonts, the performance is identical for all render styles.
   /// </summary>
   Solid,
   /// <summary>The glyphs will be rendered solid using the foreground color, and antialiased against a shade
-  /// color. The font will be drawn without using alpha blending. This method provides higher performance than
-  /// <see cref="Blended"/>, because the cost of the antialiasing is a one-time upfront cost. However, if rendered
-  /// against a background other than the previously given shade color, or against backgrounds that are not a solid
-  /// color, it may look bad. Being antialiased, the text produced with this method is smoother than that produced by
-  /// <see cref="Solid"/>, but some people may consider it to be blurry.
+  /// color. The font will be drawn without using alpha blending. With <see cref="SurfaceFont"/>-based fonts, this
+  /// style provides higher performance than <see cref="Blended"/>, because the cost of the antialiasing is a one-time
+  /// upfront cost. However, if rendered against a background other than the previously given shade color, or against
+  /// backgrounds that are not a solid color, it may look bad. Being antialiased, the text produced with this method is
+  /// smoother than that produced by <see cref="Solid"/>, but some people may consider it to be blurry.
+  /// This render style is not supported by OpenGL-based fonts.
   /// </summary>
   Shaded,
   /// <summary>The glyphs will be rendered solid using the foreground color, and antialiasing will be provided
-  /// using an alpha channel. The font will then need to be alpha blended each time it's drawn, which means it
-  /// has the lowest performance, but can be drawn against any background, even backgrounds that are not a solid
-  /// color. Being antialiased, the text produced with this method is smoother than that produced by
-  /// <see cref="Solid"/>, but some people may consider it to be blurry.
+  /// using an alpha channel. The font will then need to be alpha blended each time it's drawn, which means that with
+  /// <see cref="SurfaceFont"/>-based fonts, it has the lowest performance, but can be drawn against any background,
+  /// even backgrounds that are not a solid color. With OpenGL-based fonts, the performance is identical for all render
+  /// styles. Being antialiased, the text produced with this method is smoother
+  /// than that produced by <see cref="Solid"/>, but some people may consider it to be blurry.
   /// </summary>
   Blended
 }
+#endregion
 
+#region TrueTypeFont
 /// <summary>This class provides support for rendering TrueType fonts.</summary>
 /// <remarks>This class maintains a cache of character images, and can be a very heavy object which may consumes a
 /// fair amount of memory. It can be run with a reduced cache, or with no cache, with a corresponding decrease
@@ -451,19 +463,19 @@ public enum RenderStyle
 /// of all the glyphs still need to be stored. For best results, keep just a single copy of each font in memory and
 /// share it. See the <see cref="Font"/> base class for more details.
 /// </remarks>
-public class TrueTypeFont : StyledFont
+public class TrueTypeFont : SurfaceFont
 { 
   /// <include file="../documentation.xml" path="//Fonts/TrueTypeFont/Cons/File/*"/>
   public TrueTypeFont(string filename, int pointSize)
   { TTF.Initialize();
     try { font = TTF.OpenFont(filename, pointSize); }
-    catch(NullReferenceException) { unsafe { font = new IntPtr(null); } }
+    catch(NullReferenceException) { font = IntPtr.Zero; }
     Init();
   }
   /// <include file="../documentation.xml" path="//Fonts/TrueTypeFont/Cons/*[self::File or self::Index]/*"/>
   public TrueTypeFont(string filename, int pointSize, int fontIndex)
   { try { font = TTF.OpenFontIndex(filename, pointSize, fontIndex); }
-    catch(NullReferenceException) { unsafe { font = new IntPtr(null); } }
+    catch(NullReferenceException) { font = IntPtr.Zero; }
     Init();
   }
   /// <include file="../documentation.xml" path="//Fonts/TrueTypeFont/Cons/*[self::Stream or self::WillClose]/*"/>
@@ -485,7 +497,7 @@ public class TrueTypeFont : StyledFont
 
   /// <summary>Gets/sets the font style that will be used to render the font.</summary>
   /// <remarks>Not all fonts support all font styles.</remarks>
-  public override FontStyle Style
+  public FontStyle Style
   { get { return fstyle; }
     set
     { if(fstyle==value) return;
@@ -586,7 +598,7 @@ public class TrueTypeFont : StyledFont
   /// <summary>Gets the name of the font style.</summary>
   public string StyleName { get { return TTF.FontFaceStyleName(font);  } }
 
-  /// <summary>Gets/sets the maximum size of the glyph cache.</summary>
+  /// <summary>Gets/sets the maximum size of the glyph cache. The default is 192.</summary>
   /// <value>The maximum number of glyphs allowed in the glyph cache.</value>
   /// <remarks>This class caches the most recently-used glyphs so they don't have to be recalculated every time
   /// they're used. This property can be set to zero to disable the cache entirely, but it's recommended that you
@@ -653,7 +665,7 @@ public class TrueTypeFont : StyledFont
     return x-start;
   }
 
-  protected class CachedChar : IDisposable
+  protected sealed class CachedChar : IDisposable
   { public CachedChar() { }
     public CachedChar(char c) { Char=c; }
     ~CachedChar() { Dispose(true); }
@@ -669,7 +681,7 @@ public class TrueTypeFont : StyledFont
 
   protected CachedChar GetChar(char c)
   { Color shade = !shadeColor.IsEmpty ? shadeColor : bgColor!=Color.Transparent ? bgColor : Color.Black;
-    CacheIndex ind = new CacheIndex(c, color, shade, fstyle, rstyle);
+    CacheIndex ind = new CacheIndex(c, color.ToArgb(), shade.ToArgb(), fstyle, rstyle);
     LinkedListNode<CachedChar> node;
     CachedChar cc;
     if(map.TryGetValue(ind, out node))
@@ -732,22 +744,24 @@ public class TrueTypeFont : StyledFont
 
   /// <summary>See <see cref="Font.Dispose(bool)"/> for more details regarding this method.</summary>
   protected override void Dispose(bool finalizing)
-  { unsafe
-    { if(font.ToPointer()!=null)
-      { TTF.CloseFont(font);
-        TTF.Deinitialize();
-        font = new IntPtr(null);
-      }
-    }
+  {
     if(list.Count>0)
-    { foreach(CachedChar c in list) c.Dispose();
+    {
+      foreach(CachedChar c in list) c.Dispose();
       ClearCache();
     }
+
+    if(font != IntPtr.Zero)
+    { TTF.CloseFont(font);
+      TTF.Deinitialize();
+      font = IntPtr.Zero;
+    }
+
     base.Dispose(finalizing);
   }
 
   internal struct CacheIndex
-  { public CacheIndex(char c, Color color, Color shadeColor, FontStyle fstyle, RenderStyle rstyle)
+  { public CacheIndex(char c, int color, int shadeColor, FontStyle fstyle, RenderStyle rstyle)
     { Char=c; Color=color; ShadeColor=shadeColor; FontStyle=fstyle; RenderStyle=rstyle;
     }
 
@@ -758,14 +772,13 @@ public class TrueTypeFont : StyledFont
     }
 
     public override int GetHashCode()
-    { return (((int)Char<<16) | ((int)FontStyle<<8) | (int)RenderStyle) ^ Color.ToArgb() ^ ShadeColor.ToArgb();
+    { return (((int)Char<<16) | ((int)FontStyle<<8) | (int)RenderStyle) ^ Color ^ ShadeColor;
     }
 
-    public Color       Color;
-    public Color       ShadeColor;
-    public char        Char;
-    public FontStyle   FontStyle;
-    public RenderStyle RenderStyle;
+    public readonly int Color, ShadeColor;
+    public readonly char Char;
+    public readonly FontStyle FontStyle;
+    public readonly RenderStyle RenderStyle;
   }
 
   void CacheRemove(LinkedListNode<CachedChar> node)
@@ -775,7 +788,7 @@ public class TrueTypeFont : StyledFont
   }
 
   void Init()
-  { unsafe { if(font.ToPointer()==null) { TTF.Deinitialize(); TTF.RaiseError(); } }
+  { if(font == IntPtr.Zero) { TTF.Deinitialize(); TTF.RaiseError(); }
     RenderStyle = RenderStyle.Solid;
     Color       = Color.White;
     BackColor   = Color.Transparent;

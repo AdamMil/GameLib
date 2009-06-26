@@ -311,7 +311,7 @@ namespace Asteroids
               CD.Drives[i].Play(t.Start, CD.Drives[i].Length-t.Start);
               goto cdmusic;
             }
-      new VorbisSource(dataPath+"music.ogg").Play(Audio.Infinite);
+      new SoundFileSource(dataPath+"music.ogg").Play(Audio.Infinite);
       cdmusic:
       shot = new SampleSource(new SoundFileSource(dataPath+"woot.wav"));
       exp  = new SampleSource(new SoundFileSource(dataPath+"explode.wav"));
