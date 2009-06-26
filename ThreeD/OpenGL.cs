@@ -262,7 +262,7 @@ public static class OpenGL
       }
     }
 
-    pf = new PixelFormat(usingAlpha ? 32 : 24);
+    pf = new PixelFormat(usingAlpha ? 32 : 24, usingAlpha, false);
     #if BIGENDIAN
     pf.RedMask=0xFF000000; pf.GreenMask=0xFF0000; pf.BlueMask=0xFF00; pf.AlphaMask=(pf.Depth==32 ? 0xFF : 0);
     #else
