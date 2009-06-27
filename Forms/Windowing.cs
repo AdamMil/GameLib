@@ -555,7 +555,7 @@ public class Control
     /// <returns>Returns true if the control was found and false if not.</returns>
     public bool Contains(Control control, bool deepSearch)
     { if(deepSearch)
-      { while(control!=null) { if(control==parent) return true; control=control.parent; }
+      { while(control!=null) { if(control.parent==parent) return true; control=control.parent; }
         return false;
       }
       else return control.parent==parent;
@@ -715,7 +715,7 @@ public class Control
   { get { return border; }
     set
     { if(border!=value)
-      { if(BorderWidth != UIHelpers.BorderWidth(value)) OnContentSizeChanged(new EventArgs());
+      { if(BorderWidth != UIHelpers.BorderWidth(value)) OnContentSizeChanged(EventArgs.Empty);
         border=value;
       }
     }
@@ -1069,7 +1069,7 @@ public class Control
       { if(value.Left<0 || value.Top<0 || value.Right<0 || value.Bottom<0)
           throw new ArgumentOutOfRangeException("Padding", value, "offset cannot be negative");
         padding=value;
-        OnContentSizeChanged(new EventArgs());
+        OnContentSizeChanged(EventArgs.Empty);
       }
     }
   }
@@ -1228,7 +1228,7 @@ public class Control
   public virtual string Text
   { get { return text; }
     set
-    { if(value!=text)
+    { if(!string.Equals(value, text, StringComparison.Ordinal))
       { ValueChangedEventArgs e = new ValueChangedEventArgs(text);
         text = value;
         OnTextChanged(e);
@@ -2416,9 +2416,9 @@ public class Control
       { if(value!=null && !controls.Contains(value))
           throw new ArgumentException("Not a child of this control", "FocusedControl");
         // TODO: make sure controls can call .Focus() inside OnLostFocus()
-        if(focused!=null) focused.OnLostFocus(new EventArgs());
+        if(focused!=null) focused.OnLostFocus(EventArgs.Empty);
         focused = value;
-        if(value!=null) value.OnGotFocus(new EventArgs());
+        if(value!=null) value.OnGotFocus(EventArgs.Empty);
       }
     }
   }
@@ -2512,7 +2512,7 @@ public class Control
       if(old!=null) { old.Dispose(); backingSurface=null; }
       if(hasStyle && desktop!=null && desktop.Surface!=null)
         backingSurface = desktop.Surface.CreateCompatible(Width, Height);
-      if(backingSurface!=old) OnBackingSurfaceChanged(new EventArgs());
+      if(backingSurface!=old) OnBackingSurfaceChanged(EventArgs.Empty);
     }
   }
 
@@ -2857,7 +2857,7 @@ public class DesktopControl : ContainerControl, IDisposable
           // keep an array of the path down the control tree, from the root down
           // on mouse move, go down the tree, comparing against the stored path
           if(ei<enteredLen && c!=entered[ei])
-          { if(eventArgs==null) eventArgs=new EventArgs();
+          { if(eventArgs==null) eventArgs=EventArgs.Empty;
             for(int i=enteredLen-1; i>=ei; i--)
             { entered[i].OnMouseLeave(eventArgs);
               entered[i] = null;
@@ -2867,7 +2867,7 @@ public class DesktopControl : ContainerControl, IDisposable
           if(c==null) break;
           if(!passModal && c==modal[modal.Count-1]) passModal=true;
           if(ei==enteredLen && passModal)
-          { if(eventArgs==null) eventArgs=new EventArgs();
+          { if(eventArgs==null) eventArgs=EventArgs.Empty;
             if(enteredLen==entered.Length)
             { Control[] na = new Control[entered.Length*2];
               Array.Copy(entered, na, enteredLen);
@@ -3182,7 +3182,7 @@ public class DesktopControl : ContainerControl, IDisposable
   }
 
   internal Control capturing;
-  internal List<Control> modal = new List<Control>(4);
+  internal List<Control> modal = new List<Control>();
 
   #region Dispatchers
   static bool DispatchKeyEvent(Control target, KeyEventArgs e)
