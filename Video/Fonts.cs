@@ -1,7 +1,7 @@
 /*
 GameLib is a library for developing games and other multimedia applications.
 http://www.adammil.net/
-Copyright (C) 2002-2007 Adam Milazzo
+Copyright (C) 2002-2009 Adam Milazzo
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -52,12 +52,12 @@ public abstract class Font : IDisposable
   public abstract int Height { get; }
   /// <include file="../documentation.xml" path="//Fonts/LineSkip/*"/>
   public abstract int LineSkip { get; }
-  /// <summary>Gets/sets the color of the font.</summary>
+  /// <summary>Gets or sets the color of the font.</summary>
   /// <remarks>The interpretation of this property is up to the implementing class, so see the documentation for
   /// the derived classes for more details.
   /// </remarks>
   public abstract Color Color { get; set; }
-  /// <summary>Gets/sets the color of the area behind the font.</summary>
+  /// <summary>Gets or sets the color of the area behind the font.</summary>
   /// <remarks>This property can be set to <see cref="System.Drawing.Color.Transparent"/> if you don't want the
   /// background behind the font to be filled in. The interpretation of this property is up to the implementing class,
   /// however, so see the documentation for the derived classes for more details.
@@ -212,9 +212,9 @@ public abstract class SurfaceFont : Font
     int  start=0, x=rect.X+startx, y=rect.Y+starty, length=0, horz;
     if(lines.Length==0) return new Point(x, y);
 
-    horz = UIHelpers.AlignedLeft(align) ? 0 : UIHelpers.AlignedCenter(align) ? 1 : 2;
-    if(UIHelpers.AlignedMiddle(align)) y = rect.Y + (rect.Height-lines.Length*LineSkip)/2;
-    else if(UIHelpers.AlignedBottom(align)) y = rect.Bottom-lines.Length*LineSkip;
+    horz = UIHelper.IsAlignedLeft(align) ? 0 : UIHelper.IsAlignedCenter(align) ? 1 : 2;
+    if(UIHelper.IsAlignedMiddle(align)) y = rect.Y + (rect.Height-lines.Length*LineSkip)/2;
+    else if(UIHelper.IsAlignedBottom(align)) y = rect.Bottom-lines.Length*LineSkip;
     y-=LineSkip;
 
     for(int i=0; i<lines.Length; i++)
@@ -231,8 +231,8 @@ public abstract class SurfaceFont : Font
       start += lines[i];
     }
     // FIXME: fix this
-    x = UIHelpers.AlignedLeft(align) ? length + (lines.Length==1 ? startx : 0) : -1;
-    if(!UIHelpers.AlignedTop(align)) y = -1;
+    x = UIHelper.IsAlignedLeft(align) ? length + (lines.Length==1 ? startx : 0) : -1;
+    if(!UIHelper.IsAlignedTop(align)) y = -1;
     return new Point(x, y);
   }
 
@@ -368,7 +368,7 @@ public class BitmapFont : SurfaceFont
   public override int Render(Surface dest, string text, int x, int y)
   { int start=x;
     if(widths==null)
-    { if(bgColor != Color.Transparent) dest.Fill(new Rectangle(x, y, text.Length*(width+xAdd), lineSkip), bgColor);
+    { if(bgColor.A != 0) dest.Fill(new Rectangle(x, y, text.Length*(width+xAdd), lineSkip), bgColor);
       for(int i=0,add=width+xAdd; i<text.Length; i++)
       { int off = GetOffset(text[i]);
         if(off!=-1) font.Blit(dest, new Rectangle(off*width, 0, width, Height), x, y);
@@ -376,7 +376,7 @@ public class BitmapFont : SurfaceFont
       }
     }
     else
-    { if(bgColor != Color.Transparent) dest.Fill(new Rectangle(x, y, CalculateSize(text).Width, lineSkip), bgColor);
+    { if(bgColor.A != 0) dest.Fill(new Rectangle(x, y, CalculateSize(text).Width, lineSkip), bgColor);
       for(int i=0; i<text.Length; i++)
       { int off = GetOffset(text[i]);
         if(off==-1) continue;
@@ -470,13 +470,13 @@ public class TrueTypeFont : SurfaceFont
   { TTF.Initialize();
     try { font = TTF.OpenFont(filename, pointSize); }
     catch(NullReferenceException) { font = IntPtr.Zero; }
-    Init();
+    Init(pointSize);
   }
   /// <include file="../documentation.xml" path="//Fonts/TrueTypeFont/Cons/*[self::File or self::Index]/*"/>
   public TrueTypeFont(string filename, int pointSize, int fontIndex)
   { try { font = TTF.OpenFontIndex(filename, pointSize, fontIndex); }
     catch(NullReferenceException) { font = IntPtr.Zero; }
-    Init();
+    Init(pointSize);
   }
   /// <include file="../documentation.xml" path="//Fonts/TrueTypeFont/Cons/*[self::Stream or self::WillClose]/*"/>
   public TrueTypeFont(System.IO.Stream stream, int pointSize) : this(stream, pointSize, true) { }
@@ -484,7 +484,7 @@ public class TrueTypeFont : SurfaceFont
   public TrueTypeFont(System.IO.Stream stream, int pointSize, bool autoClose)
   { SeekableStreamRWOps source = new SeekableStreamRWOps(stream, autoClose);
     unsafe { fixed(SDL.RWOps* ops = &source.ops) font = TTF.OpenFontRW(ops, 0, pointSize); }
-    Init();
+    Init(pointSize);
   }
   /// <include file="../documentation.xml" path="//Fonts/TrueTypeFont/Cons/*[self::Stream or self::Index or self::WillClose]/*"/>
   public TrueTypeFont(System.IO.Stream stream, int pointSize, int fontIndex) : this(stream, pointSize, fontIndex, true) { }
@@ -492,10 +492,10 @@ public class TrueTypeFont : SurfaceFont
   public TrueTypeFont(System.IO.Stream stream, int pointSize, int fontIndex, bool autoClose)
   { SeekableStreamRWOps source = new SeekableStreamRWOps(stream, autoClose);
     unsafe { fixed(SDL.RWOps* ops = &source.ops) font = TTF.OpenFontIndexRW(ops, 0, pointSize, fontIndex); }
-    Init();
+    Init(pointSize);
   }
 
-  /// <summary>Gets/sets the font style that will be used to render the font.</summary>
+  /// <summary>Gets or sets the font style that will be used to render the font.</summary>
   /// <remarks>Not all fonts support all font styles.</remarks>
   public FontStyle Style
   { get { return fstyle; }
@@ -505,14 +505,14 @@ public class TrueTypeFont : SurfaceFont
       fstyle = (FontStyle)TTF.GetFontStyle(font);
     }
   }
-  /// <summary>Gets/sets the rendering style that will be used to render the font.</summary>
+  /// <summary>Gets or sets the rendering style that will be used to render the font.</summary>
   public RenderStyle RenderStyle { get { return rstyle; } set { rstyle=value; } }
-  /// <summary>Gets/sets the foreground color of the font.</summary>
+  /// <summary>Gets or sets the foreground color of the font.</summary>
   public override Color Color
   { get { return color; }
     set { if(color!=value) { color=value; sdlColor=new SDL.Color(value); } }
   }
-  /// <summary>Gets/sets the background color of the font.</summary>
+  /// <summary>Gets or sets the background color of the font.</summary>
   /// <remarks>
   /// <para>The background color represents the color drawn behind the font. This is not necessarily the same
   /// as the color to antialias with when <see cref="RenderStyle"/> is set to
@@ -544,7 +544,7 @@ public class TrueTypeFont : SurfaceFont
   { get { return copyAlpha; }
     set { copyAlpha=value; }
   }
-  /// <summary>Gets/sets the color used to shade the font when <see cref="RenderStyle"/> is set to
+  /// <summary>Gets or sets the color used to shade the font when <see cref="RenderStyle"/> is set to
   /// <see cref="GameLib.Fonts.RenderStyle.Shaded"/>.
   /// </summary>
   /// <remarks>If this property is set to <see cref="System.Drawing.Color.Empty"/>, the <see cref="BackColor"/>
@@ -569,13 +569,19 @@ public class TrueTypeFont : SurfaceFont
   { get { return shadeCloak; }
     set
     { if(value!=shadeCloak)
-      { if(value && shadeColor.IsEmpty && bgColor!=Color.Transparent)
+      { if(value && shadeColor.IsEmpty && bgColor.A != 0)
         { ShadeColor = bgColor;
           BackColor  = Color.Transparent;
         }
         shadeCloak=value;
       }
     }
+  }
+
+  /// <summary>Gets the size of the font, in points. This is the value passed to the constructor.</summary>
+  public int PointSize
+  {
+    get; private set;
   }
 
   /// <summary>Gets the height of the font, in pixels.</summary>
@@ -598,7 +604,7 @@ public class TrueTypeFont : SurfaceFont
   /// <summary>Gets the name of the font style.</summary>
   public string StyleName { get { return TTF.FontFaceStyleName(font);  } }
 
-  /// <summary>Gets/sets the maximum size of the glyph cache. The default is 192.</summary>
+  /// <summary>Gets or sets the maximum size of the glyph cache. The default is 192.</summary>
   /// <value>The maximum number of glyphs allowed in the glyph cache.</value>
   /// <remarks>This class caches the most recently-used glyphs so they don't have to be recalculated every time
   /// they're used. This property can be set to zero to disable the cache entirely, but it's recommended that you
@@ -646,7 +652,7 @@ public class TrueTypeFont : SurfaceFont
   /// <include file="../documentation.xml" path="//Fonts/Render/Point/XY/*"/>
   public override int Render(Surface dest, string text, int x, int y)
   { int start = x;
-    if(bgColor != Color.Transparent)
+    if(bgColor.A != 0)
     { int width=0;
       for(int i=0; i<text.Length; i++) width += GetChar(text[i]).Advance;
       // TODO: it seems like this should be LineSkip, but then it conflicts with CalculateSize. resolve this...
@@ -680,7 +686,7 @@ public class TrueTypeFont : SurfaceFont
   }
 
   protected CachedChar GetChar(char c)
-  { Color shade = !shadeColor.IsEmpty ? shadeColor : bgColor!=Color.Transparent ? bgColor : Color.Black;
+  { Color shade = !shadeColor.IsEmpty ? shadeColor : bgColor.A != 0 ? bgColor : Color.Black;
     CacheIndex ind = new CacheIndex(c, color.ToArgb(), shade.ToArgb(), fstyle, rstyle);
     LinkedListNode<CachedChar> node;
     CachedChar cc;
@@ -706,13 +712,13 @@ public class TrueTypeFont : SurfaceFont
         case RenderStyle.Shaded:
           surface = TTF.RenderGlyph_Shaded(font, c, sdlColor,
                                            !shadeColor.IsEmpty ? sdlShadeColor :
-                                             bgColor!=Color.Transparent ? sdlBgColor : new SDL.Color(Color.Black));
+                                           bgColor.A != 0      ? sdlBgColor    : new SDL.Color(Color.Black));
           break;
         case RenderStyle.Blended: surface = TTF.RenderGlyph_Blended(font, c, sdlColor); break;
       }
       if(surface==null) TTF.RaiseError();
       cc.Surface = new Surface(surface, true);
-      if(rstyle==RenderStyle.Shaded && shade!=Color.Transparent) cc.Surface.SetColorKey(shade);
+      if(rstyle==RenderStyle.Shaded && shade.A != 0) cc.Surface.SetColorKey(shade);
     }
 
     if(cacheMax!=0)
@@ -787,11 +793,12 @@ public class TrueTypeFont : SurfaceFont
     list.Remove(node);
   }
 
-  void Init()
+  void Init(int pointSize)
   { if(font == IntPtr.Zero) { TTF.Deinitialize(); TTF.RaiseError(); }
     RenderStyle = RenderStyle.Solid;
     Color       = Color.White;
     BackColor   = Color.Transparent;
+    PointSize   = pointSize;
   }
 
   LinkedList<CachedChar> list = new LinkedList<CachedChar>();

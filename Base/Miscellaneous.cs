@@ -1,7 +1,7 @@
 /*
 GameLib is a library for developing games and other multimedia applications.
 http://www.adammil.net/
-Copyright (C) 2002-2007 Adam Milazzo
+Copyright (C) 2002-2009 Adam Milazzo
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -39,7 +39,44 @@ public class ValueChangedEventArgs : EventArgs
 
 /// <summary>This class provides miscellaneous utilities that don't fit anywhere else.</summary>
 public static class Utility
-{ 
+{
+  /// <summary>Disposes the given object and sets it to null.</summary>
+  public static void Dispose<T>(ref T obj) where T : class, IDisposable
+  {
+    if(obj != null)
+    {
+      obj.Dispose();
+      obj = null;
+    }
+  }
+
+  /// <summary>Disposes the given object, if it's not null.</summary>
+  public static void Dispose(IDisposable obj)
+  {
+    if(obj != null) obj.Dispose();
+  }
+
+  /// <summary>Disposes the given object, if it's disposable and not null.</summary>
+  public static void TryDispose(object obj)
+  {
+    if(obj != null)
+    {
+      IDisposable disposable = obj as IDisposable;
+      if(disposable != null) disposable.Dispose();
+    }
+  }
+
+  /// <summary>Disposes the given object and sets it to null.</summary>
+  public static void TryDispose<T>(ref T obj) where T : class
+  {
+    if(obj != null)
+    {
+      IDisposable disposable = obj as IDisposable;
+      if(disposable != null) disposable.Dispose();
+      obj = null;
+    }
+  }
+
   /// <summary>This field provides a global random number generator.</summary>
   public static readonly Random Random = new Random();
 }

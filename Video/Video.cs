@@ -1,7 +1,7 @@
 /*
 GameLib is a library for developing games and other multimedia applications.
 http://www.adammil.net/
-Copyright (C) 2002-2007 Adam Milazzo
+Copyright (C) 2002-2009 Adam Milazzo
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -455,6 +455,12 @@ public static class Video
     }
   }
 
+  /// <summary>Gets whether the current video mode is an OpenGL mode.</summary>
+  public static bool IsGLMode
+  {
+    get { return usingGL; }
+  }
+
   /// <summary>This method initializes the video subsystem.</summary>
   /// <remarks>This method must be called before the video subsystem can be used. This method can be called
   /// multiple times, and you should call <see cref="Deinitialize"/> a corresponding number of times to
@@ -476,7 +482,11 @@ public static class Video
   /// </exception>
   public static void Deinitialize()
   { if(initCount==0) throw new InvalidOperationException("Deinitialize called too many times!");
-    if(--initCount==0) SDL.Deinitialize(SDL.InitFlag.Video);
+    if(--initCount==0)
+    {
+      UnsetMode();
+      SDL.Deinitialize(SDL.InitFlag.Video);
+    }
   }
 
   /// <summary>Flips the primary surface to the display.</summary>
@@ -777,12 +787,21 @@ public static class Video
   static unsafe void SetMode(int width, int height, int depth, uint flags)
   { SDL.Surface* surface = SDL.SetVideoMode(width, height, depth, flags);
     if(surface==null) SDL.RaiseError();
-    if(display!=null) { display.Dispose(); display=null; } // set to null so ModeSet is false in the next constructor
+
+    UnsetMode();
+
     display = new Surface(surface, false);
     UpdateInfo();
     if((flags & (uint)SDL.VideoFlag.FullScreen) == 0) WM.WindowTitle = WM.WindowTitle; // assuming SDL doesn't reset it
     if(ModeChanged!=null) ModeChanged();
   }
+
+  static void UnsetMode()
+  {
+    usingGL = false;
+    Utility.Dispose(ref display);
+  }
+
   static unsafe void UpdateInfo() { info = new VideoInfo(SDL.GetVideoInfo()); }
   static void Check(int result) { if(result!=0) SDL.RaiseError(); }
   static void AssertInit()      { if(initCount==0) throw new InvalidOperationException("Not initialized"); }

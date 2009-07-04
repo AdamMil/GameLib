@@ -1,7 +1,7 @@
 /*
 GameLib is a library for developing games and other multimedia applications.
 http://www.adammil.net/
-Copyright (C) 2002-2007 Adam Milazzo
+Copyright (C) 2002-2009 Adam Milazzo
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -472,7 +472,7 @@ public sealed class MessageConverter
   static MarshalType GetMarshalType(Type type)
   { if(type.IsPrimitive) return MarshalType.Safe;
     if(!type.IsValueType && !type.IsLayoutSequential && !type.IsExplicitLayout) return MarshalType.Bad;
-    try { new ReflectionPermission(ReflectionPermissionFlag.TypeInformation).Demand(); }
+    try { new ReflectionPermission(ReflectionPermissionFlag.NoFlags).Demand(); }
     catch(System.Security.SecurityException) { return MarshalType.Unsafe; }
     return GetMarshalType(type, null);
   }

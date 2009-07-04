@@ -16,24 +16,25 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
-using System;
-using System.Reflection;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
+using System.Drawing;
+using Font = GameLib.Fonts.Font;
 
-[assembly: AssemblyTitle("GameLib Video")]
-[assembly: AssemblyDescription("2D graphics services for GameLib.")]
-#if DEBUG
-[assembly: AssemblyConfiguration("Debug")]
-#else
-[assembly: AssemblyConfiguration("Release")]
-#endif
-[assembly: AssemblyProduct("GameLib")]
-[assembly: AssemblyCopyright("Copyright 2002-2009 Adam Milazzo")]
+namespace GameLib.Video
+{
 
-[assembly: AssemblyVersion("0.6.*")]
+public interface IGuiImage
+{
+  Size Size { get; }
+  void Draw(Rectangle srcRect, IGuiRenderTarget target, Rectangle destRect);
+}
 
-[assembly: CLSCompliant(true)]
-[assembly: ComVisible(false)]
+public interface IGuiRenderTarget : IGuiImage
+{
+  Rectangle ClipRect { get; set; }
+  void Clear();
+  int DrawText(Font font, string text, Point pt);
+  Point DrawText(Font font, string text, Rectangle rect, ContentAlignment align);
+  void FillArea(Rectangle area, Color color);
+}
 
-[assembly: InternalsVisibleTo("GameLib.ThreeD, PublicKey="+GameLib.Config.PublicKey)]
+} // namespace GameLib.Video

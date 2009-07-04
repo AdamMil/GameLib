@@ -60,9 +60,9 @@ public abstract class GLFont : Font
     float x=rect.X+startx, y=rect.Y+starty;
     if(lines.Length==0) return new PointF(x, y);
 
-    horz = UIHelpers.AlignedLeft(align) ? 0 : UIHelpers.AlignedCenter(align) ? 1 : 2;
-    if(UIHelpers.AlignedMiddle(align)) y = rect.Y + (rect.Height-lines.Length*LineSkip)/2;
-    else if(UIHelpers.AlignedBottom(align)) y = rect.Bottom-lines.Length*LineSkip;
+    horz = UIHelper.IsAlignedLeft(align) ? 0 : UIHelper.IsAlignedCenter(align) ? 1 : 2;
+    if(UIHelper.IsAlignedMiddle(align)) y = rect.Y + (rect.Height-lines.Length*LineSkip)/2;
+    else if(UIHelper.IsAlignedBottom(align)) y = rect.Bottom-lines.Length*LineSkip;
     y-=LineSkip;
 
     for(int i=0; i<lines.Length; i++)
@@ -80,8 +80,8 @@ public abstract class GLFont : Font
       start += lines[i];
     }
     // FIXME: fix this
-    x = UIHelpers.AlignedLeft(align) ? length + (lines.Length==1 ? startx : 0) : -1;
-    if(!UIHelpers.AlignedTop(align)) y = -1;
+    x = UIHelper.IsAlignedLeft(align) ? length + (lines.Length==1 ? startx : 0) : -1;
+    if(!UIHelper.IsAlignedTop(align)) y = -1;
     return new PointF(x, y);
   }
 }
@@ -96,13 +96,13 @@ public class GLTrueTypeFont : GLFont
   { TTF.Initialize();
     try { font = TTF.OpenFont(filename, pointSize); }
     catch(NullReferenceException) { unsafe { font = new IntPtr(null); } }
-    Init();
+    Init(pointSize);
   }
 
   public GLTrueTypeFont(string filename, int pointSize, int fontIndex)
   { try { font = TTF.OpenFontIndex(filename, pointSize, fontIndex); }
     catch(NullReferenceException) { unsafe { font = new IntPtr(null); } }
-    Init();
+    Init(pointSize);
   }
 
   public GLTrueTypeFont(System.IO.Stream stream, int pointSize) : this(stream, pointSize, true) { }
@@ -110,7 +110,7 @@ public class GLTrueTypeFont : GLFont
   public GLTrueTypeFont(System.IO.Stream stream, int pointSize, bool autoClose)
   { SeekableStreamRWOps source = new SeekableStreamRWOps(stream, autoClose);
     unsafe { fixed(SDL.RWOps* ops = &source.ops) font = TTF.OpenFontRW(ops, 0, pointSize); }
-    Init();
+    Init(pointSize);
   }
 
   public GLTrueTypeFont(System.IO.Stream stream, int pointSize, int fontIndex) : this(stream, pointSize, fontIndex, true) { }
@@ -118,7 +118,7 @@ public class GLTrueTypeFont : GLFont
   public GLTrueTypeFont(System.IO.Stream stream, int pointSize, int fontIndex, bool autoClose)
   { SeekableStreamRWOps source = new SeekableStreamRWOps(stream, autoClose);
     unsafe { fixed(SDL.RWOps* ops = &source.ops) font = TTF.OpenFontIndexRW(ops, 0, pointSize, fontIndex); }
-    Init();
+    Init(pointSize);
   }
 
   /// <summary>Gets the maximum pixel ascent of all glyphs in the font.</summary>
@@ -150,6 +150,12 @@ public class GLTrueTypeFont : GLFont
     get { return TTF.FontLineSkip(font); } 
   }
 
+  /// <summary>Gets the size of the font, in points. This is the value passed to the constructor.</summary>
+  public int PointSize
+  {
+    get; private set;
+  }
+
   /// <summary>Gets the name of the font family.</summary>
   public string FamilyName 
   {
@@ -162,13 +168,13 @@ public class GLTrueTypeFont : GLFont
     get { return TTF.FontFaceStyleName(font); } 
   }
 
-  /// <summary>Gets/sets the foreground color of the font.</summary>
+  /// <summary>Gets or sets the foreground color of the font.</summary>
   public override Color Color
   {
     get { return color; }
     set { color = value; }
   }
-  /// <summary>Gets/sets the background color of the font.</summary>
+  /// <summary>Gets or sets the background color of the font.</summary>
   /// <remarks>The background color represents the color drawn behind the font.</remarks>
   public override Color BackColor
   {
@@ -176,7 +182,13 @@ public class GLTrueTypeFont : GLFont
     set { bgColor = value; }
   }
 
-  /// <summary>Gets/sets the maximum size of the glyph cache. The default is 128.</summary>
+  /// <summary>Gets or sets whether bilinear filtering will be used when scaling the font glyphs. The default is false.</summary>
+  public bool BilinearFiltering
+  {
+    get; set;
+  }
+
+  /// <summary>Gets or sets the maximum size of the glyph cache. The default is 128.</summary>
   /// <value>The maximum number of glyphs allowed in the glyph cache.</value>
   /// <remarks>This class caches the most recently-used glyphs so they don't have to be recalculated every time
   /// they're used. Some level of caching is required, so setting this below the minimum will simply use that minimum.
@@ -193,7 +205,7 @@ public class GLTrueTypeFont : GLFont
     }
   }
 
-  /// <summary>Gets/sets the rendering style that will be used to render the font.</summary>
+  /// <summary>Gets or sets the rendering style that will be used to render the font.</summary>
   /// <remarks>Note that <see cref="RenderStyle.Shaded"/> is not supported. It is recommended that you use
   /// <see cref="RenderStyle.Blended"/> instead.
   /// </remarks>
@@ -207,7 +219,7 @@ public class GLTrueTypeFont : GLFont
     }
   }
 
-  /// <summary>Gets/sets the font style that will be used to render the font.</summary>
+  /// <summary>Gets or sets the font style that will be used to render the font.</summary>
   /// <remarks>Not all fonts support all font styles.</remarks>
   public FontStyle Style
   {
@@ -246,7 +258,7 @@ public class GLTrueTypeFont : GLFont
     if(text == null) throw new ArgumentNullException();
     if(text.Length == 0) return 0;
 
-    if(bgColor != Color.Transparent)
+    if(bgColor.A != 0)
     {
       throw new NotImplementedException();
     }
@@ -272,8 +284,9 @@ public class GLTrueTypeFont : GLFont
       {
         EnsureTexture();
         texture.Bind();
-        GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_NEAREST);
-        GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_NEAREST);
+        int filter = BilinearFiltering ? GL.GL_LINEAR : GL.GL_NEAREST;
+        GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, filter);
+        GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, filter);
         GL.glBegin(GL.GL_QUADS); // if the texture was recreated, GetChar() will have called glEnd()
         renderingQuads = true;
       }
@@ -515,8 +528,6 @@ public class GLTrueTypeFont : GLFont
         }
       }
 
-      cacheSurface.Save("d:/adammil/temp/font.png", ImageType.Png);
-
       // add the new cached characters to the linked list
       foreach(CachedChar cc in newCachedChars)
       {
@@ -527,11 +538,7 @@ public class GLTrueTypeFont : GLFont
     }
     finally
     {
-      // dispose the glyph surfaces
-      for(int i=0; i<glyphs.Length; i++)
-      {
-        if(glyphs[i] != null) glyphs[i].Dispose();
-      }
+      foreach(Surface glyph in glyphs) Utility.Dispose(glyph);
     }
   }
 
@@ -570,35 +577,26 @@ public class GLTrueTypeFont : GLFont
     finally { Style = oldFontStyle; }
   }
 
-  void Init()
+  void Init(int pointSize)
   {
     if(font == IntPtr.Zero) 
     { 
       TTF.Deinitialize(); 
       TTF.RaiseError(); 
     }
+    PointSize = pointSize;
   }
 
   void InvalidateSurface()
   {
     InvalidateTexture();
-
-    if(cacheSurface != null)
-    {
-      cacheSurface.Dispose();
-      cacheSurface = null;
-    }
-
+    Utility.Dispose(ref cacheSurface);
     packer = null;
   }
 
   void InvalidateTexture()
   {
-    if(texture != null)
-    {
-      texture.Dispose();
-      texture = null;
-    }
+    Utility.Dispose(ref texture);
   }
 
   void SetTextureArea(CachedChar cc, Rectangle glyphRect)

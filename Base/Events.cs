@@ -53,8 +53,8 @@ public enum EventType
   Repaint,
   /// <summary>An <see cref="ExceptionEvent"/> event.</summary>
   Exception,
-  /// <summary>An event derived from <see cref="WindowEvent"/>.</summary>
-  Window,
+  /// <summary>An event derived from <see cref="ControlEvent"/>.</summary>
+  Control,
   /// <summary>An event derived from <see cref="UserEvent"/>.</summary>
   UserDefined
 }
@@ -591,7 +591,7 @@ public static class Events
     get { return initCount > 0; } 
   }
 
-  /// <summary>Gets/sets the maximum size of the event queue.</summary>
+  /// <summary>Gets or sets the maximum size of the event queue.</summary>
   /// <value>The maximum size of the event queue, in number of events.</value>
   /// <remarks>If set to a size smaller than the number of events in the queue, the oldest events in the queue
   /// will be dropped to reduce it to the maximum, so it's best to set the maximum queue size

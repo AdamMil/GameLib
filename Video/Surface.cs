@@ -1,7 +1,7 @@
 /*
 GameLib is a library for developing games and other multimedia applications.
 http://www.adammil.net/
-Copyright (C) 2002-2007 Adam Milazzo
+Copyright (C) 2002-2009 Adam Milazzo
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -28,21 +28,6 @@ namespace GameLib.Video
 {
 
 #region Enums and supporting types
-/// <summary>This interface is intended to be used for generic objects which can draw into a surface.
-/// Ideally, it would support animation, which requires some kind of notification
-/// for when the next frame is to be drawn. However, the current design does not support that.
-/// </summary>
-public interface IBlittable
-{ int  Width  { get; }
-  int  Height { get; }
-  //bool StaticImage  { get; }
-  //bool ImageChanged { get; }
-
-  void Blit(Surface dest, int dx, int dy);
-  void Blit(Surface dest, Rectangle src, int dx, int dy);
-  //IBlittable CreateCompatible();
-}
-
 /// <summary>An enum of image formats used when saving and loading images.</summary>
 public enum ImageType
 {
@@ -149,7 +134,7 @@ public enum SurfaceFlag
 
 // TODO: allow Surface to be inherited from
 [System.Security.SuppressUnmanagedCodeSecurity()]
-public sealed class Surface : IDisposable, IBlittable
+public sealed class Surface : IDisposable, IGuiRenderTarget
 { 
   /// <include file="../documentation.xml" path="//Video/Surface/Cons/FromBmp/*"/>
   /// <remarks>Using this is equivalent to using <see cref="Surface(Bitmap,SurfaceFlag)"/> and passing 
@@ -414,7 +399,7 @@ public sealed class Surface : IDisposable, IBlittable
   /// </remarks>
   public unsafe SurfaceFlag Flags { get { return (SurfaceFlag)surface->Flags; } }
 
-  /// <summary>Gets/sets the clipping rectangle associated with this surface.</summary>
+  /// <summary>Gets or sets the clipping rectangle associated with this surface.</summary>
   /// <value>A rectangle to which blits and other drawing operations will be clipped.</value>
   /// <remarks>If you create any primitive drawing code, you should honor the clipping rectangle.</remarks>
   public unsafe Rectangle ClipRect
@@ -425,7 +410,7 @@ public sealed class Surface : IDisposable, IBlittable
     }
   }
 
-  /// <summary>Gets/sets the alpha value for this surface.</summary>
+  /// <summary>Gets or sets the alpha value for this surface.</summary>
   /// <value>The alpha level for the surface as a whole, from 0 (transparent) to 255 (opaque).</value>
   /// <remarks>The surface alpha is used to blit a surface that doesn't have an alpha channel using a constant
   /// alpha across the entire surface.
@@ -440,7 +425,7 @@ public sealed class Surface : IDisposable, IBlittable
     set { if(UsingAlpha) SetSurfaceAlpha(value); else alpha=value; }
   }
 
-  /// <summary>Gets/sets the color key for this surface.</summary>
+  /// <summary>Gets or sets the color key for this surface.</summary>
   /// <value>The color considered transparent when blitting this surface.</value>
   /// <remarks>The color will be mapped using <see cref="MapColor"/> to set the <see cref="RawColorKey"/> property.
   /// The raw color key is then used during blitting to mark source pixels as transparent. Source pixels matching
@@ -457,7 +442,7 @@ public sealed class Surface : IDisposable, IBlittable
     set { if(UsingKey) SetColorKey(value); else rawKey=MapColor(key=value); }
   }
 
-  /// <summary>Gets/sets the raw color key for this surface.</summary>
+  /// <summary>Gets or sets the raw color key for this surface.</summary>
   /// <value>The pixel value considered transparent when blitting this surface.</value>
   /// <remarks>The raw color key is used during blitting to mark source pixels as transparent. Source pixels matching
   /// the color key will not be processed.
@@ -952,7 +937,7 @@ public sealed class Surface : IDisposable, IBlittable
       case ImageType.Tiff: (bitmap=ToBitmap(true)).Save(stream, System.Drawing.Imaging.ImageFormat.Tiff); break;
       default: throw new NotImplementedException();
     }
-    if(bitmap!=null) bitmap.Dispose();
+    Utility.Dispose(bitmap);
   }
 
   /// <summary>Saves this image to a file using the given encoder.</summary>
@@ -1327,6 +1312,65 @@ public sealed class Surface : IDisposable, IBlittable
     { SDL.FreeSurface(surface);
       surface=null;
     }
+  }
+
+  void IGuiImage.Draw(Rectangle srcRect, IGuiRenderTarget target, Rectangle destRect)
+  {
+    if(target == null) throw new ArgumentNullException();
+    if(srcRect.X < 0 || srcRect.Y < 0 || srcRect.Right > Width || srcRect.Bottom > Height)
+    {
+      throw new ArgumentOutOfRangeException("srcRect");
+    }
+
+    Surface targetSurface = target as Surface;
+    if(targetSurface == null) throw new NotSupportedException("Surface images only support surface render targets.");
+
+    if(srcRect.Size == destRect.Size)
+    {
+      Blit(targetSurface, srcRect, destRect.X, destRect.Y);
+    }
+    else
+    {
+      // this is fairly complicated...
+      throw new NotImplementedException();
+    }
+  }
+
+  void IGuiRenderTarget.Clear()
+  {
+    Fill(Depth <= 8 && UsingKey ? RawColorKey : 0);
+  }
+
+  int IGuiRenderTarget.DrawText(GameLib.Fonts.Font font, string text, Point pt)
+  {
+    if(font == null || text == null) throw new ArgumentNullException();
+
+    GameLib.Fonts.SurfaceFont surfaceFont = font as GameLib.Fonts.SurfaceFont;
+    if(surfaceFont == null)
+    {
+      throw new NotSupportedException("Surface render targets only support fonts based on SurfaceFont.");
+    }
+
+    return surfaceFont.Render(this, text, pt);
+  }
+
+  Point IGuiRenderTarget.DrawText(GameLib.Fonts.Font font, string text, Rectangle rect, ContentAlignment align)
+  {
+    if(font == null || text == null) throw new ArgumentNullException();
+
+    GameLib.Fonts.SurfaceFont surfaceFont = font as GameLib.Fonts.SurfaceFont;
+    if(surfaceFont == null)
+    {
+      throw new NotSupportedException("Surface render targets only support fonts based on SurfaceFont.");
+    }
+
+    return surfaceFont.Render(this, text, rect, align);
+  }
+
+  void IGuiRenderTarget.FillArea(Rectangle area, Color color)
+  {
+    if(color.A == 255) Fill(area, color);
+    else if(color.A != 0) Primitives.FilledBox(this, area, color);
   }
 
   PixelFormat format;

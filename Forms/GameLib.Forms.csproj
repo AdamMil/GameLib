@@ -2,7 +2,7 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProductVersion>8.0.50727</ProductVersion>
+    <ProductVersion>9.0.30729</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{6D25B5FC-A0B8-40DE-9257-4B2646A3A1EE}</ProjectGuid>
     <OutputType>Library</OutputType>
@@ -40,12 +40,19 @@
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AssemblyInfo.cs" />
-    <Compile Include="Controls.cs" />
+    <Compile Include="BasicControls.cs" />
+    <Compile Include="Control.cs" />
+    <Compile Include="Common.cs" />
+    <Compile Include="ControlRenderers.cs" />
+    <Compile Include="Desktop.cs" />
     <Compile Include="Events.cs" />
-    <Compile Include="Windowing.cs" />
+    <Compile Include="FormControls.cs" />
+    <Compile Include="ListControls.cs" />
+    <Compile Include="MenuControls.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Base\GameLib.Base.csproj">
