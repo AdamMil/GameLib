@@ -24,19 +24,19 @@ using GameLib.Forms;
 using GameLib.Input;
 using GameLib.Video;
 
-/* I hate being limited to ~80 columns */
-
 namespace WindowingTest
 {
 
   #region CustomDesktop
-  class CustomDesktop : DesktopControl
+  class CustomDesktop : Desktop
   {
     public CustomDesktop()
     {
-      AutoFocusing=AutoFocus.Click; BackColor=SystemColors.AppWorkspace;
-      KeyPreview=true;
-      menu.Dock=DockStyle.Top;
+      AutoFocusing = AutoFocus.Click;
+      BackColor    = SystemColors.AppWorkspace;
+      Renderer     = new SurfaceControlRenderer();
+
+      menu.Dock = DockStyle.Top;
 
       Line line = new Line(SystemColors.ControlDarkDark);
       line.Dock = DockStyle.Top;
@@ -48,14 +48,15 @@ namespace WindowingTest
 
     protected override void OnKeyDown(KeyEventArgs e)
     {
-      if(menu!=null) menu.HandleKey(e.KE);
+      if(menu != null && !e.Handled) e.Handled = menu.HandleKey(e.KE);
       base.OnKeyDown(e);
     }
 
-    protected override void OnFontChanged(GameLib.ValueChangedEventArgs e)
-    { // we want things to adjust to the font size
-      if(Font!=null) menu.Height = Font.LineSkip*3/2;
-      base.OnFontChanged(e);
+    protected override void OnEffectiveFontChanged(GameLib.ValueChangedEventArgs e)
+    { 
+      // we want things to adjust to the font size
+      if(EffectiveFont != null) menu.Height = EffectiveFont.LineSkip*3/2;
+      base.OnEffectiveFontChanged(e);
     }
 
     MenuBar menu = new MenuBar();
@@ -68,7 +69,7 @@ namespace WindowingTest
     public SampleForm()
     {
       Text = "Sample Form";
-      MinimumSize = Size = new Size(256, 192);
+      MinimumSize = Size = new Size(336, 192);
       BorderStyle = BorderStyle.Resizeable; // allow the form to be resized
 
       #region Add Controls
@@ -80,7 +81,7 @@ namespace WindowingTest
       label1.Dock = DockStyle.Top;
       label1.TextAlign = ContentAlignment.MiddleCenter;
 
-      btn.Click += new ClickEventHandler(btn_Click);
+      btn.Click += btn_Click;
       // have these controls resize as the form resizes
       edit.Anchor = chk.Anchor = btn.Anchor = AnchorStyle.LeftRight;
 
@@ -96,40 +97,45 @@ namespace WindowingTest
 
     void UpdateAlpha() // called to change the window alpha
     {
-      if(bar.Value<255)
+      if(bar.Value < 255)
       {
-        Style |= ControlStyle.BackingSurface;
-        BackingSurface.SetSurfaceAlpha((byte)bar.Value);
+        ControlStyle |= ControlStyle.CustomDrawTarget;
+        ((Surface)GetDrawTarget()).SetSurfaceAlpha((byte)bar.Value);
       }
-      else Style &= ~ControlStyle.BackingSurface;
+      else ControlStyle &= ~ControlStyle.CustomDrawTarget;
       Invalidate();
-      edit.Text = "Alpha = "+bar.Value;
+      edit.Text = "Alpha = " + bar.Value;
     }
 
     #region Event handlers
-    protected override void OnBackingSurfaceChanged(EventArgs e)
+    protected override void OnDrawTargetChanged()
     {
-      base.OnBackingSurfaceChanged(e);
-      if(BackingSurface!=null) BackingSurface.SetSurfaceAlpha((byte)bar.Value);
+      base.OnDrawTargetChanged();
+
+      if(GetDrawTarget() != Desktop.DrawTarget)
+      {
+        ((Surface)GetDrawTarget()).SetSurfaceAlpha((byte)bar.Value);
+      }
     }
 
     // make everything scale to the font size. normally not necessary if you
     // know the font, but want we everything to work properly regardless
-    protected override void OnFontChanged(GameLib.ValueChangedEventArgs e)
+    protected override void OnEffectiveFontChanged(GameLib.ValueChangedEventArgs e)
     {
-      if(Font!=null)
+      if(EffectiveFont != null)
       {
-        int height    = Font.LineSkip*3/2;
+        int height    = EffectiveFont.LineSkip*3/2, contentWidth = ContentRect.Width - bar.Width;
         label1.Height = height;
-        edit.Bounds   = new Rectangle(5, 0, ContentWidth-10, height);
+        edit.Bounds   = new Rectangle(5, 0, contentWidth-10, height);
         chk.Bounds    = new Rectangle(5, edit.Bottom, edit.Width, height);
 
-        int wid = Font.CalculateSize(btn.Text).Width*2;
-        btn.Bounds = new Rectangle((ContentWidth-wid)/2, chk.Bottom, wid, height);
+        int wid = EffectiveFont.CalculateSize(btn.Text).Width*2;
+        btn.Bounds = new Rectangle((contentWidth-wid)/2, chk.Bottom, wid, height);
 
         Height = Math.Max(192, height*7);
       }
-      base.OnFontChanged(e);
+
+      base.OnEffectiveFontChanged(e);
     }
 
     void bar_ValueChanged(object sender, GameLib.ValueChangedEventArgs e)
@@ -142,7 +148,7 @@ namespace WindowingTest
       Random rand = new Random(); // change everything to a random color
       BackColor = bar.ForeColor = Color.FromArgb(rand.Next(255), rand.Next(255),
                                                  rand.Next(255));
-      bar.BackColor = UIHelpers.GetDarkColor(bar.ForeColor);
+      bar.BackColor = UIHelper.GetDarkColor(bar.ForeColor);
     }
     #endregion
 
@@ -166,26 +172,30 @@ namespace WindowingTest
       Padding = new RectOffset(4);
 
       #region Add Controls
-      ListBox list = new ListBox();
+      list = new ListBox();
       list.Items.AddRange("Apple", "Beet", "Cabbage", "Carrot", "Coconut",
                           "Date", "Grape", "Kiwifruit", "Limes", "Mango",
                           "Orange", "Papaya");
       for(int i=1; i<=50; i++) list.Items.Add("Item "+i);
+      list.Width = 75;
 
-      Controls.Add(list); // we add it first so GetPreferredSize is correct
-      list.Size = new Size(75, list.GetPreferredSize(10).Height);
-
-      ComboBox combo = new ComboBox(list.Items);
+      combo = new ComboBox(list.Items);
       combo.Left  = list.Right + 4;
       combo.Width = list.Width + 20;
-      combo.ListBoxHeight = list.Height;
       combo.SelectedIndex = 0;
       combo.DropDownStyle = ComboBoxStyle.DropDownList;
-      Controls.Add(combo);
-
-      TriggerLayout(true); // force a layout before the form is displayed
+      Controls.AddRange(list, combo);
       #endregion
     }
+
+    protected override void LayOutChildren()
+    {
+      base.LayOutChildren();
+      combo.ListBoxHeight = list.Height = list.GetPreferredSize(10).Height;
+    }
+
+    ListBox list;
+    ComboBox combo;
   }
   #endregion
 
@@ -197,9 +207,11 @@ namespace WindowingTest
     static string dataPath = "data/"; // set to something correct
 #endif
 
+    [STAThread] // set this so we can use the clipboard
     static void Main()
     {
       Video.Initialize();
+      Keyboard.EnableKeyRepeat();
       SetMode(640, 480, false);
 
       #region Setup controls
@@ -207,20 +219,19 @@ namespace WindowingTest
         TrueTypeFont font = new TrueTypeFont(dataPath+"vera.ttf", 11);
         font.RenderStyle  = RenderStyle.Shaded; // make the font look pretty
         desktop.Font = font;          // set the default font
-        desktop.KeyRepeatDelay = 350; // 350 ms delay before key repeat
 
         Menu menu = new Menu("Menu", new KeyCombo(KeyMod.Alt, 'M'));
-        menu.Add(new MenuItem("Toggle fullscreen", 'T',
-                              new KeyCombo(KeyMod.Alt, Key.Enter)))
-          .Click += new EventHandler(ToggleFS_Click);
+        menu.Add(new MenuItem("Toggle font size")).Click += ToggleFont_Click;
+        menu.Add(new MenuItem("Toggle fullscreen", 'T', new KeyCombo(KeyMod.Alt, Key.Enter)))
+            .Click += ToggleFS_Click;
         menu.Add(new MenuItem("Message box", 'M', new KeyCombo(KeyMod.Ctrl, 'M')))
-          .Click += new EventHandler(MessageBox_Click);
+            .Click += MessageBox_Click;
         menu.Add(new MenuItem("Form 1", 'F', new KeyCombo(KeyMod.Ctrl, 'F')))
-          .Click += new EventHandler(Form1_Click);
+            .Click += Form1_Click;
         menu.Add(new MenuItem("Form 2", 'C', new KeyCombo(KeyMod.Ctrl, 'C')))
-          .Click += new EventHandler(Form2_Click);
+            .Click += Form2_Click;
         menu.Add(new MenuItem("Exit", 'Q', new KeyCombo(KeyMod.Ctrl, 'Q')))
-          .Click += new EventHandler(Exit_Click);
+            .Click += Exit_Click;
         desktop.Menu.Add(menu);
 
         desktop.Menu.Add(new Menu("Disabled")).Enabled=false;
@@ -247,16 +258,18 @@ namespace WindowingTest
 
     static void SetMode(int width, int height, bool fullScreen)
     {
-      Video.SetMode(width, height, 32, fullScreen ? SurfaceFlag.Fullscreen :
-                                                  SurfaceFlag.Resizeable);
+      Video.SetMode(width, height, 32, fullScreen ? SurfaceFlag.Fullscreen : SurfaceFlag.Resizeable);
       WM.WindowTitle = "Windowing Example";
-      desktop.Bounds  = Video.DisplaySurface.Bounds;
-      desktop.Surface = Video.DisplaySurface;
+      desktop.Bounds     = Video.DisplaySurface.Bounds;
+      desktop.DrawTarget = Video.DisplaySurface;
     }
 
     static bool EventProc(Event e) // fairly standard event handler
     {
-      if(desktop.ProcessEvent(e)) desktop.UpdateDisplay();
+      if(desktop.ProcessEvent(e))
+      {
+        if(desktop.Updated) Video.Flip();
+      }
       else
       {
         if(e is RepaintEvent) Video.Flip();
@@ -275,6 +288,15 @@ namespace WindowingTest
     static ControlsForm conForm;
 
     #region Event handlers
+    static void ToggleFont_Click(object sender, EventArgs e)
+    {
+      TrueTypeFont oldFont = (TrueTypeFont)desktop.Font;
+      TrueTypeFont newFont = new TrueTypeFont(dataPath+"vera.ttf", oldFont.PointSize == 11 ? 14 : 11);
+      newFont.RenderStyle = oldFont.RenderStyle;
+      desktop.Font = newFont;
+      GameLib.Utility.Dispose(oldFont);
+    }
+
     static void ToggleFS_Click(object sender, EventArgs e)
     {
       SetMode(640, 480, !Video.DisplaySurface.HasFlag(SurfaceFlag.Fullscreen));
@@ -284,13 +306,16 @@ namespace WindowingTest
     static void MessageBox_Click(object sender, EventArgs e)
     {
       string text = "This is a message box. It works much like the ones you "+
-                  "may be used to. Would you like to blow up the monitor?";
+                    "may be used to. Would you like to blow up the monitor?";
       if(MessageBox.Show(desktop, "Hello", text,
                          new string[] { "Blow it up!", "I think not." }, 1) == 0)
-        MessageBox.Show(desktop, "Boom?", "Boom!!! Wait... no, that didn't "+
-                                        "quite work.");
-      else MessageBox.Show(desktop, "Boom?", "Okay, fine. I guess I'll just "+
-                                           "format the hard drive.");
+      {
+        MessageBox.Show(desktop, "Boom?", "Boom!!! Wait... no, that didn't quite work.");
+      }
+      else
+      {
+        MessageBox.Show(desktop, "Boom?", "Okay, fine. I guess I'll just format the hard drive.");
+      }
     }
 
     static void Form1_Click(object sender, EventArgs e)
@@ -299,8 +324,8 @@ namespace WindowingTest
       form.Parent = desktop;
 
       Random rand = new Random(); // place it randomly on the desktop
-      form.Location = new Point(rand.Next(desktop.ContentWidth-form.Width),
-                                rand.Next(desktop.ContentHeight-form.Height));
+      form.Location = new Point(rand.Next(desktop.ContentRect.Width-form.Width),
+                                rand.Next(desktop.ContentRect.Height-form.Height));
       form.Focus(); // make it the active form
     }
 

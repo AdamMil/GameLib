@@ -1,7 +1,7 @@
 /*
 GameLib is a library for developing games and other multimedia applications.
 http://www.adammil.net/
-Copyright (C) 2002-2007 Adam Milazzo
+Copyright (C) 2002-2009 Adam Milazzo
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -204,7 +204,7 @@ public static class OpenGL
 
     if(internalFormat==0) internalFormat = usingAlpha ? GL.GL_RGBA : GL.GL_RGB;
     if(!WillTextureFit(internalFormat, level, border, texSize.Width, texSize.Height))
-    { texSize = new Size(0, 0);
+    { texSize = Size.Empty;
       return false;
     }
 
@@ -412,6 +412,7 @@ public class GLTexture2D : IDisposable
     set
     { if(value<0) throw new ArgumentOutOfRangeException("ImgHeight", value, "must not be negative");
       imgSize.Height = value;
+      texCoordHeight = TexHeight == 0 ? 0 : (double)value / TexHeight;
     }
   }
 
@@ -422,9 +423,9 @@ public class GLTexture2D : IDisposable
   public Size ImgSize
   { get { return imgSize; }
     set
-    { if(value.Width<0 || value.Height<0)
-        throw new ArgumentOutOfRangeException("ImgSize", value, "coordinates must not be negative");
-      imgSize = value;
+    {
+      ImgWidth  = value.Width;
+      ImgHeight = value.Height;
     }
   }
 
@@ -437,7 +438,24 @@ public class GLTexture2D : IDisposable
     set
     { if(value<0) throw new ArgumentOutOfRangeException("ImgWidth", value, "must not be negative");
       imgSize.Width = value;
+      texCoordWidth = TexWidth == 0 ? 0 : (double)value / TexWidth;
     }
+  }
+
+  /// <summary>Gets the width of the image in texture coordinates. This is equal to the image width divided by the
+  /// texture width.
+  /// </summary>
+  public double TexCoordWidth
+  {
+    get { return texCoordWidth; }
+  }
+
+  /// <summary>Gets the height of the image in texture coordinates. This is equal to the image height divided by the
+  /// texture height.
+  /// </summary>
+  public double TexCoordHeight
+  {
+    get { return texCoordHeight; }
   }
 
   /// <summary>Evaluates to true if a texture has been loaded.</summary>
@@ -511,7 +529,8 @@ public class GLTexture2D : IDisposable
       { GL.glDeleteTexture(tex);
         return false;
       }
-      imgSize = surface.Size; texture = tex;
+      ImgSize = surface.Size;
+      texture = tex;
       return true;
     }
     finally { GL.glBindTexture(GL.GL_TEXTURE_2D, old); }
@@ -532,6 +551,7 @@ public class GLTexture2D : IDisposable
   void AssertInit() { if(texture==0) throw new InvalidOperationException("Texture has not been initialized yet"); }
   void Dispose(bool finalizing) { Unload(); }
 
+  double texCoordWidth, texCoordHeight;
   Size imgSize, size;
   int texture;
 }

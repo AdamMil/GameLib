@@ -1,7 +1,7 @@
 /*
 GameLib is a library for developing games and other multimedia applications.
 http://www.adammil.net/
-Copyright (C) 2002-2007 Adam Milazzo
+Copyright (C) 2002-2009 Adam Milazzo
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -591,11 +591,7 @@ public class SoundFileSource : AudioSource
     {
       SF.Close(sndfile);
       sndfile = new IntPtr(null);
-      if(virtualIO!=null)
-      {
-        virtualIO.Dispose();
-        virtualIO = null;
-      }
+      Utility.Dispose(ref virtualIO);
     }
     base.Dispose(finalizing);
   }

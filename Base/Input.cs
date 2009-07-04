@@ -1,7 +1,7 @@
 /*
 GameLib is a library for developing games and other multimedia applications.
 http://www.adammil.net/
-Copyright (C) 2002-2007 Adam Milazzo
+Copyright (C) 2002-2009 Adam Milazzo
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -313,7 +313,7 @@ public struct KeyCombo
   /// <see cref="Key"/> doesn't equal <see cref="GameLib.Input.Key.None"/>. An invalid key combination can't match
   /// anything.
   /// </remarks>
-  public bool Valid { get { return Char!=0 || Key!=Key.None; } }
+  public bool IsValid { get { return Char!=0 || Key!=Key.None; } }
 
   public override bool Equals(object obj)
   {
@@ -441,6 +441,8 @@ public struct KeyCombo
   {
     return a.Char != b.Char || a.Key != b.Key || a.KeyMods != b.KeyMods;
   }
+
+  public static readonly KeyCombo None = new KeyCombo();
 
   static KeyMod[] masks = new KeyMod[] { KeyMod.Shift, KeyMod.Ctrl, KeyMod.Alt, KeyMod.Meta };
 }
@@ -606,7 +608,7 @@ public static class Mouse
   /// <remarks>This event is raised by the <see cref="Input.ProcessEvent"/> method.</remarks>
   public static event MouseClickHandler MouseClick;
 
-  /// <summary>Gets/sets the current position of the mouse cursor.</summary>
+  /// <summary>Gets or sets the current position of the mouse cursor.</summary>
   /// <remarks>This property is updated by <see cref="Input.ProcessEvent"/>. When setting this property, the position
   /// given is clipped to the application window.
   /// </remarks>
@@ -619,7 +621,7 @@ public static class Mouse
       SDL.GetMouseState(out x, out y);
     }
   }
-  /// <summary>Gets/sets the current X coordinate of the mouse cursor's position.</summary>
+  /// <summary>Gets or sets the current X coordinate of the mouse cursor's position.</summary>
   /// <remarks>This property is updated by <see cref="Input.ProcessEvent"/>. When setting this property, the position
   /// given is clipped to the application window. If you want to set both the X and Y coordinates, it's more
   /// efficient to set the <see cref="Point"/> property.
@@ -628,7 +630,7 @@ public static class Mouse
   { get { return x; }
     set { Point = new System.Drawing.Point(value,  y); }
   }
-  /// <summary>Gets/sets the current Y coordinate of the mouse cursor's position.</summary>
+  /// <summary>Gets or sets the current Y coordinate of the mouse cursor's position.</summary>
   /// <remarks>This property is updated by <see cref="Input.ProcessEvent"/>. When setting this property, the position
   /// given is clipped to the application window. If you want to set both the X and Y coordinates, it's more
   /// efficient to set the <see cref="Point"/> property.
@@ -637,7 +639,7 @@ public static class Mouse
   { get { return y; }
     set { Point = new System.Drawing.Point(x, value); }
   }
-  /// <summary>Gets/sets the current Z coordinate of the mouse, which represents the position of the mouse wheel.</summary>
+  /// <summary>Gets or sets the current Z coordinate of the mouse, which represents the position of the mouse wheel.</summary>
   /// <remarks>This property is updated by <see cref="Input.ProcessEvent"/>.</remarks>
   public static int Z { get { return z; } set { z=value; } }
 
