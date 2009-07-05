@@ -35,7 +35,7 @@ public enum AutoFocus
 public delegate void PaintHandler(PaintEventArgs e);
 
 #region Desktop
-public abstract class Desktop : Control, IDisposable
+public class Desktop : Control, IDisposable
 {
   public Desktop()
   {
@@ -155,15 +155,15 @@ public abstract class Desktop : Control, IDisposable
   /// <summary>Gets or sets the renderer used to paint controls on this desktop. This property must be set before the
   /// desktop is usable.
   /// </summary>
-  public IControlRenderer Renderer
+  public new IControlRenderer Renderer
   {
-    get { return renderer; }
+    get { return base.Renderer; }
     set
     {
-      if(value != Renderer)
+      if(value != base.Renderer)
       {
-        if(renderer != null) renderer.VideoModeChanged -= OnVideoModeChanged;
-        renderer = value;
+        if(Renderer != null) Renderer.VideoModeChanged -= OnVideoModeChanged;
+        base.Renderer = value;
         if(value != null) value.VideoModeChanged += OnVideoModeChanged;
         UpdateRenderers(this);
         UpdateDrawTargets();
@@ -308,7 +308,10 @@ public abstract class Desktop : Control, IDisposable
             c.OnMouseEnter();
           }
           at = c.ParentToControl(at);
-          if((focus == AutoFocus.OverSticky || focus == AutoFocus.Over) && c.CanReceiveFocus && passModal) c.Focus(false);
+          if((focus == AutoFocus.OverSticky || focus == AutoFocus.Over) && c.CanReceiveFocus && passModal)
+          {
+            c.Focus(false);
+          }
           ei++;
           p = c;
         }
@@ -386,7 +389,7 @@ public abstract class Desktop : Control, IDisposable
           if(c == null) break;
           if(!passModal && c == modal[modal.Count - 1]) passModal = true;
           at = c.ParentToControl(at);
-          if(focus == AutoFocus.Click && ea.CE.Down && c.CanReceiveFocus && passModal && !ea.CE.MouseWheel)
+          if(focus == AutoFocus.Click && ea.CE.Down && c.CanReceiveFocus && passModal && !ea.CE.IsMouseWheel)
           {
             c.Focus(false);
           }
@@ -481,7 +484,7 @@ public abstract class Desktop : Control, IDisposable
 
   protected virtual void Dispose(bool finalizing)
   {
-    if(renderer != null) renderer.VideoModeChanged -= OnVideoModeChanged;
+    if(Renderer != null) Renderer.VideoModeChanged -= OnVideoModeChanged;
     if(!disposed) Events.Events.Deinitialize();
     disposed = true;
   }
@@ -666,7 +669,7 @@ public abstract class Desktop : Control, IDisposable
       target.OnMouseDown(e);
       if(e.Handled) { clickStatus ^= ClickStatus.UpDown; e.Handled = false; }
     }
-    if(!e.CE.MouseWheel && (byte)e.CE.Button < 8)
+    if(!e.CE.IsMouseWheel && (byte)e.CE.Button < 8)
     {
       if(target.HasStyle(ControlStyle.NormalClick) && (clickStatus & ClickStatus.Click) != 0)
       {
@@ -690,7 +693,7 @@ public abstract class Desktop : Control, IDisposable
     }
     if(!e.CE.Down && (clickStatus & ClickStatus.UpDown) != 0)
     {
-      if(e.CE.MouseWheel) e.Handled = true;
+      if(e.CE.IsMouseWheel) e.Handled = true;
       else target.OnMouseUp(e);
       if(e.Handled) { clickStatus ^= ClickStatus.UpDown; e.Handled = false; }
     }
@@ -768,14 +771,14 @@ public abstract class Desktop : Control, IDisposable
 
   void UpdateDrawTargets()
   {
-    UpdateDrawTarget(true, true, true);
+    UpdateDrawTarget(true, true);
   }
 
   void UpdateRenderers(Control control)
   {
     foreach(Control child in control.Controls)
     {
-      child.SetRenderer(renderer);
+      child.SetRenderer(Renderer);
       UpdateRenderers(child);
     }
   }

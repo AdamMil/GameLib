@@ -33,9 +33,9 @@ namespace GameLib.Forms
  *   Draw coordinates - pixels relative to the desktop's (used for drawing)
  */
 
-public abstract class Control
+public class Control
 {
-  protected Control()
+  public Control()
   {
     controls = new ControlCollection(this);
   }
@@ -280,7 +280,7 @@ public abstract class Control
     {
       if(borderStyle != value)
       {
-        if(renderer != null && BorderWidth != renderer.GetBorderWidth(value)) OnContentSizeChanged();
+        if(Renderer != null && BorderWidth != Renderer.GetBorderWidth(value)) OnContentSizeChanged();
         borderStyle = value;
       }
     }
@@ -291,7 +291,7 @@ public abstract class Control
   /// <remarks>The border width is determined by the <see cref="BorderStyle"/> property.</remarks>
   public int BorderWidth
   {
-    get { return renderer == null ? 0 : renderer.GetBorderWidth(BorderStyle); }
+    get { return Renderer == null ? 0 : Renderer.GetBorderWidth(BorderStyle); }
   }
 
   /// <summary>Determines where the control will be anchored in relation to its parent.</summary>
@@ -590,6 +590,7 @@ public abstract class Control
         }
 
         focused = value;
+
         if(value != null)
         {
           value.SetFlag(Flag.Focused, Focused);
@@ -682,7 +683,7 @@ public abstract class Control
       bool updateDrawTarget =
         ((ControlStyle)flags & ControlStyle.CustomDrawTarget) != (value & ControlStyle.CustomDrawTarget);
       flags = flags & ~Flag.ControlStyleMask | ((Flag)value & Flag.ControlStyleMask);
-      if(updateDrawTarget) UpdateDrawTarget(false, false, false);
+      if(updateDrawTarget) UpdateDrawTarget(false, false);
     }
   }
 
@@ -944,7 +945,7 @@ public abstract class Control
   {
     if(invalid.Width != 0) invalid.Intersect(ControlRect); // if we have an invalid rectangle, clip it to the new size
 
-    UpdateDrawTarget(false, false, false);
+    UpdateDrawTarget(false, false);
 
     // if we have a parent and got smaller, we'll need to invalidate a portion of the parent
     if(parent != null && EffectivelyVisible)
@@ -1560,7 +1561,8 @@ public abstract class Control
       if(invalid.Width != 0 && !HasFlag(Flag.PendingRepaint) && EffectivelyVisible && Desktop != null)
       {
         // if the parent is not going to repaint this area anytime soon, add ourselves to the paint list
-        if(Parent == null || !Parent.HasFlag(Flag.PendingRepaint) || !Parent.InvalidRect.Contains(dirtyRect))
+        if(Parent == null || !Parent.HasFlag(Flag.PendingRepaint) ||
+           !Parent.InvalidRect.Contains(ControlToParent(dirtyRect)))
         {
           SetFlag(Flag.PendingRepaint, true);
           Desktop.NeedsRepaint(this);
@@ -1675,6 +1677,11 @@ public abstract class Control
       if(value < -1) throw new ArgumentOutOfRangeException("DragThreshold", value, "must be >=0 or -1");
       dragThreshold=value;
     }
+  }
+
+  protected internal IControlRenderer Renderer
+  {
+    get; internal set;
   }
 
   /// <summary>Gets the control's effective font by returning the first font of the control or of an ancestor that is
@@ -1883,10 +1890,10 @@ public abstract class Control
     {
       if(BackColor.A != 255) return true;
 
-      if(renderer != null)
+      if(Renderer != null)
       {
         IGuiRenderTarget drawTarget = GetDrawTarget();
-        return drawTarget != null && renderer.IsTranslucent(drawTarget);
+        return drawTarget != null && Renderer.IsTranslucent(drawTarget);
       }
 
       return false;
@@ -1948,9 +1955,9 @@ public abstract class Control
 
   internal void SetRenderer(IControlRenderer renderer)
   {
-    if(renderer != this.renderer)
+    if(renderer != this.Renderer)
     {
-      this.renderer = renderer;
+      this.Renderer = renderer;
       if(renderer != null) OnContentSizeChanged(); // the renderer may affect border sizes, etc
     }
   }
@@ -1960,9 +1967,9 @@ public abstract class Control
   /// have to be implemented in a derived class, which should call the base implementation at the end of the derived
   /// version.
   /// </summary>
-  internal void UpdateDrawTarget(bool forceRecreate, bool recursive, bool skipThis)
+  internal void UpdateDrawTarget(bool forceRecreate, bool recursive)
   {
-    if(!skipThis &&
+    if(this != Desktop &&
        (forceRecreate || // if we're being forced to update it
         !HasStyle(ControlStyle.CustomDrawTarget) && DrawTarget != null || // or we don't need our backing surface anymore
         HasStyle(ControlStyle.CustomDrawTarget) && (DrawTarget == null || Size != DrawTarget.Size))) // or we need one and ours is invalid
@@ -1971,9 +1978,9 @@ public abstract class Control
       Utility.TryDispose(DrawTarget);
       DrawTarget = null;
 
-      if(HasStyle(ControlStyle.CustomDrawTarget) && renderer != null)
+      if(HasStyle(ControlStyle.CustomDrawTarget) && Renderer != null)
       {
-        DrawTarget = renderer.CreateDrawTarget(this);
+        DrawTarget = Renderer.CreateDrawTarget(this);
         forceRecreate = recursive = true;
       }
 
@@ -1982,7 +1989,7 @@ public abstract class Control
 
     if(recursive)
     {
-      foreach(Control child in Controls) child.UpdateDrawTarget(forceRecreate, true, false);
+      foreach(Control child in Controls) child.UpdateDrawTarget(forceRecreate, true);
     }
   }
 
@@ -2037,7 +2044,7 @@ public abstract class Control
       bool hadNoDesktop = Desktop == null;
 
       Desktop = parent.Desktop;
-      SetRenderer(parent.renderer);
+      SetRenderer(parent.Renderer);
 
       Font newFont = font ?? parent.effectiveFont;
       if(newFont != effectiveFont)
@@ -2117,8 +2124,7 @@ public abstract class Control
       if(parent != null)
       {
         parent.OnControlAdded(ce);
-        if(oldParent == null && Controls.Count != 0) TriggerLayout();
-        Invalidate();
+        if(oldParent == null) TriggerLayout();
       }
       if(!HasFlag(Flag.MyChange)) OnParentChanged(new ValueChangedEventArgs(oldParent));
     }
@@ -2129,8 +2135,6 @@ public abstract class Control
 
   /// <summary>The list of this control's children.</summary>
   readonly ControlCollection controls;
-
-  internal IControlRenderer renderer;
 
   /// <summary>The selected child.</summary>
   Control focused;

@@ -7,15 +7,16 @@ namespace GameLib.Forms
 {
 
 /// <summary>The direction an arrow points. <seealso cref="IControlRenderer.DrawArrow"/></summary>
-public enum Arrow { Up, Down, Left, Right }
+public enum ArrowDirection { Up, Down, Left, Right }
 
+#region IControlRenderer
 public interface IControlRenderer
 {
   event ModeChangedHandler VideoModeChanged;
   IGuiRenderTarget CreateDrawTarget(Control control);
-  void DrawArrow(IGuiRenderTarget target, Rectangle rect, Arrow arrow, int size, Color color);
-  void DrawArrowBox(IGuiRenderTarget target, Rectangle rect, Arrow arrow, int size, bool depressed,
-                    Color bgColor, Color arrowColor);
+  void DrawArrow(IGuiRenderTarget target, Rectangle rect, ArrowDirection direction, int arrowSize, Color color);
+  void DrawArrowButton(IGuiRenderTarget target, Rectangle rect, ArrowDirection direction, int arrowSize,
+                       bool depressed, Color bgColor, Color arrowColor);
   void DrawBackgroundColor(Control control, PaintEventArgs e, Color backColor);
   void DrawBackgroundImage(Control control, PaintEventArgs e, IGuiImage backImage, ContentAlignment imageAlignment);
   void DrawBorder(IGuiRenderTarget target, Rectangle rect, BorderStyle style, Color color);
@@ -26,10 +27,12 @@ public interface IControlRenderer
   int GetBorderWidth(BorderStyle style);
   Size GetCheckBoxSize(Control control);
   int GetScrollBarEndSize(Control control);
-  bool IsTranslucent(IGuiRenderTarget DrawTarget);
+  bool IsTranslucent(IGuiRenderTarget target);
 }
+#endregion
 
-public sealed class SurfaceControlRenderer : IControlRenderer
+#region ControlRenderer
+public abstract class ControlRenderer : IControlRenderer
 {
   public event ModeChangedHandler VideoModeChanged
   {
@@ -37,45 +40,13 @@ public sealed class SurfaceControlRenderer : IControlRenderer
     remove { Video.Video.ModeChanged -= value; }
   }
 
-  public IGuiRenderTarget CreateDrawTarget(Control control)
-  {
-    if(control == null) throw new ArgumentNullException();
+  public abstract IGuiRenderTarget CreateDrawTarget(Control control);
 
-    Surface parentSurface = control.Parent == null ? null : control.Parent.GetDrawTarget() as Surface;
-    return parentSurface == null ? new Surface(control.Width, control.Height, Video.Video.DisplayFormat)
-                                 : parentSurface.CreateCompatible(control.Width, control.Height);
-  }
+  public abstract void DrawArrow(IGuiRenderTarget target, Rectangle rect, ArrowDirection direction, int arrowSize,
+                                 Color color);
 
-  public void DrawArrow(IGuiRenderTarget target, Rectangle rect, Arrow arrow, int size, Color color)
-  {
-    Surface surface = GetSurface(target);
-    int x, y, s, si;
-    switch(arrow)
-    {
-      case Arrow.Up: case Arrow.Down:
-        x = rect.X + (rect.Width - 1) / 2; y = rect.Y + (rect.Height - size) / 2;
-        if(arrow == Arrow.Up) { s = 0; si = 1; }
-        else { s = size - 1; si = -1; }
-        for(int i = 0; i < size; s += si, i++) Primitives.Line(surface, x - s, y + i, x + s, y + i, color);
-        break;
-      case Arrow.Left: case Arrow.Right:
-        x = rect.X + (rect.Width - size) / 2; y = rect.Y + (rect.Height - 1) / 2;
-        if(arrow == Arrow.Left) { s = 0; si = 1; }
-        else { s = size - 1; si = -1; }
-        for(int i = 0; i < size; s += si, i++) Primitives.Line(surface, x + i, y - s, x + i, y + s, color);
-        break;
-    }
-  }
-
-  public void DrawArrowBox(IGuiRenderTarget target, Rectangle rect, Arrow arrow, int size, bool depressed,
-                           Color bgColor, Color arrowColor)
-  {
-    Surface surface = GetSurface(target);
-    target.FillArea(rect, bgColor);
-    DrawBorder(surface, rect, BorderStyle.FixedThick, bgColor, depressed);
-    if(depressed) rect.Offset(1, 1);
-    DrawArrow(target, rect, arrow, size, arrowColor);
-  }
+  public abstract void DrawArrowButton(IGuiRenderTarget target, Rectangle rect, ArrowDirection direction,
+                                       int arrowSize, bool depressed, Color bgColor, Color arrowColor);
 
   public void DrawBackgroundColor(Control control, PaintEventArgs e, Color backColor)
   {
@@ -83,8 +54,8 @@ public sealed class SurfaceControlRenderer : IControlRenderer
     if(backColor.A != 0) e.Target.FillArea(e.DrawRect, backColor);
   }
 
-  public void DrawBackgroundImage(Control control, PaintEventArgs e,
-                                  IGuiImage backImage, ContentAlignment imageAlignment)
+  public void DrawBackgroundImage(Control control, PaintEventArgs e, IGuiImage backImage, 
+                                  ContentAlignment imageAlignment)
   {
     if(control == null || e == null) throw new ArgumentNullException();
     if(backImage != null)
@@ -95,45 +66,20 @@ public sealed class SurfaceControlRenderer : IControlRenderer
     }
   }
 
+  public abstract void DrawBorder(IGuiRenderTarget target, Rectangle rect, BorderStyle style, Color color);
+
   public void DrawBorder(Control control, PaintEventArgs e, BorderStyle style, Color color)
   {
     if(control == null || e == null) throw new ArgumentNullException();
     if(style != BorderStyle.None && color.A != 0) DrawBorder(e.Target, control.GetDrawRect(), style, color);
   }
 
-  /// <summary>Paints a border using the specified base color.</summary>
-  public void DrawBorder(IGuiRenderTarget target, Rectangle rect, BorderStyle border, Color color)
-  {
-    if(target == null) throw new ArgumentNullException();
-    if(border != BorderStyle.None && color.A != 0)
-    {
-      DrawBorder(GetSurface(target), rect, border, color, (border & BorderStyle.Depressed) != 0);
-    }
-  }
+  public abstract void DrawBox(IGuiRenderTarget target, Rectangle rect, Color color);
 
-  public void DrawBox(IGuiRenderTarget target, Rectangle rect, Color color)
-  {
-    Primitives.Box(GetSurface(target), rect, color);
-  }
+  public abstract void DrawCheckBox(Control control, PaintEventArgs e, Point drawPoint, bool isChecked,
+                                    bool depressed, bool enabled);
 
-  public void DrawCheckBox(Control control, PaintEventArgs e, Point drawPoint,
-                           bool isChecked, bool depressed, bool enabled)
-  {
-    Surface surface = GetSurface(e.Target);
-    Rectangle box = new Rectangle(drawPoint, GetCheckBoxSize(control));
-    DrawBorder(surface, box, BorderStyle.Fixed3D, enabled ? SystemColors.ActiveBorder : SystemColors.InactiveBorder,
-               true);
-    box.Inflate(-2, -2); // border
-    surface.Fill(box, !depressed && enabled ? SystemColors.Window : SystemColors.Control);
-    if(isChecked) DrawCheck(surface, box.X+1, box.Y+1, SystemColors.ControlText);
-  }
-
-  public void DrawLine(IGuiRenderTarget target, Point p1, Point p2, Color color, bool antialiased)
-  {
-    Surface surface = GetSurface(target);
-    if(antialiased) Primitives.LineAA(surface, p1, p2, color);
-    else Primitives.Line(surface, p1, p2, color);
-  }
+  public abstract void DrawLine(IGuiRenderTarget target, Point p1, Point p2, Color color, bool antialiased);
 
   /// <summary>Returns the thickness of a border, in pixels.</summary>
   public int GetBorderWidth(BorderStyle border)
@@ -158,7 +104,89 @@ public sealed class SurfaceControlRenderer : IControlRenderer
     return 16;
   }
 
-  public bool IsTranslucent(IGuiRenderTarget target)
+  public abstract bool IsTranslucent(IGuiRenderTarget target);
+}
+#endregion
+
+#region SurfaceControlRenderer
+public sealed class SurfaceControlRenderer : ControlRenderer
+{
+  public override IGuiRenderTarget CreateDrawTarget(Control control)
+  {
+    if(control == null) throw new ArgumentNullException();
+
+    Surface parentSurface = control.Parent == null ? null : control.Parent.GetDrawTarget() as Surface;
+    return parentSurface == null ? new Surface(control.Width, control.Height, Video.Video.DisplayFormat)
+                                 : parentSurface.CreateCompatible(control.Width, control.Height);
+  }
+
+  public override void DrawArrow(IGuiRenderTarget target, Rectangle rect, ArrowDirection direction, int arrowSize,
+                                 Color color)
+  {
+    Surface surface = GetSurface(target);
+    int x, y, s, si;
+    switch(direction)
+    {
+      case ArrowDirection.Up: case ArrowDirection.Down:
+        x = rect.X + (rect.Width - 1) / 2; y = rect.Y + (rect.Height - arrowSize) / 2;
+        if(direction == ArrowDirection.Up) { s = 0; si = 1; }
+        else { s = arrowSize - 1; si = -1; }
+        for(int i = 0; i < arrowSize; s += si, i++) Primitives.Line(surface, x - s, y + i, x + s, y + i, color);
+        break;
+      case ArrowDirection.Left: case ArrowDirection.Right:
+        x = rect.X + (rect.Width - arrowSize) / 2; y = rect.Y + (rect.Height - 1) / 2;
+        if(direction == ArrowDirection.Left) { s = 0; si = 1; }
+        else { s = arrowSize - 1; si = -1; }
+        for(int i = 0; i < arrowSize; s += si, i++) Primitives.Line(surface, x + i, y - s, x + i, y + s, color);
+        break;
+    }
+  }
+
+  public override void DrawArrowButton(IGuiRenderTarget target, Rectangle rect, ArrowDirection direction,
+                                       int arrowSize, bool depressed, Color bgColor, Color arrowColor)
+  {
+    Surface surface = GetSurface(target);
+    target.FillArea(rect, bgColor);
+    DrawBorder(surface, rect, BorderStyle.FixedThick, bgColor, depressed);
+    if(depressed) rect.Offset(1, 1);
+    DrawArrow(target, rect, direction, arrowSize, arrowColor);
+  }
+
+  /// <summary>Paints a border using the specified base color.</summary>
+  public override void DrawBorder(IGuiRenderTarget target, Rectangle rect, BorderStyle border, Color color)
+  {
+    if(target == null) throw new ArgumentNullException();
+    if(border != BorderStyle.None && color.A != 0)
+    {
+      DrawBorder(GetSurface(target), rect, border, color, (border & BorderStyle.Depressed) != 0);
+    }
+  }
+
+  public override void DrawBox(IGuiRenderTarget target, Rectangle rect, Color color)
+  {
+    Primitives.Box(GetSurface(target), rect, color);
+  }
+
+  public override void DrawCheckBox(Control control, PaintEventArgs e, Point drawPoint,
+                                    bool isChecked, bool depressed, bool enabled)
+  {
+    Surface surface = GetSurface(e.Target);
+    Rectangle box = new Rectangle(drawPoint, GetCheckBoxSize(control));
+    DrawBorder(surface, box, BorderStyle.Fixed3D, enabled ? SystemColors.ActiveBorder : SystemColors.InactiveBorder,
+               true);
+    box.Inflate(-2, -2); // border
+    surface.Fill(box, !depressed && enabled ? SystemColors.Window : SystemColors.Control);
+    if(isChecked) DrawCheck(surface, box.X+1, box.Y+1, SystemColors.ControlText);
+  }
+
+  public override void DrawLine(IGuiRenderTarget target, Point p1, Point p2, Color color, bool antialiased)
+  {
+    Surface surface = GetSurface(target);
+    if(antialiased) Primitives.LineAA(surface, p1, p2, color);
+    else Primitives.Line(surface, p1, p2, color);
+  }
+
+  public override bool IsTranslucent(IGuiRenderTarget target)
   {
     Surface surface = target as Surface;
     return surface != null && surface.UsingAlpha;
@@ -257,5 +285,6 @@ public sealed class SurfaceControlRenderer : IControlRenderer
     return surface;
   }
 }
+#endregion
 
 } // namespace GameLib.Forms

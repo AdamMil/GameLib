@@ -432,7 +432,7 @@ public class MouseClickEvent : Event
   /// <remarks>This works by checking whether <see cref="Button"/> is equal to <see cref="MouseButton.WheelUp"/>
   /// or <see cref="MouseButton.WheelDown"/>.
   /// </remarks>
-  public bool MouseWheel
+  public bool IsMouseWheel
   { get { return Button==MouseButton.WheelDown || Button==MouseButton.WheelUp; }
   }
   /// <summary>Gets the position of the mouse cursor at the time the button event was recorded.</summary>

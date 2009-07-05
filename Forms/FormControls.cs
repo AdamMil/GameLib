@@ -189,7 +189,6 @@ public abstract class FormBase : Control
   public object ShowDialog(Desktop desktop)
   {
     if(desktop == null) throw new ArgumentNullException();
-
     Visible = true;
     Parent = desktop;
     Focus();
@@ -507,7 +506,7 @@ public class Form : FormBase
 #region MessageBox
 public enum MessageBoxButtons
 {
-  Ok, OkCancel, YesNo, YesNoCancel
+  Ok, Cancel, OkCancel, YesNo, YesNoCancel
 }
 
 public sealed class MessageBox : Form
@@ -527,6 +526,11 @@ public sealed class MessageBox : Form
   }
 
   public int Show(Desktop desktop)
+  {
+    return Show(desktop, true);
+  }
+
+  public int Show(Desktop desktop, bool modal)
   {
     Parent = desktop;
     if(!init)
@@ -627,7 +631,16 @@ public sealed class MessageBox : Form
       }
     }
 
-    return (int)ShowDialog(desktop);
+    if(modal)
+    {
+      return (int)ShowDialog(desktop);
+    }
+    else
+    {
+      Visible = true;
+      Focus();
+      return -1;
+    }
   }
 
   protected internal override void OnKeyPress(KeyEventArgs e)
@@ -690,14 +703,18 @@ public sealed class MessageBox : Form
   
   public static MessageBox Create(string caption, string text, MessageBoxButtons buttons, int defaultButton)
   {
+    string[] buttonTexts;
     switch(buttons)
     {
-      case MessageBoxButtons.Ok: return Create(caption, text, ok, defaultButton);
-      case MessageBoxButtons.OkCancel: return Create(caption, text, okCancel, defaultButton);
-      case MessageBoxButtons.YesNo: return Create(caption, text, yesNo, defaultButton);
-      case MessageBoxButtons.YesNoCancel: return Create(caption, text, yesNoCancel, defaultButton);
+      case MessageBoxButtons.Ok: buttonTexts = okButtons; break;
+      case MessageBoxButtons.Cancel: buttonTexts = cancelButtons; break;
+      case MessageBoxButtons.OkCancel: buttonTexts = okCancelButtons; break;
+      case MessageBoxButtons.YesNo: buttonTexts = yesNoButtons; break;
+      case MessageBoxButtons.YesNoCancel: buttonTexts = yesNoCancelButtons; break;
       default: throw new ArgumentException("Unknown MessageBoxButtons value");
     }
+
+    return Create(caption, text, buttonTexts, defaultButton);
   }
   
   public static MessageBox Create(string caption, string text, string[] buttonText)
@@ -739,10 +756,11 @@ public sealed class MessageBox : Form
     return Create(caption, text, buttonText, defaultButton).Show(desktop);
   }
 
-  static readonly string[] ok = new string[] { "Ok" };
-  static readonly string[] okCancel = new string[] { "Ok", "Cancel" };
-  static readonly string[] yesNo = new string[] { "Yes", "No" };
-  static readonly string[] yesNoCancel = new string[] { "Yes", "No", "Cancel" };
+  static readonly string[] okButtons = new string[] { "Ok" };
+  static readonly string[] cancelButtons = new string[] { "Cancel" };
+  static readonly string[] okCancelButtons = new string[] { "Ok", "Cancel" };
+  static readonly string[] yesNoButtons = new string[] { "Yes", "No" };
+  static readonly string[] yesNoCancelButtons = new string[] { "Yes", "No", "Cancel" };
 }
 #endregion
 

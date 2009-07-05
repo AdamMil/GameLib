@@ -258,22 +258,34 @@ public class GLTrueTypeFont : GLFont
     if(text == null) throw new ArgumentNullException();
     if(text.Length == 0) return 0;
 
-    if(bgColor.A != 0)
-    {
-      throw new NotImplementedException();
-    }
-
     const int DesiredSourceBlend = GL.GL_SRC_ALPHA, DesiredDestBlend = GL.GL_ONE_MINUS_SRC_ALPHA;
     int oldSourceBlend = GL.glGetIntegerv(GL.GL_BLEND_SRC), oldDestBlend = GL.glGetIntegerv(GL.GL_BLEND_DST);
     bool texturingEnabled = GL.glIsEnabled(GL.GL_TEXTURE_2D), blendingEnabled = GL.glIsEnabled(GL.GL_BLEND);
 
-    if(!texturingEnabled) GL.glEnable(GL.GL_TEXTURE_2D);
     if(!blendingEnabled) GL.glEnable(GL.GL_BLEND);
     if(oldSourceBlend != DesiredSourceBlend || oldDestBlend != DesiredDestBlend)
     {
       GL.glBlendFunc(DesiredSourceBlend, DesiredDestBlend);
     }
 
+    if(bgColor.A != 0)
+    {
+      int width = 0;
+      for(int i=0; i<text.Length; i++) width += GetChar(text, i, false).Advance;
+
+      float right = x + (width-1), bottom = y + (Height-1);
+      if(texturingEnabled) GL.glDisable(GL.GL_TEXTURE_2D);
+      GL.glColor(bgColor);
+      GL.glBegin(GL.GL_QUADS);
+      GL.glVertex2f(x, y);
+      GL.glVertex2f(right, y);
+      GL.glVertex2f(right, bottom);
+      GL.glVertex2f(x, bottom);
+      GL.glEnd();
+      if(texturingEnabled) GL.glEnable(GL.GL_TEXTURE_2D);
+    }
+
+    if(!texturingEnabled) GL.glEnable(GL.GL_TEXTURE_2D);
     GL.glColor(Color);
 
     float start = x;

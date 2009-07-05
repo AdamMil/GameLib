@@ -1549,7 +1549,7 @@ public class ComboBox : ListControl
   protected override void OnPaint(PaintEventArgs e)
   {
     base.OnPaint(e);
-    e.Renderer.DrawArrowBox(e.Target, ControlToDraw(BoxRect), Arrow.Down, BoxRect.Width / 4, depressed,
+    e.Renderer.DrawArrowButton(e.Target, ControlToDraw(BoxRect), ArrowDirection.Down, BoxRect.Width / 4, depressed,
                             SystemColors.Control, EffectivelyEnabled ? Color.Black : SystemColors.GrayText);
   }
 

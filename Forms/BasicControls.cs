@@ -186,7 +186,7 @@ public class Line : Control
     Color color = GetEffectiveForeColor();
     if(color.A != 0)
     {
-      Rectangle drawRect = GetDrawRect();
+      Rectangle drawRect = GetContentDrawRect();
       Point p1 = topToBottom ? drawRect.Location : new Point(drawRect.X, drawRect.Bottom - 1);
       Point p2 = topToBottom ? new Point(drawRect.Right - 1, drawRect.Bottom - 1)
                              : new Point(drawRect.Right - 1, drawRect.Y);
@@ -487,9 +487,9 @@ public class CheckBox : ButtonBase
     get
     {
       RectOffset offset = base.ContentOffset;
-      if(renderer != null)
+      if(Renderer != null)
       {
-        Size size = renderer.GetCheckBoxSize(this);
+        Size size = Renderer.GetCheckBoxSize(this);
         offset.Left += size.Width + size.Width/4; // add some space between the checkbox and the content
       }
       return offset;
@@ -546,6 +546,115 @@ public class CheckBox : ButtonBase
   }
 
   bool isChecked;
+}
+#endregion
+
+#region ImageSizeMode
+public enum ImageSizeMode
+{
+  /// <summary>The image is rendered at its normal size.</summary>
+  Normal,
+  /// <summary>The image is stretched or shrunk to fit, without respecting its aspect ratio.</summary>
+  Stretch,
+  /// <summary>The image is stretched or shrunk to fit, while respecting its aspect ratio.</summary>
+  Zoom,
+  /// <summary>The image is shrunk to fit, while respecting its aspect ratio, but will not be enlarged beyond its
+  /// normal size.
+  /// </summary>
+  ZoomOut
+}
+#endregion
+
+#region Image
+public class Image : Control
+{
+  public Image()
+  {
+    Alignment = ContentAlignment.MiddleCenter;
+    SizeMode  = ImageSizeMode.ZoomOut;
+  }
+
+  public ContentAlignment Alignment
+  {
+    get; set;
+  }
+
+  public IGuiImage Image
+  {
+    get; set;
+  }
+
+  public ImageSizeMode SizeMode
+  {
+    get; set;
+  }
+
+  protected override void OnPaint(PaintEventArgs e)
+  {
+    base.OnPaint(e);
+
+    if(Image != null && Width != 0 && Height != 0)
+    {
+      Size imageSize = Image.Size, destSize;
+      if(imageSize.Height != 0 && imageSize.Width != 0)
+      {
+        double idealAspect = (double)Width / Height;
+
+        // calculate how large the image will be after being resized
+        switch(SizeMode)
+        {
+          case ImageSizeMode.Normal: destSize = imageSize; break;
+          case ImageSizeMode.Stretch: destSize = Size; break;
+          case ImageSizeMode.Zoom: case ImageSizeMode.ZoomOut: default:
+            if(SizeMode == ImageSizeMode.Zoom || imageSize.Width > Width || imageSize.Height > Height)
+            {
+              double imageAspect = (double)imageSize.Width / imageSize.Height;
+              destSize = imageAspect < idealAspect ? new Size((int)Math.Round(Height * imageAspect), Height)
+                                                   : new Size(Width, (int)Math.Round(Width / imageAspect));
+            }
+            else
+            {
+              destSize = imageSize;
+            }
+            break;
+        }
+
+        Rectangle destRect = new Rectangle(UIHelper.CalculateAlignment(ControlRect, destSize, Alignment), destSize);
+        Rectangle srcRect  = new Rectangle(Point.Empty, imageSize);
+
+        if(destRect.X < 0)
+        {
+          double factor = (double)-destRect.X / destRect.Width;
+          destRect.Width += destRect.X;
+          destRect.X      = 0;
+          srcRect.X = (int)Math.Round(factor * srcRect.Width);
+        }
+        if(destRect.Y < 0)
+        {
+          double factor = (double)-destRect.Y / destRect.Height;
+          destRect.Height += destRect.Y;
+          destRect.Y       = 0;
+          srcRect.Y = (int)Math.Round(factor * srcRect.Height);
+        }
+        if(destRect.Right > Width)
+        {
+          int difference = destRect.Right - Width;
+          double factor  = difference / destRect.Width;
+          destRect.Width -= difference;
+          srcRect.Width = (int)Math.Round(factor * srcRect.Width);
+        }
+        if(destRect.Bottom > Height)
+        {
+          int difference = destRect.Bottom - Height;
+          double factor  = difference / destRect.Height;
+          destRect.Height -= difference;
+          srcRect.Height = (int)Math.Round(factor * srcRect.Height);
+        }
+
+        Image.Draw(srcRect, e.Target, ControlToDraw(destRect));
+      }
+    }
+  }
 }
 #endregion
 
@@ -857,7 +966,7 @@ public class ScrollBar : Control, IDisposable
   protected override void OnContentSizeChanged()
   {
     base.OnContentSizeChanged();
-    endSize = renderer == null ? 0 : renderer.GetScrollBarEndSize(this);
+    endSize = Renderer == null ? 0 : Renderer.GetScrollBarEndSize(this);
     if(Width == 0 || Height == 0) Size = new Size(Width == 0 ? endSize : Width, Height == 0 ? endSize : Height);
   }
 
@@ -1048,10 +1157,10 @@ public class ScrollBar : Control, IDisposable
   void DrawEnd(PaintEventArgs e, Rectangle rect, ClickPlace place)
   {
     bool horizontal = Orientation == Orientation.Horizontal;
-    Arrow arrow = place == ClickPlace.Up ? horizontal ? Arrow.Right : Arrow.Down
-                                         : horizontal ? Arrow.Left  : Arrow.Up;
-    renderer.DrawArrowBox(e.Target, rect, arrow, EndSize / 4, down == place, GetEffectiveForeColor(),
-                          EffectivelyEnabled ? Color.Black : SystemColors.GrayText);
+    ArrowDirection arrow = place == ClickPlace.Up ? horizontal ? ArrowDirection.Right : ArrowDirection.Down
+                                                  : horizontal ? ArrowDirection.Left  : ArrowDirection.Up;
+    Renderer.DrawArrowButton(e.Target, rect, arrow, EndSize / 4, down == place, GetEffectiveForeColor(),
+                             EffectivelyEnabled ? Color.Black : SystemColors.GrayText);
   }
 
   void OnMouseDown(ClickPlace place)
@@ -1279,11 +1388,7 @@ public class TextBox : Control
 
   protected override void OnGotFocus()
   {
-    if(selectOnFocus)
-    {
-      SelectAll();
-//      Invalidate(ContentRect); // TODO: does this Invalidate() call need to be here?
-    }
+    if(selectOnFocus) SelectAll();
     WithCaret = this;
     base.OnGotFocus();
   }
@@ -1647,13 +1752,13 @@ public class TextBox : Control
 
   public void Select(int start, int length)
   {
-    CaretPosition = start;
+    CaretPosition   = start;
     SelectionLength = length;
   }
   
   public void SelectAll()
   {
-    CaretPosition = Text.Length;
+    CaretPosition   = Text.Length;
     SelectionLength = -Text.Length;
   }
 
