@@ -230,8 +230,8 @@ public struct RectOffset
     Left += amount; Top += amount; Right += amount; Bottom += amount;
   }
   /// <summary>Adds a given amount to each offset.</summary>
-  /// <param name="horizontal">The amount to add to the <see cref="Left"/>, and <see cref="Right"/> offsets.</param>
-  /// <param name="vertical">The amount to add to the <see cref="Top"/>, and <see cref="Bottom"/> offsets.</param>
+  /// <param name="horizontal">The amount to add to the <see cref="Left"/> and <see cref="Right"/> offsets.</param>
+  /// <param name="vertical">The amount to add to the <see cref="Top"/> and <see cref="Bottom"/> offsets.</param>
   /// <remarks><paramref name="horizontal"/> and <paramref name="vertical"/> can be negative if you want to
   /// decrease the offsets.
   /// </remarks>
@@ -245,7 +245,10 @@ public struct RectOffset
   /// <param name="right">The amount to add to the <see cref="Right"/> offset.</param>
   /// <param name="bottom">The amount to add to the <see cref="Bottom"/> offset.</param>
   /// <remarks>The parameters can be negative if you want to decrease the offsets.</remarks>
-  public void Offset(int left, int top, int right, int bottom) { Left += left; Right += right; Top += top; Bottom += bottom; }
+  public void Offset(int left, int top, int right, int bottom)
+  {
+    Left += left; Right += right; Top += top; Bottom += bottom;
+  }
 
   /// <summary>Enlarges a rectangle.</summary>
   /// <param name="rect">The <see cref="Rectangle"/> to enlarge.</param>

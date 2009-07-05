@@ -268,7 +268,11 @@ namespace WindowingTest
     {
       if(desktop.ProcessEvent(e))
       {
-        if(desktop.Updated) Video.Flip();
+        if(desktop.Updated)
+        {
+          Video.Flip();
+          desktop.Updated = false;
+        }
       }
       else
       {

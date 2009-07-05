@@ -626,13 +626,9 @@ public class TrueTypeFont : SurfaceFont
 
   /// <include file="../documentation.xml" path="//Fonts/CalculateSize/*"/>
   public override Size CalculateSize(string text)
-  { /*int width, height;
-    TTF.SizeUNICODE(font, text, out width, out height); -- DOESN'T WORK CONSISTENTLY */
+  { 
     Size size = new Size(0, Height);
-    for(int i=0; i<text.Length; i++) size.Width += GetChar(text[i]).Advance; // less correct, but more consistent
-    /*{ CachedChar c = GetChar(text[i]);
-      size.Width += i==0 && c.OffsetX<0 ? c.Width+c.OffsetX : i==text.Length-1 ? c.Width : c.Advance; // more correct, less consistent
-    }*/
+    for(int i=0; i<text.Length; i++) size.Width += GetChar(text[i]).Advance;
     return size;
   }
 
@@ -641,10 +637,8 @@ public class TrueTypeFont : SurfaceFont
   { int pixels=0;
     for(int i=0; i<text.Length; i++)
     { CachedChar c = GetChar(text[i]);
-      /*pixels += i>0 ? c.Advance : 0; // more correct, less consistent
-      if(pixels+c.Width+(i==0 && c.OffsetX<0 ? c.OffsetX : 0) > width) return i;*/
       pixels += c.Advance;
-      if(pixels>width) return i; // less correct, but more consistent
+      if(pixels>width) return i;
     }
     return text.Length;
   }

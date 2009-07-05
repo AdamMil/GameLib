@@ -363,7 +363,7 @@ public static class OpenGL
 #region GLTexture2D
 /// <summary>This class wraps an OpenGL texture handle.</summary>
 // TODO: add support for mipmapping
-public class GLTexture2D : IDisposable
+public class GLTexture2D : IDisposable, IGuiImage
 { 
   /// <summary>Creates an uninitialized instance of this class.</summary>
   /// <remarks>After using this constructor, no texture will have been loaded. <see cref="Load"/> will have to
@@ -413,6 +413,7 @@ public class GLTexture2D : IDisposable
     { if(value<0) throw new ArgumentOutOfRangeException("ImgHeight", value, "must not be negative");
       imgSize.Height = value;
       texCoordHeight = TexHeight == 0 ? 0 : (double)value / TexHeight;
+      pixelToTexY = value == 0 ? 0 : texCoordHeight / value;
     }
   }
 
@@ -436,10 +437,28 @@ public class GLTexture2D : IDisposable
   public int ImgWidth
   { get { return imgSize.Width; }
     set
-    { if(value<0) throw new ArgumentOutOfRangeException("ImgWidth", value, "must not be negative");
+    { 
+      if(value < 0) throw new ArgumentOutOfRangeException("ImgWidth", value, "must not be negative");
       imgSize.Width = value;
       texCoordWidth = TexWidth == 0 ? 0 : (double)value / TexWidth;
+      pixelToTexX = value == 0 ? 0 : texCoordWidth / value;
     }
+  }
+
+  /// <summary>Gets a factor that can be multiplied by a pixel's X position within the image to convert it to that
+  /// pixel's U texture coordinate. This is equal to <see cref="TexCoordWidth"/> divided by the image width.
+  /// </summary>
+  public double PixelToTexCoordX
+  {
+    get { return pixelToTexX; }
+  }
+
+  /// <summary>Gets a factor that can be multiplied by a pixel's Y position within the image to convert it to that
+  /// pixel's V texture coordinate. This is equal to <see cref="TexCoordHeight"/> divided by the image height.
+  /// </summary>
+  public double PixelToTexCoordY
+  {
+    get { return pixelToTexY; }
   }
 
   /// <summary>Gets the width of the image in texture coordinates. This is equal to the image width divided by the
@@ -551,9 +570,45 @@ public class GLTexture2D : IDisposable
   void AssertInit() { if(texture==0) throw new InvalidOperationException("Texture has not been initialized yet"); }
   void Dispose(bool finalizing) { Unload(); }
 
-  double texCoordWidth, texCoordHeight;
+  double texCoordWidth, texCoordHeight, pixelToTexX, pixelToTexY;
   Size imgSize, size;
   int texture;
+
+  Size IGuiImage.Size
+  {
+    get { return ImgSize; }
+  }
+
+  void IGuiImage.Draw(Rectangle srcRect, IGuiRenderTarget target, Rectangle destRect)
+  {
+    bool blendEnabled = GL.glIsEnabled(GL.GL_BLEND), textureEnabled = GL.glIsEnabled(GL.GL_TEXTURE_2D);
+    if(!blendEnabled) GL.glEnable(GL.GL_BLEND);
+    if(!textureEnabled) GL.glEnable(GL.GL_TEXTURE_2D);
+    const int DesiredSourceBlend = GL.GL_SRC_ALPHA, DesiredDestBlend = GL.GL_ONE_MINUS_SRC_ALPHA;
+    GL.glBlendFunc(DesiredSourceBlend, DesiredDestBlend);
+
+    double tx1 = srcRect.X*PixelToTexCoordX, ty1 = srcRect.Y*PixelToTexCoordY;
+    double tx2 = srcRect.Right * PixelToTexCoordX, ty2 = srcRect.Bottom * PixelToTexCoordY;
+
+    Bind();
+    GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_NEAREST);
+    GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_NEAREST);
+
+    GL.glColor3f(1, 1, 1);
+    GL.glBegin(GL.GL_QUADS);
+    GL.glTexCoord2d(tx1, ty1);
+    GL.glVertex2i(destRect.X, destRect.Y);
+    GL.glTexCoord2d(tx2, ty1);
+    GL.glVertex2i(destRect.Right, destRect.Y);
+    GL.glTexCoord2d(tx2, ty2);
+    GL.glVertex2i(destRect.Right, destRect.Bottom);
+    GL.glTexCoord2d(tx1, ty2);
+    GL.glVertex2i(destRect.X, destRect.Bottom);
+    GL.glEnd();
+
+    if(!textureEnabled) GL.glDisable(GL.GL_TEXTURE_2D);
+    if(!blendEnabled) GL.glDisable(GL.GL_BLEND);
+  }
 }
 #endregion
 

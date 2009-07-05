@@ -385,7 +385,7 @@ public static class Video
 
   /// <summary>Returns true if a video mode has been set.</summary>
   /// <value>A boolean indicating whether a video mode has been set.</value>
-  public static bool ModeSet { get { return display!=null; } }
+  public static bool IsModeSet { get { return display!=null; } }
 
   /// <summary>Returns the width of the display surface.</summary>
   /// <value>The width of the display surface, in pixels.</value>
