@@ -116,13 +116,12 @@ public abstract class ScrollableControl : Control
     Rectangle rect = Rectangle.Inflate(ControlRect, -BorderWidth, -BorderWidth);
     if(horz != null)
     {
-      horz.SetBounds(new Rectangle(rect.X, rect.Bottom - horz.Height, rect.Width - (vert == null ? 0 : vert.Height),
-                                   horz.Height), true);
+      horz.SetBounds(rect.X, rect.Bottom - horz.Height, rect.Width - (vert == null ? 0 : vert.Height), horz.Height,
+                     true);
     }
     if(vert != null)
     {
-      vert.SetBounds(new Rectangle(rect.Right - vert.Width, rect.X, vert.Width,
-                                   rect.Height - (horz == null ? 0 : horz.Width)), true);
+      vert.SetBounds(rect.Right - vert.Width, rect.X, vert.Width, rect.Height - (horz == null ? 0 : horz.Width), true);
     }
   }
 
@@ -303,7 +302,7 @@ public abstract class ButtonBase : Label
 
   protected bool IsDepressed
   {
-    get { return Pressed && (mouseOver || !RequireMouseOver); }
+    get { return kbPressed || Pressed && (mouseOver || !RequireMouseOver); }
   }
 
   protected bool IsMouseOver
@@ -368,12 +367,54 @@ public abstract class ButtonBase : Label
 
   protected internal override void OnKeyDown(KeyEventArgs e)
   {
-    if((e.KE.Key == Key.Enter || e.KE.Key == Key.Space || e.KE.Key == Key.KpEnter) && !e.Handled)
+    base.OnKeyDown(e);
+    
+    if(!e.Handled)
     {
-      PerformClick();
+      if(e.KE.Key == Key.Enter || e.KE.Key == Key.KpEnter)
+      {
+        PerformClick();
+        e.Handled = true;
+      }
+      else if(e.KE.Key == Key.Space)
+      {
+        if(AutoPress)
+        {
+          if(!IsDepressed) Invalidate();
+          kbPressed = true;
+        }
+        e.Handled = true;
+      }
     }
   }
 
+  protected internal override void OnKeyUp(KeyEventArgs e)
+  {
+    base.OnKeyUp(e);
+
+    if(!e.Handled && e.KE.Key == Key.Space)
+    {
+      if(kbPressed)
+      {
+        kbPressed = false;
+        if(AutoPress && !IsDepressed) Invalidate();
+      }
+      PerformClick();
+      e.Handled = true;
+    }
+  }
+
+  protected override void OnLostFocus()
+  {
+    base.OnLostFocus();
+
+    if(kbPressed)
+    {
+      kbPressed = false;
+      if(AutoPress && !IsDepressed) Invalidate();
+    }
+  }
+  
   protected virtual void OnClick(ClickEventArgs e)
   {
     if(Click != null) Click(this, e);
@@ -384,7 +425,7 @@ public abstract class ButtonBase : Label
     Invalidate();
   }
 
-  bool mouseOver, pressed, requireMouseOver;
+  bool mouseOver, kbPressed, pressed, requireMouseOver=true;
 }
 #endregion
 
@@ -565,10 +606,10 @@ public enum ImageSizeMode
 }
 #endregion
 
-#region Image
-public class Image : Control
+#region ImageBox
+public class ImageBox : Control
 {
-  public Image()
+  public ImageBox()
   {
     Alignment = ContentAlignment.MiddleCenter;
     SizeMode  = ImageSizeMode.ZoomOut;
@@ -670,7 +711,7 @@ public class ScrollBar : Control, IDisposable
     ControlStyle     = ControlStyle.Clickable | ControlStyle.Draggable | ControlStyle.CanReceiveFocus;
     DragThreshold    = 4;
     LargeIncrement   = 10;
-    Size             = Size.Empty;
+    Size             = new Size(16, 16);
     SmallIncrement   = 1;
     ThumbSize        = 0.05f;
   }
@@ -963,13 +1004,6 @@ public class ScrollBar : Control, IDisposable
     base.OnDragEnd(e);
   }
 
-  protected override void OnContentSizeChanged()
-  {
-    base.OnContentSizeChanged();
-    endSize = Renderer == null ? 0 : Renderer.GetScrollBarEndSize(this);
-    if(Width == 0 || Height == 0) Size = new Size(Width == 0 ? endSize : Width, Height == 0 ? endSize : Height);
-  }
-
   protected internal override void OnCustomEvent(Events.ControlEvent e)
   {
     ClickRepeat cr = e as ClickRepeat;
@@ -1087,7 +1121,7 @@ public class ScrollBar : Control, IDisposable
   /// <summary>Gets the size of the scroll bar end buttons, in pixels.</summary>
   protected int EndSize
   {
-    get { return endSize; }
+    get { return 16; }
   }
 
   /// <summary>Gets the size of the thumb, in pixels.</summary>
@@ -1113,10 +1147,10 @@ public class ScrollBar : Control, IDisposable
   {
     int size = Orientation == Orientation.Horizontal ? Width : Height;
     int pos = Orientation == Orientation.Horizontal ? click.X : click.Y, thumb = ValueToThumb(value);
-    if(pos < endSize) return ClickPlace.Down;
+    if(pos < EndSize) return ClickPlace.Down;
     else if(pos < thumb) return ClickPlace.PageDown;
     else if(pos < thumb + ThumbSizeInPixels) return ClickPlace.Thumb;
-    else if(pos < size - endSize) return ClickPlace.PageUp;
+    else if(pos < size - EndSize) return ClickPlace.PageUp;
     else return ClickPlace.Up;
   }
 
@@ -1129,13 +1163,15 @@ public class ScrollBar : Control, IDisposable
       if(position > Width) position = Width - 1;
     }
     else if(position > Height) position = Height - 1;
-    
-    return (position - endSize) * (max - min) / SpaceExcludingThumb + min;
+
+    int space = SpaceExcludingThumb;
+    return space == 0 ? min : (position - EndSize) * (max - min) / space + min;
   }
 
-  protected int ValueToThumb(int value) 
-  { 
-    return (value - min) * SpaceExcludingThumb / (max - min) + endSize; 
+  protected int ValueToThumb(int value)
+  {
+    int range = max - min;
+    return (range == 0 ? min : (value - min)*SpaceExcludingThumb/range) + EndSize; 
   }
 
   sealed class ClickRepeat : Events.ControlEvent
@@ -1178,7 +1214,7 @@ public class ScrollBar : Control, IDisposable
   ThumbEventArgs thumbArgs = new ThumbEventArgs();
   ValueChangedEventArgs valChange = new ValueChangedEventArgs(null);
   float thumbSize;
-  int value, min, max = 100, endSize, dragOffset = -1;
+  int value, min, max = 100, dragOffset = -1;
   Orientation orientation = Orientation.Vertical;
   ClickPlace down;
 

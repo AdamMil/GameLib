@@ -699,12 +699,7 @@ public class ListBox : ListControl
     get; set;
   }
 
-  protected bool FixedHeight
-  {
-    get; set;
-  }
-
-  protected int CursorPosition
+  public int CursorPosition
   {
     get { return cursor; }
     set
@@ -717,6 +712,11 @@ public class ListBox : ListControl
         cursor = newValue;
       }
     }
+  }
+
+  protected bool FixedHeight
+  {
+    get; set;
   }
 
   public override int SelectedIndex
@@ -801,6 +801,30 @@ public class ListBox : ListControl
     return ContentOffset.Grow(totalSize);
   }
 
+  public int PointToItem(Point controlPoint)
+  {
+    if(Items.Count != 0)
+    {
+      Rectangle bounds = ContentRect;
+      if(FixedHeight)
+      {
+        if(!bounds.Contains(controlPoint)) return -1;
+        int index = TopIndex + (controlPoint.Y - bounds.Y) / MeasureItem(0).Height;
+        return index >= Items.Count ? -1 : index;
+      }
+      else
+      {
+        for(int i = TopIndex; i < Items.Count && bounds.Height > 0; i++)
+        {
+          Rectangle itemRect = new Rectangle(bounds.X, bounds.Y, bounds.Width, MeasureItem(i).Height);
+          if(itemRect.Contains(controlPoint)) return i;
+          bounds.Y += itemRect.Height; bounds.Height -= itemRect.Height;
+        }
+      }
+    }
+    return -1;
+  }
+
   public void ScrollTo(int index)
   {
     if(index < TopIndex) TopIndex = index;
@@ -859,7 +883,7 @@ public class ListBox : ListControl
         if(TopIndex < Items.Count)
         {
           int height = MeasureItem(TopIndex).Height;
-          bottom += (Height - ContentOffset.Vertical + height - 1) / height;
+          bottom = Math.Min(bottom + (Height - ContentOffset.Vertical + height - 1) / height, Items.Count-1);
         }
       }
       else
@@ -1093,42 +1117,45 @@ public class ListBox : ListControl
   {
     base.OnPaint(e);
 
-    Rectangle bounds = GetContentDrawRect();
-    Rectangle oldClipRect = e.Target.ClipRect;
-    try
+    if(Items.Count != 0)
     {
-      e.Target.ClipRect = bounds; // set the clipping rect so that items that go off the edge won't erase the border
-      if(FixedHeight)
+      Rectangle bounds = GetContentDrawRect();
+      Rectangle oldClipRect = e.Target.ClipRect;
+      try
       {
-        bounds.Height = Items.Count > 0 ? MeasureItem(0).Height : 0;
-        int i = Math.Max((e.DrawRect.Y - bounds.Y) / bounds.Height, 0);
-        bounds.Y += i * bounds.Height;
-        for(i += TopIndex; i < Items.Count; i++)
+        e.Target.ClipRect = bounds; // set the clipping rect so that items that go off the edge won't erase the border
+        if(FixedHeight)
         {
-          if(bounds.IntersectsWith(e.DrawRect)) DrawItem(i, e, bounds);
-          else break;
-          bounds.Y += bounds.Height;
-        }
-      }
-      else
-      {
-        bool drew = false;
-        for(int i = TopIndex; i < Items.Count; i++)
-        {
-          Rectangle itemRect = new Rectangle(bounds.X, bounds.Y, bounds.Width, MeasureItem(i).Height);
-          if(itemRect.Height > bounds.Height) break;
-          if(itemRect.IntersectsWith(e.DrawRect))
+          bounds.Height = MeasureItem(0).Height;
+          int i = Math.Max((e.DrawRect.Y - bounds.Y) / bounds.Height, 0);
+          bounds.Y += i * bounds.Height;
+          for(i += TopIndex; i < Items.Count; i++)
           {
-            DrawItem(i, e, itemRect);
-            drew = true;
+            if(bounds.IntersectsWith(e.DrawRect)) DrawItem(i, e, bounds);
+            else break;
+            bounds.Y += bounds.Height;
           }
-          else if(drew) break;
-          bounds.Y      += itemRect.Height;
-          bounds.Height -= itemRect.Height;
+        }
+        else
+        {
+          bool drew = false;
+          for(int i = TopIndex; i < Items.Count; i++)
+          {
+            Rectangle itemRect = new Rectangle(bounds.X, bounds.Y, bounds.Width, MeasureItem(i).Height);
+            if(itemRect.Height > bounds.Height) break;
+            if(itemRect.IntersectsWith(e.DrawRect))
+            {
+              DrawItem(i, e, itemRect);
+              drew = true;
+            }
+            else if(drew) break;
+            bounds.Y      += itemRect.Height;
+            bounds.Height -= itemRect.Height;
+          }
         }
       }
+      finally { e.Target.ClipRect = oldClipRect; }
     }
-    finally { e.Target.ClipRect = oldClipRect; }
   }
 
   protected override void OnResize()
@@ -1141,27 +1168,6 @@ public class ListBox : ListControl
   {
     base.OnVerticalScroll(bar, e);
     TopIndex = VerticalScrollBar.Value;
-  }
-
-  protected int PointToItem(Point controlPoint)
-  {
-    Rectangle bounds = ContentRect;
-    if(FixedHeight)
-    {
-      if(!bounds.Contains(controlPoint)) return -1;
-      int index = TopIndex + (controlPoint.Y - bounds.Y) / MeasureItem(0).Height;
-      return index >= Items.Count ? -1 : index;
-    }
-    else
-    {
-      for(int i = TopIndex; i < Items.Count && bounds.Height > 0; i++)
-      {
-        Rectangle itemRect = new Rectangle(bounds.X, bounds.Y, bounds.Width, MeasureItem(i).Height);
-        if(itemRect.Contains(controlPoint)) return i;
-        bounds.Y += itemRect.Height; bounds.Height -= itemRect.Height;
-      }
-      return -1;
-    }
   }
 
   protected void SelectRange(int from, int to, bool selected)
@@ -1252,24 +1258,24 @@ public class ListBox : ListControl
   void ScrollDown(KeyEventArgs e)
   {
     int bi = GetBottomIndex();
-    int newindex = CursorPosition;
-    if(newindex == bi)
+    int newIndex = CursorPosition;
+    if(newIndex == bi)
     {
       if(bi == -1)
       {
-        newindex = TopIndex;
+        newIndex = TopIndex;
       }
       else if(bi < Items.Count - 1)
       {
         TopIndex++;
-        newindex = bottom = bi + 1;
+        newIndex = bottom = bi + 1;
       }
     }
     else
     {
-      ScrollTo(++newindex);
+      ScrollTo(++newIndex);
     }
-    DragTo(newindex, e);
+    DragTo(newIndex, e);
   }
 
   void ScrollUp()
@@ -1279,16 +1285,16 @@ public class ListBox : ListControl
   
   void ScrollUp(KeyEventArgs e)
   {
-    int newindex = CursorPosition;
-    if(newindex == TopIndex)
+    int newIndex = CursorPosition;
+    if(newIndex == TopIndex)
     {
-      if(TopIndex > 0) newindex = --TopIndex;
+      if(TopIndex > 0) newIndex = --TopIndex;
     }
     else
     {
-      ScrollTo(--newindex);
+      ScrollTo(--newIndex);
     }
-    DragTo(newindex, e);
+    DragTo(newIndex, e);
   }
 
   void StartScrolling()
@@ -1340,7 +1346,10 @@ public class ComboBox : ListControl
 
   void Init()
   {
+    BackColor     = ListBox.BackColor = SystemColors.Window;
+    ForeColor     = ListBox.ForeColor = SystemColors.WindowText;
     BorderStyle   = BorderStyle.FixedThick | BorderStyle.Depressed;
+    DropDownStyle = ComboBoxStyle.DropDownList;
     Padding       = RectOffset.Empty;
     ControlStyle |= ControlStyle.CanReceiveFocus;
   }
@@ -1420,7 +1429,8 @@ public class ComboBox : ListControl
     {
       if(style == ComboBoxStyle.Simple) return new Rectangle();
       Rectangle content = ContentRect;
-      return new Rectangle(content.Right - 16, content.Top, 16, TextBox.Height);
+      int boxSize = content.Height;
+      return new Rectangle(content.Right - boxSize, content.Top, boxSize, boxSize);
     }
   }
 
@@ -1432,8 +1442,10 @@ public class ComboBox : ListControl
       {
         listBox = MakeListBox(Items);
         listBox.BorderStyle  = style == ComboBoxStyle.Simple ? BorderStyle.None : BorderStyle.FixedFlat;
-        listBox.MouseUp     += new EventHandler<ClickEventArgs>(listBox_MouseUp);
-        listBox.TextChanged += new ValueChangedEventHandler(listBox_TextChanged);
+        listBox.KeyDown     += listBox_KeyDown;
+        listBox.MouseMove   += listBox_MouseMove;
+        listBox.MouseUp     += listBox_MouseUp;
+        listBox.TextChanged += listBox_TextChanged;
       }
       if(Items.Version != oldVersion)
       {
@@ -1455,8 +1467,8 @@ public class ComboBox : ListControl
         textBox.BorderStyle  = BorderStyle.None;
         textBox.Parent       = this;
         textBox.ReadOnly     = style == ComboBoxStyle.DropDownList;
-        textBox.MouseDown   += new EventHandler<ClickEventArgs>(textBox_MouseDown);
-        textBox.TextChanged += new ValueChangedEventHandler(textBox_TextChanged);
+        textBox.MouseDown   += textBox_MouseDown;
+        textBox.TextChanged += textBox_TextChanged;
         if(EffectiveFont != null) TextBox.Height = EffectiveFont.LineSkip + TextBox.ContentOffset.Vertical;
         if(style != ComboBoxStyle.Simple) Height = TextBox.Height + ContentOffset.Vertical;
       }
@@ -1468,8 +1480,8 @@ public class ComboBox : ListControl
   {
     if(style != ComboBoxStyle.Simple)
     {
-      ListBox.Visible = false;
-      ListBox.Parent  = null;
+      Desktop.Invalidate(ListBox.ControlToAncestor(ListBox.ControlRect, Desktop));
+      ListBox.Parent = null;
     }
     Capture = mouseDown = open = false;
     OnBoxPress(false);
@@ -1503,7 +1515,8 @@ public class ComboBox : ListControl
 
   protected internal override void OnMouseDown(ClickEventArgs e)
   {
-    if(e.CE.Button == MouseButton.Left && BoxRect.Contains(e.CE.Point))
+    if(!e.Handled && e.CE.Button == MouseButton.Left &&
+       (BoxRect.Contains(e.CE.Point) || open && TextBox.Bounds.Contains(e.CE.Point)))
     {
       if(open)
       {
@@ -1550,7 +1563,7 @@ public class ComboBox : ListControl
   {
     base.OnPaint(e);
     e.Renderer.DrawArrowButton(e.Target, ControlToDraw(BoxRect), ArrowDirection.Down, BoxRect.Width / 4, depressed,
-                            SystemColors.Control, EffectivelyEnabled ? Color.Black : SystemColors.GrayText);
+                               SystemColors.Control, EffectivelyEnabled ? Color.Black : SystemColors.GrayText);
   }
 
   protected override void LayOutChildren()
@@ -1558,8 +1571,8 @@ public class ComboBox : ListControl
     base.LayOutChildren();
 
     Rectangle content = ContentRect;
-    int endWidth = style == ComboBoxStyle.Simple ? 0 : 16;
-    TextBox.Bounds = new Rectangle(content.Left, content.Top, content.Width - endWidth, TextBox.Height);
+    int endWidth = style == ComboBoxStyle.Simple ? 0 : ContentRect.Height;
+    TextBox.Bounds = new Rectangle(content.Left, content.Top, content.Width - endWidth, ContentRect.Height);
     ListBox.Bounds = new Rectangle(content.Left, TextBox.Bottom + 1, content.Width,
                                    style == ComboBoxStyle.Simple ? content.Bottom - TextBox.Bottom - 1 : listHeight);
   }
@@ -1568,16 +1581,20 @@ public class ComboBox : ListControl
   {
     if(!open)
     {
-      Control parent = style == ComboBoxStyle.Simple ? this : (Control)Parent;
+      Control parent = style == ComboBoxStyle.Simple ? this : (Control)Desktop;
       if(parent == null) return;
+      
       ListBox.Parent = parent;
+
       if(parent == this)
       {
         Rectangle content = ContentRect;
-        ListBox.Bounds = new Rectangle(content.Left, TextBox.Bottom + 1, content.Width, content.Bottom - TextBox.Bottom - 1);
+        ListBox.Bounds = new Rectangle(content.Left, TextBox.Bottom + 1,
+                                       content.Width, content.Bottom - TextBox.Bottom - 1);
       }
-      else ListBox.SetBounds(ControlToParent(new Rectangle(0, Height, Width, listHeight)), true);
+      else ListBox.SetBounds(ControlToAncestor(new Rectangle(0, Height, Width, listHeight), parent), true);
       ListBox.Visible = true;
+      ListBox.Focus();
       open = true;
     }
   }
@@ -1588,6 +1605,24 @@ public class ComboBox : ListControl
     {
       this.depressed = down;
       Invalidate(BoxRect);
+    }
+  }
+
+  void listBox_KeyDown(object sender, KeyEventArgs e)
+  {
+    if(!e.Handled && DropDownStyle != ComboBoxStyle.Simple &&
+       (e.KE.Key == Key.Enter || e.KE.Key == Key.KpEnter || e.KE.Key == Key.Space || e.KE.Key == Key.Tab))
+    {
+      Close();
+      e.Handled = true;
+    }
+  }
+
+  void listBox_MouseMove(object sender, GameLib.Events.MouseMoveEvent e)
+  {
+    if(DropDownStyle != ComboBoxStyle.Simple && listBox.ContentRect.Contains(e.Point))
+    {
+      listBox.CursorPosition = listBox.SelectedIndex = listBox.PointToItem(e.Point);
     }
   }
 
@@ -1613,10 +1648,11 @@ public class ComboBox : ListControl
 
   void textBox_MouseDown(object sender, ClickEventArgs e)
   {
-    if(!open && e.CE.Button == MouseButton.Left && !TextBox.HasStyle(ControlStyle.CanReceiveFocus))
+    if(e.CE.Button == MouseButton.Left && !TextBox.HasStyle(ControlStyle.CanReceiveFocus))
     {
-      Open();
-      Capture = true;
+      if(!open) Open();
+      else Close();
+      e.Handled = true;
     }
   }
 
@@ -1636,7 +1672,7 @@ public class ComboBox : ListControl
   ListBox listBox;
   TextBox textBox;
   int oldVersion = -1, listHeight = 100;
-  ComboBoxStyle style = ComboBoxStyle.DropDown;
+  ComboBoxStyle style;
   bool open, mouseDown, myChange, depressed;
 }
 #endregion

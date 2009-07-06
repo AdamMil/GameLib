@@ -649,17 +649,41 @@ public class TrueTypeFont : SurfaceFont
     if(bgColor.A != 0)
     { int width=0;
       for(int i=0; i<text.Length; i++) width += GetChar(text[i]).Advance;
-      // TODO: it seems like this should be LineSkip, but then it conflicts with CalculateSize. resolve this...
       dest.Fill(new Rectangle(x, y, width, Height), bgColor);
     }
     for(int i=0; i<text.Length; i++)
-    { CachedChar c = GetChar(text[i]);
-      if(i==0 && c.OffsetX<0)
-      { Rectangle rect = c.Surface.Bounds;
-        rect.X -= c.OffsetX; rect.Width += c.OffsetX;
-        c.Surface.Blit(dest, rect, x, y+c.OffsetY);
+    { 
+      CachedChar c = GetChar(text[i]);
+      // if the first character has a negative offset, clip the surface so as not to render above or to the left of
+      // the render position given to us
+      if(i==0 && (c.OffsetX<0 || c.OffsetY<0))
+      {
+        Rectangle rect = c.Surface.Bounds;
+        int xp, yp;
+
+        if(c.OffsetX < 0)
+        {
+          rect.X     -= c.OffsetX;
+          rect.Width += c.OffsetX;
+          xp = x;
+        }
+        else xp = x + c.OffsetX;
+
+        if(c.OffsetY < 0)
+        {
+          rect.Y      -= c.OffsetY;
+          rect.Height += c.OffsetY;
+          yp = y;
+        }
+        else yp = y + c.OffsetY;
+
+        c.Surface.Blit(dest, rect, xp, yp);
       }
-      else c.Surface.Blit(dest, x+c.OffsetX, y+c.OffsetY);
+      else
+      {
+        c.Surface.Blit(dest, x+c.OffsetX, y+c.OffsetY);
+      }
+
       x += c.Advance;
     }
     return x-start;

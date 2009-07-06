@@ -486,16 +486,6 @@ public class Control
     }
   }
 
-  /// <summary>Gets whether the control can receive focus in its current state.</summary>
-  /// <remarks>This property will return true if the <see cref="ControlStyle"/> property has the
-  /// <see cref="ControlStyle.CanReceiveFocus"/> flag, and the control is effectively visible and enabled. Otherwise,
-  /// it will return false.
-  /// </remarks>
-  public bool CanReceiveFocus
-  {
-    get { return HasStyle(ControlStyle.CanReceiveFocus) && EffectivelyVisible && EffectivelyEnabled; }
-  }
-
   /// <summary>Enables or disables mouse capture for this control.</summary>
   /// <remarks>Mouse capture allows a control to receive mouse events even if the mouse is not within the bounds
   /// of the control. Because mouse capture requires an active desktop, this property cannot be set unless the
@@ -560,19 +550,20 @@ public class Control
   }
 
   /// <summary>Returns true if this control has input focus.</summary>
-  /// <remarks>The control that has input focus will receive keyboard events. Many controls can be focused
-  /// (relative to their parent) but only one control can have input focus -- the control whose ancestors are
-  /// all focused as well. This property returns true if this control has input focus. To set input focus, use
-  /// the <see cref="Focus"/> method.
+  /// <remarks>The control that has input focus will receive keyboard events. Many controls can be selected (relative
+  /// to their parents -- see <see cref="Selected"/>) but only one control can have input focus -- the control whose
+  /// ancestors are all selected as well and which has the <see cref="ControlStyle.CanReceiveFocus"/> style. This
+  /// property returns true if this control has input focus. To set input focus, use the <see cref="Focus"/> method.
   /// </remarks>
   public bool Focused
   {
-    get { return HasFlag(Flag.Focused); }
+    get { return HasFlags(Flag.Focused | (Flag)ControlStyle.CanReceiveFocus); }
   }
 
-  /// <summary>Gets the child control that currently has input focus, or null if no children have input focus. Note
-  /// that this does not indicate that the child will actually receive keyboard events. That will only occur if the
-  /// child and all of its ancestors are focused.
+  /// <summary>Gets the child control that is selected, or null if no children have are selected. (See
+  /// <see cref="Selected"/>.) Note that this does not indicate that the child will actually receive keyboard events.
+  /// That will only occur if the child has the <see cref="ControlStyle.CanReceiveFocus"/> style and all its ancestors
+  /// are selected.
   /// </summary>
   public Control FocusedControl
   {
@@ -583,19 +574,9 @@ public class Control
       {
         if(value != null && !Controls.Contains(value)) throw new ArgumentException("Not a child of this control.");
 
-        if(focused != null)
-        {
-          focused.SetFlag(Flag.Focused, false);
-          focused.OnLostFocus();
-        }
-
+        if(focused != null) RecursivelyLoseFocus(focused);
         focused = value;
-
-        if(value != null)
-        {
-          value.SetFlag(Flag.Focused, Focused);
-          value.OnGotFocus();
-        }
+        if(value != null) RecursivelyGetFocus(value);
       }
     }
   }
@@ -655,10 +636,10 @@ public class Control
   /// <summary>Gets or sets whether this control is its parent's selected control.</summary>
   /// <remarks>See the <see cref="Focused"/> property for more information on input focusing. Unlike the
   /// <see cref="Focused"/> property, which will return true only this control and all of its ancestors are
-  /// selected, this property only considers whether or not this control is selected. Thus, this property is not
-  /// for determining whether this control has actual input focus. Setting this property is equivalent to calling
-  /// <see cref="Focus(bool)"/> and passing false or <see cref="Blur"/>, depending on whether the value is true or
-  /// false, respectively.
+  /// selected and this control has the <see cref="ControlStyle.CanReceiveFocus"/> style, this property only considers
+  /// whether or not this control is selected. Thus, this property is not for determining whether this control has
+  /// actual input focus. Setting this property is equivalent to calling <see cref="Focus(bool)"/> and passing false or
+  /// <see cref="Blur"/>, depending on whether the value is true or false, respectively.
   /// </remarks>
   public bool Selected
   {
@@ -993,7 +974,7 @@ public class Control
     if(!Visible)
     {
       Blur();
-      if(Parent != null) Parent.Invalidate(ControlToParent(ControlRect));
+      if(Parent != null) Parent.Invalidate(Bounds);
     }
     else
     {
@@ -1006,14 +987,20 @@ public class Control
   /// <remarks>When overriding this method in a derived class, be sure to call the base class'
   /// version to ensure that the default processing gets performed.
   /// </remarks>
-  protected virtual void OnGotFocus() { if(GotFocus != null) GotFocus(this, EventArgs.Empty); }
+  protected virtual void OnGotFocus()
+  {
+    if(GotFocus != null) GotFocus(this, EventArgs.Empty);
+  }
 
   /// <summary>Raises the <see cref="LostFocus"/> event.</summary>
   /// <param name="e">An <see cref="EventArgs"/> that contains the event data.</param>
   /// <remarks>When overriding this method in a derived class, be sure to call the base class'
   /// version to ensure that the default processing gets performed.
   /// </remarks>
-  protected virtual void OnLostFocus() { if(LostFocus != null) LostFocus(this, EventArgs.Empty); }
+  protected virtual void OnLostFocus()
+  {
+    if(LostFocus != null) LostFocus(this, EventArgs.Empty);
+  }
 
   /// <summary>Raises the <see cref="Layout"/> event and then performs a layout.</summary>
   /// <param name="e">A <see cref="LayoutEventArgs"/> that contains the event data.</param>
@@ -1234,13 +1221,14 @@ public class Control
   /// <remarks>Focus will not be given to a control if its <see cref="CanFocus"/> property is false.</remarks>
   public void Focus(bool focusAncestors)
   {
-    if(parent != null)
+    if(parent != null && HasFlags(Flag.EffectivelyEnabled | Flag.EffectivelyVisible))
     {
-      if(CanReceiveFocus) parent.FocusedControl = this;
+      parent.FocusedControl = this;
 
       if(focusAncestors)
       {
-        for(Control ancestor = parent; ancestor.parent != null && ancestor.CanReceiveFocus;
+        for(Control ancestor = parent;
+            ancestor.parent != null && HasFlags(Flag.EffectivelyEnabled | Flag.EffectivelyVisible);
             ancestor = ancestor.parent)
         {
           ancestor.parent.FocusedControl = ancestor;
@@ -1299,6 +1287,15 @@ public class Control
     }
     
     return controlPoint;
+  }
+
+  /// <summary>Converts a rectangle from control coordinates to an ancestor's control coordinates. If
+  /// <paramref name="ancestor"/> is null, the rectangle will be converted to screen coordinates. Otherwise, if the
+  /// control does not belong to the given ancestor, an exception will be thrown.
+  /// </summary>
+  public Rectangle ControlToAncestor(Rectangle controlRect, Control ancestor)
+  {
+    return new Rectangle(ControlToAncestor(controlRect.Location, ancestor), controlRect.Size);
   }
 
   /// <summary>Converts a point from control coordinates to the coordinate space of the draw target.</summary>
@@ -1408,7 +1405,7 @@ public class Control
     for(int i=Controls.Count-1; i >= 0; i--)
     {
       Control child = Controls[i];
-      if(child.EffectivelyVisible && child.bounds.Contains(controlPoint)) return child;
+      if(child.Visible && child.bounds.Contains(controlPoint)) return child;
     }
     return null;
   }
@@ -1429,6 +1426,21 @@ public class Control
   public Rectangle GetScreenRect()
   {
     return new Rectangle(ControlToScreen(Point.Empty), Size);
+  }
+
+  /// <summary>Sets the <see cref="Bounds"/> property and performs layout logic.</summary>
+  /// <param name="x">The new X coordinate of the control.</param>
+  /// <param name="y">The new Y coordinate of the control.</param>
+  /// <param name="width">The new width of the control.</param>
+  /// <param name="height">The new height of the control.</param>
+  /// <param name="absolute">Determines whether the coordinates will be affected by layout logic or not.</param>
+  /// <remarks>Calling this method is equivalent to calling <see cref="SetBounds(Rectangle,bool)"/> and
+  /// using the <paramref name="location"/> and <paramref name="size"/> parameters to create the new rectangle.
+  /// See <see cref="SetBounds(Rectangle,bool)"/> for more information on this method.
+  /// </remarks>
+  public void SetBounds(int x, int y, int width, int height, bool absolute)
+  {
+    SetBounds(new Rectangle(x, y, width, height), absolute);
   }
 
   /// <summary>Sets the <see cref="Bounds"/> property and performs layout logic.</summary>
@@ -1756,26 +1768,24 @@ public class Control
         switch(child.Dock)
         {
           case DockStyle.Left:
-            child.SetBounds(new Rectangle(anchorSpace.X, anchorSpace.Y, child.Width, anchorSpace.Height), true);
+            child.SetBounds(anchorSpace.X, anchorSpace.Y, child.Width, anchorSpace.Height, true);
             anchorSpace.X     += child.Width;
             anchorSpace.Width -= child.Width;
             break;
 
           case DockStyle.Top:
-            child.SetBounds(new Rectangle(anchorSpace.X, anchorSpace.Y, anchorSpace.Width, child.Height), true);
+            child.SetBounds(anchorSpace.X, anchorSpace.Y, anchorSpace.Width, child.Height, true);
             anchorSpace.Y      += child.Height;
             anchorSpace.Height -= child.Height;
             break;
 
           case DockStyle.Right:
-            child.SetBounds(new Rectangle(anchorSpace.Right-child.Width, anchorSpace.Y,
-                                          child.Width, anchorSpace.Height), true);
+            child.SetBounds(anchorSpace.Right-child.Width, anchorSpace.Y, child.Width, anchorSpace.Height, true);
             anchorSpace.Width -= child.Width;
             break;
 
           case DockStyle.Bottom:
-            child.SetBounds(new Rectangle(anchorSpace.X, anchorSpace.Bottom-child.Height,
-                                          anchorSpace.Width, child.Height), true);
+            child.SetBounds(anchorSpace.X, anchorSpace.Bottom-child.Height, anchorSpace.Width, child.Height, true);
             anchorSpace.Height -= child.Height;
             break;
 
@@ -1848,9 +1858,7 @@ public class Control
     EffectivelyVisible = 0x2000,
     /// <summary>Indicates whether the control is modal, and so will receive all input events.</summary>
     Modal = 0x4000,
-    /// <summary>Indicates whether the control and all of its ancestors are selected, so the control will receive
-    /// keyboard events.
-    /// </summary>
+    /// <summary>Indicates whether the control and all of its ancestors are selected.</summary>
     Focused = 0x8000,
     /// <summary>Indicates that the change currently occurring was triggered by the control itself and not external
     /// code.
@@ -2032,6 +2040,25 @@ public class Control
     }
 
     SetBounds(newBounds, true);
+  }
+
+  void RecursivelyGetFocus(Control control)
+  {
+    Control parent = this;
+    do
+    {
+      control.SetFlag(Flag.Focused, parent.HasFlag(Flag.Focused));
+      control.OnGotFocus();
+      parent  = control;
+      control = control.FocusedControl;
+    } while(control != null);
+  }
+
+  void RecursivelyLoseFocus(Control control)
+  {
+    if(control.FocusedControl != null) RecursivelyLoseFocus(control.FocusedControl);
+    control.SetFlag(Flag.Focused, false);
+    control.OnLostFocus();
   }
 
   void RecursivelySetEffectiveValues()

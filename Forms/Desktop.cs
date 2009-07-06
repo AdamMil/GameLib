@@ -308,7 +308,7 @@ public class Desktop : Control, IDisposable
             c.OnMouseEnter();
           }
           at = c.ParentToControl(at);
-          if((focus == AutoFocus.OverSticky || focus == AutoFocus.Over) && c.CanReceiveFocus && passModal)
+          if((focus == AutoFocus.OverSticky || focus == AutoFocus.Over) && c.Enabled && passModal)
           {
             c.Focus(false);
           }
@@ -389,7 +389,7 @@ public class Desktop : Control, IDisposable
           if(c == null) break;
           if(!passModal && c == modal[modal.Count - 1]) passModal = true;
           at = c.ParentToControl(at);
-          if(focus == AutoFocus.Click && ea.CE.Down && c.CanReceiveFocus && passModal && !ea.CE.IsMouseWheel)
+          if(focus == AutoFocus.Click && ea.CE.Down && c.Enabled && passModal && !ea.CE.IsMouseWheel)
           {
             c.Focus(false);
           }
@@ -709,12 +709,14 @@ public class Desktop : Control, IDisposable
       {
         do
         {
-          if(fc.KeyPreview && DispatchKeyEvent(fc, e)) goto done;
+          if(fc.HasStyle(ControlStyle.CanReceiveFocus) && fc.KeyPreview && DispatchKeyEvent(fc, e)) goto done;
           fc = fc.FocusedControl;
         } while(fc.FocusedControl != null);
       }
 
-      if(!DispatchKeyEvent(fc, e) && fc != this && !KeyPreview) DispatchKeyEvent(this, e);
+      if((fc == this || fc.HasStyle(ControlStyle.CanReceiveFocus)) && DispatchKeyEvent(fc, e)) goto done;
+
+      if(fc != this && !KeyPreview) DispatchKeyEvent(this, e);
     }
     
     done:
