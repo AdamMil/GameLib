@@ -1395,7 +1395,7 @@ public class Server
   /// <param name="local">The <see cref="IPEndPoint"/> on which to listen for connections.</param>
   public void Listen(IPEndPoint local)
   { if(thread==null)
-    { thread = new Thread(new ThreadStart(ThreadFunc));
+    { thread = new Thread(ThreadFunc);
       thread.Start();
     }
     lock(this)
@@ -1652,8 +1652,8 @@ public class Server
               if(!quit && OnPlayerConnecting(p))
               { p.Link.LagAverage      = lagAverage;
                 p.Link.LagVariance     = lagVariance;
-                p.Link.MessageSent    += new LinkMessageHandler(OnMessageSent);
-                p.Link.RemoteReceived += new LinkMessageHandler(OnRemoteReceived);
+                p.Link.MessageSent    += OnMessageSent;
+                p.Link.RemoteReceived += OnRemoteReceived;
                 players.Add(p);
                 links.Add(p.Link);
                 p.Link.Send(new byte[0], SendFlag.Reliable);
@@ -1805,9 +1805,9 @@ public class Client
       throw new NetworkException("Timed out while waiting for handshake packet.");
     }
 
-    link.MessageSent    += new LinkMessageHandler(OnMessageSent);
-    link.RemoteReceived += new LinkMessageHandler(OnRemoteReceived);
-    thread = new Thread(new ThreadStart(ThreadFunc));
+    link.MessageSent    += OnMessageSent;
+    link.RemoteReceived += OnRemoteReceived;
+    thread = new Thread(ThreadFunc);
     thread.Start();
     
     OnConnected();

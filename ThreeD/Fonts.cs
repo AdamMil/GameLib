@@ -61,7 +61,7 @@ public abstract class GLFont : Font
     if(lines.Length==0) return new PointF(x, y);
 
     horz = UIHelper.IsAlignedLeft(align) ? 0 : UIHelper.IsAlignedCenter(align) ? 1 : 2;
-    if(UIHelper.IsAlignedMiddle(align)) y = rect.Y + (rect.Height-lines.Length*LineSkip)/2;
+    if(UIHelper.IsAlignedMiddle(align)) y = rect.Y + ((int)rect.Height-lines.Length*LineSkip)/2;
     else if(UIHelper.IsAlignedBottom(align)) y = rect.Bottom-lines.Length*LineSkip;
     y-=LineSkip;
 
@@ -74,7 +74,7 @@ public abstract class GLFont : Font
       else
       {
         length = CalculateSize(chunk).Width;
-        if(horz==1) Render(chunk, rect.X+(rect.Width-length)/2, y);
+        if(horz==1) Render(chunk, rect.X+((int)rect.Width-length)/2, y);
         else Render(chunk, rect.Right-length, y);
       }
       start += lines[i];
@@ -273,7 +273,7 @@ public class GLTrueTypeFont : GLFont
       int width = 0;
       for(int i=0; i<text.Length; i++) width += GetChar(text, i, false).Advance;
 
-      float right = x + (width-1), bottom = y + (Height-1);
+      float right = x + width, bottom = y + Height;
       if(texturingEnabled) GL.glDisable(GL.GL_TEXTURE_2D);
       GL.glColor(bgColor);
       GL.glBegin(GL.GL_QUADS);
@@ -303,11 +303,7 @@ public class GLTrueTypeFont : GLFont
         renderingQuads = true;
       }
 
-      if(i == 0 && c.OffsetX < 0)
-      {
-        throw new NotImplementedException();
-      }
-      else if(c.GlyphWidth != 0)
+      if(c.GlyphWidth != 0)
       {
         float offsetX = x + c.OffsetX, offsetY = y + c.OffsetY;
         GL.glTexCoord2f(c.TextureX, c.TextureY);
@@ -319,6 +315,7 @@ public class GLTrueTypeFont : GLFont
         GL.glTexCoord2f(c.TextureX, c.TextureY + c.TextureHeight);
         GL.glVertex2f(offsetX, offsetY + c.GlyphHeight);
       }
+
       x += c.Advance;
     }
     GL.glEnd();
@@ -360,8 +357,8 @@ public class GLTrueTypeFont : GLFont
       Char  = index.Char;
     }
 
-    public float TextureX, TextureY, TextureWidth, TextureHeight, GlyphWidth, GlyphHeight;
-    public int OffsetX, OffsetY, Width, Advance;
+    public float TextureX, TextureY, TextureWidth, TextureHeight, GlyphWidth, GlyphHeight, OffsetX, OffsetY;
+    public int Width, Advance;
     public CacheIndex Index;
     public char Char;
   }

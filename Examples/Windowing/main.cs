@@ -183,7 +183,6 @@ namespace WindowingTest
       combo.Left  = list.Right + 4;
       combo.Width = list.Width + 20;
       combo.SelectedIndex = 0;
-      combo.DropDownStyle = ComboBoxStyle.DropDownList;
       Controls.AddRange(list, combo);
       #endregion
     }

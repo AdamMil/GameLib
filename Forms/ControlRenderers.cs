@@ -26,7 +26,6 @@ public interface IControlRenderer
   void DrawLine(IGuiRenderTarget target, Point p1, Point p2, Color color, bool antialiased);
   int GetBorderWidth(BorderStyle style);
   Size GetCheckBoxSize(Control control);
-  int GetScrollBarEndSize(Control control);
   bool IsTranslucent(IGuiRenderTarget target);
 }
 #endregion
@@ -45,8 +44,14 @@ public abstract class ControlRenderer : IControlRenderer
   public abstract void DrawArrow(IGuiRenderTarget target, Rectangle rect, ArrowDirection direction, int arrowSize,
                                  Color color);
 
-  public abstract void DrawArrowButton(IGuiRenderTarget target, Rectangle rect, ArrowDirection direction,
-                                       int arrowSize, bool depressed, Color bgColor, Color arrowColor);
+  public void DrawArrowButton(IGuiRenderTarget target, Rectangle rect, ArrowDirection direction,
+                              int arrowSize, bool depressed, Color bgColor, Color arrowColor)
+  {
+    target.FillArea(rect, bgColor);
+    DrawBorder(target, rect, BorderStyle.FixedThick | (depressed ? BorderStyle.Depressed : 0), bgColor);
+    if(depressed) rect.Offset(1, 1);
+    DrawArrow(target, rect, direction, arrowSize, arrowColor);
+  }
 
   public void DrawBackgroundColor(Control control, PaintEventArgs e, Color backColor)
   {
@@ -99,11 +104,6 @@ public abstract class ControlRenderer : IControlRenderer
     return new Size(13, 13);
   }
 
-  public int GetScrollBarEndSize(Control control)
-  {
-    return 16;
-  }
-
   public abstract bool IsTranslucent(IGuiRenderTarget target);
 }
 #endregion
@@ -140,16 +140,6 @@ public sealed class SurfaceControlRenderer : ControlRenderer
         for(int i = 0; i < arrowSize; s += si, i++) Primitives.Line(surface, x + i, y - s, x + i, y + s, color);
         break;
     }
-  }
-
-  public override void DrawArrowButton(IGuiRenderTarget target, Rectangle rect, ArrowDirection direction,
-                                       int arrowSize, bool depressed, Color bgColor, Color arrowColor)
-  {
-    Surface surface = GetSurface(target);
-    target.FillArea(rect, bgColor);
-    DrawBorder(surface, rect, BorderStyle.FixedThick, bgColor, depressed);
-    if(depressed) rect.Offset(1, 1);
-    DrawArrow(target, rect, direction, arrowSize, arrowColor);
   }
 
   /// <summary>Paints a border using the specified base color.</summary>
@@ -192,62 +182,56 @@ public sealed class SurfaceControlRenderer : ControlRenderer
     return surface != null && surface.UsingAlpha;
   }
 
-  /// <summary>Paints a border using default colors.</summary>
-  static void DrawBorder(Surface surface, Rectangle rect, BorderStyle border, bool depressed)
-  {
-    switch(border & BorderStyle.TypeMask)
-    {
-      case BorderStyle.FixedFlat:
-        DrawBorder(surface, rect, border, SystemColors.ControlDarkDark, depressed);
-        break;
-      case BorderStyle.Fixed3D: case BorderStyle.FixedThick: case BorderStyle.Resizeable:
-        DrawBorder(surface, rect, border, SystemColors.ControlLight, SystemColors.ControlDark, depressed);
-        break;
-    }
-  }
-
   /// <summary>Paints a border using the specified base color.</summary>
   static void DrawBorder(Surface surface, Rectangle rect, BorderStyle border, Color color, bool depressed)
   {
+    Color c1, c2, c3, c4;
     switch(border & BorderStyle.TypeMask)
     {
       case BorderStyle.FixedFlat:
-        DrawBorder(surface, rect, border, color, color, depressed);
-        break;
-      case BorderStyle.Fixed3D: case BorderStyle.FixedThick: case BorderStyle.Resizeable:
-        DrawBorder(surface, rect, border, UIHelper.GetLightColor(color), UIHelper.GetDarkColor(color), depressed);
-        break;
-    }
-  }
-
-  /// <summary>Paints a border using the specified colors.</summary>
-  static void DrawBorder(Surface surface, Rectangle rect, BorderStyle border, Color c1, Color c2, bool depressed)
-  {
-    switch(border & BorderStyle.TypeMask)
-    {
-      case BorderStyle.FixedFlat:
-        Primitives.Box(surface, rect, c1);
+        Primitives.Box(surface, rect, color);
         break;
       case BorderStyle.Fixed3D:
-        if(depressed) { Color t = c1; c1 = c2; c2 = t; }
-        Primitives.Line(surface, rect.X, rect.Y, rect.Right - 1, rect.Y, c1);
-        Primitives.Line(surface, rect.X, rect.Y, rect.X, rect.Bottom - 1, c1);
-        Primitives.Line(surface, rect.X, rect.Bottom - 1, rect.Right - 1, rect.Bottom - 1, c2);
-        Primitives.Line(surface, rect.Right - 1, rect.Y, rect.Right - 1, rect.Bottom - 1, c2);
+        if(depressed)
+        {
+          c2 = UIHelper.GetLightColor(color);
+          c1 = UIHelper.GetDarkColor(color);
+        }
+        else
+        {
+          c1 = UIHelper.GetLightColor(color);
+          c2 = UIHelper.GetDarkColor(color);
+        }
+        Primitives.HLine(surface, rect.X, rect.Right - 2, rect.Y, c1);
+        Primitives.VLine(surface, rect.X, rect.Y, rect.Bottom - 2, c1);
+        Primitives.HLine(surface, rect.X, rect.Right - 1, rect.Bottom - 1, c2);
+        Primitives.VLine(surface, rect.Right - 1, rect.Y, rect.Bottom - 1, c2);
         break;
       case BorderStyle.FixedThick: case BorderStyle.Resizeable:
-        Color c3, c4;
-        if(depressed) { c3 = c2; c4 = SystemColors.ControlLightLight; c2 = c1; c1 = SystemColors.ControlDarkDark; }
-        else { c4 = c2; c2 = SystemColors.ControlDarkDark; c3 = SystemColors.ControlLightLight; }
-        Primitives.Line(surface, rect.X, rect.Y, rect.Right - 1, rect.Y, c1);
-        Primitives.Line(surface, rect.X, rect.Y, rect.X, rect.Bottom - 1, c1);
-        Primitives.Line(surface, rect.X, rect.Bottom - 1, rect.Right - 1, rect.Bottom - 1, c2);
-        Primitives.Line(surface, rect.Right - 1, rect.Y, rect.Right - 1, rect.Bottom - 1, c2);
+        if(depressed)
+        {
+          c3 = UIHelper.GetLightColor(color);
+          c4 = UIHelper.GetLightColor(c3);
+          c2 = UIHelper.GetDarkColor(color);
+          c1 = UIHelper.GetDarkColor(c2);
+        }
+        else
+        {
+          c2 = UIHelper.GetLightColor(color);
+          c1 = UIHelper.GetLightColor(c2);
+          c3 = UIHelper.GetDarkColor(color);
+          c4 = UIHelper.GetDarkColor(c3);
+        }
+
+        Primitives.HLine(surface, rect.X, rect.Right - 2, rect.Y, c1);
+        Primitives.VLine(surface, rect.X, rect.Y, rect.Bottom - 2, c1);
+        Primitives.HLine(surface, rect.X, rect.Right - 1, rect.Bottom - 1, c4);
+        Primitives.VLine(surface, rect.Right - 1, rect.Y, rect.Bottom - 1, c4);
         rect.Inflate(-1, -1);
-        Primitives.Line(surface, rect.X, rect.Y, rect.Right - 1, rect.Y, c3);
-        Primitives.Line(surface, rect.X, rect.Y, rect.X, rect.Bottom - 1, c3);
-        Primitives.Line(surface, rect.X, rect.Bottom - 1, rect.Right - 1, rect.Bottom - 1, c4);
-        Primitives.Line(surface, rect.Right - 1, rect.Y, rect.Right - 1, rect.Bottom - 1, c4);
+        Primitives.HLine(surface, rect.X, rect.Right - 2, rect.Y, c2);
+        Primitives.VLine(surface, rect.X, rect.Y, rect.Bottom - 2, c2);
+        Primitives.HLine(surface, rect.X, rect.Right - 1, rect.Bottom - 1, c3);
+        Primitives.VLine(surface, rect.Right - 1, rect.Y, rect.Bottom - 1, c3);
         break;
     }
   }
@@ -259,19 +243,10 @@ public sealed class SurfaceControlRenderer : ControlRenderer
   /// <param name="color">The color to draw the check with.</param>
   static void DrawCheck(Surface surface, int x, int y, Color color)
   {
-    DrawCheck(surface, new Point(x, y), color);
-  }
-
-  /// <summary>Draws a check mark at a given point.</summary>
-  /// <param name="surface">The <see cref="Surface"/> into which the check mark will be drawn.</param>
-  /// <param name="point">The <see cref="Point"/> representing top-left corner of the check mark.</param>
-  /// <param name="color">The color to draw the check with.</param>
-  static void DrawCheck(Surface surface, Point point, Color color)
-  {
     for(int yo = 0; yo < 3; yo++)
     {
-      Primitives.Line(surface, point.X, point.Y + yo + 2, point.X + 2, point.Y + yo + 4, color);
-      Primitives.Line(surface, point.X + 3, point.Y + yo + 3, point.X + 6, point.Y + yo, color);
+      Primitives.Line(surface, x, y + yo + 2, x + 2, y + yo + 4, color);
+      Primitives.Line(surface, x + 3, y + yo + 3, x + 6, y + yo, color);
     }
   }
 
