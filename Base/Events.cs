@@ -115,6 +115,7 @@ public enum ExceptionLocation
   /// <summary>The exception occurred in a user thread.</summary>
   UserThread
 };
+
 /// <summary>This enum contains values that can be returned from an event filter to tell the <see cref="Events"/>
 /// class what to do with the event.
 /// </summary>
@@ -594,8 +595,7 @@ public static class Events
   /// <summary>Gets or sets the maximum size of the event queue.</summary>
   /// <value>The maximum size of the event queue, in number of events.</value>
   /// <remarks>If set to a size smaller than the number of events in the queue, the oldest events in the queue
-  /// will be dropped to reduce it to the maximum, so it's best to set the maximum queue size
-  /// before before calling <see cref="Initialize"/>.
+  /// will be dropped to reduce it to the maximum.
   /// </remarks>
   /// <exception cref="ArgumentOutOfRangeException">Thrown if the value is less than or equal to zero.</exception>
   public static int MaxQueueSize
@@ -626,8 +626,8 @@ public static class Events
   /// <summary>Gets an object that can be locked to synchronize access to the event queue.</summary>
   /// <remarks>While it's strongly recommended that only one thread read events from the queue, it is possible
   /// possible to have multiple threads reading the queue if each thread locks this property with a
-  /// <see cref="System.Threading.Monitor"/> or the C# <c>lock</c> statement. Note that attempting to add events from
-  /// other threads using <see cref="PushEvent"/> will block until the lock is released.
+  /// <see cref="System.Threading.Monitor"/> or the C# <c>lock</c> statement. Note that methods that alter the event
+  /// queue, like <see cref="PushEvent"/>, automatically take this lock.
   /// </remarks>
   public static object SyncRoot 
   {
