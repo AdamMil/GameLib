@@ -788,7 +788,7 @@ public class ListBox : ListControl
   
   public Size GetPreferredSize(int numItems)
   {
-    if(numItems < 0 || numItems >= Items.Count) throw new ArgumentOutOfRangeException();
+    if(numItems < 0 || numItems > Items.Count) throw new ArgumentOutOfRangeException();
 
     Size totalSize = Size.Empty;
     for(int i = 0; i < numItems; i++)
@@ -931,7 +931,7 @@ public class ListBox : ListControl
     return bounds;
   }
 
-  protected int GetTopIndex()
+  protected int GetLastTopIndex()
   {
     return GetTopIndex(Items.Count - 1);
   }
@@ -979,7 +979,7 @@ public class ListBox : ListControl
       if(e.KE.Key == Key.Up || e.KE.Key == Key.Down)
       {
         StopScrolling();
-        Capture = mouseDown = false;
+        mouseDown = false;
         if(e.KE.Key == Key.Up) ScrollUp(e);
         else ScrollDown(e);
       }
@@ -1085,7 +1085,7 @@ public class ListBox : ListControl
   {
     if(mouseDown)
     {
-      int index = PointToItem(new Point(Width / 2, e.Y)); // assumes that Width/2 is within ContentRect
+      int index = PointToItem(new Point(ContentRect.X, e.Y));
       if(index == -1)
       {
         StartScrolling();
@@ -1194,11 +1194,15 @@ public class ListBox : ListControl
   void CalcIndexes()
   {
     bottom = -1;
-    lastTop = GetTopIndex();
+    lastTop = GetLastTopIndex();
+
     if(lastTop > 0)
     {
-      ShowVerticalScrollBar = true;
+      ShowVerticalScrollBar     = true;
       VerticalScrollBar.Maximum = lastTop;
+
+      int visibleItems = GetBottomIndex() - lastTop;
+      VerticalScrollBar.ThumbSize = (float)visibleItems / Items.Count;
     }
     else ShowVerticalScrollBar = false;
   }
@@ -1302,8 +1306,7 @@ public class ListBox : ListControl
     if(!scrolling)
     {
       scrolling = true;
-      if(scroll == null) scroll = new ScrollEvent(this);
-      staticScroll = scroll;
+      scrollEvent = new ScrollEvent(this);
       scrollTimer.Start();
     }
   }
@@ -1313,21 +1316,26 @@ public class ListBox : ListControl
     if(scrolling)
     {
       scrollTimer.Stop();
+      scrollEvent = null;
       scrolling = false;
     }
   }
 
-  ScrollEvent scroll;
   int cursor, top, bottom, lastTop;
   SelectionMode selMode;
   bool mouseDown, selecting;
 
   static void ScrollIt(object sender, EventArgs e)
   {
-    if(staticScroll != null) Events.Events.PushEvent(staticScroll);
+    ScrollEvent sEvent = scrollEvent;
+    if(sEvent != null)
+    {
+      if(sEvent.Control.Desktop == null) StopScrolling();
+      else Events.Events.PushEvent(sEvent);
+    }
   }
 
-  static ScrollEvent staticScroll;
+  static ScrollEvent scrollEvent;
   static Timer scrollTimer;
   static bool scrolling;
 }
@@ -1423,6 +1431,16 @@ public class ComboBox : ListControl
     set { TextBox.Text = value; }
   }
 
+  public Size GetPreferredSize()
+  {
+    return ListBox.GetPreferredSize();
+  }
+
+  public Size GetPreferredSize(int numItems)
+  {
+    return ListBox.GetPreferredSize(numItems);
+  }
+
   protected Rectangle BoxRect
   {
     get
@@ -1442,10 +1460,10 @@ public class ComboBox : ListControl
       {
         listBox = MakeListBox(Items);
         listBox.BorderStyle  = style == ComboBoxStyle.Simple ? BorderStyle.None : BorderStyle.FixedFlat;
-        listBox.KeyDown     += listBox_KeyDown;
-        listBox.MouseMove   += listBox_MouseMove;
-        listBox.MouseUp     += listBox_MouseUp;
-        listBox.TextChanged += listBox_TextChanged;
+        listBox.KeyDown              += listBox_KeyDown;
+        listBox.MouseMove            += listBox_MouseMove;
+        listBox.MouseUp              += listBox_MouseUp;
+        listBox.SelectedIndexChanged += listBox_SelectedIndexChanged;
       }
       if(Items.Version != oldVersion)
       {
@@ -1483,7 +1501,7 @@ public class ComboBox : ListControl
       Desktop.Invalidate(ListBox.ControlToAncestor(ListBox.ControlRect, Desktop));
       ListBox.Parent = null;
     }
-    Capture = mouseDown = open = false;
+    mouseDown = open = false;
     OnBoxPress(false);
   }
 
@@ -1526,7 +1544,6 @@ public class ComboBox : ListControl
       else
       {
         Open();
-        Capture = true;
         mouseDown = true;
         OnBoxPress(true);
       }
@@ -1553,7 +1570,7 @@ public class ComboBox : ListControl
     if(e.CE.Button == MouseButton.Left && open)
     {
       OnBoxPress(false);
-      Capture = mouseDown = false;
+      mouseDown = false;
       e.Handled = true;
     }
     base.OnMouseUp(e);
@@ -1628,22 +1645,27 @@ public class ComboBox : ListControl
 
   void listBox_MouseUp(object sender, ClickEventArgs e)
   {
-    if(e.CE.Button == MouseButton.Left && ListBox.ContentRect.Contains(e.CE.Point) && ListBox.SelectedIndex != -1)
+    if(e.CE.Button == MouseButton.Left && ListBox.ContentRect.Contains(e.CE.Point))
     {
       Close();
       e.Handled = true;
     }
   }
 
-  void listBox_TextChanged(object sender, ValueChangedEventArgs e)
+  void listBox_SelectedIndexChanged(object sender, EventArgs e)
   {
     if(myChange) return;
 
-    myChange = true;
-    string text = TextBox.Text;
-    TextBox.Text = ListBox.Text;
-    myChange = false;
-    if(text != ListBox.Text) OnTextChanged(e);
+    if(!string.Equals(TextBox.Text, ListBox.Text, StringComparison.Ordinal))
+    {
+      ValueChangedEventArgs ve = new ValueChangedEventArgs(TextBox.Text);
+      myChange = true;
+      TextBox.Text = ListBox.Text;
+      myChange = false;
+      OnTextChanged(ve);
+    }
+
+    OnSelectedIndexChanged();
   }
 
   void textBox_MouseDown(object sender, ClickEventArgs e)

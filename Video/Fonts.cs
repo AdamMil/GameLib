@@ -690,17 +690,17 @@ public class TrueTypeFont : SurfaceFont
   }
 
   protected sealed class CachedChar : IDisposable
-  { public CachedChar() { }
+  { 
+    public CachedChar() { }
     public CachedChar(char c) { Char=c; }
-    ~CachedChar() { Dispose(true); }
-    public void Dispose() { Dispose(false); GC.SuppressFinalize(this); }
+    
+    public void Dispose() { Surface.Dispose(); }
 
     public Surface Surface;
     public int     OffsetX, OffsetY, Width, Advance;
     public char    Char;
     public bool    Compatible;
     internal CacheIndex Index;
-    void Dispose(bool finalizing) { Surface.Dispose(); }
   }
 
   protected CachedChar GetChar(char c)
@@ -762,21 +762,20 @@ public class TrueTypeFont : SurfaceFont
 
   /// <summary>Clears the glyph cache.</summary>
   protected void ClearCache()
-  { map.Clear();
+  { 
+    map.Clear();
+    foreach(CachedChar c in list) c.Dispose();
     list.Clear();
   }
 
   /// <summary>See <see cref="Font.Dispose(bool)"/> for more details regarding this method.</summary>
   protected override void Dispose(bool finalizing)
   {
-    if(list.Count>0)
-    {
-      foreach(CachedChar c in list) c.Dispose();
-      ClearCache();
-    }
+    ClearCache();
 
     if(font != IntPtr.Zero)
-    { TTF.CloseFont(font);
+    { 
+      TTF.CloseFont(font);
       TTF.Deinitialize();
       font = IntPtr.Zero;
     }

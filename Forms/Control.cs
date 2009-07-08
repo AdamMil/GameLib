@@ -881,6 +881,7 @@ public class Control
   protected virtual void OnEnabledChanged(ValueChangedEventArgs e)
   {
     if(!Enabled) Blur();
+    Invalidate();
   }
 
   /// <summary>Called when the <see cref="ForeColor"/> property has been changed.</summary>
@@ -1388,12 +1389,41 @@ public class Control
     return new Rectangle(ScreenToControl(screenRect.Location), screenRect.Size);
   }
 
-  /// <summary>Disposes this child and all of its descendants, if they implement <see cref="IDispoable"/>.</summary>
+  /// <summary>Disposes this child and all of its descendants, if they implement <see cref="IDispoable"/>, and clears
+  /// the <see cref="Controls"/> collection.
+  /// </summary>
   public void DisposeAll()
   {
-    foreach(Control child in Controls) child.DisposeAll();
-    IDisposable disposable = this as IDisposable;
-    if(disposable != null) disposable.Dispose();
+    DisposeAll(true);
+  }
+
+  /// <summary>Disposes this child and all of its descendants, if they implement <see cref="IDispoable"/>, and clears
+  /// the <see cref="Controls"/> collection.
+  /// </summary>
+  /// <param name="disposeThis">If true, this control will be disposed. If false, only the descendants will be. This
+  /// should be set to false when called from a Dispose() method, to avoid an infinite recursion.
+  /// </param>
+  public void DisposeAll(bool disposeThis)
+  {
+    foreach(Control child in Controls) child.DisposeAll(true);
+    Controls.Clear();
+
+    if(disposeThis)
+    {
+      IDisposable disposable = this as IDisposable;
+      if(disposable != null) disposable.Dispose();
+    }
+  }
+
+  /// <summary>Returns the first ancestor matching the given type parameter, or null if no matching ancestor is found.</summary>
+  public T GetAncestor<T>() where T : Control
+  {
+    for(Control control = Parent; control != null; control = control.Parent)
+    {
+      T value = control as T;
+      if(value != null) return value;
+    }
+    return null;
   }
 
   /// <summary>Returns the topmost control at a given point in control coordinates.</summary>

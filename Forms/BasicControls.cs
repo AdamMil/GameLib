@@ -34,9 +34,12 @@ namespace GameLib.Forms
 #region ScrollableControl
 public abstract class ScrollableControl : Control
 {
-  protected ScrollableControl() { }
+  protected ScrollableControl()
+  {
+    MouseWheelScrollAmount = 3;
+  }
 
-  protected ScrollableControl(bool horzizontal, bool vertical)
+  protected ScrollableControl(bool horzizontal, bool vertical) : this()
   {
     ShowHorizontalScrollBar = horzizontal;
     ShowVerticalScrollBar   = vertical;
@@ -51,6 +54,15 @@ public abstract class ScrollableControl : Control
       if(vert != null) ret.Right  += vert.Width;
       return ret;
     }
+  }
+
+  /// <summary>Gets or sets the amount that the vertical scroll bar will be scrolled when the mouse wheel is used. This
+  /// amount will be added to the scroll value when the mouse wheel is rolled towards the user and subtracted when the
+  /// mouse wheel is rolled away from the user. Setting it to zero disables the mouse wheel support. The default is 3.
+  /// </summary>
+  protected int MouseWheelScrollAmount
+  {
+    get; set;
   }
 
   protected ScrollBar HorizontalScrollBar
@@ -133,6 +145,29 @@ public abstract class ScrollableControl : Control
   protected virtual void OnHorzizontalScroll(object bar, ValueChangedEventArgs e) { }
 
   protected virtual void OnVerticalScroll(object bar, ValueChangedEventArgs e) { }
+
+  protected internal override void OnMouseDown(ClickEventArgs e)
+  {
+    if(!e.Handled && MouseWheelScrollAmount != 0 &&
+       (e.CE.Button == MouseButton.WheelDown || e.CE.Button == MouseButton.WheelUp))
+    {
+      if(VerticalScrollBar != null)
+      {
+        if(e.CE.Button == MouseButton.WheelDown)
+        {
+          VerticalScrollBar.Value += MouseWheelScrollAmount;
+          e.Handled = true;
+        }
+        else if(e.CE.Button == MouseButton.WheelUp)
+        {
+          VerticalScrollBar.Value -= MouseWheelScrollAmount;
+          e.Handled = true;
+        }
+      }
+    }
+
+    base.OnMouseDown(e);
+  }
 
   ScrollBar horz, vert;
 }
@@ -701,7 +736,7 @@ public class ImageBox : Control
 
 #region ScrollBar
 // TODO: make sure Minimum can be greater than Maximum
-public class ScrollBar : Control, IDisposable
+public class ScrollBar : Control
 {
   public ScrollBar()
   {
@@ -724,17 +759,6 @@ public class ScrollBar : Control, IDisposable
   static ScrollBar()
   {
     ClickRepeatDelay = 300;
-  }
-
-  ~ScrollBar() 
-  {
-    Dispose(true); 
-  }
-  
-  public void Dispose()
-  {
-    Dispose(false); 
-    GC.SuppressFinalize(this); 
   }
 
   public class ThumbEventArgs : EventArgs
@@ -1134,15 +1158,6 @@ public class ScrollBar : Control, IDisposable
     }
   }
 
-  protected virtual void Dispose(bool finalizing)
-  {
-    if(crTimer != null)
-    {
-      crTimer.Dispose();
-      crTimer = null;
-    }
-  }
-
   protected ClickPlace FindPlace(Point click)
   {
     int size = Orientation == Orientation.Horizontal ? Width : Height;
@@ -1220,11 +1235,19 @@ public class ScrollBar : Control, IDisposable
 
   static void RepeatClick(object sender, EventArgs e)
   {
-    if(repeatEvent != null)
+    ClickRepeat rEvent = repeatEvent;
+    if(rEvent != null)
     {
-      crTimer.Interval = crRate;
-      isRepeating = true;
-      Events.Events.PushEvent(repeatEvent);
+      if(rEvent.Control.Desktop == null) // don't keep on repeating for a control that's no longer used
+      {
+        crTimer.Stop();
+      }
+      else
+      {
+        if(crTimer.Interval != crRate) crTimer.Interval = crRate;
+        isRepeating = true;
+        Events.Events.PushEvent(rEvent);
+      }
     }
   }
 
@@ -1933,7 +1956,11 @@ public class TextBox : Control
     if(caretTimer.Interval != CaretFlashRate) caretTimer.Interval = CaretFlashRate;
     caretOn = !caretOn;
     TextBox tb = withCaret;
-    if(tb != null && tb.HasCaret) DoFlash(tb);
+    if(tb != null)
+    {
+      if(tb.Desktop == null) WithCaret = null; // don't keep repeating for a control that's no longer used
+      else if(tb.HasCaret) DoFlash(tb);
+    }
   }
 
   static void DoFlash(TextBox tb)

@@ -352,7 +352,7 @@ public class Desktop : Control, IDisposable
         }
         else if(passModal)
         {
-          if(p != this)
+          if(p.EffectivelyEnabled && p.EffectivelyVisible)
           {
             ea.Point = at;
             p.OnMouseMove(ea);
@@ -395,10 +395,10 @@ public class Desktop : Control, IDisposable
           }
           p = c;
         }
-        if(p == this) // if p=='this', the desktop was clicked
+
+        if(focus == AutoFocus.Click && !ea.CE.IsMouseWheel && ea.CE.Down && p.FocusedControl != null && passModal)
         {
-          if(focus == AutoFocus.Click && ea.CE.Down && FocusedControl != null && passModal) FocusedControl = null; // blur
-          if(!dragStarted && capturing == null) goto done; // if we're not dragging or capturing, then we're done
+          p.FocusedControl = null; // blur
         }
 
         if(ea.CE.Down)
@@ -438,10 +438,10 @@ public class Desktop : Control, IDisposable
           ea.CE.Point = at;
           do
           {
-            if(!DispatchClickEvent(p, ea, time)) break;
+            if(p.EffectivelyEnabled && p.EffectivelyVisible && !DispatchClickEvent(p, ea, time)) break;
             ea.CE.Point = p.ControlToParent(ea.CE.Point);
             p = p.Parent;
-          } while(p != null && p != this && p.Enabled && p.Visible);
+          } while(p != null);
         }
         done:
         // lastClicked is used to track if the button release occurred over the same control it was pressed over
@@ -484,9 +484,13 @@ public class Desktop : Control, IDisposable
 
   protected virtual void Dispose(bool finalizing)
   {
-    if(Renderer != null) Renderer.VideoModeChanged -= OnVideoModeChanged;
-    if(!disposed) Events.Events.Deinitialize();
-    disposed = true;
+    if(!disposed)
+    {
+      DisposeAll(false);
+      if(Renderer != null) Renderer.VideoModeChanged -= OnVideoModeChanged;
+      Events.Events.Deinitialize();
+      disposed = true;
+    }
   }
 
   protected internal override void OnKeyDown(KeyEventArgs e)
@@ -513,12 +517,12 @@ public class Desktop : Control, IDisposable
 
   internal void DoPaint(Control control)
   {
-    DoPaint(control, control.InvalidRect, control.DoPaint, true);
+    DoPaint(control, control.InvalidRect, null, true);
   }
 
   internal void DoPaint(Control control, Rectangle paintArea)
   {
-    DoPaint(control, paintArea, control.DoPaint, false);
+    DoPaint(control, paintArea, null, false);
   }
 
   internal void DoPaint(Control control, Rectangle paintArea, PaintHandler paintMethod)
@@ -580,7 +584,8 @@ public class Desktop : Control, IDisposable
 
   /// <summary>Adds a rectangle to the list of updated rectangles.</summary>
   void AddUpdatedArea(Rectangle area)
-  { // TODO: combine rectangles more efficiently so there's no overlap
+  { 
+    // TODO: combine rectangles more efficiently so there's no overlap
     int i;
     for(i=0; i < updatedLen; i++)
     {
@@ -605,7 +610,11 @@ public class Desktop : Control, IDisposable
     if(paintArea.Width != 0 && control.Desktop == this && DrawTarget != null && Renderer != null)
     {
       PaintEventArgs pe = new PaintEventArgs(Renderer, control, paintArea);
-      paintMethod(pe);
+
+      // we treat null as referencing a control's DoPaint method because we don't want to make callers allocate a new
+      // delegate every time a control gets painted with its normal paint method
+      if(paintMethod != null) paintMethod(pe);
+      else control.DoPaint(pe);
 
       // propogate changes up to the desktop's surface if we need to. we skip translucent controls because their
       // Invalidate() call simply invalidates the given area of the parent control
@@ -669,34 +678,35 @@ public class Desktop : Control, IDisposable
       target.OnMouseDown(e);
       if(e.Handled) { clickStatus ^= ClickStatus.UpDown; e.Handled = false; }
     }
-    if(!e.CE.IsMouseWheel && (byte)e.CE.Button < 8)
-    {
-      if(target.HasStyle(ControlStyle.NormalClick) && (clickStatus & ClickStatus.Click) != 0)
-      {
-        if(e.CE.Down) lastClicked[(byte)e.CE.Button] = target;
-        else
-        {
-          if(lastClicked[(byte)e.CE.Button] == target)
-          {
-            if(target.HasStyle(ControlStyle.DoubleClickable) && time - target.lastClickTime <= dcDelay)
-            {
-              target.OnDoubleClick(e);
-            }
-            else target.OnMouseClick(e);
-            target.lastClickTime = time;
-            if(e.Handled) { clickStatus ^= ClickStatus.Click; e.Handled = false; }
-            lastClicked[(byte)e.CE.Button] = target.Parent; // allow the check to be done for the parent, too // TODO: make sure this is okay with captured/dragged controls
-          }
-        }
-      }
-      else clickStatus ^= ClickStatus.Click;
-    }
     if(!e.CE.Down && (clickStatus & ClickStatus.UpDown) != 0)
     {
       if(e.CE.IsMouseWheel) e.Handled = true;
       else target.OnMouseUp(e);
       if(e.Handled) { clickStatus ^= ClickStatus.UpDown; e.Handled = false; }
     }
+    if(!e.CE.IsMouseWheel && (byte)e.CE.Button < 8)
+    {
+      if(target.HasStyle(ControlStyle.NormalClick) && (clickStatus & ClickStatus.Click) != 0)
+      {
+        if(e.CE.Down)
+        {
+          lastClicked[(byte)e.CE.Button] = target;
+        }
+        else if(lastClicked[(byte)e.CE.Button] == target)
+        {
+          if(target.HasStyle(ControlStyle.DoubleClickable) && time - target.lastClickTime <= dcDelay)
+          {
+            target.OnDoubleClick(e);
+          }
+          else target.OnMouseClick(e);
+          target.lastClickTime = time;
+          if(e.Handled) { clickStatus ^= ClickStatus.Click; e.Handled = false; }
+          lastClicked[(byte)e.CE.Button] = target.Parent; // allow the check to be done for the parent, too // TODO: make sure this is okay with captured/dragged controls
+        }
+      }
+      else clickStatus ^= ClickStatus.Click;
+    }
+
     return clickStatus != ClickStatus.None;
   }
 
@@ -705,18 +715,22 @@ public class Desktop : Control, IDisposable
     if(!e.Handled)
     {
       Control fc = this;
-      if(fc.FocusedControl != null)
+      while(fc.FocusedControl != null && fc.HasFlags(Flag.EffectivelyEnabled | Flag.EffectivelyVisible))
       {
-        do
-        {
-          if(fc.HasStyle(ControlStyle.CanReceiveFocus) && fc.KeyPreview && DispatchKeyEvent(fc, e)) goto done;
-          fc = fc.FocusedControl;
-        } while(fc.FocusedControl != null);
+        if(fc.HasFlags((Flag)ControlStyle.CanReceiveFocus | Flag.KeyPreview) && DispatchKeyEvent(fc, e)) goto done;
+        fc = fc.FocusedControl;
       }
 
-      if((fc == this || fc.HasStyle(ControlStyle.CanReceiveFocus)) && DispatchKeyEvent(fc, e)) goto done;
+      if((fc == this || fc.HasStyle(ControlStyle.CanReceiveFocus)) &&
+         fc.HasFlags(Flag.EffectivelyEnabled | Flag.EffectivelyVisible) && DispatchKeyEvent(fc, e))
+      {
+        goto done;
+      }
 
-      if(fc != this && !KeyPreview) DispatchKeyEvent(this, e);
+      if(fc != this && HasFlags(Flag.EffectivelyEnabled | Flag.EffectivelyVisible) && !KeyPreview)
+      {
+        DispatchKeyEvent(this, e);
+      }
     }
     
     done:
