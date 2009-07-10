@@ -464,12 +464,6 @@ byte[] output = IOH.Write("dfp?d", parms);
       returns the connection state that existed when the most recent I/O operation was performed.
       </remarks>
     </IsConnected>
-    <DefaultFlags>
-      <summary>Gets or sets the default flags that will be used for sending messages.</summary>
-      <remarks>If an overload of <see cref="Send"/> is called that does not have a flags parameter, the value of
-      this property will be used. This property defaults to <see cref="SendFlag.ReliableSequential"/>.
-      </remarks>
-    </DefaultFlags>
     <GetQueueStatus>
       <summary>Gets information about the status of the receive and/or send queues.</summary>
       <param name="flags">A set of <see cref="QueueStat"/> flags that determine what data will be returned.</param>
@@ -629,7 +623,7 @@ byte[] output = IOH.Write("dfp?d", parms);
     <Send>
       <Common>
         <summary>Queues a message for sending.</summary>
-        <param name="toWho">The addressee of the message. This value may be one of the following:
+        <param name="toWhom">The addressee of the message. This value may be one of the following:
         <list type="table">
           <listheader><term>Type</term></listheader>
           <item><term>null or <see cref="Players"/></term>
