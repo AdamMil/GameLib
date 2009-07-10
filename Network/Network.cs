@@ -16,6 +16,7 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
+// TODO: this code needs an overhaul. in particular, it'd be nice if things were more strongly-typed, type registration was removed, allocations were reduced, and the 64k data limit was eliminated.
 // TODO: The MessageConverter class seems rather ugly. We should take our new knowledge of .NET and rewrite it.
 // TODO: stress test the locking, changes were made that may have destabilized it
 // TODO: implement remote received notification
@@ -180,7 +181,7 @@ public enum SendFlag
 /// be returned. The flags can be ORed together to combine their effects.
 /// </summary>
 [Flags]
-public enum QueueStat
+public enum QueueStatusFlag
 { 
   /// <summary>Data about the low-priority send queue will be included.</summary>
   LowPriority=1,
@@ -481,7 +482,7 @@ public sealed class MessageConverter
   { bool safe = true;
     foreach(FieldInfo fi in type.GetFields(BindingFlags.Instance|BindingFlags.NonPublic|BindingFlags.Public))
     { Type ft = fi.FieldType;
-      if(ft.IsPrimitive) continue;
+      if(ft.IsPrimitive || ft == typeof(string)) continue;
       if(!ft.IsValueType && !ft.IsLayoutSequential && !ft.IsExplicitLayout)
       { // TODO: now that we have .NET 2.0, test this code. (was FIXME: this only works in .NET 2.0!)
         MarshalAsAttribute ma = (MarshalAsAttribute)Attribute.GetCustomAttribute(fi, typeof(MarshalAsAttribute), false);
@@ -624,9 +625,6 @@ public class NetLink
   /// </remarks>
   public event LinkMessageHandler RemoteReceived;
 
-  /// <include file="../documentation.xml" path="//Network/Common/DefaultFlags/*"/>
-  public SendFlag DefaultFlags { get { return defFlags; } set { defFlags=value; } }
-
   /// <include file="../documentation.xml" path="//Network/Common/IsConnected/*"/>
   public bool IsConnected
   { get
@@ -731,17 +729,17 @@ public class NetLink
   }
 
   /// <include file="../documentation.xml" path="//Network/Common/GetQueueStatus/*"/>
-  public QueueStatus GetQueueStatus(QueueStat flags)
+  public QueueStatus GetQueueStatus(QueueStatusFlag flags)
   { QueueStatus status = new QueueStatus();
     if(connected)
-    { if((flags&QueueStat.LowPriority)!=0 && low!=null)
+    { if((flags&QueueStatusFlag.LowPriority)!=0 && low!=null)
         lock(low) foreach(LinkMessage msg in low) { status.SendMessages++; status.SendBytes+=msg.Length; }
-      if((flags&QueueStat.NormalPriority)!=0 && norm!=null)
+      if((flags&QueueStatusFlag.NormalPriority)!=0 && norm!=null)
         lock(norm) foreach(LinkMessage msg in norm) { status.SendMessages++; status.SendBytes+=msg.Length; }
-      if((flags&QueueStat.HighPriority)!=0 && high!=null)
+      if((flags&QueueStatusFlag.HighPriority)!=0 && high!=null)
         lock(high) foreach(LinkMessage msg in high) { status.SendMessages++; status.SendBytes+=msg.Length; }
     }
-    if((flags&QueueStat.ReceiveQueue)!=0)
+    if((flags&QueueStatusFlag.ReceiveQueue)!=0)
       lock(recv) foreach(LinkMessage msg in recv) { status.ReceiveMessages++; status.ReceiveBytes+=msg.Length; }
     return status;
   }
@@ -789,22 +787,18 @@ public class NetLink
   }
 
   /// <include file="../documentation.xml" path="//Network/NetLink/Send/Common/*"/>
-  public void Send(byte[] data) { Send(data, 0, data.Length, defFlags, 0, null); }
-  public void Send(byte[] data, int length) { Send(data, 0, length, defFlags, 0, null); }
+  public void Send(byte[] data) { Send(data, 0, data.Length, DefaultFlags, 0, null); }
   /// <include file="../documentation.xml" path="//Network/NetLink/Send/*[self::Common or self::Length or self::Index]/*"/>
-  public void Send(byte[] data, int index, int length) { Send(data, index, length, defFlags, 0, null); }
+  public void Send(byte[] data, int index, int length) { Send(data, index, length, DefaultFlags, 0, null); }
   /// <include file="../documentation.xml" path="//Network/NetLink/Send/*[self::Common or self::Length or self::Index or self::Flags]/*"/>
   public void Send(byte[] data, int index, int length, SendFlag flags) { Send(data, index, length, flags, 0, null); }
   /// <include file="../documentation.xml" path="//Network/NetLink/Send/*[self::Common or self::Length or self::Index or self::Flags or self::Timeout]/*"/>
   public void Send(byte[] data, int index, int length, SendFlag flags, int timeoutMs) { Send(data, index, length, flags, timeoutMs, null); }
-  /// <include file="../documentation.xml" path="//Network/NetLink/Send/*[self::Common or self::Length or self::Flags]/*"/>
-  public void Send(byte[] data, int length, SendFlag flags) { Send(data, 0, length, flags, 0, null); }
-  /// <include file="../documentation.xml" path="//Network/NetLink/Send/*[self::Common or self::Length or self::Flags or self::Timeout]/*"/>
-  public void Send(byte[] data, int length, SendFlag flags, int timeoutMs) { Send(data, 0, length, flags, timeoutMs, null); }
   /// <include file="../documentation.xml" path="//Network/NetLink/Send/*[self::Common or self::Flags]/*"/>
   public void Send(byte[] data, SendFlag flags) { Send(data, 0, data.Length, flags, 0, null); }
   /// <include file="../documentation.xml" path="//Network/NetLink/Send/*[self::Common or self::Flags or self::Timeout]/*"/>
   public void Send(byte[] data, SendFlag flags, int timeoutMs) { Send(data, 0, data.Length, flags, timeoutMs, null); }
+
   /// <include file="../documentation.xml" path="//Network/NetLink/Send/*[self::Common or self::Length or self::Index or self::Flags or self::Timeout]/*"/>
   /// <param name="tag">Arbitrary data that will be associated with this message and that can be accessed via
   /// <see cref="LinkMessage.Tag"/>. The data is not examined or modified by the network engine. Note that this means
@@ -1131,6 +1125,7 @@ public class NetLink
 
   [Flags]
   enum HeadFlag : byte { Ack=32, Mask=0xE0 }
+  const SendFlag DefaultFlags = SendFlag.ReliableSequential;
   const int HeaderSize=4, SeqMax=1024;
 
   bool IsBadSequence
@@ -1244,7 +1239,7 @@ public class NetLink
   byte[]     recvBuf, sendBuf;
   int        nextSize, nextIndex, udpMax, lagAverage, lagVariance;
   ushort     sendSeq, recvSeq, nextSeq;
-  SendFlag   recvFlags, defFlags=SendFlag.ReliableSequential;
+  SendFlag   recvFlags;
   bool       connected;
 }
 #endregion
@@ -1328,9 +1323,6 @@ public class Server
   /// </remarks>
   public event ServerMessageHandler MessageSent;
 
-  /// <include file="../documentation.xml" path="//Network/Common/DefaultFlags/*"/>
-  public SendFlag DefaultFlags { get { return defFlags; } set { defFlags=value; } }
-
   /// <summary>Gets the local endpoint upon which the server is listening.</summary>
   public IPEndPoint LocalEndPoint
   { get
@@ -1340,7 +1332,10 @@ public class Server
   }
 
   /// <summary>Gets a read-only collection of the current players.</summary>
-  public ReadOnlyCollection<ServerPlayer> Players { get { return players.AsReadOnly(); } }
+  public ReadOnlyCollection<ServerPlayer> Players
+  {
+    get { return players.AsReadOnly(); }
+  }
 
   /// <include file="../documentation.xml" path="//Network/Common/LagAverage/*"/>
   public int LagAverage
@@ -1422,7 +1417,7 @@ public class Server
   /// <returns>A <see cref="QueueStatus"/> structure containing the number and total size of messages waiting in
   /// the queues specified by <paramref name="flags"/>.
   /// </returns>
-  public QueueStatus GetQueueStatus(ServerPlayer p, QueueStat flags)
+  public QueueStatus GetQueueStatus(ServerPlayer p, QueueStatusFlag flags)
   { lock(this) return p.Link.GetQueueStatus(flags);
   }
 
@@ -1431,7 +1426,7 @@ public class Server
   /// <returns>A <see cref="QueueStatus"/> structure containing the number and total size of messages waiting in
   /// the queues specified by <paramref name="flags"/>.
   /// </returns>
-  public QueueStatus GetQueueStatus(QueueStat flags)
+  public QueueStatus GetQueueStatus(QueueStatusFlag flags)
   { QueueStatus qs = new QueueStatus(), pqs;
     lock(this)
       foreach(NetLink link in links)
@@ -1455,16 +1450,16 @@ public class Server
     p.Link.Close();
   }
 
-  /// <summary>Drops a player with a delay to allow incoming and outgoing messages to be sent.</summary>
+  /// <summary>Drops a player with a delay to allow incoming and outgoing messages to be delivered.</summary>
   /// <param name="p">The <see cref="ServerPlayer"/> to drop.</param>
   /// <remarks>The connection with the player player will be terminated only after all outgoing messages have
   /// been sent and all incoming messages have been processed.
   /// </remarks>
   public void DropPlayerDelayed(ServerPlayer p) { DropPlayerDelayed(p, int.MaxValue); }
 
-  /// <summary>Drops a player with a delay to allow incoming and outgoing messages to be sent.</summary>
+  /// <summary>Drops a player with a delay to allow incoming and outgoing messages to be delivered.</summary>
   /// <param name="p">The <see cref="ServerPlayer"/> to drop.</param>
-  /// <param name="timeoutMs">The amount of time to wait for all remaining messages to be sent, in milliseconds.</param>
+  /// <param name="timeoutMs">The amount of time to wait for all remaining messages to be delivered, in milliseconds.</param>
   /// <remarks>The connection with the player player will be terminated after all outgoing messages have
   /// been sent and all incoming messages have been processed, or the timeout expires.
   /// </remarks>
@@ -1477,39 +1472,63 @@ public class Server
   }
 
   /// <include file="../documentation.xml" path="//Network/Server/Send/*[self::Common or self::byteData]/*"/>
-  public void Send(object toWho, byte[] data) { Send(toWho, data, 0, data.Length, defFlags); }
-  /// <include file="../documentation.xml" path="//Network/Server/Send/*[self::Common or self::byteData or self::Length]/*"/>
-  public void Send(object toWho, byte[] data, int length) { Send(toWho, data, 0, length, defFlags); }
+  public void Send(object toWhom, byte[] data) { Send(toWhom, data, 0, data.Length, DefaultFlags); }
   /// <include file="../documentation.xml" path="//Network/Server/Send/*[self::Common or self::byteData or self::Length or self::Index]/*"/>
-  public void Send(object toWho, byte[] data, int index, int length)
-  { if(cvt.AltersByteArray) RawSend(toWho, cvt.Serialize(data, index, length), defFlags, 0, data);
-    else RawSend(toWho, data, index, length, defFlags, 0, data);
+  public void Send(object toWhom, byte[] data, int index, int length)
+  { if(cvt.AltersByteArray) RawSend(toWhom, cvt.Serialize(data, index, length), DefaultFlags, 0, data);
+    else RawSend(toWhom, data, index, length, DefaultFlags, 0, data);
   }
   /// <include file="../documentation.xml" path="//Network/Server/Send/*[self::Common or self::byteData or self::Flags]/*"/>
-  public void Send(object toWho, byte[] data, SendFlag flags) { Send(toWho, data, 0, data.Length, flags); }
-  /// <include file="../documentation.xml" path="//Network/Server/Send/*[self::Common or self::byteData or self::Length or self::Flags]/*"/>
-  public void Send(object toWho, byte[] data, int length, SendFlag flags) { Send(toWho, data, 0, length, flags); }
+  public void Send(object toWhom, byte[] data, SendFlag flags) { Send(toWhom, data, 0, data.Length, flags); }
   /// <include file="../documentation.xml" path="//Network/Server/Send/*[self::Common or self::byteData or self::Length or self::Index or self::Flags]/*"/>
-  public void Send(object toWho, byte[] data, int index, int length, SendFlag flags)
-  { if(cvt.AltersByteArray) RawSend(toWho, cvt.Serialize(data, index, length), flags, 0, data);
-    else RawSend(toWho, data, index, length, flags, 0, data);
+  public void Send(object toWhom, byte[] data, int index, int length, SendFlag flags)
+  { if(cvt.AltersByteArray) RawSend(toWhom, cvt.Serialize(data, index, length), flags, 0, data);
+    else RawSend(toWhom, data, index, length, flags, 0, data);
   }
   /// <include file="../documentation.xml" path="//Network/Server/Send/*[self::Common or self::byteData or self::Flags or self::Timeout]/*"/>
-  public void Send(object toWho, byte[] data, SendFlag flags, int timeoutMs) { Send(toWho, data, 0, data.Length, flags, timeoutMs); }
-  /// <include file="../documentation.xml" path="//Network/Server/Send/*[self::Common or self::byteData or self::Length or self::Flags or self::Timeout]/*"/>
-  public void Send(object toWho, byte[] data, int length, SendFlag flags, int timeoutMs) { Send(toWho, data, 0, length, flags, timeoutMs); }
+  public void Send(object toWhom, byte[] data, SendFlag flags, int timeoutMs) { Send(toWhom, data, 0, data.Length, flags, timeoutMs); }
   /// <include file="../documentation.xml" path="//Network/Server/Send/*[self::Common or self::byteData or self::Index or self::Length or self::Flags or self::Timeout]/*"/>
-  public void Send(object toWho, byte[] data, int index, int length, SendFlag flags, int timeoutMs)
-  { if(cvt.AltersByteArray) RawSend(toWho, cvt.Serialize(data, index, length), flags, timeoutMs, data);
-    else RawSend(toWho, data, index, length, flags, timeoutMs, data);
+  public void Send(object toWhom, byte[] data, int index, int length, SendFlag flags, int timeoutMs)
+  { if(cvt.AltersByteArray) RawSend(toWhom, cvt.Serialize(data, index, length), flags, timeoutMs, data);
+    else RawSend(toWhom, data, index, length, flags, timeoutMs, data);
   }
   /// <include file="../documentation.xml" path="//Network/Server/Send/*[self::Common or self::objData]/*"/>
-  public void Send(object toWho, object data) { RawSend(toWho, cvt.Serialize(data), defFlags, 0, data); }
+  public void Send(object toWhom, object data) { RawSend(toWhom, cvt.Serialize(data), DefaultFlags, 0, data); }
   /// <include file="../documentation.xml" path="//Network/Server/Send/*[self::Common or self::objData or self::Flags]/*"/>
-  public void Send(object toWho, object data, SendFlag flags) { RawSend(toWho, cvt.Serialize(data), flags, 0, data); }
+  public void Send(object toWhom, object data, SendFlag flags) { RawSend(toWhom, cvt.Serialize(data), flags, 0, data); }
   /// <include file="../documentation.xml" path="//Network/Server/Send/*[self::Common or self::objData or self::Flags or self::Timeout]/*"/>
-  public void Send(object toWho, object data, SendFlag flags, int timeoutMs)
-  { RawSend(toWho, cvt.Serialize(data), flags, timeoutMs, data);
+  public void Send(object toWhom, object data, SendFlag flags, int timeoutMs)
+  { RawSend(toWhom, cvt.Serialize(data), flags, timeoutMs, data);
+  }
+
+  /// <include file="../documentation.xml" path="//Network/Server/SendToAllExcept/*[self::Common or self::byteData]/*"/>
+  public void SendToAllExcept(ServerPlayer player, byte[] data) { SendToAllExcept(player, data, 0, data.Length, DefaultFlags); }
+  /// <include file="../documentation.xml" path="//Network/Server/SendToAllExcept/*[self::Common or self::byteData or self::Length or self::Index]/*"/>
+  public void SendToAllExcept(ServerPlayer player, byte[] data, int index, int length)
+  { if(cvt.AltersByteArray) RawSendToAllExcept(player, cvt.Serialize(data, index, length), DefaultFlags, 0, data);
+    else RawSendToAllExcept(player, data, index, length, DefaultFlags, 0, data);
+  }
+  /// <include file="../documentation.xml" path="//Network/Server/SendToAllExcept/*[self::Common or self::byteData or self::Flags]/*"/>
+  public void SendToAllExcept(ServerPlayer player, byte[] data, SendFlag flags) { SendToAllExcept(player, data, 0, data.Length, flags); }
+  /// <include file="../documentation.xml" path="//Network/Server/SendToAllExcept/*[self::Common or self::byteData or self::Length or self::Index or self::Flags]/*"/>
+  public void SendToAllExcept(ServerPlayer player, byte[] data, int index, int length, SendFlag flags)
+  { if(cvt.AltersByteArray) RawSendToAllExcept(player, cvt.Serialize(data, index, length), flags, 0, data);
+    else RawSendToAllExcept(player, data, index, length, flags, 0, data);
+  }
+  /// <include file="../documentation.xml" path="//Network/Server/SendToAllExcept/*[self::Common or self::byteData or self::Flags or self::Timeout]/*"/>
+  public void SendToAllExcept(ServerPlayer player, byte[] data, SendFlag flags, int timeoutMs) { SendToAllExcept(player, data, 0, data.Length, flags, timeoutMs); }
+  /// <include file="../documentation.xml" path="//Network/Server/SendToAllExcept/*[self::Common or self::byteData or self::Index or self::Length or self::Flags or self::Timeout]/*"/>
+  public void SendToAllExcept(ServerPlayer player, byte[] data, int index, int length, SendFlag flags, int timeoutMs)
+  { if(cvt.AltersByteArray) RawSendToAllExcept(player, cvt.Serialize(data, index, length), flags, timeoutMs, data);
+    else RawSendToAllExcept(player, data, index, length, flags, timeoutMs, data);
+  }
+  /// <include file="../documentation.xml" path="//Network/Server/SendToAllExcept/*[self::Common or self::objData]/*"/>
+  public void SendToAllExcept(ServerPlayer player, object data) { RawSendToAllExcept(player, cvt.Serialize(data), DefaultFlags, 0, data); }
+  /// <include file="../documentation.xml" path="//Network/Server/SendToAllExcept/*[self::Common or self::objData or self::Flags]/*"/>
+  public void SendToAllExcept(ServerPlayer player, object data, SendFlag flags) { RawSendToAllExcept(player, cvt.Serialize(data), flags, 0, data); }
+  /// <include file="../documentation.xml" path="//Network/Server/SendToAllExcept/*[self::Common or self::objData or self::Flags or self::Timeout]/*"/>
+  public void SendToAllExcept(ServerPlayer player, object data, SendFlag flags, int timeoutMs)
+  { RawSendToAllExcept(player, cvt.Serialize(data), flags, timeoutMs, data);
   }
 
   /// <summary>Gets the <see cref="MessageConverter"/> used to serialize/deserialize messages.</summary>
@@ -1519,35 +1538,69 @@ public class Server
   protected MessageConverter Converter { get { return cvt; } }
 
   /// <include file="../documentation.xml" path="//Network/Server/Send/*[self::Common or self::RawSend or self::Flags or self::Timeout]/*"/>
-  protected void RawSend(object toWho, byte[] data, SendFlag flags, int timeoutMs, object orig)
-  { RawSend(toWho, data, 0, data.Length, flags, timeoutMs, orig);
+  protected void RawSend(object toWhom, byte[] data, SendFlag flags, int timeoutMs, object orig)
+  {
+    RawSend(toWhom, data, 0, data.Length, flags, timeoutMs, orig);
   }
+
   /// <include file="../documentation.xml" path="//Network/Server/Send/*[self::Common or self::RawSend or self::Index or self::Length or self::Flags or self::Timeout]/*"/>
-  protected void RawSend(object toWho, byte[] data, int index, int length, SendFlag flags, int timeoutMs, object orig)
+  protected void RawSend(object toWhom, byte[] data, int index, int length, SendFlag flags, int timeoutMs, object orig)
   {
     if(timeoutMs < 0) throw new ArgumentOutOfRangeException();
     if((object)data!=orig) flags |= SendFlag.NoCopy;
-    if(toWho==null || toWho==Players)
+
+    if(toWhom==null || toWhom==Players)
+    {
       lock(this)
         foreach(ServerPlayer p in players)
-        { if(!p.DelayedDrop)
-            try { p.Link.Send(data, index, length, flags, timeoutMs, new DualTag(p, orig)); }
+        {
+          if(!p.DelayedDrop)
+            try { p.Link.Send(data, index, length, flags, timeoutMs, new SentMessage(p, orig)); }
             catch(ConnectionLostException) { }
         }
-    else if(toWho is ServerPlayer)
-    { ServerPlayer p = (ServerPlayer)toWho;
+    }
+    else if(toWhom is ServerPlayer)
+    {
+      ServerPlayer p = (ServerPlayer)toWhom;
       if(p.DelayedDrop)
         throw new ArgumentException("The player is currently being dropped, so sending data to it is not allowed.");
-      p.Link.Send(data, index, length, flags, timeoutMs, new DualTag(p, orig));
+      p.Link.Send(data, index, length, flags, timeoutMs, new SentMessage(p, orig));
     }
-    else if(toWho is IEnumerable)
-      foreach(ServerPlayer p in (IEnumerable)toWho)
-      { if(p.DelayedDrop)
+    else if(toWhom is IEnumerable)
+    {
+      foreach(ServerPlayer p in (IEnumerable)toWhom)
+      {
+        if(p.DelayedDrop)
           throw new ArgumentException("The player is currently being dropped, so sending data to it is not allowed.");
-        try { p.Link.Send(data, index, length, flags, timeoutMs, new DualTag(p, orig)); }
+        try { p.Link.Send(data, index, length, flags, timeoutMs, new SentMessage(p, orig)); }
         catch(ConnectionLostException) { }
       }
-    else throw new ArgumentException("Unknown destination type: "+toWho.GetType(), "toWho");
+    }
+    else throw new ArgumentException("Unknown destination type: " + toWhom.GetType().ToString(), "toWho");
+  }
+
+  protected void RawSendToAllExcept(ServerPlayer player, byte[] data, SendFlag flags, int timeoutMs, object orig)
+  {
+    RawSendToAllExcept(player, data, 0, data.Length, flags, timeoutMs, orig);
+  }
+
+  protected void RawSendToAllExcept(ServerPlayer player, byte[] data, int index, int length, SendFlag flags,
+                                    int timeoutMs, object orig)
+  {
+    if(timeoutMs < 0) throw new ArgumentOutOfRangeException();
+    if(data != orig) flags |= SendFlag.NoCopy;
+
+    lock(this)
+    {
+      foreach(ServerPlayer p in players)
+      {
+        if(p != player && !p.DelayedDrop)
+        {
+          try { p.Link.Send(data, index, length, flags, timeoutMs, new SentMessage(p, orig)); }
+          catch(ConnectionLostException) { }
+        }
+      }
+    }
   }
 
   /// <summary>Raises the <see cref="MessageReceived"/> event.</summary>
@@ -1620,22 +1673,33 @@ public class Server
     if(smh==null) smh(this, player, message);
   }
 
-  struct DualTag
-  { public DualTag(object tag1, object tag2) { Tag1=tag1; Tag2=tag2; }
-    public object Tag1, Tag2;
+  const SendFlag DefaultFlags = SendFlag.ReliableSequential;
+
+  sealed class SentMessage
+  {
+    public SentMessage(ServerPlayer player, object data)
+    {
+      Player = player;
+      Data   = data;
+    }
+
+    public readonly ServerPlayer Player;
+    public readonly object Data;
   }
 
   void AssertOpen()   { if(thread==null) throw new InvalidOperationException("Server not initialized yet."); }
   void AssertClosed() { if(thread!=null) throw new InvalidOperationException("Server already initialized."); }
 
   void OnRemoteReceived(NetLink link, LinkMessage msg)
-  { DualTag tag = (DualTag)msg.Tag;
-    OnRemoteReceived((ServerPlayer)tag.Tag1, tag.Tag2);
+  { 
+    SentMessage sent = (SentMessage)msg.Tag;
+    OnRemoteReceived(sent.Player, sent.Data);
   }
 
   void OnMessageSent(NetLink link, LinkMessage msg)
-  { DualTag tag = (DualTag)msg.Tag;
-    OnMessageSent((ServerPlayer)tag.Tag1, tag.Tag2);
+  { 
+    SentMessage sent = (SentMessage)msg.Tag;
+    OnMessageSent(sent.Player, sent.Data);
   }
 
   void ThreadFunc()
@@ -1713,7 +1777,6 @@ public class Server
   MessageConverter   cvt = new MessageConverter();
   TcpListener        server;
   Thread             thread;
-  SendFlag           defFlags = SendFlag.ReliableSequential;
   int                nextID=1, lagAverage, lagVariance;
   bool               quit, listening;
 }
@@ -1730,6 +1793,7 @@ public delegate void ClientMessageHandler(Client client, object msg);
 /// </summary>
 public delegate void ClientHandler(Client client);
 
+// TODO: allow a client that works by polling, and not by starting a new thread
 public class Client
 { 
   /// <summary>Initializes a new instance of the <see cref="Client"/> class.</summary>
@@ -1759,9 +1823,6 @@ public class Client
   /// flag.
   /// </remarks>
   public event ClientMessageHandler MessageSent;
-
-  /// <include file="../documentation.xml" path="//Network/Common/DefaultFlags/*"/>
-  public SendFlag DefaultFlags { get { return defFlags; } set { defFlags=value; } }
 
   /// <include file="../documentation.xml" path="//Network/Common/IsConnected/*"/>
   public bool IsConnected
@@ -1857,22 +1918,18 @@ public class Client
   public void ClearTypes() { AssertClosed(); cvt.ClearTypes(); }
 
   /// <include file="../documentation.xml" path="//Network/Common/GetQueueStatus/*"/>
-  public QueueStatus GetQueueStatus(QueueStat flags) { AssertLink(); return link.GetQueueStatus(flags); }
+  public QueueStatus GetQueueStatus(QueueStatusFlag flags) { AssertLink(); return link.GetQueueStatus(flags); }
 
   /// <include file="../documentation.xml" path="//Network/Client/Send/*[self::Common or self::byteData]/*"/>
-  public void Send(byte[] data) { Send(data, 0, data.Length, defFlags); }
-  /// <include file="../documentation.xml" path="//Network/Client/Send/*[self::Common or self::byteData or self::Length]/*"/>
-  public void Send(byte[] data, int length) { Send(data, 0, length, defFlags); }
+  public void Send(byte[] data) { Send(data, 0, data.Length, DefaultFlags); }
   /// <include file="../documentation.xml" path="//Network/Client/Send/*[self::Common or self::byteData or self::Length or self::Index]/*"/>
   public void Send(byte[] data, int index, int length)
   { AssertLink();
-    if(cvt.AltersByteArray) DoSend(cvt.Serialize(data, index, length), defFlags, 0, data);
-    else DoSend(data, index, length, defFlags, 0, data);
+    if(cvt.AltersByteArray) DoSend(cvt.Serialize(data, index, length), DefaultFlags, 0, data);
+    else DoSend(data, index, length, DefaultFlags, 0, data);
   }
   /// <include file="../documentation.xml" path="//Network/Client/Send/*[self::Common or self::byteData or self::Flags]/*"/>
   public void Send(byte[] data, SendFlag flags) { Send(data, 0, data.Length, flags); }
-  /// <include file="../documentation.xml" path="//Network/Client/Send/*[self::Common or self::byteData or self::Length or self::Flags]/*"/>
-  public void Send(byte[] data, int length, SendFlag flags) { Send(data, 0, length, flags); }
   /// <include file="../documentation.xml" path="//Network/Client/Send/*[self::Common or self::byteData or self::Index or self::Length or self::Flags]/*"/>
   public void Send(byte[] data, int index, int length, SendFlag flags)
   { AssertLink();
@@ -1881,8 +1938,6 @@ public class Client
   }
   /// <include file="../documentation.xml" path="//Network/Client/Send/*[self::Common or self::byteData or self::Flags or self::Timeout]/*"/>
   public void Send(byte[] data, SendFlag flags, int timeoutMs) { Send(data, 0, data.Length, flags, timeoutMs); }
-  /// <include file="../documentation.xml" path="//Network/Client/Send/*[self::Common or self::byteData or self::Length or self::Flags or self::Timeout]/*"/>
-  public void Send(byte[] data, int length, SendFlag flags, int timeoutMs) { Send(data, 0, length, flags, timeoutMs); }
   /// <include file="../documentation.xml" path="//Network/Client/Send/*[self::Common or self::byteData or self::Index or self::Length or self::Flags or self::Timeout]/*"/>
   public void Send(byte[] data, int index, int length, SendFlag flags, int timeoutMs)
   { AssertLink();
@@ -1892,7 +1947,7 @@ public class Client
   /// <include file="../documentation.xml" path="//Network/Client/Send/*[self::Common or self::objData]/*"/>
   public void Send(object data)
   { AssertLink();
-    DoSend(cvt.Serialize(data), defFlags, 0, data);
+    DoSend(cvt.Serialize(data), DefaultFlags, 0, data);
   }
   /// <include file="../documentation.xml" path="//Network/Client/Send/*[self::Common or self::objData or self::Flags]/*"/>
   public void Send(object data, SendFlag flags)
@@ -1952,6 +2007,8 @@ public class Client
   { ClientMessageHandler cmh = RemoteReceived;
     if(cmh!=null) cmh(this, message);
   }
+
+  const SendFlag DefaultFlags = SendFlag.ReliableSequential;
 
   void DoSend(byte[] data, SendFlag flags, int timeoutMs, object orig)
   { if((object)data!=orig) flags |= SendFlag.NoCopy;
@@ -2014,7 +2071,6 @@ public class Client
   NetLink  link;
   Thread   thread;
   uint     dropStart, dropDelay;
-  SendFlag defFlags = SendFlag.ReliableSequential;
   bool     quit, delayedDrop;
 }
 #endregion
