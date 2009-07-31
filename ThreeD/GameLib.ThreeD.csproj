@@ -26,6 +26,8 @@
     <WarningLevel>4</WarningLevel>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <BaseAddress>18874368</BaseAddress>
+    <DocumentationFile>bin\Debug\GameLib.ThreeD.XML</DocumentationFile>
+    <NoWarn>419</NoWarn>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -36,6 +38,8 @@
     <WarningLevel>4</WarningLevel>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <BaseAddress>18874368</BaseAddress>
+    <DocumentationFile>bin\Release\GameLib.ThreeD.XML</DocumentationFile>
+    <NoWarn>419</NoWarn>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />

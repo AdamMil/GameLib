@@ -23,6 +23,8 @@ using Geometry = AdamMil.Mathematics.Geometry;
 namespace GameLib.Interop.OpenGL
 {
 
+#pragma warning disable 1591
+
 #region OpenGL
 /// <summary>This class provides access to the native, low-level OpenGL API. See the official OpenGL documentation for
 /// information regarding these methods.
