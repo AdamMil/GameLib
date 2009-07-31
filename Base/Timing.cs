@@ -17,6 +17,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 using System;
+using System.Diagnostics;
 
 namespace GameLib
 {
@@ -32,13 +33,16 @@ public static class Timing
 {
   static Timing()
   {
-    timer = new System.Diagnostics.Stopwatch();
+    timer = new Stopwatch();
     timer.Start();
+
+    internalTimer = new Stopwatch();
+    internalTimer.Start();
   }
 
   /// <summary>Gets the frequency of the counter, in ticks per second.</summary>
   /// <remarks>This property represents how many ticks are added to <see cref="Counter"/> in one second.</remarks>
-  public static long Frequency { get { return System.Diagnostics.Stopwatch.Frequency; } }
+  public static long Frequency { get { return Stopwatch.Frequency; } }
 
   /// <summary>Gets the current counter value, in ticks.</summary>
   /// <remarks><see cref="Frequency"/> ticks will be added to the counter each second.</remarks>
@@ -72,7 +76,13 @@ public static class Timing
     timer.Start();
   }
 
-  static readonly System.Diagnostics.Stopwatch timer;
+  /// <summary>Gets the number of elapsed milliseconds since the timer started counting. The timer cannot be reset.</summary>
+  internal static uint InternalMsecs
+  {
+    get { return (uint)internalTimer.ElapsedMilliseconds; }
+  }
+
+  static readonly Stopwatch timer, internalTimer;
 }
 
 } // namespace GameLib

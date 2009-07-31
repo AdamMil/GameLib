@@ -37,6 +37,7 @@ using System.Runtime.InteropServices;
 [assembly: ComVisible(false)]
 
 [assembly: InternalsVisibleTo("GameLib.Audio, PublicKey="+GameLib.Config.PublicKey)]
+[assembly: InternalsVisibleTo("GameLib.Forms, PublicKey="+GameLib.Config.PublicKey)]
 [assembly: InternalsVisibleTo("GameLib.Network, PublicKey="+GameLib.Config.PublicKey)]
 [assembly: InternalsVisibleTo("GameLib.ThreeD, PublicKey="+GameLib.Config.PublicKey)]
 [assembly: InternalsVisibleTo("GameLib.Video, PublicKey="+GameLib.Config.PublicKey)]

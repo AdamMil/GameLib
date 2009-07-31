@@ -379,7 +379,7 @@ public class Desktop : Control, IDisposable
         // if the click is not within the desktop area, ignore it (unless dragging or capturing)
         if(capturing == null && !dragStarted && !Bounds.Contains(at)) return false;
         Control p = this, c;
-        uint time = Timing.Msecs;
+        uint time = Timing.InternalMsecs;
         bool passModal = modal.Count == 0;
 
         at.X -= Bounds.X; at.Y -= Bounds.Y; // at is the cursor point local to 'p'

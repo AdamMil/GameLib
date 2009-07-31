@@ -23,6 +23,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using AdamMil.IO;
 using GameLib.Network;
+using System.IO;
 
 namespace NetworkingTest
 {
@@ -102,12 +103,13 @@ namespace NetworkingTest
     // use formatted binary IO (less efficient, but oh-so-simple)
     public int SizeOf() { return IOH.CalculateSize(">*v?dp", Array, String); }
 
-    public void SerializeTo(byte[] buf, int index)
+    public void SerializeTo(byte[] buf, int index, out Stream attachedStream)
     {
+      attachedStream = null;
       IOH.Write(buf, index, ">*v?dp", Array, String);
     }
 
-    public int DeserializeFrom(byte[] buf, int index)
+    public int DeserializeFrom(byte[] buf, int index, Stream attachedStream)
     {
       int bytesRead;
       object[] data = IOH.Read(buf, index, ">*v?dp", out bytesRead);
@@ -143,8 +145,7 @@ namespace NetworkingTest
         string str = "Hello, world!";
         client.Send(Encoding.ASCII.GetBytes(str));
         Console.WriteLine("Client sent: "+str);
-        Console.WriteLine("Server received: "+
-                          Encoding.ASCII.GetString(server.Receive()));
+        Console.WriteLine("Server received: "+ Encoding.ASCII.GetString(server.Receive()));
         Console.WriteLine();
 
         client.Close();
@@ -163,29 +164,29 @@ namespace NetworkingTest
         Server server = new Server();
         server.MessageSent     += new ServerMessageHandler(server_MessageSent);
         server.MessageReceived += new ServerMessageHandler(server_MessageReceived);
-        server.RegisterTypes(types); // registering the types allows them to be
-        server.Listen(ep);           // automatically serialized/deserialized
+        // registering the types allows them to be automatically serialized/deserialized
+        server.MessageConverter.RegisterTypes(types);
+        server.Listen(ep);
 
         Client client = new Client();
         client.MessageSent     += new ClientMessageHandler(client_MessageSent);
         client.MessageReceived += new ClientMessageHandler(client_MessageReceived);
-        client.RegisterTypes(types);
+        client.MessageConverter = server.MessageConverter;
         client.Connect(ep);
 
-        // using NoCopy in the DefaultFlags might be a bad idea, but for this
-        // application, we know that no buffer will be modified between the time
-        // when .Send() is called and the actual packet is sent, so it's safe.
-        server.DefaultFlags = client.DefaultFlags =
-        SendFlag.ReliableSequential | SendFlag.NotifySent | SendFlag.NoCopy;
+        // we can use NoCopy because we know that no buffer will be modified
+        // between the time when Send() is called and the actual packet is sent
+        SendFlag sendFlags = SendFlag.Reliable | SendFlag.NotifySent | SendFlag.NoCopy;
 
-        client.Send(new Complex[] { new Complex("hello!", 1, 2, 3, 4, 5), new Complex("goodbye.", 1, 2, 3) });
-        server.Send(null, new byte[] { 1, 2, 3 });
-        server.Send(null, new OtherSimple(SimpleEnum.Two, 2, 3.14f,
-                                          new Point(2, 2), 'x'));
-        server.Send(null, new float[] { 1.1f, 2.2f, 3.3f });
-        client.Send(new Simple(SimpleEnum.One, 1, 1, new Point(-1, -1)));
+        client.Send(new Complex[] { new Complex("hello!", 1, 2, 3, 4, 5), new Complex("goodbye.", 1, 2, 3) },
+                    sendFlags);
+        server.SendToAll(new byte[] { 1, 2, 3 }, sendFlags);
+        server.SendToAll(new OtherSimple(SimpleEnum.Two, 2, 3.14f, new Point(2, 2), 'x'),
+                         sendFlags);
+        server.SendToAll(new float[] { 1.1f, 2.2f, 3.3f }, sendFlags);
+        client.Send(new Simple(SimpleEnum.One, 1, 1, new Point(-1, -1)), sendFlags);
 
-        client.Send(new Complex("hello!", 1, 2, 3, 4, 5));
+        client.Send(new Complex("hello!", 1, 2, 3, 4, 5), sendFlags);
         client.DelayedDisconnect(1000); // give it up to 1 second to send all remaining data
         while(client.IsConnected) { }
         server.Deinitialize();
@@ -203,8 +204,7 @@ namespace NetworkingTest
       Console.WriteLine("Server sent:     {0}", msg);
     }
 
-    private static void server_MessageReceived(Server sender, ServerPlayer player,
-                                               object msg)
+    private static void server_MessageReceived(Server sender, ServerPlayer player, object msg)
     {
       Console.WriteLine("Server received: {0}", msg);
     }
