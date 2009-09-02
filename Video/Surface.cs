@@ -164,10 +164,9 @@ public sealed class Surface : IDisposable, IGuiRenderTarget
         format = System.Drawing.Imaging.PixelFormat.Format16bppRgb565;
         depth  = 16;
         break;
-      case System.Drawing.Imaging.PixelFormat.Format24bppRgb:
-      default:
-        format = System.Drawing.Imaging.PixelFormat.Format24bppRgb;
-        depth  = 24;
+      case System.Drawing.Imaging.PixelFormat.Format32bppRgb:
+        format = System.Drawing.Imaging.PixelFormat.Format32bppRgb;
+        depth  = 32;
         break;
       case System.Drawing.Imaging.PixelFormat.Format16bppArgb1555:
       case System.Drawing.Imaging.PixelFormat.Format32bppArgb:
@@ -177,26 +176,52 @@ public sealed class Surface : IDisposable, IGuiRenderTarget
         format = System.Drawing.Imaging.PixelFormat.Format32bppArgb;
         depth  = 32;
         break;
+      case System.Drawing.Imaging.PixelFormat.Format24bppRgb:
+      default:
+        format = System.Drawing.Imaging.PixelFormat.Format24bppRgb;
+        depth  = 24;
+        break;
     }
 
+    // TODO: big endian safe?
     PixelFormat pf = new PixelFormat(depth, true, false);
-    if(depth==32) { pf.AlphaMask=0xFF; pf.RedMask=0xFF00; pf.GreenMask=0xFF0000; pf.BlueMask=0xFF000000; }
+    if(depth >= 24)
+    {
+      pf.AlphaMask = format == System.Drawing.Imaging.PixelFormat.Format32bppArgb ? 0xFF000000 : 0;
+      pf.RedMask   = 0xFF0000;
+      pf.GreenMask = 0xFF00;
+      pf.BlueMask  = 0xFF;
+    }
 
-    InitFromFormat(bitmap.Width, bitmap.Height, pf, depth==32 ? flags|SurfaceFlag.SourceAlpha : flags);
+    InitFromFormat(bitmap.Width, bitmap.Height, pf, pf.AlphaMask != 0 ? flags|SurfaceFlag.SourceAlpha : flags);
     System.Drawing.Imaging.BitmapData data = bitmap.LockBits(new Rectangle(0, 0, bitmap.Width, bitmap.Height),
                                                              System.Drawing.Imaging.ImageLockMode.ReadOnly, format);
     try
-    { unsafe
-      { if(depth==8) SetPalette(bitmap.Palette.Entries);
-        Lock();
+    {
+      Lock();
+      unsafe
+      {
+        if(depth == 8) SetPalette(bitmap.Palette.Entries);
         byte* src=(byte*)data.Scan0, dest=(byte*)Data;
-        int len=bitmap.Width*(depth/8);
-        for(int i=0; i<bitmap.Height; src+=data.Stride,dest+=Pitch,i++) Unsafe.Copy(src, dest, len); // TODO: big endian safe?
-        Unlock();
+        if(data.Stride == Pitch)
+        {
+          Unsafe.Copy(src, dest, data.Stride*Height);
+        }
+        else
+        {
+          for(int i=0, len=bitmap.Width*(depth/8); i<bitmap.Height; src+=data.Stride, dest+=Pitch, i++)
+          {
+            Unsafe.Copy(src, dest, len);
+          }
+        }
       }
     }
     catch { Dispose(); throw; }
-    finally { bitmap.UnlockBits(data); }
+    finally
+    {
+      bitmap.UnlockBits(data);
+      if(Locked) Unlock();
+    }
   }
 
   /// <include file="../documentation.xml" path="//Video/Surface/Cons/FromDims/*"/>
@@ -1091,14 +1116,17 @@ public sealed class Surface : IDisposable, IGuiRenderTarget
   }
 
   unsafe void InitFromFormat(int width, int height, PixelFormat format, SurfaceFlag flags)
-  { InitFromSurface(SDL.CreateRGBSurface((uint)flags, width, height, format.Depth, format.RedMask,
+  {
+    InitFromSurface(SDL.CreateRGBSurface((uint)flags, width, height, format.Depth, format.RedMask,
                                          format.GreenMask, format.BlueMask, format.AlphaMask));
   }
 
   Bitmap ToBitmap(bool forSaving)
-  { System.Drawing.Imaging.PixelFormat format;
+  {
+    System.Drawing.Imaging.PixelFormat format;
     switch(Depth) // TODO: support 555 packing (15-bit color)
-    { case 8:  format = System.Drawing.Imaging.PixelFormat.Format8bppIndexed; break;
+    {
+      case 8: format = System.Drawing.Imaging.PixelFormat.Format8bppIndexed; break;
       case 16: format = System.Drawing.Imaging.PixelFormat.Format16bppRgb565; break;
       case 24: format = System.Drawing.Imaging.PixelFormat.Format24bppRgb; break;
       case 32:
@@ -1109,71 +1137,73 @@ public sealed class Surface : IDisposable, IGuiRenderTarget
     }
 
     Bitmap bitmap;
-    Lock();
-
+    // TODO: big endian safe?
     unsafe
-    { try
-      { // TODO: handle RGBA -> ARGB
-        if(Depth>24 && Format.BlueMask>Format.RedMask)
-        { byte* src  = (byte*)Data;
-          int   xinc = Depth/8, len = Width*Height;
+    {
+      Lock();
+      try
+      {
+        if(Depth >= 24 && Format.RedMask == 0xFF && Format.GreenMask == 0xFF00 && Format.BlueMask == 0xFF0000 &&
+           (Format.AlphaMask == 0 || Format.AlphaMask == 0xFF000000))
+        {
+          byte* src  = (byte*)Data;
+          int xinc = Depth/8, len = Width*Height;
           byte[] arr = new byte[len*xinc];
 
           fixed(byte* arrp = arr)
-          { byte* dest=arrp;
+          {
+            byte* dest=arrp;
             byte v;
             if(Pitch==Width*xinc)
-            { Unsafe.Copy(src, dest, arr.Length);
-              #if BIGENDIAN
-              if(Format.AlphaMask!=0xFF) dest++; 
-              #else
-              if(Format.AlphaMask==0xFF) dest++; 
-              #endif
+            {
+              Unsafe.Copy(src, dest, arr.Length);
               while(len-- != 0) { v=*dest; *dest=dest[2]; dest[2]=v; dest+=xinc; }
             }
             else
-              for(int y=0,line=Width*xinc,yinc=Pitch-line; y<Height; src+=Pitch,dest+=line,y++)
-              { Unsafe.Copy(src, dest, line);
-                #if BIGENDIAN
-                byte *dp = Format.AlphaMask==0xFF ? dest : dest+1;
-                #else
-                byte *dp = Format.AlphaMask==0xFF ? dest+1 : dest;
-                #endif
+            {
+              for(int y=0, line=Width*xinc, yinc=Pitch-line; y<Height; src+=Pitch, dest+=line, y++)
+              {
+                Unsafe.Copy(src, dest, line);
+                byte* dp = dest;
                 int xlen = Width;
                 while(xlen-- != 0) { v=*dp; *dp=dp[2]; dp[2]=v; dp+=xinc; }
               }
+            }
             bitmap = BitmapFromData(Width, Height, Width*xinc, format, arrp);
           }
         }
-        else if(Depth==16 && Format.BlueMask>Format.RedMask) // TODO: big endian safe?
-        { int len = Width*Height;
-          ushort* src = (ushort*)Data;
-          ushort[] arr = new ushort[len];
-          fixed(ushort* arrp = arr)
-          { ushort* dest=arrp;
-            ushort p;
-            if(Pitch==Width*2)
-              while(len-- != 0)
-              { p = *src++;
-                *dest++ = (ushort)((p>>11) | (p&0x7E0) | ((p&0x1F)<<11));
-              }
-            else
-              for(int y=0,yinc=Pitch-Width*2; y<Height; src+=yinc,y++)
-                for(int x=0; x<Width; x++)
-                { p = *src++;
-                  *dest++ = (ushort)((p>>11) | (p&0x7E0) | ((p&0x1F)<<11));
-                }
-            bitmap = BitmapFromData(Width, Height, Width*2, format, arrp);
+        else if(Depth >= 24 && (Format.AlphaMask != 0 && Format.AlphaMask != 0xFF000000 ||
+                                Format.RedMask != 0xFF0000 || Format.GreenMask != 0xFF00 || Format.BlueMask != 0xFF) ||
+                Depth == 16 && (Format.RedMask != 0xF800 || Format.GreenMask != 0x07E0 || Format.BlueMask != 0x001F))
+        {
+          PixelFormat pixelFormat = new PixelFormat();
+          pixelFormat.Depth = Depth;
+          if(Depth >= 24)
+          {
+            pixelFormat.AlphaMask = Depth == 32 && pixelFormat.AlphaMask != 0 ? 0xFF000000 : 0;
+            pixelFormat.RedMask   = 0xFF0000;
+            pixelFormat.GreenMask = 0xFF00;
+            pixelFormat.BlueMask  = 0xFF;
           }
+          else if(Depth == 16)
+          {
+            pixelFormat.GenerateDefaultMasks(false, false);
+          }
+
+          using(Surface converted = Clone(pixelFormat)) return converted.ToBitmap();
         }
-        else bitmap = forSaving ? new Bitmap(Width, Height, (int)Pitch, format, new IntPtr(Data))
-                                : BitmapFromData(Width, Height, Width*Depth/8, (int)Pitch, format, Data);
+        else
+        {
+          bitmap = forSaving ? new Bitmap(Width, Height, (int)Pitch, format, new IntPtr(Data))
+                             : BitmapFromData(Width, Height, Width*Depth/8, (int)Pitch, format, Data);
+        }
       }
       finally { Unlock(); }
     }
 
     if(Depth==8)
-    { System.Drawing.Imaging.ColorPalette pal = bitmap.Palette;
+    {
+      System.Drawing.Imaging.ColorPalette pal = bitmap.Palette;
       GetPalette(pal.Entries, PaletteSize);
       bitmap.Palette = pal;
     }
