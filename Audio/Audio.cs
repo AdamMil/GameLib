@@ -32,7 +32,7 @@ namespace GameLib.Audio
 
 #region Structs, Enums, and Delegates
 [Flags]
-public enum SampleFormat
+public enum SampleFormat : short
 {
   Eight=GLMixer.Format.Eight, Sixteen=GLMixer.Format.Sixteen, BitsPart=GLMixer.Format.BitsPart,
   Signed=GLMixer.Format.Signed, BigEndian=GLMixer.Format.BigEndian, FloatingPoint=GLMixer.Format.FloatingPoint,
@@ -155,7 +155,7 @@ public abstract class AudioSource : IDisposable
 
   public abstract int Position { get; set; }
 
-  public int Priority { get { return priority; } set { priority=value; } }
+  public int Priority { get; set; }
 
   public int Right
   {
@@ -217,13 +217,13 @@ public abstract class AudioSource : IDisposable
 
   protected int BytesToFrames(int bytes)
   {
-    int frames = bytes/format.FrameSize;
-    if(frames*format.FrameSize != bytes) throw new ArgumentException("length must be multiple of the frame size");
+    int frames = bytes/Format.FrameSize;
+    if(frames*Format.FrameSize != bytes) throw new ArgumentException("length must be multiple of the frame size");
     return frames;
   }
 
-  public int ReadBytes(byte[] buf, int length) { return ReadBytes(buf, 0, length); }
-  public abstract int ReadBytes(byte[] buf, int index, int length);
+  public int ReadBytes(byte[] buffer, int length) { return ReadBytes(buffer, 0, length); }
+  public abstract int ReadBytes(byte[] buffer, int index, int length);
 
   public virtual byte[] ReadAll()
   {
@@ -238,7 +238,7 @@ public abstract class AudioSource : IDisposable
       }
       if(length>=0)
       {
-        ret = new byte[length*format.FrameSize];
+        ret = new byte[length*Format.FrameSize];
         if(ReadBytes(ret, ret.Length)!=ret.Length) throw new EndOfStreamException();
       }
       else ret=ReadAllUL();
@@ -290,15 +290,15 @@ public abstract class AudioSource : IDisposable
   {
     lock(this)
     {
-      int toRead=length<0 ? frames : Math.Min(length-curPos, frames), bytes=toRead*format.FrameSize, read, samples;
+      int toRead=length<0 ? frames : Math.Min(length-curPos, frames), bytes=toRead*Format.FrameSize, read, samples;
       SizeBuffer(bytes);
       read    = ReadBytes(buffer, bytes);
-      samples = read/format.SampleSize;
+      samples = read/Format.SampleSize;
       fixed(byte* src = buffer)
-        GLMixer.Check(GLMixer.ConvertMix(dest, src, (uint)samples, (ushort)format.Format, format.Channels,
+        GLMixer.Check(GLMixer.ConvertMix(dest, src, (uint)samples, (ushort)Format.Format, Format.Channels,
                                          (ushort)(left <0 ? Audio.MaxVolume : left),
                                          (ushort)(right<0 ? Audio.MaxVolume : right)));
-      read = format.Channels==1 ? samples : samples/2;
+      read = Format.Channels==1 ? samples : samples/2;
       return read;
     }
   }
@@ -306,11 +306,10 @@ public abstract class AudioSource : IDisposable
   protected void SizeBuffer(int size) { if(buffer==null || buffer.Length<size) buffer=new byte[size]; }
 
   protected byte[] buffer;
-  [CLSCompliant(false)]
-  protected AudioFormat format;
+  [CLSCompliant(false)] protected AudioFormat format;
   float rate=1f;
   protected int curPos;
-  int left=Audio.MaxVolume, right=Audio.MaxVolume, length=-1, priority;
+  int left=Audio.MaxVolume, right=Audio.MaxVolume, length=-1;
   internal int playing;
 }
 #endregion
@@ -351,7 +350,7 @@ public class ToneGenerator : AudioSource
 
   public int SampleRate
   {
-    get { return format.Frequency; }
+    get { return Format.Frequency; }
     set
     {
       if(value <= 0) throw new ArgumentOutOfRangeException("SampleRate", value, "must be positive");
@@ -363,7 +362,7 @@ public class ToneGenerator : AudioSource
 
   public override byte[] ReadAll()
   {
-    throw new InvalidOperationException("ToneGenerator is an infinite data source and can't be read in its entirety.");
+    throw new NotSupportedException("ToneGenerator is an infinite data source and can't be read in its entirety.");
   }
 
   public unsafe override int ReadBytes(byte[] buf, int index, int length)
@@ -459,7 +458,7 @@ public abstract class StreamSource : AudioSource
   public override int Position
   {
     get { return curPos; }
-    set { if(value!=curPos) lock(this) { stream.Position=startPos+value*format.FrameSize; curPos=value; } }
+    set { if(value!=curPos) lock(this) { stream.Position=startPos+value*Format.FrameSize; curPos=value; } }
   }
 
   public override int ReadBytes(byte[] buf, int index, int length)
@@ -468,7 +467,7 @@ public abstract class StreamSource : AudioSource
     lock(this)
     {
       int read = stream.Read(buf, index, length);
-      if(read>=0) curPos += read/format.FrameSize;
+      if(read>=0) curPos += read/Format.FrameSize;
       return read;
     }
   }
@@ -581,7 +580,7 @@ public class SoundFileSource : AudioSource
       int read;
       unsafe { fixed(byte* pbuf = buf) read=(int)SF.ReadShorts(sndfile, (short*)(pbuf+index), frames); }
       if(read>=0) curPos += read;
-      return read*format.FrameSize;
+      return read*Format.FrameSize;
     }
   }
 
@@ -642,15 +641,16 @@ public class SampleSource : AudioSource
 
     if(mixerFormat)
     {
-      data = Audio.Convert(data, format, Audio.Format).Shrink();
+      data = Audio.Convert(data, Format, Audio.Format).Shrink();
       format = Audio.Format;
     }
-    Length = data.Length/format.FrameSize;
+    Length = data.Length/Format.FrameSize;
   }
   public SampleSource(AudioSource stream, AudioFormat convertTo)
   {
-    data = Audio.Convert(stream.ReadAll(), stream.Format, format=convertTo).Shrink();
-    Length = data.Length/format.FrameSize;
+    format = convertTo;
+    data = Audio.Convert(stream.ReadAll(), stream.Format, format).Shrink();
+    Length = data.Length/Format.FrameSize;
   }
 
   public override bool CanRewind { get { return true; } }
@@ -676,9 +676,9 @@ public class SampleSource : AudioSource
     lock(this)
     {
       int toRead = Math.Min(frames, this.Length-curPos);
-      Array.Copy(data, curPos*format.FrameSize, buf, index, toRead*format.FrameSize);
+      Array.Copy(data, curPos*Format.FrameSize, buf, index, toRead*Format.FrameSize);
       curPos += toRead;
-      return toRead*format.FrameSize;
+      return toRead*Format.FrameSize;
     }
   }
 
@@ -687,10 +687,10 @@ public class SampleSource : AudioSource
   {
     lock(this)
     {
-      int toRead=Math.Min(Length-curPos, frames), samples=toRead*format.Channels;
+      int toRead=Math.Min(Length-curPos, frames), samples=toRead*Format.Channels;
       fixed(byte* src = data)
-        GLMixer.Check(GLMixer.ConvertMix(dest, src+curPos*format.FrameSize, (uint)samples,
-                                         (ushort)format.Format, format.Channels,
+        GLMixer.Check(GLMixer.ConvertMix(dest, src+curPos*Format.FrameSize, (uint)samples,
+                                         (ushort)Format.Format, Format.Channels,
                                          (ushort)(left <0 ? Audio.MaxVolume : left),
                                          (ushort)(right<0 ? Audio.MaxVolume : right)));
       curPos += toRead;

@@ -50,8 +50,8 @@ public abstract class Font : IDisposable
 
   /// <summary>Gets the height of the font, in pixels.</summary>
   public abstract int Height { get; }
-  /// <include file="../documentation.xml" path="//Fonts/LineSkip/*"/>
-  public abstract int LineSkip { get; }
+  /// <include file="../documentation.xml" path="//Fonts/LineHeight/*"/>
+  public abstract int LineHeight { get; }
   /// <summary>Gets or sets the color of the font.</summary>
   /// <remarks>The interpretation of this property is up to the implementing class, so see the documentation for
   /// the derived classes for more details.
@@ -99,7 +99,7 @@ public abstract class Font : IDisposable
   { if(text.Length==0) return new int[0];
 
     List<int> list = new List<int>(); // TODO: cache this in a class member?
-    int start=0, end=0, pend, length=0, plen=0, height=LineSkip;
+    int start=0, end=0, pend, length=0, plen=0, height=LineHeight;
     int rwidth=rect.Width-startx, rheight=rect.Height-starty;
     if(height>rheight) return new int[0];
 
@@ -113,7 +113,7 @@ public abstract class Font : IDisposable
       length += CalculateSize(text.Substring(pend, end-pend)).Width;
 
       if(length>rwidth)
-      { height += LineSkip;
+      { height += LineHeight;
         if(pend==start)
         { if(rwidth<rect.Width)
           { if(height>=rheight) break;
@@ -213,14 +213,14 @@ public abstract class SurfaceFont : Font
     if(lines.Length==0) return new Point(x, y);
 
     horz = UIHelper.IsAlignedLeft(align) ? 0 : UIHelper.IsAlignedCenter(align) ? 1 : 2;
-    if(UIHelper.IsAlignedMiddle(align)) y = rect.Y + (rect.Height-lines.Length*LineSkip)/2;
-    else if(UIHelper.IsAlignedBottom(align)) y = rect.Bottom-lines.Length*LineSkip;
-    y-=LineSkip;
+    if(UIHelper.IsAlignedMiddle(align)) y = rect.Y + (rect.Height-lines.Length*LineHeight)/2;
+    else if(UIHelper.IsAlignedBottom(align)) y = rect.Bottom-lines.Length*LineHeight;
+    y-=LineHeight;
 
     for(int i=0; i<lines.Length; i++)
     {
       if(i==1 && align == ContentAlignment.TopLeft) { x=rect.X; y=rect.Y; } // undo the effect of startx and starty
-      y += LineSkip;
+      y += LineHeight;
       string chunk = text.Substring(start, lines[i]);
       if(horz==0) length = Render(dest, chunk, x, y);
       else
@@ -251,6 +251,19 @@ public abstract class SurfaceFont : Font
   public void Center(Surface dest, string text, int y)
   { int width = CalculateSize(text).Width;
     Render(dest, text, (dest.Width-width)/2, y);
+  }
+
+  /// <summary>Renders text centered on a particular point.</summary>
+  public void Center(Surface dest, string text, Point pt)
+  {
+    Size size = CalculateSize(text);
+    Render(dest, text, pt.X - size.Width/2, pt.Y - size.Height/2);
+  }
+
+  /// <summary>Renders text centered (but not word-wrapped) within the given rectangle.</summary>
+  public void Center(Surface dest, string text, Rectangle rect)
+  {
+    Center(dest, text, new Point(rect.X + rect.Width/2, rect.Y + rect.Height/2));
   }
 }
 #endregion
@@ -290,7 +303,7 @@ public class BitmapFont : SurfaceFont
   public BitmapFont(Surface font, string charset, int charWidth, int horzSpacing, int vertSpacing)
   { orig     = font;
     width    = charWidth;
-    lineSkip = vertSpacing+font.Height;
+    lineHeight = vertSpacing+font.Height;
     this.charset = charset;
     this.xAdd    = horzSpacing;
     if(font.Width<charset.Length*charWidth)
@@ -310,7 +323,7 @@ public class BitmapFont : SurfaceFont
       throw new ArgumentException("The length of the charset must match the length of charWidths.");
     orig     = font;
     widths   = charWidths;
-    lineSkip = vertSpacing+font.Height;
+    lineHeight = vertSpacing+font.Height;
     offsets  = new int[charset.Length];
     for(int i=1; i<charset.Length; i++) offsets[i] = offsets[i-1]+widths[i-1];
     if(offsets[charset.Length-1] + widths[charset.Length-1] > font.Width)
@@ -322,8 +335,8 @@ public class BitmapFont : SurfaceFont
 
   /// <summary>Gets the height of the font, in pixels.</summary>
   public override int Height { get { return font.Height; } }
-  /// <include file="../documentation.xml" path="//Fonts/LineSkip/*"/>
-  public override int LineSkip { get { return lineSkip; } }
+  /// <include file="../documentation.xml" path="//Fonts/LineHeight/*"/>
+  public override int LineHeight { get { return lineHeight; } }
   /// <summary>Since the source of data for this font is a bitmap, this property does nothing.</summary>
   public override Color Color { get { return Color.White; } set { } }
   /// <summary>Controls the background color.</summary>
@@ -368,7 +381,7 @@ public class BitmapFont : SurfaceFont
   public override int Render(Surface dest, string text, int x, int y)
   { int start=x;
     if(widths==null)
-    { if(bgColor.A != 0) dest.Fill(new Rectangle(x, y, text.Length*(width+xAdd), lineSkip), bgColor);
+    { if(bgColor.A != 0) dest.Fill(new Rectangle(x, y, text.Length*(width+xAdd), lineHeight), bgColor);
       for(int i=0,add=width+xAdd; i<text.Length; i++)
       { int off = GetOffset(text[i]);
         if(off!=-1) font.Blit(dest, new Rectangle(off*width, 0, width, Height), x, y);
@@ -376,7 +389,7 @@ public class BitmapFont : SurfaceFont
       }
     }
     else
-    { if(bgColor.A != 0) dest.Fill(new Rectangle(x, y, CalculateSize(text).Width, lineSkip), bgColor);
+    { if(bgColor.A != 0) dest.Fill(new Rectangle(x, y, CalculateSize(text).Width, lineHeight), bgColor);
       for(int i=0; i<text.Length; i++)
       { int off = GetOffset(text[i]);
         if(off==-1) continue;
@@ -420,7 +433,7 @@ public class BitmapFont : SurfaceFont
   Surface font, orig;
   string charset;
   int[]  widths, offsets;
-  int    width, lineSkip, xAdd;
+  int    width, lineHeight, xAdd;
   Color  bgColor;
   bool   contiguous;
 }
@@ -586,8 +599,8 @@ public class TrueTypeFont : SurfaceFont
 
   /// <summary>Gets the height of the font, in pixels.</summary>
   public override int Height { get { return TTF.FontHeight(font); } }
-  /// <include file="../documentation.xml" path="//Fonts/LineSkip/*"/>
-  public override int LineSkip { get { return TTF.FontLineSkip(font); } }
+  /// <include file="../documentation.xml" path="//Fonts/LineHeight/*"/>
+  public override int LineHeight { get { return TTF.FontLineSkip(font); } }
   /// <summary>Gets the maximum pixel ascent of all glyphs in the font.</summary>
   /// <remarks>The maximum pixel ascent can also be interpreted as the distance from the top of the font to the
   /// baseline.

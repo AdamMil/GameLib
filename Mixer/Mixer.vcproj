@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="Windows-1252"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="9,00"
+	Version="9.00"
 	Name="GameLib.Mixer"
 	ProjectGUID="{7BD0C93F-4FC4-4BF6-98BD-2D929DB137A5}"
 	RootNamespace="GameLib.Mixer"
@@ -72,7 +72,7 @@
 				LinkIncremental="2"
 				AdditionalLibraryDirectories="d:\adammil\code\sdl\lib"
 				GenerateDebugInformation="true"
-				ProgramDatabaseFile="$(OutDir)/Mixer.pdb"
+				ProgramDatabaseFile="$(OutDir)/GameLib.Mixer.pdb"
 				SubSystem="2"
 				OptimizeForWindows98="1"
 				BaseAddress="0x01000000"

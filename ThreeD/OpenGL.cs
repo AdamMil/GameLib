@@ -216,8 +216,14 @@ public static class OpenGL
       bool hasBGR = VersionMinor>=2 && VersionMajor==1 || HasExtension("EXT_bgra") || VersionMajor>1;
       if(surface.Depth==16 && hasPPE)
       { // TODO: make this work with big-endian machines
-        if(pf.RedMask==0xF800 && pf.GreenMask==0x7E0 && pf.BlueMask==0x1F)
-        { format = GL.GL_RGB;
+        if(pf.AlphaMask == 1 && pf.RedMask == 0xF800 && pf.GreenMask == 0x7C0 && pf.BlueMask == 0x3E)
+        {
+          format = GL.GL_RGBA;
+          type   = GL.GL_UNSIGNED_SHORT_5_5_5_1;
+        }
+        else if(pf.RedMask==0xF800 && pf.GreenMask==0x7E0 && pf.BlueMask==0x1F)
+        { 
+          format = GL.GL_RGB;
           type = GL.GL_UNSIGNED_SHORT_5_6_5;
         }
       }

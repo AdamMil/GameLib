@@ -374,7 +374,7 @@ public class Form : FormBase
       if(EffectiveFont != null)
       {
         Rectangle rect = GetDrawRect();
-        rect.X += (EffectiveFont.LineSkip + 3) / 6;
+        rect.X += (EffectiveFont.LineHeight + 3) / 6;
         EffectiveFont.Color     = GetEffectiveForeColor();
         EffectiveFont.BackColor = GetEffectiveBackColor();
         Point renderPt = new Point(rect.X, rect.Y + (rect.Height - EffectiveFont.Height) / 2);
@@ -409,7 +409,7 @@ public class Form : FormBase
     void UpdateSize()
     {
       if(!Visible) Height = 0;
-      else if(EffectiveFont != null) Height = EffectiveFont.LineSkip * 4 / 3;
+      else if(EffectiveFont != null) Height = EffectiveFont.LineHeight * 4 / 3;
     }
 
     #region CloseButton
@@ -537,12 +537,12 @@ public sealed class MessageBox : Form
     {
       if(EffectiveFont != null)
       {
-        int sidePadding = EffectiveFont.LineSkip * 2;
+        int sidePadding = EffectiveFont.LineHeight * 2;
 
         Size desktopSize = desktop.ContentRect.Size;
         desktopSize.Width -= sidePadding; // we don't want to use the whole space...
 
-        int btnWidth = 0, btnHeight = EffectiveFont.LineSkip * 3 / 2 + 2, btnSpace = 12;
+        int btnWidth = 0, btnHeight = EffectiveFont.LineHeight * 3 / 2 + 2, btnSpace = 12;
 
         int[] btnWidths = new int[buttonTexts.Length];
         for(int i = 0; i < buttonTexts.Length; i++)
@@ -594,16 +594,16 @@ public sealed class MessageBox : Form
         Label label = new Label(message);
         label.Width  = Math.Max(btnWidth, Math.Min(desktopSize.Width * 3 / 4 - sidePadding,
                                 EffectiveFont.CalculateSize(message).Width));
-        label.Height = EffectiveFont.WordWrap(message, label.Width, int.MaxValue).Length * EffectiveFont.LineSkip;
+        label.Height = EffectiveFont.WordWrap(message, label.Width, int.MaxValue).Length * EffectiveFont.LineHeight;
         label.Location = new Point(sidePadding / 2, sidePadding / 2);
         label.TextAlign = ContentAlignment.TopCenter;
 
         Size = ContentOffset.Grow(new Size(label.Width + sidePadding,
-                                           label.Height + btnHeight + sidePadding + EffectiveFont.LineSkip));
+                                           label.Height + btnHeight + sidePadding + EffectiveFont.LineHeight));
         Location = new Point(Math.Max((desktopSize.Width - Width)   / 2, 0),
                              Math.Max((desktopSize.Height - Height) / 2, 0));
 
-        int x = (Width - btnWidth + sidePadding) / 2, y = label.Bottom + EffectiveFont.LineSkip;
+        int x = (Width - btnWidth + sidePadding) / 2, y = label.Bottom + EffectiveFont.LineHeight;
         for(int i = 0; i < btnWidths.Length; i++)
         {
           Button btn = new Button(buttonTexts[i]);

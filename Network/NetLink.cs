@@ -1170,7 +1170,7 @@ public class NetLink
               lock(toSend.AttachedStream)
               {
                 toSend.AttachedStream.Position = toSend.StreamPosition + sentLength;
-                IOH.Read(toSend.AttachedStream, sendBuf, 0, bytesInSendBuffer);
+                toSend.AttachedStream.ReadOrThrow(sendBuf, 0, bytesInSendBuffer);
               }
               sendBufferIndex = 0;
             }

@@ -1487,7 +1487,7 @@ public class ComboBox : ListControl
         textBox.ReadOnly     = style == ComboBoxStyle.DropDownList;
         textBox.MouseDown   += textBox_MouseDown;
         textBox.TextChanged += textBox_TextChanged;
-        if(EffectiveFont != null) TextBox.Height = EffectiveFont.LineSkip + TextBox.ContentOffset.Vertical;
+        if(EffectiveFont != null) TextBox.Height = EffectiveFont.LineHeight + TextBox.ContentOffset.Vertical;
         if(style != ComboBoxStyle.Simple) Height = TextBox.Height + ContentOffset.Vertical;
       }
       return textBox;
@@ -1521,7 +1521,7 @@ public class ComboBox : ListControl
 
     if(EffectiveFont != null)
     {
-      int height = EffectiveFont.LineSkip + TextBox.ContentOffset.Vertical;
+      int height = EffectiveFont.LineHeight + TextBox.ContentOffset.Vertical;
       if(TextBox.Height != height)
       {
         TextBox.Height = height;
