@@ -117,7 +117,7 @@ public sealed class PixelFormat
   /// <summary>This constructor initializes the PixelFormat class with default values for the given bit depth.</summary>
   /// <param name="depth">The color depth of the surface in bits per pixel.</param>
   /// <param name="withAlpha">If true, an alpha channel will be specified. Currently this only has an effect
-  /// when <paramref name="depth"/> is 32.
+  /// when <paramref name="depth"/> is 16 or 32.
   /// </param>
   /// <remarks>See <see cref="GenerateDefaultMasks(bool)"/> for more information on how the pixel format will be
   /// initialized.
@@ -126,7 +126,7 @@ public sealed class PixelFormat
 
   /// <summary>This constructor initializes the PixelFormat class with default values for the given bit depth.</summary>
   /// <param name="depth">The color depth of the surface in bits per pixel.</param>
-  /// <param name="withAlpha">If true and <paramref name="depth"/> equals 32, an alpha channel will be specified.</param>
+  /// <param name="withAlpha">If true and <paramref name="depth"/> equals 16 or 32, an alpha channel will be specified.</param>
   /// <param name="queryVideoInfo">If true, the method will query the video information to see what the hardware is
   /// using. This is not always reliable. For instance, if the hardware is currently using a 16 bit video mode, it
   /// won't be of any help in constructing masks for a 24 or 32 bit mode. Also, passing true means that the
@@ -207,7 +207,7 @@ public sealed class PixelFormat
   }
 
   /// <summary>Generates default channel masks for the current bit depth.</summary>
-  /// <param name="withAlpha">If true and <see cref="Depth"/> equals 32, an alpha channel will be created.</param>
+  /// <param name="withAlpha">If true and <see cref="Depth"/> equals 16 or 32, an alpha channel will be created.</param>
   /// <param name="queryVideoInfo">If true, the method will query the video information to see what the hardware is
   /// using. This is not always reliable. For instance, if the hardware is currently using a 16 bit video mode, it
   /// won't be of any help in constructing masks for a 24 or 32 bit mode. Also, passing true means that the
@@ -218,10 +218,29 @@ public sealed class PixelFormat
     switch(Depth) // TODO: make big-endian compatible (?)
     { 
       case 16:
-        RedMask   = 0xF800;
-        GreenMask = 0x07E0;
-        BlueMask  = 0x001F;
-        AlphaMask = 0;
+        if(queryVideoInfo && Video.Info.Format.Depth == 16 && withAlpha == (Video.Info.Format.AlphaMask != 0))
+        {
+          RedMask   = Video.Info.Format.RedMask;
+          GreenMask = Video.Info.Format.GreenMask;
+          BlueMask  = Video.Info.Format.BlueMask;
+          AlphaMask = Video.Info.Format.AlphaMask;
+        }
+        else
+        {
+          RedMask = 0xF800;
+          if(withAlpha)
+          {
+            GreenMask = 0x7C0;
+            BlueMask  = 0x3E;
+            AlphaMask = 1;
+          }
+          else
+          {
+            GreenMask = 0x07E0;
+            BlueMask  = 0x001F;
+            AlphaMask = 0;
+          }
+        }
         break;
 
       case 24: case 32:
@@ -232,7 +251,7 @@ public sealed class PixelFormat
           BlueMask  = Video.Info.Format.BlueMask;
           AlphaMask = Depth == 24 || !withAlpha     ? 0 :
                       Video.Info.Format.Depth == 32 ? Video.Info.Format.AlphaMask :
-                      RedMask == 0xFF || BlueMask == 0xFF ? (uint)0xFF000000 : 0xFF;
+                      0xFFFFFFFF & ~(RedMask | BlueMask | GreenMask);
         }
         else
         {

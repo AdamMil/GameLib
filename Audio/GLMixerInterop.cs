@@ -30,8 +30,8 @@ public static class GLMixer
   internal unsafe delegate void MixCallback(int* stream, uint samples, IntPtr context);
 
   [Flags]
-  internal enum Format : ushort
-  { Eight=8, Sixteen=16, BitsPart=0xFF, BigEndian=0x1000, FloatingPoint=0x4000, Signed=0x8000,
+  internal enum Format : short
+  { Eight=8, Sixteen=16, BitsPart=0xFF, BigEndian=0x1000, FloatingPoint=0x4000, Signed=unchecked((short)0x8000),
     U8=Eight, U16=Sixteen, S8=Eight|Signed, S16=Sixteen|Signed,
     U8BE=U8|BigEndian, U16BE=U16|BigEndian, S8BE=S8|BigEndian, S16BE=S16|BigEndian,
     #if BIGENDIAN

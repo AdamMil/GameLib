@@ -61,14 +61,14 @@ public abstract class GLFont : Font
     if(lines.Length==0) return new PointF(x, y);
 
     horz = UIHelper.IsAlignedLeft(align) ? 0 : UIHelper.IsAlignedCenter(align) ? 1 : 2;
-    if(UIHelper.IsAlignedMiddle(align)) y = rect.Y + ((int)rect.Height-lines.Length*LineSkip)/2;
-    else if(UIHelper.IsAlignedBottom(align)) y = rect.Bottom-lines.Length*LineSkip;
-    y-=LineSkip;
+    if(UIHelper.IsAlignedMiddle(align)) y = rect.Y + ((int)rect.Height-lines.Length*LineHeight)/2;
+    else if(UIHelper.IsAlignedBottom(align)) y = rect.Bottom-lines.Length*LineHeight;
+    y-=LineHeight;
 
     for(int i=0; i<lines.Length; i++)
     {
       if(i==1 && align == ContentAlignment.TopLeft) { x=rect.X; y=rect.Y; } // undo the effect of startx and starty
-      y += LineSkip;
+      y += LineHeight;
       string chunk = text.Substring(start, lines[i]);
       if(horz==0) length = Render(chunk, x, y);
       else
@@ -145,7 +145,7 @@ public class GLTrueTypeFont : GLFont
     get { return TTF.FontHeight(font); } 
   }
 
-  public override int LineSkip 
+  public override int LineHeight
   {
     get { return TTF.FontLineSkip(font); } 
   }

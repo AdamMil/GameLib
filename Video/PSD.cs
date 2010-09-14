@@ -127,34 +127,35 @@ public sealed class PSDLayer
   public byte Flags;
 
   internal PSDLayer(Stream stream)
-  { 
-    int y=IOH.ReadBE4(stream), x=IOH.ReadBE4(stream), y2=IOH.ReadBE4(stream), x2=IOH.ReadBE4(stream), chans;
+  {
+    int y=stream.ReadBE4(), x=stream.ReadBE4(), y2=stream.ReadBE4(), x2=stream.ReadBE4(), chans;
     Bounds = new Rectangle(x, y, x2-x, y2-y);
 
-    chans = IOH.ReadBE2(stream);
+    chans = stream.ReadBE2();
     channels = new PSDChannel[chans];
     for(int i=0; i<channels.Length; i++)
-    { channels[i] = (PSDChannel)IOH.ReadBE2(stream);
-      dataLength += IOH.ReadBE4(stream);
+    {
+      channels[i] = (PSDChannel)stream.ReadBE2();
+      dataLength += stream.ReadBE4();
     }
     Channels = channels.Length;
 
-    if(IOH.ReadString(stream, 4)!="8BIM") throw new ArgumentException("Unknown blend signature");
-    Blend    = IOH.ReadString(stream, 4);
-    Opacity  = IOH.ReadByte(stream);
-    Clipping = IOH.ReadByte(stream);
-    Flags    = IOH.ReadByte(stream);
-    IOH.Skip(stream, 1); // reserved
+    if(stream.ReadString(4)!="8BIM") throw new ArgumentException("Unknown blend signature");
+    Blend    = stream.ReadString(4);
+    Opacity  = stream.ReadByteOrThrow();
+    Clipping = stream.ReadByteOrThrow();
+    Flags    = stream.ReadByteOrThrow();
+    stream.Skip(1); // reserved
 
-    int extraBytes = IOH.ReadBE4(stream); // extra layer data
-    int bytes = IOH.ReadBE4(stream); // layer mask size
-    IOH.Skip(stream, bytes); extraBytes -= bytes+4;
-    bytes = IOH.ReadBE4(stream); // layer blending size
-    IOH.Skip(stream, bytes); extraBytes -= bytes+4;
+    int extraBytes = stream.ReadBE4(); // extra layer data
+    int bytes = stream.ReadBE4(); // layer mask size
+    stream.Skip(bytes); extraBytes -= bytes+4;
+    bytes = stream.ReadBE4(); // layer blending size
+    stream.Skip(bytes); extraBytes -= bytes+4;
 
-    bytes = IOH.ReadByte(stream); extraBytes -= bytes+1;
-    Name = bytes==0 ? "" : IOH.ReadString(stream, bytes);
-    IOH.Skip(stream, extraBytes);
+    bytes = stream.ReadByteOrThrow(); extraBytes -= bytes+1;
+    Name = bytes==0 ? "" : stream.ReadString(bytes);
+    stream.Skip(extraBytes);
   }
 
   internal PSDChannel[] channels;
@@ -326,7 +327,7 @@ public sealed class PSDCodec
       else
       { int end = (int)stream.Position + layer.dataLength;
         layer.Surface = ReadImageData(layer.Width, layer.Height, layer.channels, true);
-        IOH.Skip(stream, (int)stream.Position-end); // skip over any padding or extra data after the bitmap
+        stream.Skip((int)stream.Position-end); // skip over any padding or extra data after the bitmap
         this.layer++;
       }
       return layer;
@@ -349,7 +350,7 @@ public sealed class PSDCodec
     if(state!=State.Header) throw new InvalidOperationException("Invalid codec state");
     if(image.Layers!=null && layer<image.Layers.Length)
       throw new InvalidOperationException("Not all the layers have been read yet!");
-    IOH.Skip(stream, savedPos-(int)stream.Position);
+    stream.Skip(savedPos-(int)stream.Position);
     ValidateChannels(image.Channels);
     try { return image.Flattened = ReadImageData(); }
     catch { Abort(); throw; }
@@ -376,7 +377,7 @@ public sealed class PSDCodec
     try
     { PSDLayer layer = image.Layers[this.layer++];
       layer.Surface=null;
-      IOH.Skip(stream, layer.dataLength);
+      stream.Skip(layer.dataLength);
       return layer;
     }
     catch { Abort(); throw; }
@@ -410,27 +411,28 @@ public sealed class PSDCodec
   { PSDImage img = new PSDImage();
     try
     { AssertNothing();
-      if(IOH.ReadString(stream, 4) != "8BPS") throw new ArgumentException("Not a photoshop file");
-      int value = IOH.ReadBE2U(stream);
+      if(stream.ReadString(4) != "8BPS") throw new ArgumentException("Not a photoshop file");
+      int value = stream.ReadBE2U();
       if(value != 1) throw new NotSupportedException("Unsupported PSD version number: "+value);
-      IOH.Skip(stream, 6);
-      img.Channels = IOH.ReadBE2U(stream);
-      img.Height = IOH.ReadBE4(stream);
-      img.Width  = IOH.ReadBE4(stream);
-      value = IOH.ReadBE2U(stream);
+      stream.Skip(6);
+      img.Channels = stream.ReadBE2U();
+      img.Height = stream.ReadBE4();
+      img.Width  = stream.ReadBE4();
+      value = stream.ReadBE2U();
       if(value != 8) throw new NotSupportedException("Unsupported channel depth: "+value);
-      value = IOH.ReadBE2U(stream);
+      value = stream.ReadBE2U();
       if(value != 3) throw new NotSupportedException("Unsupported color mode: "+value);
 
-      IOH.Skip(stream, IOH.ReadBE4(stream)); // skip color block
-      IOH.Skip(stream, IOH.ReadBE4(stream)); // skip image resources
+      stream.Skip(stream.ReadBE4()); // skip color block
+      stream.Skip(stream.ReadBE4()); // skip image resources
 
-      int miscLen = IOH.ReadBE4(stream);
+      int miscLen = stream.ReadBE4();
       savedPos = (int)stream.Position + miscLen;
       if(miscLen!=0) // length of miscellaneous info section
-      { IOH.Skip(stream, 4);
-        int numLayers = Math.Abs(IOH.ReadBE2(stream));
-        if(numLayers==0) { IOH.Skip(stream, miscLen-6); goto done; }
+      {
+        stream.Skip(4);
+        int numLayers = Math.Abs(stream.ReadBE2());
+        if(numLayers==0) { stream.Skip(miscLen-6); goto done; }
 
         img.Layers = new PSDLayer[numLayers];
         for(int i=0; i<numLayers; i++) img.Layers[i] = new PSDLayer(stream);
@@ -479,38 +481,41 @@ public sealed class PSDCodec
         }
       if(!stream.CanSeek) throw new ArgumentException("A seekable stream is required for PSD writing", "stream");
 
-      IOH.WriteString(stream, "8BPS"); // signature
-      IOH.WriteBE2(stream, 1); // version
+      stream.WriteString("8BPS"); // signature
+      stream.WriteBE2(1); // version
       for(int i=0; i<6; i++) stream.WriteByte(0); // reserved
-      IOH.WriteBE2(stream, (short)image.Channels); // channels
-      IOH.WriteBE4(stream, image.Height);
-      IOH.WriteBE4(stream, image.Width);
-      IOH.WriteBE2(stream, 8); // bit depth (per channel)
-      IOH.WriteBE2(stream, 3); // color mode (3=RGB)
+      stream.WriteBE2((short)image.Channels); // channels
+      stream.WriteBE4(image.Height);
+      stream.WriteBE4(image.Width);
+      stream.WriteBE2(8); // bit depth (per channel)
+      stream.WriteBE2(3); // color mode (3=RGB)
 
-      IOH.WriteBE4(stream, 0); // color data section
-      IOH.WriteBE4(stream, 0); // psd resources section
+      stream.WriteBE4(0); // color data section
+      stream.WriteBE4(0); // psd resources section
 
       if(image.Layers!=null && image.Layers.Length>0)
-      { savedPos = (int)stream.Position;
-        IOH.WriteBE4(stream, 0); // size of the miscellaneous info section (to be filled later)
-        IOH.WriteBE4(stream, 0); // size of the layer section (to be filled later)
-        IOH.WriteBE2(stream, (short)image.Layers.Length); // number of layers
+      {
+        savedPos = (int)stream.Position;
+        stream.WriteBE4(0); // size of the miscellaneous info section (to be filled later)
+        stream.WriteBE4(0); // size of the layer section (to be filled later)
+        stream.WriteBE2((short)image.Layers.Length); // number of layers
 
         for(int i=0; i<image.Layers.Length; i++)
-        { PSDLayer layer = image.Layers[i];
-          IOH.WriteBE4(stream, layer.Bounds.Y); // layer top
-          IOH.WriteBE4(stream, layer.Bounds.X); // layer left
-          IOH.WriteBE4(stream, layer.Bounds.Bottom); // layer bottom
-          IOH.WriteBE4(stream, layer.Bounds.Right);  // layer right
-          IOH.WriteBE2(stream, (short)layer.Channels); // number of channels
+        {
+          PSDLayer layer = image.Layers[i];
+          stream.WriteBE4(layer.Bounds.Y); // layer top
+          stream.WriteBE4(layer.Bounds.X); // layer left
+          stream.WriteBE4(layer.Bounds.Bottom); // layer bottom
+          stream.WriteBE4(layer.Bounds.Right);  // layer right
+          stream.WriteBE2((short)layer.Channels); // number of channels
           layer.savedPos = (int)stream.Position+2;
           for(short id=(short)(layer.Channels==4 ? -1 : 0); id<3; id++) // channel information
-          { IOH.WriteBE2(stream, id); // channel ID
-            IOH.WriteBE4(stream, 0);  // data length (to be filled later)
+          {
+            stream.WriteBE2(id); // channel ID
+            stream.WriteBE4(0);  // data length (to be filled later)
           }
-          IOH.WriteString(stream, "8BIM"); // blend mode signature
-          IOH.WriteString(stream, layer.Blend); // blend mode
+          stream.WriteString("8BIM"); // blend mode signature
+          stream.WriteString(layer.Blend); // blend mode
           stream.WriteByte(layer.Opacity);  // opacity (255=opaque)
           stream.WriteByte(layer.Clipping); // clipping (0=base)
           stream.WriteByte(layer.Flags);    // flags
@@ -518,15 +523,21 @@ public sealed class PSDCodec
           string name = layer.Name==null ? "Layer "+(i+1) : layer.Name;
           if(name.Length>255) name = name.Substring(0, 255);
           int extraLen = 8 + (name.Length+4)/4*4;
-          IOH.WriteBE4(stream, extraLen); // size of the extra layer infomation
-          IOH.WriteBE4(stream, 0); // layer mask
-          IOH.WriteBE4(stream, 0); // layer blending size
+          stream.WriteBE4(extraLen); // size of the extra layer infomation
+          stream.WriteBE4(0); // layer mask
+          stream.WriteBE4(0); // layer blending size
           stream.WriteByte((byte)name.Length);
-          IOH.WriteString(stream, name); // layer name
-          if(((name.Length+1)&3) != 0) for(int j=4-((name.Length+1)&3); j>0; j--) stream.WriteByte(0); // name padding
+          stream.WriteString(name); // layer name
+          if(((name.Length+1)&3) != 0)
+          {
+            for(int j=4-((name.Length+1)&3); j>0; j--) stream.WriteByte(0); // name padding
+          }
         }
       }
-      else IOH.WriteBE4(stream, 0); // misc info section
+      else
+      {
+        stream.WriteBE4(0); // misc info section
+      }
     }
     catch { if(autoClose) stream.Close(); throw; }
 
@@ -617,11 +628,13 @@ public sealed class PSDCodec
       int sw = surface==null ? 0 : surface.Width, sh = surface==null ? 0 : surface.Height;
       if(sw!=layer.Width || sh!=layer.Height) throw new ArgumentException("Surface size doesn't match layer size!");
       if(surface==null)
-      { for(int i=0; i<layer.Channels; i++) IOH.WriteBE2(stream, 0);
+      {
+        for(int i=0; i<layer.Channels; i++) stream.WriteBE2(0);
         int endPos = (int)stream.Position;
         stream.Position = layer.savedPos;
         for(int i=0; i<layer.Channels; i++)
-        { IOH.WriteBE4(stream, 2);
+        {
+          stream.WriteBE4(2);
           stream.Position += 2;
         }
         stream.Position = endPos;
@@ -634,7 +647,8 @@ public sealed class PSDCodec
         int endPos = (int)stream.Position;
         stream.Position = layer.savedPos;
         for(int i=0; i<layer.Channels; i++)
-        { IOH.WriteBE4(stream, sizes[i]);
+        {
+          stream.WriteBE4(sizes[i]);
           stream.Position += 2;
         }
         stream.Position = endPos;
@@ -643,8 +657,8 @@ public sealed class PSDCodec
       if(this.layer==image.Layers.Length)
       { int endPos=(int)stream.Position, dist=endPos-savedPos-4;
         stream.Position = savedPos;
-        IOH.WriteBE4(stream, dist);   // miscellaneous info section size
-        IOH.WriteBE4(stream, dist-4); // layer section size
+        stream.WriteBE4(dist);   // miscellaneous info section size
+        stream.WriteBE4(dist-4); // layer section size
         stream.Position = endPos;
 
         state = State.Layers;
@@ -672,7 +686,7 @@ public sealed class PSDCodec
   { long position = autoClose ? 0 : stream.Position;
     if(stream.Length-stream.Position<6) return false;
     bool ret=true;
-    if(IOH.ReadString(stream, 4)!="8BPS" || IOH.ReadBE2U(stream)!=1) ret=false;
+    if(stream.ReadString(4)!="8BPS" || stream.ReadBE2U()!=1) ret=false;
     if(autoClose) stream.Close();
     else stream.Position = position;
     return ret;
@@ -807,7 +821,7 @@ public sealed class PSDCodec
     { for(int chan=0; chan<chans.Length; chan++)
       { bool recognized = true;
         if(layer || chan==0)
-        { int value = IOH.ReadBE2(stream);
+        { int value = stream.ReadBE2();
           if(value!=0 && value!=1) throw new NotSupportedException("Unsupported compression type: "+value);
           compressed = value==1;
         }
@@ -826,7 +840,7 @@ public sealed class PSDCodec
           { if(lengths==null) lengths = new int[layer ? height : height*chans.Length];
             maxlen = 0;
             for(int y=0; y<lengths.Length; y++)
-            { lengths[y] = IOH.ReadBE2U(stream);
+            { lengths[y] = stream.ReadBE2U();
               if(lengths[y]>maxlen) maxlen=lengths[y];
             }
             linebuf = new byte[maxlen];
@@ -834,7 +848,7 @@ public sealed class PSDCodec
           if(!recognized)
           { int skip=0;
             for(int yend=yi+height; yi<yend; yi++) skip += lengths[yi];
-            IOH.Skip(stream, skip);
+            stream.Skip(skip);
             continue;
           }
           fixed(byte* lbptr=linebuf)
@@ -842,7 +856,7 @@ public sealed class PSDCodec
             { byte* src = lbptr;
               int  f;
               byte b;
-              IOH.Read(stream, linebuf, 0, lengths[yi]);
+              stream.ReadOrThrow(linebuf, 0, lengths[yi]);
               for(int i=0; i<width;)
               { f=*src++;
                 if(f>=128)
@@ -862,11 +876,13 @@ public sealed class PSDCodec
           if(layer) yi=0;
         }
         else
-        { int length = width*height;
-          if(!recognized) IOH.Skip(stream, length);
+        {
+          int length = width*height;
+          if(!recognized) stream.Skip(length);
           else if(length<=65536)
-          { byte[] data = new byte[length];
-            IOH.Read(stream, data, 0, data.Length);
+          { 
+            byte[] data = new byte[length];
+            stream.ReadOrThrow(data, 0, data.Length);
             fixed(byte* sdata=data)
             { byte* src=sdata;
               if(yinc==0) do { *dest=*src++; dest+=xinc; } while(--length != 0);
@@ -879,15 +895,19 @@ public sealed class PSDCodec
             }
           }
           else
-          { byte[] data = new byte[width];
+          {
+            byte[] data = new byte[width];
             fixed(byte* sdata=data)
+            {
               for(int y=0; y<height; y++)
-              { int xlen = width;
-                IOH.Read(stream, data, 0, data.Length);
+              {
+                int xlen = width;
+                stream.ReadOrThrow(data, 0, data.Length);
                 byte* src=sdata;
                 do { *dest=*src++; dest+=xinc; } while(--xlen != 0);
                 dest += yinc;
               }
+            }
           }
         }
       }
@@ -918,7 +938,7 @@ public sealed class PSDCodec
     { int chans=surface.Format.AlphaMask==0 ? 3 : 4, thresh = surface.Width*surface.Height*chans;
       int pos = (int)stream.Position, len = surface.Height*2*chans;
 
-      IOH.WriteBE2(stream, 1); // packbits compression
+      stream.WriteBE2(1); // packbits compression
       stream.Position += len;
       for(int i=0; i<chans; i++)
       { len += WritePackedBits(surface, i, 0, pos+2+i*surface.Height*2);
@@ -939,7 +959,8 @@ public sealed class PSDCodec
     int length = surface.Height*2;
 
     if(table==0)
-    { IOH.WriteBE2(stream, 1); // packbits compression (not included in 'length')
+    {
+      stream.WriteBE2(1); // packbits compression (not included in 'length')
       table = (int)stream.Position;
       stream.Position += length;
     }
@@ -1017,14 +1038,15 @@ public sealed class PSDCodec
 
     int pos = (int)stream.Position;
     stream.Position = table;
-    for(int y=0; y<surface.Height; y++) IOH.WriteBE2U(stream, lengths[y]);
+    for(int y=0; y<surface.Height; y++) stream.WriteBE2U(lengths[y]);
     stream.Position = pos;
     return length;
   }
 
   unsafe void WriteRawBits(Surface surface, int channel, bool layer)
-  { byte[] data = new byte[1024];
-    if(layer || channel==0) IOH.WriteBE2(stream, 0); // no compression
+  { 
+    byte[] data = new byte[1024];
+    if(layer || channel==0) stream.WriteBE2(0); // no compression
     int xinc=surface.Depth/8, yinc=surface.Pitch-surface.Width*xinc, blen=0;
     byte* src = (byte*)surface.Data;
     switch(channel+(surface.Format.AlphaMask==0 ? 1 : 0))
