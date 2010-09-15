@@ -72,12 +72,12 @@ namespace InputTest
         {
           font.Render(Video.DisplaySurface,
                       string.Format("Joystick {0}: {1}", joy.Number, joy.Name),
-                      0, ypos += font.LineSkip);
+                      0, ypos += font.LineHeight);
           string s = "Axes:";
           foreach(int i in joy.Axes) s += " "+i;
           s += ", Buttons: ";
           foreach(bool b in joy.Buttons) s += b ? '1' : '0';
-          font.Render(Video.DisplaySurface, s, 0, ypos += font.LineSkip);
+          font.Render(Video.DisplaySurface, s, 0, ypos += font.LineHeight);
           if(joy.Hats.Length>0 || joy.Balls.Length>0)
           {
             if(joy.Hats.Length>0)
@@ -91,7 +91,7 @@ namespace InputTest
               s += ", Balls:";
               foreach(Joystick.Ball b in joy.Balls) s += " "+b.Point;
             }
-            font.Render(Video.DisplaySurface, s, 0, ypos += font.LineSkip);
+            font.Render(Video.DisplaySurface, s, 0, ypos += font.LineHeight);
           }
         }
 
@@ -150,7 +150,7 @@ namespace InputTest
               break;
             }
         }
-        font.Render(Video.DisplaySurface, text, 0, ypos+font.LineSkip);
+        font.Render(Video.DisplaySurface, text, 0, ypos+font.LineHeight);
         updated = true;
       }
       else if(e.Type==EventType.Quit) return false;

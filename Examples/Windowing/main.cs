@@ -55,7 +55,7 @@ namespace WindowingTest
     protected override void OnEffectiveFontChanged(GameLib.ValueChangedEventArgs e)
     { 
       // we want things to adjust to the font size
-      if(EffectiveFont != null) menu.Height = EffectiveFont.LineSkip*3/2;
+      if(EffectiveFont != null) menu.Height = EffectiveFont.LineHeight*3/2;
       base.OnEffectiveFontChanged(e);
     }
 
@@ -124,7 +124,7 @@ namespace WindowingTest
     {
       if(EffectiveFont != null)
       {
-        int height    = EffectiveFont.LineSkip*3/2, contentWidth = ContentRect.Width - bar.Width;
+        int height    = EffectiveFont.LineHeight*3/2, contentWidth = ContentRect.Width - bar.Width;
         label1.Height = height;
         edit.Bounds   = new Rectangle(5, 0, contentWidth-10, height);
         chk.Bounds    = new Rectangle(5, edit.Bottom, edit.Width, height);

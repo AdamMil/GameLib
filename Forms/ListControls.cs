@@ -873,6 +873,7 @@ public class ListBox : ListControl
     return -1;
   }
 
+  /// <summary>Returns the index of the last item to be displayed, given the current value of <see cref="TopIndex"/>.</summary>
   protected int GetBottomIndex()
   {
     if(bottom == -1)
@@ -931,11 +932,17 @@ public class ListBox : ListControl
     return bounds;
   }
 
+  /// <summary>Returns the index of the first item that would be displayed if the list box were scrolled all the way to the
+  /// bottom.
+  /// </summary>
   protected int GetLastTopIndex()
   {
     return GetTopIndex(Items.Count - 1);
   }
 
+  /// <summary>Returns the index of the first item that would be displayed, given the index of the last item that would be
+  /// displayed.
+  /// </summary>
   protected int GetTopIndex(int bottom)
   {
     if(FixedHeight)
@@ -1042,12 +1049,12 @@ public class ListBox : ListControl
   protected override void OnListChanged()
   {
     base.OnListChanged();
-    CalcIndexes();
+    CalculateIndexes();
   }
 
   protected internal override void OnMouseDown(ClickEventArgs e)
   {
-    if(!e.Handled && e.CE.Button == MouseButton.Left)
+    if(!e.Handled && e.CE.Button == MouseButton.Left && ContentRect.Contains(e.CE.Point))
     {
       int index = PointToItem(e.CE.Point);
       Capture = e.Handled = mouseDown = true;
@@ -1062,14 +1069,14 @@ public class ListBox : ListControl
       }
       else if(selMode != SelectionMode.None)
       {
-        if(shift && selMode != SelectionMode.MultiSimple)
+        if(shift && selMode == SelectionMode.MultiExtended)
         {
           if(!ctrl) ClearSelected();
-          SelectRange(Math.Max(CursorPosition, 0), index, selecting);
+          if(index >= 0) SelectRange(Math.Max(CursorPosition, 0), index, selecting);
         }
-        else if(index >= 0)
+        else
         {
-          if(ctrl || selMode == SelectionMode.MultiSimple) ToggleSelected(index);
+          if(index >= 0 && (ctrl || selMode == SelectionMode.MultiSimple)) ToggleSelected(index);
           else SelectedIndex = index;
         }
       }
@@ -1127,8 +1134,8 @@ public class ListBox : ListControl
         if(FixedHeight)
         {
           bounds.Height = MeasureItem(0).Height;
-          int i = Math.Max((e.DrawRect.Y - bounds.Y) / bounds.Height, 0);
-          bounds.Y += i * bounds.Height;
+          int i = Math.Max((e.DrawRect.Y - bounds.Y) / bounds.Height, 0); // calculate the index of the first item to draw
+          bounds.Y += i * bounds.Height; // shift the item rectangle down to the bounds of the first item we're drawing
           for(i += TopIndex; i < Items.Count; i++)
           {
             if(bounds.IntersectsWith(e.DrawRect)) DrawItem(i, e, bounds);
@@ -1161,7 +1168,7 @@ public class ListBox : ListControl
   protected override void OnResize()
   {
     base.OnResize();
-    CalcIndexes();
+    CalculateIndexes();
   }
 
   protected override void OnVerticalScroll(object bar, ValueChangedEventArgs e)
@@ -1191,20 +1198,23 @@ public class ListBox : ListControl
     public ScrollEvent(Control ctrl) : base(ctrl) { }
   }
 
-  void CalcIndexes()
+  void CalculateIndexes()
   {
-    bottom = -1;
-    lastTop = GetLastTopIndex();
+    bottom  = -1; // force the bottom index to be recalculated the next time GetBottomIndex() is called
+    lastTop = GetLastTopIndex(); // recalculate and cache the last top index
 
-    if(lastTop > 0)
+    if(lastTop > 0) // if there are more items that can be shown at once (and so a scrollbar is needed)...
     {
-      ShowVerticalScrollBar     = true;
-      VerticalScrollBar.Maximum = lastTop;
+      ShowVerticalScrollBar     = true;    // show a vertical scroll bar. the number of items the user can scroll through is the
+      VerticalScrollBar.Maximum = lastTop; // number that would be hidden after scrolling all the way down
 
-      int visibleItems = GetBottomIndex() - lastTop;
+      int visibleItems = GetBottomIndex() - TopIndex + 1;
       VerticalScrollBar.ThumbSize = (float)visibleItems / Items.Count;
     }
-    else ShowVerticalScrollBar = false;
+    else // otherwise, we don't need a vertical scrollbar, so hide it
+    {
+      ShowVerticalScrollBar = false;
+    }
   }
 
   void DragTo(int index)
@@ -1344,7 +1354,18 @@ public class ListBox : ListControl
 #region ComboBox
 public enum ComboBoxStyle
 {
-  DropDown, DropDownList, Simple
+  /// <summary>Specifies that the list is displayed by clicking the down arrow, but the text box is also editable, allowing the
+  /// user to type in a value.
+  /// </summary>
+  DropDown,
+  /// <summary>Specifies that the list is displayed by clicking the down arrow, and the text box is not editable, so the user is
+  /// restricted to selecting a value from the list.
+  /// </summary>
+  DropDownList,
+  /// <summary>Specifies that the list is always visible, but the text box is also editable, allowing the user to type in a
+  /// value.
+  /// </summary>
+  Simple
 }
 
 public class ComboBox : ListControl
@@ -1501,6 +1522,7 @@ public class ComboBox : ListControl
       Desktop.Invalidate(ListBox.ControlToAncestor(ListBox.ControlRect, Desktop));
       ListBox.Parent = null;
     }
+    ListBox.Capture = false;
     mouseDown = open = false;
     OnBoxPress(false);
   }
@@ -1609,9 +1631,13 @@ public class ComboBox : ListControl
         ListBox.Bounds = new Rectangle(content.Left, TextBox.Bottom + 1,
                                        content.Width, content.Bottom - TextBox.Bottom - 1);
       }
-      else ListBox.SetBounds(ControlToAncestor(new Rectangle(0, Height, Width, listHeight), parent), true);
+      else
+      {
+        ListBox.SetBounds(ControlToAncestor(new Rectangle(0, Height, Width, listHeight), parent), true);
+      }
       ListBox.Visible = true;
       ListBox.Focus();
+      ListBox.Capture = style != ComboBoxStyle.Simple;
       open = true;
     }
   }
@@ -1645,7 +1671,7 @@ public class ComboBox : ListControl
 
   void listBox_MouseUp(object sender, ClickEventArgs e)
   {
-    if(e.CE.Button == MouseButton.Left && ListBox.ContentRect.Contains(e.CE.Point))
+    if(style != ComboBoxStyle.Simple && !TextBox.Bounds.Contains(ScreenToControl(ListBox.ControlToScreen(e.CE.Point))))
     {
       Close();
       e.Handled = true;
