@@ -328,7 +328,7 @@ public class Desktop : Control, IDisposable
             dragging.OnDragMove(drag);
             if(drag.Cancel) EndDrag();
           }
-          else if(capturing == null || capturing == p)
+          else if(capturing == null || capturing.IsAncestorOf(p, true))
           {
             int xd = ea.X - drag.Start.X;
             int yd = ea.Y - drag.Start.Y;
@@ -347,8 +347,9 @@ public class Desktop : Control, IDisposable
 
         if(capturing != null)
         {
-          ea.Point = capturing.ScreenToControl(ea.Point);
-          capturing.OnMouseMove(ea);
+          Control dispatchTo = capturing.IsAncestorOf(p, true) ? p : capturing;
+          ea.Point = dispatchTo.ScreenToControl(ea.Point);
+          dispatchTo.OnMouseMove(ea);
         }
         else if(passModal)
         {
@@ -430,8 +431,9 @@ public class Desktop : Control, IDisposable
         clickStatus = ClickStatus.All;
         if(capturing != null)
         {
-          ea.CE.Point = capturing.ScreenToControl(ea.CE.Point);
-          DispatchClickEvent(capturing, ea, time);
+          Control dispatchTo = capturing.IsAncestorOf(p, true) ? p : capturing;
+          ea.CE.Point = dispatchTo.ScreenToControl(ea.CE.Point);
+          DispatchClickEvent(dispatchTo, ea, time);
         }
         else if(passModal)
         {

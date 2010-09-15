@@ -67,7 +67,7 @@ namespace Asteroids
       }
 
       Vector cent = new Vector(Poly.GetCentroid());
-      for(int i=0; i<Poly.Length; i++) Poly[i] -= cent;
+      for(int i=0; i<Poly.PointCount; i++) Poly[i] -= cent;
       Hits = Poly.Split();
       Size = diameter;
       Pos  = pos;
@@ -79,7 +79,7 @@ namespace Asteroids
     {
       segment.Start.X -= Pos.X; segment.Start.Y -= Pos.Y;
       foreach(Polygon p in Hits) if(p.ConvexContains(segment.Start)) return true;
-      for(int i=0; i<Poly.Length; i++)
+      for(int i=0; i<Poly.PointCount; i++)
       {
         LineIntersection info = segment.GetIntersectionInfo(Poly.GetEdge(i));
         if(info.OnFirst && info.OnSecond) return true;
@@ -89,7 +89,7 @@ namespace Asteroids
 
     public bool Collided(Ship ship)
     {
-      for(int i=0; i<ship.Poly.Length; i++)
+      for(int i=0; i<ship.Poly.PointCount; i++)
       {
         Line edge = ship.Poly.GetEdge(i);
         edge.Start.Offset(ship.Pos.X, ship.Pos.Y);
@@ -106,12 +106,12 @@ namespace Asteroids
       foreach(Polygon poly in Hits)
       {
         GL.glBegin(GL.GL_POLYGON);
-        for(int i=0; i<poly.Length; i++) GL.glVertex2d(poly[i].X, poly[i].Y);
+        for(int i=0; i<poly.PointCount; i++) GL.glVertex2d(poly[i].X, poly[i].Y);
         GL.glEnd();
       }
       GL.glBegin(GL.GL_LINE_LOOP);
       GL.glColor(System.Drawing.Color.White);
-      for(int i=0; i<Poly.Length; i++) GL.glVertex2d(Poly[i].X, Poly[i].Y);
+      for(int i=0; i<Poly.PointCount; i++) GL.glVertex2d(Poly[i].X, Poly[i].Y);
       GL.glEnd();
       GL.glLoadIdentity();
     }
@@ -162,12 +162,12 @@ namespace Asteroids
       byte alpha = (byte)(64 + Fade*191);
       GL.glBegin(GL.GL_POLYGON);
       GL.glColor(alpha, System.Drawing.Color.LightGreen);
-      for(int i=0; i<Poly.Length; i++) GL.glVertex2d(Poly[i].X, Poly[i].Y);
+      for(int i=0; i<Poly.PointCount; i++) GL.glVertex2d(Poly[i].X, Poly[i].Y);
       GL.glEnd();
 
       GL.glBegin(GL.GL_LINE_LOOP);
       GL.glColor(alpha, System.Drawing.Color.Green);
-      for(int i=0; i<Poly.Length; i++) GL.glVertex2d(Poly[i].X, Poly[i].Y);
+      for(int i=0; i<Poly.PointCount; i++) GL.glVertex2d(Poly[i].X, Poly[i].Y);
       GL.glEnd();
 
       GL.glLoadIdentity();

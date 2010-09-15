@@ -411,7 +411,7 @@ public class Control
   }
 
   /// <summary>Gets the offset that defines the content area.</summary>
-  /// <value>A <see cref="RectOffset"/> that will be used to shrink the <see cref="ContentRect"/> and obtain
+  /// <value>A <see cref="RectOffset"/> that will be used to shrink the <see cref="ControlRect"/> and obtain
   /// the <see cref="ContentRect"/>.
   /// </value>
   /// <remarks>By default, this is defined as the offset created by <see cref="Padding"/> and
@@ -488,7 +488,8 @@ public class Control
 
   /// <summary>Enables or disables mouse capture for this control.</summary>
   /// <remarks>Mouse capture allows a control to receive mouse events even if the mouse is not within the bounds
-  /// of the control. Because mouse capture requires an active desktop, this property cannot be set unless the
+  /// of the control. Capturing applies to the descendants of the control as well, so they will receive mouse events as normal,
+  /// if the mouse is over them. Because mouse capture requires an active desktop, this property cannot be set unless the
   /// control is associated with a desktop. For information on associating a control with a desktop, see the
   /// <see cref="Desktop"/> property. Since only one control can capture the mouse at a time, setting this to true
   /// will take the mouse capture away from any other control that has mouse capture.
@@ -1611,6 +1612,31 @@ public class Control
         }
       }
     }
+  }
+
+  /// <summary>Determines whether this control is an ancestor of the given control. Only strict ancestry is checked, so false
+  /// will be returned if the controls are identical.
+  /// </summary>
+  /// <param name="control">The control whose ancestry will be checked.</param>
+  public bool IsAncestorOf(Control control)
+  {
+    return IsAncestorOf(control, false);
+  }
+
+  /// <summary>Determines whether this control is an ancestor of (or optionally identical to) the given control.</summary>
+  /// <param name="control">The control whose ancestry will be checked.</param>
+  /// <param name="matchIdentity">If true, true will be returned if <paramref name="control"/> is identical to this control.
+  /// Otherwise, true will only be returned if this control is strictly an ancestor of <paramref name="control"/>.
+  /// </param>
+  public bool IsAncestorOf(Control control, bool matchIdentity)
+  {
+    if(control == null) throw new ArgumentNullException();
+    if(!matchIdentity) control = control.Parent;
+    for(; control != null; control = control.Parent)
+    {
+      if(control == this) return true;
+    }
+    return false;
   }
 
   /// <summary>Forces this control to lay out its children.</summary>
