@@ -53,6 +53,7 @@
     <Compile Include="Desktop.cs" />
     <Compile Include="Events.cs" />
     <Compile Include="FormControls.cs" />
+    <Compile Include="LayoutControls.cs" />
     <Compile Include="ListControls.cs" />
     <Compile Include="MenuControls.cs" />
   </ItemGroup>

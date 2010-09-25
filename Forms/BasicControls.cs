@@ -1,7 +1,7 @@
 ﻿/*
 GameLib is a library for developing games and other multimedia applications.
 http://www.adammil.net/
-Copyright (C) 2002-2007 Adam Milazzo
+Copyright (C) 2002-2010 Adam Milazzo
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -16,7 +16,6 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
-// TODO: add documentation
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -27,6 +26,10 @@ using GameLib.Input;
 using Clipboard = System.Windows.Forms.Clipboard;
 using Font = GameLib.Fonts.Font;
 using Timer = System.Windows.Forms.Timer;
+
+// TODO: add documentation
+// TODO: make caret support be part of the desktop instead of part of the textbox (this allows the system to integrate
+// with non-graphical environments where we can't draw a line between characters)
 
 namespace GameLib.Forms
 {
@@ -93,7 +96,7 @@ public abstract class ScrollableControl : Control
           Controls.Remove(horz);
           horz = null;
         }
-        OnContentSizeChanged();
+        OnContentOffsetChanged();
       }
     }
   }
@@ -116,7 +119,7 @@ public abstract class ScrollableControl : Control
           Controls.Remove(vert);
           vert = null;
         }
-        OnContentSizeChanged();
+        OnContentOffsetChanged();
       }
     }
   }
@@ -232,11 +235,11 @@ public class Line : Control
 }
 #endregion
 
-#region Label
-public class Label : Control
+#region LabelBase
+public abstract class LabelBase : Control
 {
-  public Label() { }
-  public Label(string text) { Text = text; }
+  public LabelBase() { }
+  public LabelBase(string text) { Text = text; }
 
   protected override void OnPaint(PaintEventArgs e)
   {
@@ -256,22 +259,16 @@ public class Label : Control
 
   public ContentAlignment TextAlign
   {
-    get { return textAlign; }
+    get { return _textAlign; }
     set
     {
-      if(textAlign != value)
+      if(_textAlign != value)
       {
-        ValueChangedEventArgs e = new ValueChangedEventArgs(textAlign);
-        textAlign = value;
+        ValueChangedEventArgs e = new ValueChangedEventArgs(_textAlign);
+        _textAlign = value;
         OnTextAlignChanged(e);
       }
     }
-  }
-
-  protected override void OnTextChanged(ValueChangedEventArgs e)
-  {
-    base.OnTextChanged(e);
-    Invalidate();
   }
 
   protected virtual void OnTextAlignChanged(ValueChangedEventArgs e)
@@ -279,12 +276,63 @@ public class Label : Control
     Invalidate(); 
   }
 
-  ContentAlignment textAlign = ContentAlignment.TopLeft;
+  ContentAlignment _textAlign = ContentAlignment.TopLeft;
+}
+#endregion
+
+#region Label
+public class Label : LabelBase
+{
+  public Label() { }
+  public Label(string text) : base(text) { Text = text; }
+  public Label(string text, bool autoSize) : base(text)
+  {
+    AutoSize = autoSize;
+  }
+
+  /// <summary>Gets or sets whether the label matches its size to that of the text. The default value is false.</summary>
+  public bool AutoSize
+  {
+    get { return _autoSize; }
+    set
+    {
+      if(value != AutoSize)
+      {
+        _autoSize = value;
+        AutoSizeLabel();
+      }
+    }
+  }
+
+  protected override void OnContentOffsetChanged()
+  {
+    base.OnContentOffsetChanged();
+    AutoSizeLabel();
+  }
+
+  protected override void OnEffectiveFontChanged(ValueChangedEventArgs e)
+  {
+    base.OnEffectiveFontChanged(e);
+    AutoSizeLabel();
+  }
+
+  protected override void OnTextChanged(ValueChangedEventArgs e)
+  {
+    base.OnTextChanged(e);
+    AutoSizeLabel();
+  }
+
+  protected virtual void AutoSizeLabel()
+  {
+    if(AutoSize && EffectiveFont != null) Size = ContentOffset.Grow(EffectiveFont.CalculateSize(Text));
+  }
+
+  bool _autoSize;
 }
 #endregion
 
 #region ButtonBase
-public abstract class ButtonBase : Label
+public abstract class ButtonBase : LabelBase
 {
   protected ButtonBase()
   {
@@ -296,8 +344,7 @@ public abstract class ButtonBase : Label
 
   public bool AutoPress
   {
-    get;
-    set;
+    get; set;
   }
 
   public bool Pressed
@@ -348,7 +395,7 @@ public abstract class ButtonBase : Label
       if(value != IsMouseOver)
       {
         mouseOver = value;
-        if(Pressed && RequireMouseOver) OnContentSizeChanged();
+        if(Pressed && RequireMouseOver) OnContentOffsetChanged();
       }
     }
   }
@@ -478,6 +525,19 @@ public class Button : ButtonBase
     Text = text;
   }
 
+  public bool AutoSize
+  {
+    get { return _autoSize; }
+    set
+    {
+      if(value != AutoSize)
+      {
+        _autoSize = value;
+        AutoSizeButton();
+      }
+    }
+  }
+
   public override RectOffset ContentOffset
   {
     get
@@ -490,6 +550,12 @@ public class Button : ButtonBase
       }
       return offset;
     }
+  }
+
+  protected override void OnEffectiveFontChanged(ValueChangedEventArgs e)
+  {
+    base.OnEffectiveFontChanged(e);
+    AutoSizeButton();
   }
 
   protected override void OnGotFocus()
@@ -507,7 +573,13 @@ public class Button : ButtonBase
   protected override void OnPressedChanged()
   {
     base.OnPressedChanged();
-    OnContentSizeChanged();
+    OnContentOffsetChanged();
+  }
+
+  protected override void OnTextChanged(ValueChangedEventArgs e)
+  {
+    base.OnTextChanged(e);
+    AutoSizeButton();
   }
 
   protected override void PaintBorder(PaintEventArgs e)
@@ -515,6 +587,20 @@ public class Button : ButtonBase
     e.Renderer.DrawBorder(this, e, BorderStyle | (IsDepressed ? BorderStyle.Depressed : 0),
                           Focused ? GetEffectiveForeColor() : GetEffectiveBorderColor());
   }
+
+  void AutoSizeButton()
+  {
+    if(AutoSize && EffectiveFont != null)
+    {
+      const int MinWidth = 72, MinHeight = 20;
+      int textWidth = EffectiveFont.CalculateSize(Text).Width, padding = EffectiveFont.Height;
+      // use the base content offset to ignore the adjustment used for the pressed effect
+      Size = base.ContentOffset.Grow(new Size(Math.Max(MinWidth, textWidth+padding*2),
+                                              Math.Max(MinHeight, EffectiveFont.LineHeight*3/2)));
+    }
+  }
+
+  bool _autoSize;
 }
 #endregion
 
@@ -523,8 +609,7 @@ public class CheckBox : ButtonBase
 {
   public CheckBox()
   {
-    BorderStyle = BorderStyle.Fixed3D;
-    TextAlign   = ContentAlignment.MiddleLeft;
+    TextAlign = ContentAlignment.MiddleLeft;
   }
 
   public CheckBox(bool isChecked) : this()
@@ -618,7 +703,8 @@ public class CheckBox : ButtonBase
 
   protected override void PaintBorder(PaintEventArgs e)
   {
-    if(Focused) base.PaintBorder(e);
+    if(Focused) e.Renderer.DrawFocusRect(this, e, GetDrawRect(), GetEffectiveBorderColor());
+    else base.PaintBorder(e);
   }
 
   bool isChecked;

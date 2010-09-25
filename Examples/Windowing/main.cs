@@ -1,7 +1,7 @@
 /*
 This is an example application for the GameLib multimedia/gaming library.
 http://www.adammil.net/
-Copyright (C) 2004-2005 Adam Milazzo
+Copyright (C) 2004-2010 Adam Milazzo
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -63,12 +63,12 @@ namespace WindowingTest
   }
   #endregion
 
-  #region SampleForm
-  class SampleForm : Form
+  #region BasicControlForm
+  class BasicControlForm : Form
   {
-    public SampleForm()
+    public BasicControlForm()
     {
-      Text = "Sample Form";
+      Text = "Basic Control Form";
       MinimumSize = Size = new Size(336, 192);
       BorderStyle = BorderStyle.Resizeable; // allow the form to be resized
 
@@ -162,12 +162,54 @@ namespace WindowingTest
   }
   #endregion
 
-  #region ControlsForm
-  public class ControlsForm : Form
+  #region LayoutControlForm
+  class LayoutControlForm : Form
   {
-    public ControlsForm()
+    public LayoutControlForm()
     {
-      Text = "Controls Form";
+      Text        = "Layout Control Form";
+      Size        = new Size(320, 240);
+      Padding     = new RectOffset(4);
+      BorderStyle = BorderStyle.Resizeable;
+
+      #region Add Controls
+      StackPanel horzStack = new StackPanel();
+      horzStack.Orientation = Orientation.Horizontal;
+      horzStack.Controls.Add(new Label("Label 1", true));
+      horzStack.Controls.Add(new Label("Label 2", true));
+      horzStack.Controls.Add(new Label("Label 3", true));
+      horzStack.Controls.Add(new Label("Label 4", true));
+
+      StackPanel vertStack = new StackPanel();
+      vertStack.BorderColor = Color.Black;
+      vertStack.BorderStyle = BorderStyle.FixedFlat;
+      vertStack.Controls.Add(new Label("This is a vertical stack.", true));
+      vertStack.Controls.Add(new Label("Here's a label.", true));
+      vertStack.Controls.Add(new Label("Here's another one.", true));
+      vertStack.Controls.Add(new Label("And next is a horizontal stack.", true));
+      vertStack.Controls.Add(horzStack);
+
+      SplitContainer splitter = new SplitContainer();
+      splitter.Dock               = DockStyle.Fill;
+      splitter.Size               = Size;
+      splitter.SplitterLocation   = Width / 2;
+      splitter.Panel1.BackColor   = splitter.Panel2.BackColor = Color.White;
+      splitter.Panel1.BorderStyle = BorderStyle.Fixed3D | BorderStyle.Depressed;
+      splitter.Panel2.BorderStyle = splitter.Panel1.BorderStyle;
+      splitter.Panel1MinSize      = 100;
+      splitter.Panel1.Controls.Add(vertStack);
+      Controls.Add(splitter);
+      #endregion
+    }
+  }
+  #endregion
+
+  #region ListControlForm
+  public class ListControlForm : Form
+  {
+    public ListControlForm()
+    {
+      Text = "List Control Form";
       Size = new Size(320, 240);
       Padding = new RectOffset(4);
 
@@ -183,18 +225,24 @@ namespace WindowingTest
       combo.Left  = list.Right + 4;
       combo.Width = list.Width + 20;
       combo.SelectedIndex = 0;
-      Controls.AddRange(list, combo);
+
+      combo2 = new ComboBox(list.Items);
+      combo2.Left  = combo.Left;
+      combo2.Width = combo.Width;
+      combo2.DropDownStyle = ComboBoxStyle.DropDown;
+
+      Controls.AddRange(list, combo, combo2);
       #endregion
     }
 
     protected override void LayOutChildren()
     {
+      combo2.ListBoxHeight = combo.ListBoxHeight = list.Height = list.GetPreferredSize(10).Height;
       base.LayOutChildren();
-      combo.ListBoxHeight = list.Height = list.GetPreferredSize(10).Height;
     }
 
     ListBox list;
-    ComboBox combo;
+    ComboBox combo, combo2;
   }
   #endregion
 
@@ -225,10 +273,12 @@ namespace WindowingTest
             .Click += ToggleFS_Click;
         menu.Add(new MenuItem("Message box", 'M', new KeyCombo(KeyMod.Ctrl, 'M')))
             .Click += MessageBox_Click;
-        menu.Add(new MenuItem("Form 1", 'F', new KeyCombo(KeyMod.Ctrl, 'F')))
-            .Click += Form1_Click;
-        menu.Add(new MenuItem("Form 2", 'C', new KeyCombo(KeyMod.Ctrl, 'C')))
-            .Click += Form2_Click;
+        menu.Add(new MenuItem("Basic control form", 'C', new KeyCombo(KeyMod.Ctrl, 'C')))
+            .Click += BasicControlForm_Click;
+        menu.Add(new MenuItem("List control form", 'L', new KeyCombo(KeyMod.Ctrl, 'L')))
+            .Click += ListControlForm_Click;
+        menu.Add(new MenuItem("Layout control form", 'L', new KeyCombo(KeyMod.Ctrl, 'A')))
+            .Click += LayoutControlForm_Click;
         menu.Add(new MenuItem("Exit", 'Q', new KeyCombo(KeyMod.Ctrl, 'Q')))
             .Click += Exit_Click;
         desktop.Menu.Add(menu);
@@ -288,7 +338,7 @@ namespace WindowingTest
     }
 
     static CustomDesktop desktop = new CustomDesktop();
-    static ControlsForm conForm;
+    static ListControlForm conForm;
 
     #region Event handlers
     static void ToggleFont_Click(object sender, EventArgs e)
@@ -321,9 +371,9 @@ namespace WindowingTest
       }
     }
 
-    static void Form1_Click(object sender, EventArgs e)
+    static void BasicControlForm_Click(object sender, EventArgs e)
     {
-      SampleForm form = new SampleForm();
+      BasicControlForm form = new BasicControlForm();
       form.Parent = desktop;
 
       Random rand = new Random(); // place it randomly on the desktop
@@ -332,15 +382,26 @@ namespace WindowingTest
       form.Focus(); // make it the active form
     }
 
-    static void Form2_Click(object sender, EventArgs e)
+    static void ListControlForm_Click(object sender, EventArgs e)
     {
       if(conForm==null || conForm.Parent==null) // if closed or never opened,
       {
-        conForm = new ControlsForm();           // create a new one
+        conForm = new ListControlForm();           // create a new one
         conForm.Parent   = desktop;
         conForm.Location = new Point(160, 130); // place it at a fixed point
       }
       conForm.Focus(); // bring it to the front
+    }
+
+    static void LayoutControlForm_Click(object sender, EventArgs e)
+    {
+      LayoutControlForm form = new LayoutControlForm();
+      form.Parent = desktop;
+
+      // center it
+      form.Location = new Point((desktop.ContentRect.Width-form.Width)/2,
+                                (desktop.ContentRect.Height-form.Height)/2);
+      form.Focus(); // make it the active form
     }
 
     static void Exit_Click(object sender, EventArgs e)

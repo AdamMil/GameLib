@@ -1,7 +1,7 @@
 ﻿/*
 GameLib is a library for developing games and other multimedia applications.
 http://www.adammil.net/
-Copyright (C) 2002-2009 Adam Milazzo
+Copyright (C) 2002-2010 Adam Milazzo
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -23,6 +23,14 @@ using System.Drawing;
 using GameLib.Events;
 using GameLib.Video;
 using Font = GameLib.Fonts.Font;
+
+// TODO: try to think of a way to make the layout logic in the base Control class not such a special case (for instance, there
+// are assumptions in various places that if the .Dock property is set, then a layout needs to be triggered, but this isn't true
+// for layout panels that don't use docking.) i think docking and anchoring should be just another layout style, similar to
+// how stacking is a style. this should include removing the Dock and Anchor properties from the Control class and placing them
+// somewhere else, because it would be ugly to add the union of all possible layout properties to the control, and it's ugly to
+// have layout properties on the base class that are ignored by some layout styles. it'd also be nice to separate the layout
+// logic from the Control class, since it's been very confusing at times
 
 namespace GameLib.Forms
 {
@@ -280,7 +288,7 @@ public class Control
     {
       if(borderStyle != value)
       {
-        if(Renderer != null && BorderWidth != Renderer.GetBorderWidth(value)) OnContentSizeChanged();
+        if(Renderer != null && BorderWidth != Renderer.GetBorderWidth(value)) OnContentOffsetChanged();
         borderStyle = value;
       }
     }
@@ -417,7 +425,7 @@ public class Control
   /// <remarks>By default, this is defined as the offset created by <see cref="Padding"/> and
   /// <see cref="BorderWidth"/>. It can be overridden to provide a new definition of the content area, but for
   /// compatibility, you should define your new offset as a modification of the base class's version. Also,
-  /// make sure to call <see cref="OnContentSizeChanged"/> if your criteria for evaluating the offset change.
+  /// make sure to call <see cref="OnContentOffsetChanged"/> if your criteria for evaluating the offset change.
   /// </remarks>
   public virtual RectOffset ContentOffset
   {
@@ -435,7 +443,7 @@ public class Control
   /// </summary>
   public Rectangle ContentRect
   {
-    get { return ContentOffset.Shrink(ControlRect); }
+    get { return Rectangle.Intersect(ContentOffset.Shrink(ControlRect), ControlRect); }
   }
 
   /// <summary>Gets or sets the control's padding.</summary>
@@ -457,7 +465,7 @@ public class Control
           throw new ArgumentOutOfRangeException("Padding", value, "offset cannot be negative");
         }
         padding = value;
-        OnContentSizeChanged();
+        OnContentOffsetChanged();
       }
     }
   }
@@ -553,12 +561,17 @@ public class Control
   /// <summary>Returns true if this control has input focus.</summary>
   /// <remarks>The control that has input focus will receive keyboard events. Many controls can be selected (relative
   /// to their parents -- see <see cref="Selected"/>) but only one control can have input focus -- the control whose
-  /// ancestors are all selected as well and which has the <see cref="ControlStyle.CanReceiveFocus"/> style. This
-  /// property returns true if this control has input focus. To set input focus, use the <see cref="Focus"/> method.
+  /// ancestors are all selected, which has the <see cref="ControlStyle.CanReceiveFocus"/> style, is effectively visible and
+  /// effectively enabled, and which doesn't have a selected child that also has those same qualities. This property returns true
+  /// if this control has input focus. To set input focus, use the <see cref="Focus"/> method.
   /// </remarks>
   public bool Focused
   {
-    get { return HasFlags(Flag.Focused | (Flag)ControlStyle.CanReceiveFocus); }
+    get
+    {
+      return HasFlags(Flag.EffectivelyEnabled | Flag.EffectivelyVisible | Flag.Focused | (Flag)ControlStyle.CanReceiveFocus) &&
+             (FocusedControl == null || !FocusedControl.HasFlags(Flag.EffectivelyEnabled | Flag.EffectivelyVisible));
+    }
   }
 
   /// <summary>Gets the child control that is selected, or null if no children have are selected. (See
@@ -848,11 +861,11 @@ public class Control
     Invalidate();
   }
 
-  /// <summary>Called when the size of the content area changes.</summary>
+  /// <summary>Called when the size of the content offset changes.</summary>
   /// <remarks>This method raises the When overriding this method in a derived class, be sure to call the base class'
   /// version to ensure that default processing gets performed.
   /// </remarks>
-  protected virtual void OnContentSizeChanged()
+  protected virtual void OnContentOffsetChanged()
   {
     TriggerLayout();
     Invalidate();
@@ -1511,8 +1524,8 @@ public class Control
     if(!absolute)
     {
       preLayoutBounds = newBounds;
-      anchorSpace.Width  += newBounds.Width  - bounds.Width;
-      anchorSpace.Height += newBounds.Height - bounds.Height;
+      anchorSpace.Width  = Math.Max(0, anchorSpace.Width  + newBounds.Width  - bounds.Width);
+      anchorSpace.Height = Math.Max(0, anchorSpace.Height + newBounds.Height - bounds.Height);
 
       if(parent != null && !HasStyle(ControlStyle.DontLayout))
       {
@@ -1825,24 +1838,24 @@ public class Control
         {
           case DockStyle.Left:
             child.SetBounds(anchorSpace.X, anchorSpace.Y, child.Width, anchorSpace.Height, true);
-            anchorSpace.X     += child.Width;
-            anchorSpace.Width -= child.Width;
+            anchorSpace.X    += child.Width;
+            anchorSpace.Width = Math.Max(0, anchorSpace.Width - child.Width);
             break;
 
           case DockStyle.Top:
             child.SetBounds(anchorSpace.X, anchorSpace.Y, anchorSpace.Width, child.Height, true);
-            anchorSpace.Y      += child.Height;
-            anchorSpace.Height -= child.Height;
+            anchorSpace.Y     += child.Height;
+            anchorSpace.Height = Math.Max(0, anchorSpace.Height - child.Height);
             break;
 
           case DockStyle.Right:
             child.SetBounds(anchorSpace.Right-child.Width, anchorSpace.Y, child.Width, anchorSpace.Height, true);
-            anchorSpace.Width -= child.Width;
+            anchorSpace.Width = Math.Max(0, anchorSpace.Width - child.Width);
             break;
 
           case DockStyle.Bottom:
             child.SetBounds(anchorSpace.X, anchorSpace.Bottom-child.Height, anchorSpace.Width, child.Height, true);
-            anchorSpace.Height -= child.Height;
+            anchorSpace.Height = Math.Max(0, anchorSpace.Height - child.Height);
             break;
 
           case DockStyle.Fill:
@@ -2022,7 +2035,7 @@ public class Control
     if(renderer != this.Renderer)
     {
       this.Renderer = renderer;
-      if(renderer != null) OnContentSizeChanged(); // the renderer may affect border sizes, etc
+      if(renderer != null) OnContentOffsetChanged(); // the renderer may affect border sizes, etc
     }
   }
 
