@@ -23,6 +23,7 @@ public interface IControlRenderer
   void DrawBorder(Control control, PaintEventArgs e, BorderStyle style, Color color);
   void DrawBox(IGuiRenderTarget target, Rectangle rect, Color color);
   void DrawCheckBox(Control control, PaintEventArgs e, Point drawPoint, bool isChecked, bool depressed, bool enabled);
+  void DrawFocusRect(Control control, PaintEventArgs e, Rectangle rect, Color color);
   void DrawLine(IGuiRenderTarget target, Point p1, Point p2, Color color, bool antialiased);
   int GetBorderWidth(BorderStyle style);
   Size GetCheckBoxSize(Control control);
@@ -83,6 +84,8 @@ public abstract class ControlRenderer : IControlRenderer
 
   public abstract void DrawCheckBox(Control control, PaintEventArgs e, Point drawPoint, bool isChecked,
                                     bool depressed, bool enabled);
+
+  public abstract void DrawFocusRect(Control control, PaintEventArgs e, Rectangle rect, Color color);
 
   public abstract void DrawLine(IGuiRenderTarget target, Point p1, Point p2, Color color, bool antialiased);
 
@@ -167,6 +170,11 @@ public sealed class SurfaceControlRenderer : ControlRenderer
     box.Inflate(-2, -2); // border
     surface.Fill(box, !depressed && enabled ? SystemColors.Window : SystemColors.Control);
     if(isChecked) DrawCheck(surface, box.X+1, box.Y+1, SystemColors.ControlText);
+  }
+
+  public override void DrawFocusRect(Control control, PaintEventArgs e, Rectangle rect, Color color)
+  {
+    DrawBorder(e.Target, rect, BorderStyle.Fixed3D, color);
   }
 
   public override void DrawLine(IGuiRenderTarget target, Point p1, Point p2, Color color, bool antialiased)

@@ -1,7 +1,7 @@
 /*
 This is an example application for the GameLib multimedia/gaming library.
 http://www.adammil.net/
-Copyright (C) 2004-2005 Adam Milazzo
+Copyright (C) 2004-2010 Adam Milazzo
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License

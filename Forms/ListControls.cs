@@ -1,7 +1,7 @@
 ﻿/*
 GameLib is a library for developing games and other multimedia applications.
 http://www.adammil.net/
-Copyright (C) 2002-2007 Adam Milazzo
+Copyright (C) 2002-2010 Adam Milazzo
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -1383,6 +1383,7 @@ public class ComboBox : ListControl
     ControlStyle |= ControlStyle.CanReceiveFocus;
   }
 
+  /// <summary>Gets or sets the style of the <see cref="ComboBox"/>. The default is <see cref="ComboBoxStyle.DropDownList"/>.</summary>
   public ComboBoxStyle DropDownStyle
   {
     get { return style; }

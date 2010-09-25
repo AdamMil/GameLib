@@ -1,7 +1,7 @@
 ﻿/*
 GameLib is a library for developing games and other multimedia applications.
 http://www.adammil.net/
-Copyright (C) 2002-2007 Adam Milazzo
+Copyright (C) 2002-2010 Adam Milazzo
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -84,7 +84,7 @@ public abstract class FormBase : Control
       FormBase parent = (FormBase)Parent;
       if(parent.MinimumHeight < Height) parent.MinimumHeight = Height;
       base.OnResize();
-      parent.OnContentSizeChanged();
+      parent.OnContentOffsetChanged();
     }
 
     void DragParent(DragEventArgs e)
@@ -128,8 +128,8 @@ public abstract class FormBase : Control
         throw new ArgumentOutOfRangeException("MinimumSize", value, "must not be negative");
       }
 
-      minSize  = value;
-      Size = new Size(Math.Max(Width, value.Width), Math.Max(Height, value.Height));
+      minSize = value;
+      Size    = new Size(Math.Max(Width, value.Width), Math.Max(Height, value.Height));
     }
   }
 
@@ -305,7 +305,8 @@ public abstract class FormBase : Control
 
     if(Bounds != bounds)
     {
-      TriggerLayout(true); Bounds = bounds;
+      TriggerLayout(true);
+      Bounds = bounds;
     }
   }
 
