@@ -24,6 +24,9 @@ using GameLib.Events;
 using GameLib.Video;
 using Font = GameLib.Fonts.Font;
 
+// TODO: fix focusing/selecting to support the scenario that a form that is reselected after being deselected has the
+// control that previously had keyboard focus focused again
+
 // TODO: try to think of a way to make the layout logic in the base Control class not such a special case (for instance, there
 // are assumptions in various places that if the .Dock property is set, then a layout needs to be triggered, but this isn't true
 // for layout panels that don't use docking.) i think docking and anchoring should be just another layout style, similar to
@@ -32,24 +35,33 @@ using Font = GameLib.Fonts.Font;
 // have layout properties on the base class that are ignored by some layout styles. it'd also be nice to separate the layout
 // logic from the Control class, since it's been very confusing at times
 
+// Clicking (autofocusing) a control attempts to select all the controls down to it. then, if it's active and focusable, it is
+// focused. (it should perhaps use a variant of the Select() method that doesn't perform focusing, in order to prevent controls
+// from gaining input focus and then losing it immediately.) the Select() call should set the parents SelectedControl to 'this'
+// if the current control is visible (and enabled?). if that results in the control becoming active, an attempt is made to focus
+// it. the Focus() method attempts to select the current control and all its ancestors. then, if it's active and focusable, it is
+// focused
+
 namespace GameLib.Forms
 {
   
 /* Coordinate systems:
  *   Control coordinates - pixels relative to the control (used for most purposes, such as layout)
  *   Screen coordinates - pixels relative to the display device (used primarily for handling mouse input)
- *   Draw coordinates - pixels relative to the desktop's (used for drawing)
+ *   Draw coordinates - pixels relative to the drawing surface (used for drawing)
  */
 
+/// <summary>Implements the basic logic shared between all user interface controls.</summary>
 public class Control
 {
+  /// <summary>Initializes a new <see cref="Control"/>.</summary>
   public Control()
   {
-    controls = new ControlCollection(this);
+    Controls = new ControlCollection(this);
   }
 
   #region ControlCollection
-  /// <summary>This class provides a strongly-typed collection of <see cref="GuiControl"/> objects.</summary>
+  /// <summary>This class provides a strongly-typed collection of <see cref="Control"/> objects.</summary>
   public class ControlCollection : Collection<Control>
   { 
     internal ControlCollection(Control parent) { this.parent = parent; }
@@ -83,14 +95,14 @@ public class Control
       {
         do
         {
-          if(control.parent == parent) return true;
-          control = control.parent;
+          if(control.Parent == parent) return true;
+          control = control.Parent;
         } while(control != null && control != parent);
         return false;
       }
       else
       {
-        return control.parent == parent;
+        return control.Parent == parent;
       }
     }
 
@@ -199,18 +211,26 @@ public class Control
   }
   #endregion
 
+  /// <summary>Gets whether this control and all of its ancestors are selected. This does not necessarily indicate that the
+  /// control has input focus. To check that, use the <see cref="Focused"/> property.
+  /// </summary>
+  public bool Active
+  {
+    get { return HasFlag(Flag.Active); }
+  }
+
   /// <summary>Gets or sets the control's background color. If set to a translucent color (A != 255), the parent
   /// control will be visible through this control. The effective background color can be retrieved by calling
-  /// <see cref="GetEffectiveBackgroundColor"/>.
+  /// <see cref="GetEffectiveBackColor"/>.
   /// </summary>
   public Color BackColor
   {
-    get { return backColor; }
+    get { return _backColor; }
     set
     { 
-      if(value.ToArgb() != backColor.ToArgb())
+      if(value.ToArgb() != BackColor.ToArgb())
       {
-        backColor = value;
+        _backColor = value;
         Invalidate();
       }
     }
@@ -221,12 +241,12 @@ public class Control
   /// </summary>
   public Color ForeColor
   {
-    get { return color; }
+    get { return _color; }
     set
     { 
-      if(value.ToArgb() != color.ToArgb())
+      if(value.ToArgb() != ForeColor.ToArgb())
       {
-        color = value;
+        _color = value;
         Invalidate();
       }
     }
@@ -238,12 +258,12 @@ public class Control
   /// </remarks>
   public IGuiImage BackImage
   {
-    get { return backImage; }
+    get { return _backImage; }
     set
     {
-      if(value != backImage)
+      if(value != BackImage)
       {
-        backImage = value;
+        _backImage = value;
         Invalidate();
       }
     }
@@ -254,12 +274,12 @@ public class Control
   /// </remarks>
   public ContentAlignment BackImageAlign
   {
-    get { return backImageAlign; }
+    get { return _backImageAlign; }
     set
     {
-      if(value != backImageAlign)
+      if(value != BackImageAlign)
       {
-        backImageAlign = value;
+        _backImageAlign = value;
         if(BackImage != null) Invalidate();
       }
     }
@@ -271,11 +291,11 @@ public class Control
   /// </summary>
   public Color BorderColor
   {
-    get { return borderColor; }
+    get { return _borderColor; }
     set
     {
       Color old = BorderColor;
-      borderColor = value;
+      _borderColor = value;
       if(value.ToArgb() != old.ToArgb() && BorderWidth != 0) Invalidate();
     }
   }
@@ -283,13 +303,13 @@ public class Control
   /// <summary>Gets or sets the control's <see cref="BorderStyle">border style</see>.</summary>
   public BorderStyle BorderStyle
   {
-    get { return borderStyle; }
+    get { return _borderStyle; }
     set
     {
-      if(borderStyle != value)
+      if(value != BorderStyle)
       {
         if(Renderer != null && BorderWidth != Renderer.GetBorderWidth(value)) OnContentOffsetChanged();
-        borderStyle = value;
+        _borderStyle = value;
       }
     }
   }
@@ -310,14 +330,14 @@ public class Control
   /// </remarks>
   public AnchorStyle Anchor
   {
-    get { return anchor; }
+    get { return _anchor; }
     set
     {
-      if(value != anchor)
+      if(value != Anchor)
       {
-        if(value != AnchorStyle.None) dock = DockStyle.None;
-        else throw new ArgumentException("Anchor cannot be directly set to None.");
-        anchor = value;
+        if(value == AnchorStyle.None) throw new ArgumentException("Anchor cannot be directly set to None.");
+        _dock   = DockStyle.None;
+        _anchor = value;
       }
     }
   }
@@ -331,15 +351,14 @@ public class Control
   /// </remarks>
   public DockStyle Dock
   {
-    get { return dock; }
+    get { return _dock; }
     set
     {
-      if(value != dock)
+      if(value != Dock)
       {
-        if(value != DockStyle.None) anchor = AnchorStyle.None;
-        else anchor = AnchorStyle.TopLeft;
-        dock = value;
-        if(parent != null) parent.TriggerLayout(); // changing the dock style requires a relayout within the parent
+        _anchor = value != DockStyle.None ? AnchorStyle.None : AnchorStyle.TopLeft;
+        _dock   = value;
+        if(Parent != null) Parent.TriggerLayout(); // changing the dock style requires a relayout within the parent
       }
     }
   }
@@ -349,65 +368,65 @@ public class Control
   /// </summary>
   public Rectangle Bounds
   {
-    get { return bounds; }
+    get { return _bounds; }
     set { SetBounds(value, false); }
   }
 
   /// <summary>Gets or sets the control's location, in pixels, relative to the top-left corner of its parent control.</summary>
   public Point Location
   {
-    get { return bounds.Location; }
+    get { return Bounds.Location; }
     set { SetBounds(value, Size, false); }
   }
 
   /// <summary>Gets or sets the control's X coordinate, in pixels, relative to the left of its parent control.</summary>
   public int Left
   {
-    get { return bounds.X; }
-    set { Location = new Point(value, bounds.Y); }
+    get { return Bounds.X; }
+    set { Location = new Point(value, Bounds.Y); }
   }
 
   /// <summary>Gets or sets the control's Y coordinate, in pixels, relative to the top of its parent control.</summary>
   public int Top
   {
-    get { return bounds.Y; }
-    set { Location = new Point(bounds.X, value); }
+    get { return Bounds.Y; }
+    set { Location = new Point(Bounds.X, value); }
   }
 
   /// <summary>Gets or sets the control's X coordinate, in pixels, relative to the left of its parent control.</summary>
   public int Right
   {
-    get { return bounds.Right; }
-    set { Location = new Point(value-Width, bounds.Y); }
+    get { return Bounds.Right; }
+    set { Location = new Point(value-Width, Bounds.Y); }
   }
 
   /// <summary>Gets or sets the position of the bottom edge of the control relative to its parent.</summary>
   /// <remarks>Changing this property will move the control.</remarks>
   public int Bottom
   {
-    get { return bounds.Bottom; }
-    set { Location = new Point(bounds.X, value-Height); }
+    get { return Bounds.Bottom; }
+    set { Location = new Point(Bounds.X, value-Height); }
   }
 
   /// <summary>Gets or sets the size of the control, in pixels.</summary>
   public Size Size
   {
-    get { return bounds.Size; }
+    get { return Bounds.Size; }
     set { SetBounds(Location, value, false); }
   }
 
   /// <summary>Gets or sets the width of the control, in pixels.</summary>
   public int Width
   {
-    get { return bounds.Width; }
-    set { Size = new Size(value, bounds.Height); }
+    get { return Bounds.Width; }
+    set { Size = new Size(value, Bounds.Height); }
   }
 
   /// <summary>Gets or sets the height of the control, in pixels.</summary>
   public int Height
   {
-    get { return bounds.Height; }
-    set { Size = new Size(bounds.Width, value); }
+    get { return Bounds.Height; }
+    set { Size = new Size(Bounds.Width, value); }
   }
 
   /// <summary>Gets the control's bounds, in control coordinates. This is a rectangle of size <see cref="Size"/>,
@@ -415,7 +434,7 @@ public class Control
   /// </summary>
   public Rectangle ControlRect
   {
-    get { return new Rectangle(0, 0, bounds.Width, bounds.Height); }
+    get { return new Rectangle(0, 0, Bounds.Width, Bounds.Height); }
   }
 
   /// <summary>Gets the offset that defines the content area.</summary>
@@ -455,16 +474,16 @@ public class Control
   /// </remarks>
   public RectOffset Padding
   {
-    get { return padding; }
+    get { return _padding; }
     set
     {
-      if(value != padding)
+      if(value != Padding)
       {
         if(value.Left < 0 || value.Top < 0 || value.Right < 0 || value.Bottom < 0)
         {
           throw new ArgumentOutOfRangeException("Padding", value, "offset cannot be negative");
         }
-        padding = value;
+        _padding = value;
         OnContentOffsetChanged();
       }
     }
@@ -473,22 +492,22 @@ public class Control
   /// <summary>Gets a collection containing this control's children.</summary>
   public ControlCollection Controls
   {
-    get { return controls; }
+    get; private set;
   }
 
   /// <summary>Gets the control that this this control belongs to, or null if this control is not owned by any other.</summary>
   public Control Parent
   {
-    get { return parent; }
+    get { return _parent; }
     set
     {
-      if(value != parent)
+      if(value != Parent)
       {
-        ValueChangedEventArgs e = new ValueChangedEventArgs(parent);
-        SetFlag(Flag.MyChange, true); // set this flag so we don't get two OnParentChanged() notifications
-        if(parent != null) parent.Controls.Remove(this);
+        ValueChangedEventArgs e = new ValueChangedEventArgs(_parent);
+        SetFlags(Flag.MyChange, true); // set this flag so we don't get two OnParentChanged() notifications
+        if(Parent != null) Parent.Controls.Remove(this);
         if(value != null) value.Controls.Add(this);
-        SetFlag(Flag.MyChange, false);
+        SetFlags(Flag.MyChange, false);
         OnParentChanged(e);
       }
     }
@@ -504,10 +523,7 @@ public class Control
   /// </remarks>
   public bool Capture
   {
-    get
-    {
-      return Desktop != null && Desktop.IsCapturing(this);
-    }
+    get { return Desktop != null && Desktop.IsCapturing(this); }
     set
     {
       if(value)
@@ -551,7 +567,7 @@ public class Control
     {
       if(value != Enabled)
       {
-        SetFlag(Flag.Enabled, value);
+        SetFlags(Flag.Enabled, value);
         RecursivelySetEnabled();
         OnEnabledChanged(new ValueChangedEventArgs(!value));
       }
@@ -559,40 +575,15 @@ public class Control
   }
 
   /// <summary>Returns true if this control has input focus.</summary>
-  /// <remarks>The control that has input focus will receive keyboard events. Many controls can be selected (relative
-  /// to their parents -- see <see cref="Selected"/>) but only one control can have input focus -- the control whose
+  /// <remarks>The control that has input focus will receive keyboard events. Many controls can be selected (see
+  /// <see cref="Selected"/>) or active (see <see cref="Active"/>) but only one control can have input focus -- the control whose
   /// ancestors are all selected, which has the <see cref="ControlStyle.CanReceiveFocus"/> style, is effectively visible and
-  /// effectively enabled, and which doesn't have a selected child that also has those same qualities. This property returns true
-  /// if this control has input focus. To set input focus, use the <see cref="Focus"/> method.
+  /// effectively enabled, and which doesn't have a selected descendant with those same qualities. To set input focus,
+  /// use the <see cref="Focus"/> method.
   /// </remarks>
   public bool Focused
   {
-    get
-    {
-      return HasFlags(Flag.EffectivelyEnabled | Flag.EffectivelyVisible | Flag.Focused | (Flag)ControlStyle.CanReceiveFocus) &&
-             (FocusedControl == null || !FocusedControl.HasFlags(Flag.EffectivelyEnabled | Flag.EffectivelyVisible));
-    }
-  }
-
-  /// <summary>Gets the child control that is selected, or null if no children have are selected. (See
-  /// <see cref="Selected"/>.) Note that this does not indicate that the child will actually receive keyboard events.
-  /// That will only occur if the child has the <see cref="ControlStyle.CanReceiveFocus"/> style and all its ancestors
-  /// are selected.
-  /// </summary>
-  public Control FocusedControl
-  {
-    get { return focused; }
-    set
-    {
-      if(value != focused)
-      {
-        if(value != null && !Controls.Contains(value)) throw new ArgumentException("Not a child of this control.");
-
-        if(focused != null) RecursivelyLoseFocus(focused);
-        focused = value;
-        if(value != null) RecursivelyGetFocus(value);
-      }
-    }
+    get { return HasFlag(Flag.Focused); }
   }
 
   /// <summary>Gets or sets the font that this control should use.</summary>
@@ -601,13 +592,13 @@ public class Control
   /// </remarks>
   public Font Font
   {
-    get { return font; }
+    get { return _font; }
     set
     {
-      if(value != font)
+      if(value != Font)
       {
         Font old = Font;
-        font = value;
+        _font = value;
         RecursivelySetFont();
       }
     }
@@ -620,7 +611,7 @@ public class Control
   public bool KeyPreview 
   {
     get { return HasFlag(Flag.KeyPreview); } 
-    set { SetFlag(Flag.KeyPreview, value); } 
+    set { SetFlags(Flag.KeyPreview, value); } 
   }
 
   /// <summary>Gets or sets whether this is a modal control.</summary>
@@ -639,29 +630,60 @@ public class Control
   /// </remarks>
   public string Name
   {
-    get { return name; }
+    get { return _name; }
     set
     {
       if(value == null) throw new ArgumentNullException();
-      name = value;
+      _name = value;
     }
   }
 
+  /// <summary>Gets whether this control can be selected.</summary>
+  /// <remarks>A control can be selected if it has a parent and is effectively enabled and effectively visible.</remarks>
+  public bool Selectable
+  {
+    get { return Parent != null && HasFlags(Flag.EffectivelyEnabled | Flag.EffectivelyVisible); }
+  }
+
   /// <summary>Gets or sets whether this control is its parent's selected control.</summary>
-  /// <remarks>See the <see cref="Focused"/> property for more information on input focusing. Unlike the
-  /// <see cref="Focused"/> property, which will return true only this control and all of its ancestors are
-  /// selected and this control has the <see cref="ControlStyle.CanReceiveFocus"/> style, this property only considers
-  /// whether or not this control is selected. Thus, this property is not for determining whether this control has
-  /// actual input focus. Setting this property is equivalent to calling <see cref="Focus(bool)"/> and passing false or
-  /// <see cref="Blur"/>, depending on whether the value is true or false, respectively.
+  /// <remarks>This property only checks whether the control is selected by its immediate parent. To check whether all of the
+  /// control's ancestors are selected, use the <see cref="Active"/> property.
   /// </remarks>
   public bool Selected
   {
-    get { return parent == null ? false : parent.FocusedControl == this; }
+    get { return Parent != null && Parent.SelectedControl == this; }
     set
     {
-      if(value) Focus(false);
-      else Blur();
+      if(value)
+      {
+        if(Visible) Parent.SelectedControl = this;
+      }
+      else
+      {
+        if(Parent.SelectedControl == this) Parent.SelectedControl = null;
+      }
+    }
+  }
+
+  /// <summary>Gets the child control that is selected, or null if no children have are selected. Note that this does not
+  /// indicate that the child actually is active or will receive keyboard events. See <see cref="Active"/> and
+  /// <see cref="Focused"/> for more details.
+  /// </summary>
+  public Control SelectedControl
+  {
+    get { return _selected; }
+    set
+    {
+      if(value != SelectedControl)
+      {
+        if(value != null && !Controls.Contains(value)) throw new ArgumentException("Not a child of this control.");
+
+        Control previouslySelected = SelectedControl;
+        if(previouslySelected != null) RecursivelyDeactivate(previouslySelected);
+        _selected = value;
+        if(previouslySelected != null) previouslySelected.OnDeselected();
+        if(value != null) RecursivelyActivate(value);
+      }
     }
   }
 
@@ -690,11 +712,11 @@ public class Control
   /// </remarks>
   public int TabIndex
   {
-    get { return tabIndex; }
+    get { return _tabIndex; }
     set
     {
       if(value < -1) throw new ArgumentOutOfRangeException("TabIndex", "must be >= -1");
-      tabIndex=value;
+      _tabIndex = value;
     }
   }
 
@@ -707,14 +729,14 @@ public class Control
   /// <summary>Gets or sets this control's text.</summary>
   public virtual string Text
   {
-    get { return text; }
+    get { return _text; }
     set
     {
-      if(!string.Equals(value, text, StringComparison.Ordinal))
+      if(!string.Equals(value, _text, StringComparison.Ordinal))
       {
         if(value == null) throw new ArgumentNullException();
-        ValueChangedEventArgs e = new ValueChangedEventArgs(text);
-        text = value;
+        ValueChangedEventArgs e = new ValueChangedEventArgs(_text);
+        _text = value;
         OnTextChanged(e);
       }
     }
@@ -731,7 +753,7 @@ public class Control
     {
       if(value != Visible)
       {
-        SetFlag(Flag.Visible, value);
+        SetFlags(Flag.Visible, value);
         RecursivelySetVisible();
         OnVisibleChanged(new ValueChangedEventArgs(!value));
       }
@@ -739,53 +761,44 @@ public class Control
   }
 
   #region Events
-  /// <summary>Occurs when the value of the <see cref="Text"/> property changes.</summary>
-  public event ValueChangedEventHandler TextChanged;
-
-  /// <summary>Occurs when the control is selected.</summary>
-  /// <remarks>This event only signifies that the control was focused by its parent. The event handler should
-  /// consider using the <see cref="Focused"/> property to check that this control has actual input focus.
-  /// </remarks>
-  public event EventHandler GotFocus;
-
-  /// <summary>Occurs when the control is unselected.</summary>
-  /// <remarks>This event only signifies that the control was unfocused by its parent. The control may not have
-  /// had actual input focus before this event was raised.
-  /// </remarks>
-  public event EventHandler LostFocus;
-
-  /// <summary>Occurs when the control is about to lay out its children.</summary>
-  /// <remarks>This event should be raised before the actual layout code executes, so the event handler can
-  /// make modifications to control positions and expect the changes to be taken into account.
-  /// </remarks>
-  public event EventHandler<LayoutEventArgs> Layout;
-
-  /// <summary>Occurs when the mouse is positioned over the control or one of its ancestors.</summary>
-  /// <remarks>If at any level in the control hierarchy, there are multiple overlapping sibling controls under the
-  /// cursor, the one with the highest Z-order will be given precedence.  This event will not be raised for
-  /// controls that are not visible.
-  /// </remarks>
-  public event EventHandler MouseEnter;
-
-  /// <summary>Occurs when the mouse is leaves the control's area.</summary>
-  /// <remarks>If the <see cref="MouseEnter"/> event was not raised for this control, the <see cref="MouseLeave"/>
-  /// event will not be raised either. This event will not be raised for controls that are not visible.
-  /// </remarks>
-  public event EventHandler MouseLeave;
-
-  /// <summary>Occurs after the value of the <see cref="Location"/> property changes.</summary>
-  public event EventHandler Move;
-
-  /// <summary>Occurs after the value of the <see cref="Size"/> property changes.</summary>
-  public event EventHandler Resize;
-
   /// <summary>Occurs after a child is added to this control.</summary>
   public event EventHandler<ControlEventArgs> ControlAdded;
+
   /// <summary>Occurs after a child is removed from this control.</summary>
   public event EventHandler<ControlEventArgs> ControlRemoved;
 
+  /// <summary>Occurs when the mouse button is double-clicked inside a control's area.</summary>
+  /// <remarks>If another control has captured mouse input or is the topmost modal contral, this event will only
+  /// be raised for that control. The control must have the <see cref="ControlStyle.DoubleClickable"/> style to
+  /// receive this event.
+  /// <seealso cref="DesktopControl.DoubleClickDelay"/>
+  /// </remarks>
+  public event EventHandler<ClickEventArgs> DoubleClick;
+
+  /// <summary>Occurs when the mouse is clicked and dragged inside the control's area.</summary>
+  /// <remarks>If another control has captured mouse input or is the topmost modal contral, this event will only
+  /// be raised for that control. The control must have the <see cref="ControlStyle.Draggable"/> style to
+  /// receive this event.
+  /// <seealso cref="GuiControl.DragThreshold"/>
+  /// <seealso cref="DesktopControl.DragThreshold"/>
+  /// </remarks>
+  public event EventHandler<DragEventArgs> DragStart;
+
+  /// <summary>Occurs when the mouse is moved after a drag has started. <seealso cref="DragStart"/></summary>
+  public event EventHandler<DragEventArgs> DragMove;
+
+  /// <summary>Occurs when the mouse button is released, ending a drag. <seealso cref="DragStart"/></summary>
+  public event EventHandler<DragEventArgs> DragEnd;
+
+  /// <summary>Occurs when the control receives keyboard focus.</summary>
+  public event EventHandler GotFocus;
+
+  /// <summary>Occurs when the control loses keyboard focus.</summary>
+  public event EventHandler LostFocus;
+
   /// <summary>Occurs when a keyboard key is pressed and this control has input focus.</summary>
   public event EventHandler<KeyEventArgs> KeyDown;
+
   /// <summary>Occurs when a keyboard key is released and this control has input focus.</summary>
   public event EventHandler<KeyEventArgs> KeyUp;
 
@@ -797,6 +810,32 @@ public class Control
   /// (per character).
   /// </remarks>
   public event EventHandler<KeyEventArgs> KeyPress;
+
+  /// <summary>Occurs when the control is about to lay out its children.</summary>
+  /// <remarks>This event should be raised before the actual layout code executes, so the event handler can
+  /// make modifications to control positions and expect the changes to be taken into account.
+  /// </remarks>
+  public event EventHandler<LayoutEventArgs> Layout;
+
+  /// <summary>Occurs when the mouse button is both pressed and released inside a control's area.</summary>
+  /// <remarks>If another control has captured mouse input or is the topmost modal contral, this event will only
+  /// be raised for that control. The control must have the <see cref="Forms.ControlStyle.Clickable"/> style to receive
+  /// this event.
+  /// </remarks>
+  public event EventHandler<ClickEventArgs> MouseClick;
+
+  /// <summary>Occurs when the mouse wheel is moved while the cursor is inside the control.</summary>
+  /// <remarks>If another control has captured mouse input or is the topmost modal contral, this event will only
+  /// be raised for that control.
+  /// </remarks>
+  public event EventHandler<ClickEventArgs> MouseWheel;
+
+  /// <summary>Occurs when the mouse is positioned over the control or one of its ancestors.</summary>
+  /// <remarks>If at any level in the control hierarchy, there are multiple overlapping sibling controls under the
+  /// cursor, the one with the highest Z-order will be given precedence. This event will not be raised for
+  /// controls that are not visible.
+  /// </remarks>
+  public event EventHandler MouseEnter;
 
   /// <summary>Occurs when the mouse is moved over a control's surface.</summary>
   /// <remarks>If another control has captured mouse input or is the topmost modal contral, this event will only
@@ -818,39 +857,44 @@ public class Control
   /// </remarks>
   public event EventHandler<ClickEventArgs> MouseUp;
 
-  /// <summary>Occurs when the mouse button is both pressed and released inside a control's area.</summary>
-  /// <remarks>If another control has captured mouse input or is the topmost modal contral, this event will only
-  /// be raised for that control. The control must have the <see cref="ControlStyle.Clickable"/> style to receive
-  /// this event.
+  /// <summary>Occurs when the mouse is leaves the control's area.</summary>
+  /// <remarks>If the <see cref="MouseEnter"/> event was not raised for this control, the <see cref="MouseLeave"/>
+  /// event will not be raised either. This event will not be raised for controls that are not visible.
   /// </remarks>
-  public event EventHandler<ClickEventArgs> MouseClick;
+  public event EventHandler MouseLeave;
 
-  /// <summary>Occurs when the mouse button is double-clicked inside a control's area.</summary>
-  /// <remarks>If another control has captured mouse input or is the topmost modal contral, this event will only
-  /// be raised for that control. The control must have the <see cref="ControlStyle.DoubleClickable"/> style to
-  /// receive this event.
-  /// <seealso cref="DesktopControl.DoubleClickDelay"/>
-  /// </remarks>
-  public event EventHandler<ClickEventArgs> DoubleClick;
+  /// <summary>Occurs after the value of the <see cref="Location"/> property changes.</summary>
+  public event EventHandler Move;
 
-  /// <summary>Occurs when the mouse is clicked and dragged inside the control's area.</summary>
-  /// <remarks>If another control has captured mouse input or is the topmost modal contral, this event will only
-  /// be raised for that control. The control must have the <see cref="ControlStyle.Draggable"/> style to
-  /// receive this event.
-  /// <seealso cref="GuiControl.DragThreshold"/>
-  /// <seealso cref="DesktopControl.DragThreshold"/>
-  /// </remarks>
-  public event EventHandler<DragEventArgs> DragStart;
-
-  /// <summary>Occurs when the mouse is moved after a drag has started. <seealso cref="DragStart"/></summary>
-  public event EventHandler<DragEventArgs> DragMove;
-  /// <summary>Occurs when the mouse button is released, ending a drag. <seealso cref="DragStart"/></summary>
-  public event EventHandler<DragEventArgs> DragEnd;
+  /// <summary>Occurs after a control has been painted, but before its children have been.</summary>
+  public event EventHandler<PaintEventArgs> Paint;
 
   /// <summary>Occurs after the background of a control has been painted.</summary>
   public event EventHandler<PaintEventArgs> PaintBackground;
-  /// <summary>Occurs after a control has been painted, but before its children have been.</summary>
-  public event EventHandler<PaintEventArgs> Paint;
+
+  /// <summary>Occurs after the value of the <see cref="Size"/> property changes.</summary>
+  public event EventHandler Resize;
+
+  /// <summary>Occurs when the value of the <see cref="Text"/> property changes.</summary>
+  public event ValueChangedEventHandler TextChanged;
+
+  /// <summary>Occurs when the control is activated (i.e. <see cref="Active"/> became true).</summary>
+  protected virtual void OnActivated() { }
+
+  /// <summary>Occurs when the control is deactivated (i.e. <see cref="Active"/> became false).</summary>
+  protected virtual void OnDeactivated() { }
+
+  /// <summary>Occurs when the control is deselected by its parent.</summary>
+  /// <remarks>This event only signifies that the control was deselected by its parent. The control may not have have actually
+  /// been an active control (i.e. it doesn't mean <see cref="Active"/> was true) before this method was called.
+  /// </remarks>
+  protected virtual void OnDeselected() { }
+
+  /// <summary>Called when the control is selected by its parent, becoming the <see cref="SelectedControl"/>.</summary>
+  /// <remarks>This event only signifies that the control was selected by its parent. It doesn't mean that the entire chain of
+  /// is ancestors is selected. To check that, use the <see cref="Active"/> property.
+  /// </remarks>
+  protected virtual void OnSelected() { }
 
   /// <summary>Called when the background color has been changed.</summary>
   /// <remarks>When overriding this method in a derived class, be sure to call the base class' version to ensure that
@@ -914,10 +958,10 @@ public class Control
   /// </remarks>
   protected virtual void OnLocationChanged(ValueChangedEventArgs e)
   {
-    if(EffectivelyVisible && parent != null)
+    if(EffectivelyVisible && Parent != null)
     {
       // invalidate the area of the parent where we used to be
-      parent.Invalidate(new Rectangle((Point)e.OldValue, bounds.Size));
+      Parent.Invalidate(new Rectangle((Point)e.OldValue, Size));
       Invalidate(); // and invalidate our new area so that we get redrawn
     }
 
@@ -930,7 +974,7 @@ public class Control
   /// </remarks>
   protected virtual void OnParentChanged(ValueChangedEventArgs e)
   {
-    if(parent != null) Invalidate();
+    if(Parent != null) Invalidate();
   }
 
   /// <summary>Called when the <see cref="Size"/> property changes.</summary>
@@ -944,27 +988,27 @@ public class Control
     UpdateDrawTarget(false, false);
 
     // if we have a parent and got smaller, we'll need to invalidate a portion of the parent
-    if(parent != null && EffectivelyVisible)
+    if(Parent != null && EffectivelyVisible)
     {
       Size oldSize = (Size)e.OldValue;
-      if(bounds.Width < oldSize.Width) // if the width shrunk...
+      if(Width < oldSize.Width) // if the width shrunk...
       {
         // if both dimensions shrunk, invalidate the area of the parent containing our old location. it may seem
         // wasteful to invalidate the entire area rather than the two slivers, but due to the way Invalidate() works,
         // the effect would be the same, because the rectangular union of the two slivers would be the entire area
-        if(bounds.Height < oldSize.Height)
+        if(Height < oldSize.Height)
         {
-          parent.Invalidate(new Rectangle(bounds.Location, oldSize));
+          Parent.Invalidate(new Rectangle(Location, oldSize));
         }
         else // only the width shrunk, so invalidate just the sliver on the right side that we used to occupy
         {
-          parent.Invalidate(new Rectangle(bounds.Width+bounds.X, bounds.Y, oldSize.Width-bounds.Width, oldSize.Height));
+          Parent.Invalidate(new Rectangle(Right, Top, oldSize.Width-Width, oldSize.Height));
         }
       }
       // if only the height shrunk, invalidate the sliver on the bottom that we used to occupy
-      else if(bounds.Height < oldSize.Height)
+      else if(Height < oldSize.Height)
       {
-        parent.Invalidate(new Rectangle(bounds.X, bounds.Height+bounds.Y, oldSize.Width, oldSize.Height-bounds.Height));
+        Parent.Invalidate(new Rectangle(Left, Bottom, oldSize.Width, oldSize.Height-Height));
       }
     }
 
@@ -998,7 +1042,6 @@ public class Control
   }
 
   /// <summary>Raises the <see cref="GotFocus"/> event.</summary>
-  /// <param name="e">An <see cref="EventArgs"/> that contains the event data.</param>
   /// <remarks>When overriding this method in a derived class, be sure to call the base class'
   /// version to ensure that the default processing gets performed.
   /// </remarks>
@@ -1008,7 +1051,6 @@ public class Control
   }
 
   /// <summary>Raises the <see cref="LostFocus"/> event.</summary>
-  /// <param name="e">An <see cref="EventArgs"/> that contains the event data.</param>
   /// <remarks>When overriding this method in a derived class, be sure to call the base class'
   /// version to ensure that the default processing gets performed.
   /// </remarks>
@@ -1028,7 +1070,7 @@ public class Control
   {
     if(Layout != null) Layout(this, e);
 
-    SetFlag(Flag.PendingLayout | Flag.RecursiveLayout, false);
+    SetFlags(Flag.PendingLayout | Flag.RecursiveLayout, false);
     anchorSpace = ContentRect;
     LayOutChildren();
     
@@ -1101,12 +1143,7 @@ public class Control
   /// </remarks>
   protected virtual void OnControlRemoved(ControlEventArgs e)
   {
-    if(FocusedControl == e.Control)
-    {
-      e.Control.OnLostFocus();
-      focused = null;
-    }
-
+    if(SelectedControl == e.Control) e.Control.Deselect();
     if(e.Control.Dock != DockStyle.None) TriggerLayout();
     if(e.Control.EffectivelyVisible) Invalidate(e.Control.Bounds);
     if(ControlRemoved != null) ControlRemoved(this, e);
@@ -1162,6 +1199,13 @@ public class Control
   /// </remarks>
   protected internal virtual void OnMouseUp(ClickEventArgs e) { if(MouseUp != null) MouseUp(this, e); }
 
+  /// <summary>Raises the <see cref="MouseWheel"/> event.</summary>
+  /// <param name="e">A <see cref="ClickEventArgs"/> that contains the event data.</param>
+  /// <remarks>When overriding this method in a derived class, be sure to call the base class'
+  /// version to ensure that the default processing gets performed.
+  /// </remarks>
+  protected internal virtual void OnMouseWheel(ClickEventArgs e) { if(MouseWheel != null) MouseWheel(this, e); }
+
   /// <summary>Raises the <see cref="MouseClick"/> event.</summary>
   /// <param name="e">A <see cref="ClickEventArgs"/> that contains the event data.</param>
   /// <remarks>When overriding this method in a derived class, be sure to call the base class'
@@ -1207,7 +1251,7 @@ public class Control
   protected virtual void OnPaint(PaintEventArgs e)
   {
     if(e.ControlRect.Contains(invalid)) invalid.Width = 0;
-    SetFlag(Flag.PendingRepaint, false);
+    SetFlags(Flag.PendingRepaint, false);
   }
 
   /// <summary>Paints the background of the control.</summary>
@@ -1219,37 +1263,89 @@ public class Control
   }
   #endregion
 
-  /// <summary>Removes input focus from this control.</summary>
+  /// <summary>Removes input focus from this control, but does not deselect it.</summary>
   public void Blur()
   {
-    if(parent != null && parent.FocusedControl == this) parent.FocusedControl = null;
+    if(Focused)
+    {
+      SetFlags(Flag.Focused, false);
+      OnLostFocus();
+    }
   }
 
-  /// <summary>Selects this control, but does not select its ancestors.</summary>
-  public void Focus()
+  /// <summary>Deselects the current control, if it's selected.</summary>
+  public void Deselect()
   {
-    Focus(false);
+    if(Selected) Parent.SelectedControl = null;
   }
 
   /// <summary>Attempts to give this control input focus.</summary>
-  /// <param name="focusAncestors">If true, an attempt will be made to give all the ancestors input focus as well.</param>
-  /// <remarks>Focus will not be given to a control if its <see cref="CanFocus"/> property is false.</remarks>
-  public void Focus(bool focusAncestors)
+  /// <remarks>Input focus will not actually be given to a control if it does not have the
+  /// <see cref="Forms.ControlStyle.CanReceiveFocus"/> style or cannot be made active.
+  /// </remarks>
+  public void Focus()
   {
-    if(parent != null && HasFlags(Flag.EffectivelyEnabled | Flag.EffectivelyVisible))
+    if(!Focused)
     {
-      parent.FocusedControl = this;
-
-      if(focusAncestors)
+      // before the control can be focused, it needs to be active. we'll try to make it active by selecting it and its ancestors
+      for(Control control = this; !control.Active && control.Selectable; control = control.Parent)
       {
-        for(Control ancestor = parent;
-            ancestor.parent != null && HasFlags(Flag.EffectivelyEnabled | Flag.EffectivelyVisible);
-            ancestor = ancestor.parent)
+        control.Select(false);
+      }
+
+      // if it's active now, and can receive focus, then try to focus it
+      if(HasFlags(Flag.Active | (Flag)ControlStyle.CanReceiveFocus))
+      {
+        // search both up and down the control tree to find a control that may have been focused previously. controls in other
+        // areas of the control tree will already have been blurred during the act of activating this control
+        Control controlToBlur = null;
+        for(Control ancestor = Parent; ancestor != null; ancestor = ancestor.Parent)
         {
-          ancestor.parent.FocusedControl = ancestor;
+          if(ancestor.Focused)
+          {
+            controlToBlur = ancestor;
+            break;
+          }
         }
+
+        if(controlToBlur == null)
+        {
+          for(Control descendant = SelectedControl; descendant != null; descendant = descendant.SelectedControl)
+          {
+            if(descendant.Focused)
+            {
+              controlToBlur = descendant;
+              break;
+            }
+          }
+        }
+
+        // if we found another control that's focused, blur it
+        if(controlToBlur != null) controlToBlur.Blur();
+
+        // then focus this control
+        SetFlags(Flag.Focused, true);
+        OnGotFocus();
       }
     }
+  }
+
+  /// <summary>Attempts to select the current control and give it input focus. This method does not select the control's
+  /// ancestors.
+  /// </summary>
+  public void Select()
+  {
+    Select(true);
+  }
+
+  /// <summary>Attempts to select the current control and optionally give it input focus. This method does not select the
+  /// control's ancestors.
+  /// </summary>
+  /// <param name="focus">If true, the method will attempt to give the control input focus.</param>
+  public void Select(bool focus)
+  {
+    if(Selectable) Parent.SelectedControl = this;
+    if(focus && Active) Focus();
   }
 
   /// <summary>Brings this control to the front of the Z order, ensuring that it's drawn above its other siblings.</summary>
@@ -1258,12 +1354,12 @@ public class Control
     AssertParent();
 
     Control parent = this.Parent;
-    if(parent.controls[parent.controls.Count - 1] != this)
+    if(parent.Controls[parent.Controls.Count - 1] != this)
     {
-      SetFlag(Flag.JustSetParent, true);
-      parent.controls.Remove(this);
-      parent.controls.Add(this);
-      SetFlag(Flag.JustSetParent, false);
+      SetFlags(Flag.JustSetParent, true);
+      parent.Controls.Remove(this);
+      parent.Controls.Add(this);
+      SetFlags(Flag.JustSetParent, false);
       Invalidate();
     }
   }
@@ -1274,12 +1370,12 @@ public class Control
     AssertParent();
 
     Control parent = this.Parent;
-    if(parent.controls[0] != this)
+    if(parent.Controls[0] != this)
     {
-      SetFlag(Flag.JustSetParent, true);
-      parent.controls.Remove(this);
-      parent.controls.Insert(0, this);
-      SetFlag(Flag.JustSetParent, false);
+      SetFlags(Flag.JustSetParent, true);
+      parent.Controls.Remove(this);
+      parent.Controls.Insert(0, this);
+      SetFlags(Flag.JustSetParent, false);
     }
   }
 
@@ -1293,7 +1389,7 @@ public class Control
     do
     {
       controlPoint = control.ControlToParent(controlPoint);
-      control      = control.parent;
+      control      = control.Parent;
     } while(control != ancestor && control != null);
 
     if(control == null && ancestor != null)
@@ -1332,8 +1428,8 @@ public class Control
   /// <summary>Converts a point from control coordinates to the parent's control coordinates.</summary>
   public Point ControlToParent(Point controlPoint)
   {
-    controlPoint.X += bounds.X;
-    controlPoint.Y += bounds.Y;
+    controlPoint.X += Left;
+    controlPoint.Y += Top;
     return controlPoint;
   }
 
@@ -1374,8 +1470,8 @@ public class Control
   /// <summary>Converts a point from the parent's control coordinates to this control's coordinates.</summary>
   public Point ParentToControl(Point parentPoint)
   {
-    parentPoint.X -= bounds.X;
-    parentPoint.Y -= bounds.Y;
+    parentPoint.X -= Left;
+    parentPoint.Y -= Top;
     return parentPoint;
   }
 
@@ -1392,7 +1488,7 @@ public class Control
     do
     {
       screenPoint = control.ParentToControl(screenPoint);
-      control     = control.parent;
+      control     = control.Parent;
     } while(control != null);
     return screenPoint;
   }
@@ -1403,7 +1499,7 @@ public class Control
     return new Rectangle(ScreenToControl(screenRect.Location), screenRect.Size);
   }
 
-  /// <summary>Disposes this child and all of its descendants, if they implement <see cref="IDispoable"/>, and clears
+  /// <summary>Disposes this child and all of its descendants, if they implement <see cref="IDisposable"/>, and clears
   /// the <see cref="Controls"/> collection.
   /// </summary>
   public void DisposeAll()
@@ -1411,11 +1507,11 @@ public class Control
     DisposeAll(true);
   }
 
-  /// <summary>Disposes this child and all of its descendants, if they implement <see cref="IDispoable"/>, and clears
+  /// <summary>Disposes this child and all of its descendants, if they implement <see cref="IDisposable"/>, and clears
   /// the <see cref="Controls"/> collection.
   /// </summary>
   /// <param name="disposeThis">If true, this control will be disposed. If false, only the descendants will be. This
-  /// should be set to false when called from a Dispose() method, to avoid an infinite recursion.
+  /// should be false when called from a Dispose() method, to avoid an infinite recursion.
   /// </param>
   public void DisposeAll(bool disposeThis)
   {
@@ -1449,7 +1545,7 @@ public class Control
     for(int i=Controls.Count-1; i >= 0; i--)
     {
       Control child = Controls[i];
-      if(child.Visible && child.bounds.Contains(controlPoint)) return child;
+      if(child.Visible && child.Bounds.Contains(controlPoint)) return child;
     }
     return null;
   }
@@ -1524,38 +1620,38 @@ public class Control
     if(!absolute)
     {
       preLayoutBounds = newBounds;
-      anchorSpace.Width  = Math.Max(0, anchorSpace.Width  + newBounds.Width  - bounds.Width);
-      anchorSpace.Height = Math.Max(0, anchorSpace.Height + newBounds.Height - bounds.Height);
+      anchorSpace.Width  = Math.Max(0, anchorSpace.Width  + newBounds.Width  - Width);
+      anchorSpace.Height = Math.Max(0, anchorSpace.Height + newBounds.Height - Height);
 
-      if(parent != null && !HasStyle(ControlStyle.DontLayout))
+      if(Parent != null && !HasStyle(ControlStyle.DontLayout))
       {
         if(Dock != DockStyle.None)
         {
-          parent.TriggerLayout(); // TODO: there's probably a more efficient way to update the layout
+          Parent.TriggerLayout(); // TODO: there's probably a more efficient way to update the layout
         }
         else
         {
-          anchorOffsets = new RectOffset(Math.Max(newBounds.Left - parent.anchorSpace.Left, 0),
-                                         Math.Max(newBounds.Top  - parent.anchorSpace.Top,  0),
-                                         Math.Max(parent.anchorSpace.Right  - newBounds.Right,  0),
-                                         Math.Max(parent.anchorSpace.Bottom - newBounds.Bottom, 0));
+          anchorOffsets = new RectOffset(Math.Max(newBounds.Left - Parent.anchorSpace.Left, 0),
+                                         Math.Max(newBounds.Top  - Parent.anchorSpace.Top,  0),
+                                         Math.Max(Parent.anchorSpace.Right  - newBounds.Right,  0),
+                                         Math.Max(Parent.anchorSpace.Bottom - newBounds.Bottom, 0));
           DoAnchor();
           return; // DoAnchor() always calls SetBounds(rect, true), so we can return immediately
         }
       }
     }
 
-    if(newBounds.Location != bounds.Location)
+    if(newBounds.Location != Location)
     {
-      ValueChangedEventArgs e = new ValueChangedEventArgs(bounds.Location);
-      bounds.Location = newBounds.Location;
+      ValueChangedEventArgs e = new ValueChangedEventArgs(Location);
+      _bounds.Location = newBounds.Location;
       OnLocationChanged(e);
     }
 
-    if(newBounds.Size != bounds.Size)
+    if(newBounds.Size != Size)
     {
-      ValueChangedEventArgs e = new ValueChangedEventArgs(bounds.Size);
-      bounds.Size = newBounds.Size;
+      ValueChangedEventArgs e = new ValueChangedEventArgs(Size);
+      _bounds.Size = newBounds.Size;
       OnSizeChanged(e);
     }
   }
@@ -1571,22 +1667,22 @@ public class Control
     Control next=null, ext=null;
     if(reverse)
     {
-      int tabv=0, maxv=int.MinValue, index = FocusedControl == null ? int.MinValue : FocusedControl.tabIndex;
-      foreach(Control c in controls)
+      int tabv=0, maxv=int.MinValue, index = SelectedControl == null ? int.MinValue : SelectedControl.TabIndex;
+      foreach(Control c in Controls)
       {
         if(!c.Enabled || !c.Visible) continue;
-        if(c.tabIndex<index && c.tabIndex>=tabv) { tabv=c.tabIndex; next=c; }
-        if(c.tabIndex>-1 && c.tabIndex>maxv) { maxv=c.tabIndex; ext=c; }
+        if(c.TabIndex<index && c.TabIndex>=tabv) { tabv=c.TabIndex; next=c; }
+        if(c.TabIndex>-1 && c.TabIndex>maxv) { maxv=c.TabIndex; ext=c; }
       }
     }
     else
     {
-      int tabv=int.MaxValue, minv=int.MaxValue, index = FocusedControl == null ? int.MaxValue : FocusedControl.tabIndex;
-      foreach(Control c in controls)
+      int tabv=int.MaxValue, minv=int.MaxValue, index = SelectedControl == null ? int.MaxValue : SelectedControl.TabIndex;
+      foreach(Control c in Controls)
       {
         if(!c.Enabled || !c.Visible) continue;
-        if(c.tabIndex>index && c.tabIndex<=tabv) { tabv=c.tabIndex; next=c; }
-        if(c.tabIndex>-1 && c.tabIndex<minv) { minv=c.tabIndex; ext=c; }
+        if(c.TabIndex>index && c.TabIndex<=tabv) { tabv=c.TabIndex; next=c; }
+        if(c.TabIndex>-1 && c.TabIndex<minv) { minv=c.TabIndex; ext=c; }
       }
     }
     return next==null ? ext : next;
@@ -1604,10 +1700,10 @@ public class Control
     if(dirtyRect.Width == 0) return;
 
     // if the parent control is visible through the child control, then invalidate that portion of the parent instead
-    if(parent != null && IsTranslucent)
+    if(Parent != null && IsTranslucent)
     {
       dirtyRect.Location = ControlToParent(dirtyRect.Location);
-      parent.Invalidate(dirtyRect);
+      Parent.Invalidate(dirtyRect);
     }
     else if(EffectivelyVisible) // otherwise, no part of the parent should be visible
     {
@@ -1620,7 +1716,7 @@ public class Control
         if(Parent == null || !Parent.HasFlag(Flag.PendingRepaint) ||
            !Parent.InvalidRect.Contains(ControlToParent(dirtyRect)))
         {
-          SetFlag(Flag.PendingRepaint, true);
+          SetFlags(Flag.PendingRepaint, true);
           Desktop.NeedsRepaint(this);
         }
       }
@@ -1674,9 +1770,9 @@ public class Control
   /// </remarks>
   public void Refresh(Rectangle area)
   {
-    if(parent != null && IsTranslucent)
+    if(Parent != null && IsTranslucent)
     {
-      parent.Refresh(ControlToParent(area));
+      Parent.Refresh(ControlToParent(area));
     }
     else
     {
@@ -1708,13 +1804,13 @@ public class Control
     {
       if(Desktop == null)
       {
-        SetFlag(Flag.PendingLayout, true);
-        SetFlag(Flag.RecursiveLayout, recursive || HasFlag(Flag.RecursiveLayout));
+        SetFlags(Flag.PendingLayout, true);
+        SetFlags(Flag.RecursiveLayout, recursive || HasFlag(Flag.RecursiveLayout));
       }
       else if(Parent == null || !Parent.HasFlags(Flag.PendingLayout | Flag.RecursiveLayout))
       {
         Desktop.NeedsLayout(this, recursive);
-        SetFlag(Flag.PendingLayout, true);
+        SetFlags(Flag.PendingLayout, true);
       }
     }
   }
@@ -1738,7 +1834,7 @@ public class Control
   /// <param name="reverse">If true, selects the previous control. Otherwise, selects the next control.</param>
   public void TabToNextControl(bool reverse)
   { 
-    FocusedControl = GetNextControl(reverse); 
+    SelectedControl = GetNextControl(reverse); 
   }
 
   /// <summary>Gets or sets the drag threshold for this control.</summary>
@@ -1747,16 +1843,13 @@ public class Control
   /// this property should be set to 16, which is 4 squared. As a special case, the value -1, which is the default,
   /// causes it to use the desktop's <see cref="DesktopControl.DefaultDragThreshold"/> property value.
   /// </remarks>
-  /// <value>The drag threshold, as the distance squared, in pixels, or -1 to use the desktop's 
-  /// <see cref="DesktopControl.DefaultDragThreshold"/> property.
-  /// </value>
   protected internal int DragThreshold
   {
-    get { return dragThreshold; }
+    get { return _dragThreshold; }
     set
     {
       if(value < -1) throw new ArgumentOutOfRangeException("DragThreshold", value, "must be >=0 or -1");
-      dragThreshold=value;
+      _dragThreshold = value;
     }
   }
 
@@ -1771,7 +1864,7 @@ public class Control
   /// </summary>
   protected Font EffectiveFont
   {
-    get { return effectiveFont; }
+    get { return _effectiveFont; }
   }
 
   protected void AssertParent()
@@ -1800,7 +1893,7 @@ public class Control
     }
     else
     {
-      return borderColor;
+      return BorderColor;
     }
   }
 
@@ -1928,20 +2021,20 @@ public class Control
     /// <summary>Indicates whether the control is modal, and so will receive all input events.</summary>
     Modal = 0x4000,
     /// <summary>Indicates whether the control and all of its ancestors are selected.</summary>
-    Focused = 0x8000,
-    /// <summary>Indicates that the change currently occurring was triggered by the control itself and not external
-    /// code.
-    /// </summary>
-    MyChange = 0x10000,
+    Active = 0x8000,
+    /// <summary>Indicates whether the control has keyboard focus.</summary>
+    Focused=0x10000,
+    /// <summary>Indicates that the change currently occurring was triggered by the control itself and not external code.</summary>
+    MyChange = 0x20000,
     /// <summary>Indicates that when the parent is changed, the only processing that should occur is the processing
     /// to set the the parent field. This is used while rearranging controls, to prevent the processing from occurring
     /// more than we want.
     /// </summary>
-    JustSetParent = 0x20000,
+    JustSetParent = 0x40000,
     /// <summary>Indicates that the control should be laid out.</summary>
-    PendingLayout = 0x40000,
+    PendingLayout = 0x80000,
     /// <summary>Indicates that the next layout will be recursive.</summary>
-    RecursiveLayout = 0x80000,
+    RecursiveLayout = 0x100000,
   }
   #endregion
 
@@ -2019,10 +2112,10 @@ public class Control
     return (this.flags & flags) == flags;
   }
 
-  internal void SetFlag(Flag flag, bool on)
+  internal void SetFlags(Flag flags, bool on)
   {
-    if(on) flags |= flag;
-    else flags &= ~flag;
+    if(on) this.flags |= flags;
+    else this.flags &= ~flags;
   }
 
   internal bool HasStyle(ControlStyle style)
@@ -2078,14 +2171,14 @@ public class Control
 
   void DoAnchor()
   {
-    Rectangle newBounds = preLayoutBounds, available = parent.anchorSpace;
+    Rectangle newBounds = preLayoutBounds, available = Parent.anchorSpace;
 
-    if((anchor & AnchorStyle.LeftRight) == AnchorStyle.LeftRight) // LeftRight
+    if((Anchor & AnchorStyle.LeftRight) == AnchorStyle.LeftRight) // LeftRight
     {
       newBounds.X     = available.X     + anchorOffsets.Left;
       newBounds.Width = available.Width - anchorOffsets.Horizontal;
     }
-    else if((anchor & AnchorStyle.Right) != 0) // Right
+    else if((Anchor & AnchorStyle.Right) != 0) // Right
     {
       newBounds.X = available.Right - anchorOffsets.Right - newBounds.Width;
     }
@@ -2094,12 +2187,12 @@ public class Control
       newBounds.X = available.X + anchorOffsets.Left; // Left (default)
     }
 
-    if((anchor & AnchorStyle.TopBottom) == AnchorStyle.TopBottom) // TopBottom
+    if((Anchor & AnchorStyle.TopBottom) == AnchorStyle.TopBottom) // TopBottom
     {
       newBounds.Y      = available.Y      + anchorOffsets.Top;
       newBounds.Height = available.Height - anchorOffsets.Vertical;
     }
-    else if((anchor & AnchorStyle.Bottom) != 0) // Bottom
+    else if((Anchor & AnchorStyle.Bottom) != 0) // Bottom
     {
       newBounds.Y = available.Bottom - anchorOffsets.Bottom - newBounds.Height;
     }
@@ -2111,42 +2204,48 @@ public class Control
     SetBounds(newBounds, true);
   }
 
-  void RecursivelyGetFocus(Control control)
+  void RecursivelyActivate(Control control)
   {
     Control parent = this;
     do
     {
-      control.SetFlag(Flag.Focused, parent.HasFlag(Flag.Focused));
-      control.OnGotFocus();
+      bool active = parent.HasFlag(Flag.Active);
+      control.SetFlags(Flag.Active, active);
+      control.OnSelected();
+      if(active) control.OnActivated();
       parent  = control;
-      control = control.FocusedControl;
+      control = control.SelectedControl;
     } while(control != null);
   }
 
-  void RecursivelyLoseFocus(Control control)
+  void RecursivelyDeactivate(Control control)
   {
-    if(control.FocusedControl != null) RecursivelyLoseFocus(control.FocusedControl);
-    control.SetFlag(Flag.Focused, false);
-    control.OnLostFocus();
+    if(control.SelectedControl != null) RecursivelyDeactivate(control.SelectedControl);
+
+    control.Blur();
+    if(control.HasFlag(Flag.Active))
+    {
+      control.SetFlags(Flag.Active, false);
+      control.OnDeactivated();
+    }
   }
 
   void RecursivelySetEffectiveValues()
   {
-    SetFlag(Flag.EffectivelyEnabled, Enabled && (parent == null || parent.EffectivelyEnabled));
-    SetFlag(Flag.EffectivelyVisible, Visible && (parent == null || parent.EffectivelyVisible));
+    SetFlags(Flag.EffectivelyEnabled, Enabled && (Parent == null || Parent.EffectivelyEnabled));
+    SetFlags(Flag.EffectivelyVisible, Visible && (Parent == null || Parent.EffectivelyVisible));
     
-    if(parent != null)
+    if(Parent != null)
     {
       bool hadNoDesktop = Desktop == null;
+      Desktop = Parent.Desktop;
+      SetRenderer(Parent.Renderer);
 
-      Desktop = parent.Desktop;
-      SetRenderer(parent.Renderer);
-
-      Font newFont = font ?? parent.effectiveFont;
-      if(newFont != effectiveFont)
+      Font newFont = Font ?? Parent.EffectiveFont;
+      if(newFont != EffectiveFont)
       {
-        ValueChangedEventArgs e = new ValueChangedEventArgs(effectiveFont);
-        effectiveFont = newFont;
+        ValueChangedEventArgs e = new ValueChangedEventArgs(EffectiveFont);
+        _effectiveFont = newFont;
         OnEffectiveFontChanged(e);
       }
 
@@ -2157,8 +2256,8 @@ public class Control
     }
     else
     {
-      Desktop       = null;
-      effectiveFont = font;
+      Desktop        = null;
+      _effectiveFont = Font;
       SetRenderer(null);
     }
     
@@ -2167,17 +2266,19 @@ public class Control
 
   void RecursivelySetEnabled()
   {
-    SetFlag(Flag.EffectivelyEnabled, Enabled && (parent == null || parent.EffectivelyEnabled));
+    bool enabled = Enabled && (Parent == null || Parent.EffectivelyEnabled);
+    SetFlags(Flag.EffectivelyEnabled, enabled);
+    if(!enabled) Blur();
     foreach(Control child in Controls) child.RecursivelySetEnabled();
   }
 
   void RecursivelySetFont()
   {
-    Font newFont = font ?? (parent == null ? null : parent.effectiveFont);
-    if(newFont != effectiveFont)
+    Font newFont = Font ?? (Parent == null ? null : Parent.EffectiveFont);
+    if(newFont != EffectiveFont)
     {
-      ValueChangedEventArgs e = new ValueChangedEventArgs(effectiveFont);
-      effectiveFont = newFont;
+      ValueChangedEventArgs e = new ValueChangedEventArgs(EffectiveFont);
+      _effectiveFont = newFont;
       OnEffectiveFontChanged(e);
 
       foreach(Control child in Controls) child.RecursivelySetFont();
@@ -2186,27 +2287,28 @@ public class Control
 
   void RecursivelySetVisible()
   {
-    SetFlag(Flag.EffectivelyVisible, Visible && (parent == null || parent.EffectivelyVisible));
+    bool visible = Visible && (Parent == null || Parent.EffectivelyVisible);
+    SetFlags(Flag.EffectivelyVisible, visible);
+    if(!visible) Blur();
     foreach(Control child in Controls) child.RecursivelySetVisible();
   }
 
   void SetParent(Control control)
   {
-    if(HasFlag(Flag.JustSetParent)) // if we're manipulating the ControlCollection
+    if(HasFlag(Flag.JustSetParent)) // if we're manipulating the ControlCollection 
     {                               // and don't want it performing all these actions...
-      parent = control; // just set the parent
+      _parent = control; // just set the parent
     }
     else // otherwise, do everything
     {
-      Control oldParent = parent;
+      Control oldParent = Parent;
       ControlEventArgs ce = new ControlEventArgs(this);
 
       if(oldParent != null)
       {
         if(Desktop != null)
         {
-          if(Desktop.IsCapturing(this) ||
-             Desktop.CapturingControl != null && Controls.Contains(Desktop.CapturingControl, true))
+          if(Desktop.IsCapturing(this) || Desktop.CapturingControl != null && Controls.Contains(Desktop.CapturingControl, true))
           {
             Desktop.SetCapture(null);
           }
@@ -2215,11 +2317,11 @@ public class Control
         oldParent.OnControlRemoved(ce);
       }
 
-      parent = control;
+      _parent = control;
       RecursivelySetEffectiveValues();
-      if(parent != null)
+      if(Parent != null)
       {
-        parent.OnControlAdded(ce);
+        Parent.OnControlAdded(ce);
         if(oldParent == null) TriggerLayout();
       }
       if(!HasFlag(Flag.MyChange)) OnParentChanged(new ValueChangedEventArgs(oldParent));
@@ -2227,20 +2329,17 @@ public class Control
   }
 
   /// <summary>The object in which this GUI control is contained, or NULL if it is the root of a control hierarchy.</summary>
-  Control parent;
-
-  /// <summary>The list of this control's children.</summary>
-  readonly ControlCollection controls;
+  Control _parent;
 
   /// <summary>The selected child.</summary>
-  Control focused;
+  Control _selected;
 
-  Font font, effectiveFont;
+  Font _font, _effectiveFont;
 
-  string name = string.Empty, text = string.Empty;
+  string _name = string.Empty, _text = string.Empty;
 
   /// <summary>The position and size of the control within its parent, in pixels.</summary>
-  Rectangle bounds = new Rectangle(0, 0, 100, 100);
+  Rectangle _bounds = new Rectangle(0, 0, 100, 100);
 
   /// <summary>The area of this control that needs repainting.</summary>
   Rectangle invalid;
@@ -2254,20 +2353,20 @@ public class Control
   /// <summary>The distances from the edges of the parent control, at which this control is anchored.</summary>
   RectOffset anchorOffsets;
 
-  RectOffset padding;
+  RectOffset _padding;
 
-  Color backColor = Color.Transparent, color, borderColor;
+  Color _backColor = Color.Transparent, _color, _borderColor;
 
-  IGuiImage backImage;
+  IGuiImage _backImage;
 
-  int dragThreshold = -1, tabIndex = -1;
+  int _dragThreshold = -1, _tabIndex = -1;
   internal uint lastClickTime;
   Flag flags = Flag.Enabled | Flag.Visible | Flag.EffectivelyEnabled | Flag.EffectivelyVisible;
 
-  AnchorStyle anchor = AnchorStyle.TopLeft;
-  DockStyle dock;
-  ContentAlignment backImageAlign = ContentAlignment.TopLeft;
-  BorderStyle borderStyle;
+  AnchorStyle _anchor = AnchorStyle.TopLeft;
+  DockStyle _dock;
+  ContentAlignment _backImageAlign = ContentAlignment.TopLeft;
+  BorderStyle _borderStyle;
 }
 
 } // namespace GameLib.Forms

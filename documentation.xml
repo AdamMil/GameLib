@@ -104,11 +104,11 @@
   </IConvertible>
 
   <Fonts>
-    <LineSkip>
+    <LineHeight>
       <summary>Gets the vertical offset that should be added to move the draw position to the next line. This is
         equivalent to the height of the font plus spacing between lines.
       </summary>
-    </LineSkip>
+    </LineHeight>
 
     <CalculateSize>
       <summary>Calculates the size of a string of text.</summary>

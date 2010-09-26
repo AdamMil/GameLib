@@ -334,7 +334,7 @@ public class Server
   {
     if(timeoutMs < 0) throw new ArgumentOutOfRangeException("timeoutMs", "cannot be negative");
     p.DropDelay   = (uint)timeoutMs;
-    p.DropStart   = Timing.InternalMsecs;
+    p.DropStart   = Timing.InternalMilliseconds;
     p.DelayedDrop = true;
   }
 
@@ -825,7 +825,7 @@ public class Server
             ServerPlayer player = players[i];
             try
             {
-              if(player.DelayedDrop && Timing.InternalMsecs-player.DropStart >= player.DropDelay) player.Link.Close();
+              if(player.DelayedDrop && Timing.InternalMilliseconds-player.DropStart >= player.DropDelay) player.Link.Close();
 
               player.Link.SendPoll(); // ReceivePoll() is called by ReceiveMessage(), but we need to call SendPoll() ourselves
               LinkMessage msg = player.Link.ReceiveMessage();

@@ -9,25 +9,22 @@ namespace GameLib.Forms
 {
 
 #region AutoFocus
-/// <summary>
-/// This enum is used with the <see cref="DesktopControl.AutoFocusing"/> property to determine how the
+/// <summary>This enum is used with the <see cref="DesktopControl.AutoFocus"/> property to determine how and whether the
 /// desktop will automatically focus controls.
 /// </summary>
 public enum AutoFocus
 {
-  /// <summary>The desktop will not autofocus controls. The code will have to call <see cref="Control.Focus"/> and
-  /// <see cref="Control.Blur"/> manually in order to alter the focus.
+  /// <summary>The desktop will not automatically focus controls. You will have to call <see cref="Control.Focus"/> manually in
+  /// order to set the focus.
   /// </summary>
   None,
-  /// <summary>When a focusable control is clicked with any button, the desktop will focus it and all its ancestors.
-  /// </summary>
+  /// <summary>When a focusable control is clicked with any mouse button, the desktop will focus it.</summary>
   Click,
-  /// <summary>When the mouse moves over a focusable control, it and its ancestors will be focused. When the
-  /// mouse moves off of a control, it will be blurred, even if the mouse did not move onto another focusable
-  /// control.
+  /// <summary>When the mouse moves over a focusable control, it will be focused. When the mouse moves off of a control, it will
+  /// be blurred, even if the mouse did not move onto another focusable control.
   /// </summary>
   Over,
-  /// <summary>When the mouse moves over a focusable control, it and its ancestors will be focused.</summary>
+  /// <summary>When the mouse moves over a focusable control, it will be focused.</summary>
   OverSticky
 }
 #endregion
@@ -40,11 +37,13 @@ public class Desktop : Control, IDisposable
   public Desktop()
   {
     Events.Events.Initialize();
-    Desktop   = this;
-    BackColor = Color.Black;
-    ForeColor = Color.White;
-    AutoFocusing = AutoFocus.Click;
-    SetFlag(Flag.Focused, true);
+    AutoFocus    = AutoFocus.Click;
+    Desktop      = this;
+    BackColor    = Color.Black;
+    ForeColor    = Color.White;
+    TabKey       = Key.Tab;
+    ProcessKeys  = ProcessClicks = ProcessMouseMove = true;
+    SetFlags(Flag.Active, true);
     Invalidate();
     timer.Start();
   }
@@ -60,11 +59,8 @@ public class Desktop : Control, IDisposable
     Dispose(true);
   }
 
-  /// <summary>Gets or sets the auto focusing mode for this desktop.</summary>
-  /// <remarks>See the <see cref="AutoFocus"/> enum for information on the types of auto focusing available.
-  /// The default is <see cref="AutoFocus.None"/>.
-  /// </remarks>
-  public AutoFocus AutoFocusing
+  /// <summary>Gets or sets the <see cref="AutoFocus"/> mode for this desktop. The default is <see cref="AutoFocus.Click"/>.</summary>
+  public AutoFocus AutoFocus
   {
     get; set;
   }
@@ -75,25 +71,25 @@ public class Desktop : Control, IDisposable
   /// </remarks>
   public int DoubleClickDelay
   {
-    get { return dcDelay; }
+    get { return _dcDelay; }
     set
     {
       if(value < 0) throw new ArgumentOutOfRangeException("DoubleClickDelay", "cannot be negative");
-      dcDelay = value;
+      _dcDelay = value;
     }
   }
 
   /// <summary>Gets or sets the default drag threshold for this desktop.</summary>
   /// <remarks>This property provides a default drag threshold for controls that do not specify one. See
-  /// <see cref="GuiControl.DragThreshold"/> for more information about the drag threshold. The default value is 16.
+  /// <see cref="Control.DragThreshold"/> for more information about the drag threshold. The default value is 16.
   /// </remarks>
   public int DefaultDragThreshold
   {
-    get { return defaultDragThreshold; }
+    get { return _defaultDragThreshold; }
     set
     {
       if(value < 1) throw new ArgumentOutOfRangeException("DragThreshold", "must be >=1");
-      defaultDragThreshold = value;
+      _defaultDragThreshold = value;
     }
   }
 
@@ -122,38 +118,29 @@ public class Desktop : Control, IDisposable
     get { return modal.Count == 0 ? null : modal[modal.Count - 1]; }
   }
 
-  /// <summary>Gets or sets whether this desktop will process keyboard events.</summary>
-  /// <remarks>If false, <see cref="ProcessEvent"/> will ignore events related to the keyboard.
-  /// The default value is true.
-  /// </remarks>
+  /// <summary>Gets or sets whether this desktop will process keyboard events. The default value is true.</summary>
+  /// <remarks>If false, <see cref="ProcessEvent(Event,bool)"/> will ignore events related to the keyboard.</remarks>
   public bool ProcessKeys
   {
-    get { return keys; }
-    set { keys = value; }
+    get; set;
   }
 
-  /// <summary>Gets or sets whether this desktop will process mouse movement events.</summary>
-  /// <remarks>If false, <see cref="ProcessEvent"/> will ignore events related to mouse movement.
-  /// The default value is true.
-  /// </remarks>
+  /// <summary>Gets or sets whether this desktop will process mouse movement events. The default value is true.</summary>
+  /// <remarks>If false, <see cref="ProcessEvent(Event,bool)"/> will ignore events related to mouse movement.</remarks>
   public bool ProcessMouseMove
   {
-    get { return moves; }
-    set { moves = value; }
+    get; set;
   }
 
-  /// <summary>Gets or sets whether this desktop will process mouse click events.</summary>
-  /// <remarks>If false, <see cref="ProcessEvent"/> will ignore events related to mouse clicks.
-  /// The default value is true.
-  /// </remarks>
+  /// <summary>Gets or sets whether this desktop will process mouse click events. The default value is true.</summary>
+  /// <remarks>If false, <see cref="ProcessEvent(Event,bool)"/> will ignore events related to mouse clicks.</remarks>
   public bool ProcessClicks
   {
-    get { return clicks; }
-    set { clicks = value; }
+    get; set;
   }
 
   /// <summary>Gets or sets the renderer used to paint controls on this desktop. This property must be set before the
-  /// desktop is usable.
+  /// desktop can be used.
   /// </summary>
   public new IControlRenderer Renderer
   {
@@ -171,15 +158,14 @@ public class Desktop : Control, IDisposable
     }
   }
 
-  /// <summary>Gets or sets the key used to tab between controls.</summary>
-  /// <remarks>If this property is set to a value other than <see cref="Input.Key.None"/>, that key will be used
+  /// <summary>Gets or sets the key used to tab between controls. The default is <see cref="Key.Tab"/>.</summary>
+  /// <remarks>If this property is set to a value other than <see cref="Key.None"/>, that key will be used
   /// to move input focus between controls. When that key is pressed, the desktop will call
   /// <see cref="Control.TabToNextControl"/> on the control that currently has input focus.
   /// </remarks>
-  public Input.Key TabCharacter
+  public Key TabKey
   {
-    get { return tab; }
-    set { tab = value; }
+    get; set;
   }
 
   /// <summary>Gets or sets whether the desktop tracks the specific areas of the desktop that have been changed, as
@@ -191,10 +177,10 @@ public class Desktop : Control, IDisposable
   /// </remarks>
   public bool TrackUpdates
   {
-    get { return trackUpdates; }
+    get { return _trackUpdates; }
     set
     {
-      trackUpdates = value;
+      _trackUpdates = value;
       if(!value) updatedLen = 0;
     }
   }
@@ -207,12 +193,12 @@ public class Desktop : Control, IDisposable
   /// </remarks>
   public bool Updated
   {
-    get { return didPainting; }
+    get { return _didPainting; }
     set
     {
       if(value != Updated)
       {
-        didPainting = value;
+        _didPainting = value;
         if(value) Invalidate();
         else updatedLen = 0;
       }
@@ -234,32 +220,33 @@ public class Desktop : Control, IDisposable
   }
 
   /// <summary>Processes the specified event.</summary>
-  /// <param name="e">The <see cref="Event"/> to process.</param>
   /// <returns>Returns true if the event was handled by the desktop, and false otherwise. See
   /// <see cref="ProcessEvent(Event,bool)"/> for more information about the return value.
   /// </returns>
   /// <remarks>Calling this method is equivalent to calling <see cref="ProcessEvent(Event,bool)"/> and passing
   /// true to allow it to update the <see cref="Input.Input"/> class. This method should be used with care.
-  /// See <see cref="ProcessEvent(Event,bool)"/> for information about proper usage of this method.
+  /// See <see cref="ProcessEvent(Event,bool)"/> for more information about proper usage of this method.
   /// </remarks>
-  public bool ProcessEvent(Event e) { return ProcessEvent(e, true); }
+  public bool ProcessEvent(Event e)
+  {
+    return ProcessEvent(e, true);
+  }
 
   /// <summary>Processes the specified event.</summary>
   /// <param name="e">The <see cref="Event"/> to process.</param>
-  /// <param name="passToInput">If true, the event is first passed to <see cref="Input.Input.ProcessEvent"/>.</param>
+  /// <param name="passToInput">If true, the event is first passed to <see cref="Input.Input.ProcessEvent"/>. It is important
+  /// that this happen, but it should not be done more than once to avoid confusing the <see cref="Input.Input"/> class.
+  /// Thus, if you have multiple desktops or want to update the <see cref="Input.Input"/> class yourself, you should manually
+  /// pass the event to <see cref="Input.Input.ProcessEvent"/> and then call this method for each desktop, passing false for this
+  /// parameter. If you have only a single desktop, you can safely pass true for <paramref name="passToInput"/>, assuming you
+  /// don't call <see cref="Input.Input.ProcessEvent"/> yourself.
+  /// </param>
   /// <returns>Returns true if the event was handled by the desktop, and false otherwise. A return value of true
   /// does not necessarily mean that the event had an effect on this desktop, only that it might have had an effect.
-  /// Thus, the event should still be passed to all other desktops.
+  /// Thus, the event should still be passed to all other desktops, if there are multiple.
   /// </returns>
-  /// <remarks>The main event handler should pass events to this method in the order they are received. The desktop
-  /// will use them to handle
-  /// all user interaction with the desktop and its descendants. If <paramrem name="passToInput"/> is true,
-  /// the event will first be passed to <see cref="Input.Input.ProcessEvent"/>. This is an important step, but
-  /// should not be done more than once to avoid confusing the <see cref="Input.Input"/> class. Thus, if you have
-  /// multiple desktops or want to update the <see cref="Input.Input"/> class yourself, you should manually pass
-  /// the event to <see cref="Input.Input.ProcessEvent"/> and then call this method for each desktop, passing false
-  /// for <paramrem name="passToInput"/>. If you have only a single desktop, you can safely pass true for
-  /// <paramref name="passToInput"/>, assuming you don't call <see cref="Input.Input.ProcessEvent"/> yourself.
+  /// <remarks>The main application event handler should pass events to this method in the order they are received. The desktop
+  /// will use them to handle all user interaction with the desktop and its controls. 
   /// <seealso cref="Events.Events"/> <seealso cref="Input.Input.ProcessEvent"/>
   /// </remarks>
   public bool ProcessEvent(Event e, bool passToInput)
@@ -267,188 +254,198 @@ public class Desktop : Control, IDisposable
     if(!passToInput || Input.Input.ProcessEvent(e))
     {
       #region Mouse moves
-      if(moves && e.Type == EventType.MouseMove)
+      if(ProcessMouseMove && e.Type == EventType.MouseMove)
       {
-        MouseMoveEvent ea = (MouseMoveEvent)e;
-        Point at = ea.Point;
-        // if the cursor is not within the desktop area, ignore it (unless dragging or capturing)
+        MouseMoveEvent me = (MouseMoveEvent)e;
+        Point at = me.Point;
+        // if the cursor is not within the desktop area, ignore it (unless dragging (or potentially dragging) or capturing)
         if(dragging == null && capturing == null && !Bounds.Contains(at)) return false;
+        at = ScreenToControl(at); // now make 'at' in control coordinates relative to the desktop
 
-        Control p = this, c;
-        // passModal is true if there's no modal window, or this movement is within the modal window
-        bool passModal = modal.Count == 0;
-        at.X -= Bounds.X; at.Y -= Bounds.Y; // at is the cursor point local to 'p'
-        int ei = 0;
-        while(p.Enabled && p.Visible)
+        Control control = this, child;
+        // passModal will be set to true if there's no modal window, or this movement is within the modal window
+        bool passModal = modal.Count == 0, shouldFocusIfSticky = true;
+        for(int ei=0; control.HasFlags(Flag.Enabled | Flag.Visible); ei++, control = child)
         {
-          c = p.GetChildAtPoint(at);
-          // enter/leave algorithm:
-          // keep an array of the path down the control tree, from the root down
+          child = control.GetChildAtPoint(at);
+
+          // enter/leave algorithm: keep an array of the path down the control tree, from the root down.
           // on mouse move, go down the tree, comparing against the stored path
-          if(ei < enteredLen && c != entered[ei])
+          if(ei < enteredLen && child != entered[ei]) // if the control is not the one we are previously recorded as being in
           {
-            for(int i = enteredLen - 1; i >= ei; i--)
+            for(int i = enteredLen - 1; i >= ei; i--) // then leave all controls from this point on
             {
               entered[i].OnMouseLeave();
               entered[i] = null;
             }
             enteredLen = ei;
           }
-          if(c == null) break;
-          if(!passModal && c == modal[modal.Count - 1]) passModal = true;
-          if(ei == enteredLen && passModal)
-          {
-            if(enteredLen == entered.Length)
-            {
-              Control[] na = new Control[entered.Length * 2];
-              Array.Copy(entered, na, enteredLen);
-              entered = na;
-            }
-            entered[enteredLen++] = c;
-            c.OnMouseEnter();
-          }
-          at = c.ParentToControl(at);
-          if((focus == AutoFocus.OverSticky || focus == AutoFocus.Over) && c.Enabled && passModal)
-          {
-            c.Focus(false);
-          }
-          ei++;
-          p = c;
-        }
-        // at this point, 'p' points to the control that doesn't have a child at 'at'
-        // normally we'd set its FocusedControl to null to indicate this, but if there's a modal window,
-        // we don't unset any focus
-        if(focus == AutoFocus.Over && passModal) p.FocusedControl = null;
 
-        if(dragging != null)
-        {
-          if(dragStarted)
+          if(child == null) break;
+          if(!passModal && child == modal[modal.Count - 1]) passModal = true;
+
+          if(ei == enteredLen && passModal) // if we haven't entered this child yet, do it now
           {
-            drag.End = p == dragging ? at : dragging.ScreenToControl(ea.Point);
+            AdamMil.Utilities.Utility.EnlargeArray(ref entered, enteredLen, 1);
+            entered[enteredLen++] = child;
+            child.OnMouseEnter();
+          }
+
+          at = child.ParentToControl(at); // convert 'at' to the child's control coordinates
+          
+          // if we focus on mouse over, try to select the current child
+          if(passModal)
+          {
+            if(AutoFocus == AutoFocus.Over && passModal && child.Selectable) child.Select(false);
+            else if(AutoFocus == AutoFocus.OverSticky && !child.Selectable) shouldFocusIfSticky = false;
+          }
+        }
+
+        // at this point, 'control' points to the control that doesn't have a child at 'at'.
+        if(passModal)
+        {
+          if(AutoFocus == AutoFocus.Over ||
+             AutoFocus == AutoFocus.OverSticky && shouldFocusIfSticky && control.HasStyle(ControlStyle.CanReceiveFocus))
+          {
+            control.SelectedControl = null; // deselect whatever was selected because there's no child under the mouse now
+            control.Focus(); // and try to focus the control that it is over
+          }
+        }
+
+        if(dragging != null) // if we're dragging a control or considering dragging it...
+        {
+          if(dragStarted) // and the drag already started (i.e. we're currently dragging it)...
+          {
+            drag.End = control == dragging ? at : dragging.ScreenToControl(me.Point); // compute the current drag point
             dragging.OnDragMove(drag);
             if(drag.Cancel) EndDrag();
           }
-          else if(capturing == null || capturing.IsAncestorOf(p, true))
+          // otherwise, we're only considering dragging it. so if the mouse isn't captured (or is captured by 'control')...
+          else if(capturing == null || capturing.IsAncestorOf(control, true))
           {
-            int xd = ea.X - drag.Start.X;
-            int yd = ea.Y - drag.Start.Y;
-            if(xd * xd + yd * yd >= (dragging.DragThreshold == -1 ? DragThreshold : p.DragThreshold))
+            // then see if we should start the drag
+            int xd = me.X - drag.Start.X, yd = me.Y - drag.Start.Y;
+            if(xd*xd + yd*yd >= (dragging.DragThreshold == -1 ? DefaultDragThreshold : control.DragThreshold))
             {
-              drag.Start = dragging.ScreenToControl(drag.Start);
-              drag.End = ea.Point;
-              drag.Buttons = ea.Buttons;
-              drag.Cancel = false;
-              dragStarted = true;
+              // we kept track of the start position in screen coordinates, so convert it to control coordinate now
+              drag.Start   = dragging.ScreenToControl(drag.Start);
+              drag.End     = me.Point; // then keep track of the end position in screen coordinates
+              drag.Buttons = me.Buttons;
+              drag.Cancel  = false;
+              dragStarted = true; // indicate that the drag has started
               dragging.OnDragStart(drag);
               if(drag.Cancel) EndDrag();
             }
           }
         }
 
-        if(capturing != null)
+        if(capturing != null) // if a control has mouse capture...
         {
-          Control dispatchTo = capturing.IsAncestorOf(p, true) ? p : capturing;
-          ea.Point = dispatchTo.ScreenToControl(ea.Point);
-          dispatchTo.OnMouseMove(ea);
+          // dispatch events normally if 'control' is a descendant of the capturing control. otherwise send to 'capturing'
+          Control dispatchTo = capturing.IsAncestorOf(control, true) ? control : capturing;
+          me.Point = dispatchTo == control ? at : dispatchTo.ScreenToControl(me.Point);
+          dispatchTo.OnMouseMove(me);
         }
-        else if(passModal)
+        else if(passModal && control.HasFlags(Flag.EffectivelyEnabled | Flag.EffectivelyVisible))
         {
-          if(p.EffectivelyEnabled && p.EffectivelyVisible)
-          {
-            ea.Point = at;
-            p.OnMouseMove(ea);
-          }
+          me.Point = at;
+          control.OnMouseMove(me);
         }
         return true;
       }
       #endregion
       #region Keyboard
-      else if(keys && e.Type == EventType.Keyboard)
+      else if(ProcessKeys && e.Type == EventType.Keyboard)
       {
-        KeyboardEvent ke = (KeyboardEvent)e;
-        KeyEventArgs ea = new KeyEventArgs(ke);
-        ea.KE.Mods = Input.Keyboard.Mods;
+        KeyEventArgs ea = new KeyEventArgs((KeyboardEvent)e);
+        ea.KE.Mods = Keyboard.Mods;
         DispatchKeyToFocused(ea);
         return true;
       }
       #endregion
       #region Mouse clicks
-      else if(clicks && e.Type == EventType.MouseClick)
+      else if(ProcessClicks && e.Type == EventType.MouseClick)
       {
-        ClickEventArgs ea = new ClickEventArgs((MouseClickEvent)e);
-        Point at = ea.CE.Point;
+        MouseClickEvent me = (MouseClickEvent)e;
+        Point at = me.Point;
         // if the click is not within the desktop area, ignore it (unless dragging or capturing)
-        if(capturing == null && !dragStarted && !Bounds.Contains(at)) return false;
-        Control p = this, c;
-        uint time = Timing.InternalMsecs;
-        bool passModal = modal.Count == 0;
+        if(!dragStarted && capturing == null && !Bounds.Contains(at)) return false;
+        at = ScreenToControl(at);
 
-        at.X -= Bounds.X; at.Y -= Bounds.Y; // at is the cursor point local to 'p'
-        while(p.Enabled && p.Visible)
+        Control control = this;
+        bool tryToFocus = AutoFocus == AutoFocus.Click && me.Down && !me.IsMouseWheel;
+        bool passModal = modal.Count == 0; // passModal is true if there's no modal window, or the click is within it
+        for(Control child; control.Enabled && control.Visible; control = child)
         {
-          c = p.GetChildAtPoint(at);
-          if(c == null) break;
-          if(!passModal && c == modal[modal.Count - 1]) passModal = true;
-          at = c.ParentToControl(at);
-          if(focus == AutoFocus.Click && ea.CE.Down && c.Enabled && passModal && !ea.CE.IsMouseWheel)
-          {
-            c.Focus(false);
-          }
-          p = c;
+          child = control.GetChildAtPoint(at);
+          if(child == null) break;
+          if(!passModal && child == modal[modal.Count - 1]) passModal = true;
+          at = child.ParentToControl(at);
+
+          // if we focus on mouse click, try to select the current child
+          if(tryToFocus && passModal && child.Selectable) child.Select(false);
         }
 
-        if(focus == AutoFocus.Click && !ea.CE.IsMouseWheel && ea.CE.Down && p.FocusedControl != null && passModal)
-        {
-          p.FocusedControl = null; // blur
-        }
+        // at this point, 'control' points to the control that doesn't have a child at 'at'.
+        if(tryToFocus && passModal) control.Focus();
 
-        if(ea.CE.Down)
-        { // only consider a drag if the click occurred within the modal window, and we're not already tracking one
-          if(passModal && dragging == null && p.HasStyle(ControlStyle.Draggable))
+        // TODO: we should avoid trying to drag mouse wheel movements
+        if(me.Down) // if the mouse button has been depressed...
+        { 
+          // consider a drag if the click passed the modal check and and we're not already tracking a drag
+          if(passModal && dragging == null && control.HasStyle(ControlStyle.Draggable))
           {
-            dragging = p;
-            drag.Start = ea.CE.Point;
-            drag.SetPressed(ea.CE.Button, true);
+            dragging = control;
+            drag.Start = me.Point; // keep track of the start position in screen coordinates
+            drag.SetPressed(me.Button, true); // pass the button that started the drag to the DragEventArgs
           }
         }
-        // button released. if we haven't started dragging (only considering one) or the button was one
-        // involved in the drag, then end the drag/consideration
-        else if(!dragStarted || drag.Pressed(ea.CE.Button))
+        // the button was released. if we haven't started dragging or we did start and the button was one that started the drag,
+        // then end the drag (or drag consideration)
+        else if(!dragStarted || drag.Pressed(me.Button))
         {
-          bool skipClick = dragStarted;
-          if(dragStarted)
+          bool skipClick = dragStarted; // whether we'll skip the later mouse click events
+          if(dragStarted) // if an actual drag was started, signal that it's ending
           {
-            drag.End = dragging.ScreenToControl(ea.CE.Point);
+            drag.End = dragging.ScreenToControl(me.Point);
             dragging.OnDragEnd(drag);
           }
           EndDrag();
-          // if we were dragging, or the mouse was released over the desktop and we're not capturing,
-          // then don't trigger any other mouse events (MouseUp or MouseClick). we're done.
-          if(skipClick || (p == this && capturing == null)) goto done;
-        }
-        else if(p == this && capturing == null) goto done; // the mouse was released over the desktop and we're not capturing
 
-        clickStatus = ClickStatus.All;
-        if(capturing != null)
+          // if we were dragging, don't trigger any other mouse events (MouseUp or MouseClick)
+          if(skipClick) goto done;
+        }
+
+        ClickEventArgs ea = new ClickEventArgs(me);
+        uint time = Timing.InternalMilliseconds;
+        mouseUpDownHandled = mouseClickHandled = false; // reset the handler flags in preparation for calling DispatchClickEvent
+        if(capturing != null) // if a control has mouse capture...
         {
-          Control dispatchTo = capturing.IsAncestorOf(p, true) ? p : capturing;
-          ea.CE.Point = dispatchTo.ScreenToControl(ea.CE.Point);
+          // dispatch to it (or a descendant)
+          Control dispatchTo = capturing.IsAncestorOf(control, true) ? control : capturing;
+          me.Point = dispatchTo == control ? at : dispatchTo.ScreenToControl(me.Point);
           DispatchClickEvent(dispatchTo, ea, time);
         }
         else if(passModal)
         {
-          ea.CE.Point = at;
+          // dispatch the click to 'control', and let it bubble up the control tree until somebody handles it
+          me.Point = at;
           do
           {
-            if(p.EffectivelyEnabled && p.EffectivelyVisible && !DispatchClickEvent(p, ea, time)) break;
-            ea.CE.Point = p.ControlToParent(ea.CE.Point);
-            p = p.Parent;
-          } while(p != null);
+            if(control.HasFlags(Flag.EffectivelyEnabled | Flag.EffectivelyVisible) && DispatchClickEvent(control, ea, time))
+            {
+              break;
+            }
+
+            me.Point = control.ControlToParent(me.Point);
+            control  = control.Parent;
+          } while(control != null);
         }
+
         done:
-        // lastClicked is used to track if the button release occurred over the same control it was pressed over
+        // lastClicked is used to track if the button release occurred over the same control it was pressed over.
         // this allows you to press the mouse on a control, then drag off and release to avoid the MouseClick event
-        if(!ea.CE.Down && (byte)ea.CE.Button < 8) lastClicked[(byte)ea.CE.Button] = null;
+        if(!me.Down && (byte)me.Button < 8) lastClicked[(byte)me.Button] = null;
         return true;
       }
       #endregion
@@ -497,10 +494,10 @@ public class Desktop : Control, IDisposable
 
   protected internal override void OnKeyDown(KeyEventArgs e)
   {
-    if(!e.Handled && e.KE.Down && e.KE.Key == tab &&
-       (e.KE.KeyMods == Input.KeyMod.None || e.KE.HasOnly(Input.KeyMod.Shift)))
+    if(!e.Handled && e.KE.Down && e.KE.Key == TabKey &&
+       (e.KE.KeyMods == KeyMod.None || e.KE.HasOnly(KeyMod.Shift)))
     {
-      TabToNext(e.KE.HasAny(Input.KeyMod.Shift));
+      TabToNext(e.KE.HasAny(KeyMod.Shift));
       e.Handled = true;
     }
 
@@ -539,7 +536,7 @@ public class Desktop : Control, IDisposable
 
   internal void NeedsLayout(Control control, bool recursive)
   {
-    control.SetFlag(Flag.RecursiveLayout, recursive);
+    control.SetFlags(Flag.RecursiveLayout, recursive);
     controlsToLayOut.Add(control);
     PostUpdateEvent();
   }
@@ -565,7 +562,7 @@ public class Desktop : Control, IDisposable
     modal.Add(control);
     if(capturing != control) capturing = null;
     if(dragging != null && dragging != control) EndDrag();
-    control.Focus(true);
+    control.Focus();
   }
 
   internal void UnsetModal(Control control)
@@ -580,7 +577,7 @@ public class Desktop : Control, IDisposable
       control = modal[modal.Count - 1];
       if(capturing != control) capturing = null;
       if(dragging != null && dragging != control) EndDrag();
-      control.Focus(true);
+      control.Focus();
     }
   }
 
@@ -653,11 +650,11 @@ public class Desktop : Control, IDisposable
 
         } while(control != this);
 
-        if(trackUpdates) AddUpdatedArea(destRect);
+        if(_trackUpdates) AddUpdatedArea(destRect);
       }
-      else if(trackUpdates) AddUpdatedArea(pe.DrawRect);
+      else if(_trackUpdates) AddUpdatedArea(pe.DrawRect);
 
-      didPainting = true;
+      _didPainting = true;
     }
   }
 
@@ -666,77 +663,85 @@ public class Desktop : Control, IDisposable
     if(e.KE.Down)
     {
       target.OnKeyDown(e);
-      if(e.Handled) return false;
-      if(e.KE.Char != 0) target.OnKeyPress(e);
+      if(!e.Handled && e.KE.Char != 0) target.OnKeyPress(e);
     }
-    else target.OnKeyUp(e);
+    else
+    {
+      target.OnKeyUp(e);
+    }
     return e.Handled;
   }
 
   bool DispatchClickEvent(Control target, ClickEventArgs e, uint time)
   {
-    if(e.CE.Down && (clickStatus & ClickStatus.UpDown) != 0)
+    // if the MouseUp/MouseDown/MouseWheel event hasn't been handled yet, try to handle it now
+    if(!mouseUpDownHandled)
     {
-      target.OnMouseDown(e);
-      if(e.Handled) { clickStatus ^= ClickStatus.UpDown; e.Handled = false; }
-    }
-    if(!e.CE.Down && (clickStatus & ClickStatus.UpDown) != 0)
-    {
-      if(e.CE.IsMouseWheel) e.Handled = true;
+      if(e.CE.IsMouseWheel) target.OnMouseWheel(e);
+      else if(e.CE.Down) target.OnMouseDown(e);
       else target.OnMouseUp(e);
-      if(e.Handled) { clickStatus ^= ClickStatus.UpDown; e.Handled = false; }
-    }
-    if(!e.CE.IsMouseWheel && (byte)e.CE.Button < 8)
-    {
-      if(target.HasStyle(ControlStyle.NormalClick) && (clickStatus & ClickStatus.Click) != 0)
+
+      if(e.Handled) // if the event was handled, mark it as such, so we don't try to handle it again
       {
-        if(e.CE.Down)
-        {
-          lastClicked[(byte)e.CE.Button] = target;
-        }
-        else if(lastClicked[(byte)e.CE.Button] == target)
-        {
-          if(target.HasStyle(ControlStyle.DoubleClickable) && time - target.lastClickTime <= dcDelay)
-          {
-            target.OnDoubleClick(e);
-          }
-          else target.OnMouseClick(e);
-          target.lastClickTime = time;
-          if(e.Handled) { clickStatus ^= ClickStatus.Click; e.Handled = false; }
-          lastClicked[(byte)e.CE.Button] = target.Parent; // allow the check to be done for the parent, too // TODO: make sure this is okay with captured/dragged controls
-        }
+        mouseUpDownHandled = true;
+        e.Handled = false; // then mark e.Handled as false for when we later call OnClick, OnDoubleClick, etc.
       }
-      else clickStatus ^= ClickStatus.Click;
     }
 
-    return clickStatus != ClickStatus.None;
+    // if we haven't handled the click events, and it's a normal button, and the target accepts click/doubleclick events...
+    if(!mouseClickHandled && !e.CE.IsMouseWheel && (byte)e.CE.Button < 8 && target.HasStyle(ControlStyle.NormalClick))
+    {
+      if(e.CE.Down) // if it was pressed...
+      {
+        lastClicked[(byte)e.CE.Button] = target; // keep track of the control it was pressed on
+      }
+      else if(lastClicked[(byte)e.CE.Button] == target) // if it was released over the same control it was pressed on...
+      {
+        // then handle either it as a click or double click
+        if(target.HasStyle(ControlStyle.DoubleClickable) && time - target.lastClickTime <= DoubleClickDelay)
+        {
+          target.OnDoubleClick(e);
+        }
+        else
+        {
+          target.OnMouseClick(e);
+        }
+
+        target.lastClickTime = time; // keep track of the last time we clicked on the control
+
+        if(e.Handled) // if the event was handled...
+        {
+          mouseClickHandled = true; // mark it as such, so we don't try to handle it again
+          lastClicked[(byte)e.CE.Button] = null; // and forget which control we last clicked on
+        }
+        else
+        {
+          // TODO: make sure this is okay with captured/dragged controls
+          lastClicked[(byte)e.CE.Button] = target.Parent; // allow the check to be done for the parent, too
+        }
+      }
+    }
+
+    return mouseUpDownHandled && mouseClickHandled;
   }
 
-  bool DispatchKeyToFocused(KeyEventArgs e)
+  void DispatchKeyToFocused(KeyEventArgs e)
   {
-    if(!e.Handled)
+    Control c = this;
+
+    // move down the control tree, dispatching the key to controls with key preview until we find a focused control
+    while(c.SelectedControl != null && c.HasFlags(Flag.EffectivelyEnabled | Flag.EffectivelyVisible) && !c.Focused)
     {
-      Control fc = this;
-      while(fc.FocusedControl != null && fc.HasFlags(Flag.EffectivelyEnabled | Flag.EffectivelyVisible))
-      {
-        if(fc.HasFlags((Flag)ControlStyle.CanReceiveFocus | Flag.KeyPreview) && DispatchKeyEvent(fc, e)) goto done;
-        fc = fc.FocusedControl;
-      }
-
-      if((fc == this || fc.HasStyle(ControlStyle.CanReceiveFocus)) &&
-         fc.HasFlags(Flag.EffectivelyEnabled | Flag.EffectivelyVisible) && DispatchKeyEvent(fc, e))
-      {
-        goto done;
-      }
-
-      if(fc != this && HasFlags(Flag.EffectivelyEnabled | Flag.EffectivelyVisible) && !KeyPreview)
-      {
-        DispatchKeyEvent(this, e);
-      }
+      if(c.KeyPreview && DispatchKeyEvent(c, e)) return;
+      c = c.SelectedControl;
     }
-    
-    done:
-    return e.Handled;
+
+    // if we found a focused control, dispatch it there
+    if(c.Focused && DispatchKeyEvent(c, e)) return;
+
+    // otherwise, it we didn't find a focused control to dispatch it to, so dispatch it to the desktop if it's enabled and it
+    // hasn't already received it (via key preview)
+    if(HasFlags(Flag.EffectivelyEnabled | Flag.EffectivelyVisible) && !KeyPreview) DispatchKeyEvent(this, e);
   }
 
   void DoLayout()
@@ -783,7 +788,7 @@ public class Desktop : Control, IDisposable
   void TabToNext(bool reverse)
   {
     Control fc = this;
-    while(fc.FocusedControl != null) fc = fc.FocusedControl;
+    while(fc.SelectedControl != null) fc = fc.SelectedControl;
     (fc == this ? this : fc.Parent).TabToNextControl(reverse);
   }
 
@@ -801,9 +806,6 @@ public class Desktop : Control, IDisposable
     }
   }
 
-  [Flags]
-  enum ClickStatus { None = 0, UpDown = 1, Click = 2, All = UpDown | Click };
-
   readonly List<Control> controlsToRepaint = new List<Control>(), controlsToLayOut = new List<Control>();
   readonly List<Control> modal = new List<Control>();
   readonly DragEventArgs drag = new DragEventArgs();
@@ -812,11 +814,9 @@ public class Desktop : Control, IDisposable
   Control[] lastClicked = new Control[8], entered = new Control[8];
   Control dragging;
   Rectangle[] updated = new Rectangle[8];
-  Input.Key tab = Input.Key.Tab;
-  AutoFocus focus = AutoFocus.Click;
-  ClickStatus clickStatus;
-  int enteredLen, updatedLen, dcDelay = 350, defaultDragThreshold = 16;
-  bool keys = true, clicks = true, moves = true, didPainting, dragStarted, trackUpdates, sentUpdateEvent, disposed;
+  bool mouseUpDownHandled, mouseClickHandled;
+  int enteredLen, updatedLen, _dcDelay = 350, _defaultDragThreshold = 16;
+  bool _didPainting, dragStarted, _trackUpdates, sentUpdateEvent, disposed;
 }
 #endregion
 

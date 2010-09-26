@@ -106,7 +106,7 @@ public enum ControlStyle
   DoubleClickable = 0x2,
   /// <summary>The control may receive drag events. Without this flag, a drag may be interpreted as a click.</summary>
   Draggable = 0x4,
-  /// <summary>The control may receive focus.</summary>
+  /// <summary>The control may receive keyboard focus.</summary>
   CanReceiveFocus = 0x8,
   /// <summary>This flag is the same as specifying <c>Clickable</c> and <c>DoubleClickable</c>.</summary>
   NormalClick = Clickable | DoubleClickable,

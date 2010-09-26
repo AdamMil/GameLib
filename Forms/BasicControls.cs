@@ -149,10 +149,9 @@ public abstract class ScrollableControl : Control
 
   protected virtual void OnVerticalScroll(object bar, ValueChangedEventArgs e) { }
 
-  protected internal override void OnMouseDown(ClickEventArgs e)
+  protected internal override void OnMouseWheel(ClickEventArgs e)
   {
-    if(!e.Handled && MouseWheelScrollAmount != 0 &&
-       (e.CE.Button == MouseButton.WheelDown || e.CE.Button == MouseButton.WheelUp))
+    if(!e.Handled && MouseWheelScrollAmount != 0)
     {
       if(VerticalScrollBar != null)
       {
@@ -169,7 +168,7 @@ public abstract class ScrollableControl : Control
       }
     }
 
-    base.OnMouseDown(e);
+    base.OnMouseWheel(e);
   }
 
   ScrollBar horz, vert;
@@ -1377,7 +1376,7 @@ public class TextBox : Control
         }
         else if(caretPosition - selectLen < 0) selectLen = -caretPosition;
         caretOn = true;
-        if(oldlen != 0 && (Selected || !hideSelection)) Invalidate(ContentRect);
+        if(oldlen != 0 && (Focused || !hideSelection)) Invalidate(ContentRect);
         OnCaretPositionChanged(e);
       }
     }
@@ -1389,7 +1388,7 @@ public class TextBox : Control
     set
     {
       hideSelection = value;
-      if(value && !Selected) Invalidate(ContentRect);
+      if(value && !Focused) Invalidate(ContentRect);
     }
   }
 
@@ -1461,7 +1460,7 @@ public class TextBox : Control
       {
         if(value < -Text.Length || value > Text.Length) throw new ArgumentOutOfRangeException("SelectionLength");
         selectLen = value;
-        if(Selected || !hideSelection) Invalidate(ContentRect);
+        if(Focused || !hideSelection) Invalidate(ContentRect);
       }
     }
   }
@@ -1534,13 +1533,14 @@ public class TextBox : Control
   protected override void OnGotFocus()
   {
     if(selectOnFocus) SelectAll();
+    if(hideSelection && SelectionLength != 0) Invalidate(ContentRect);
     WithCaret = this;
     base.OnGotFocus();
   }
 
   protected override void OnLostFocus()
   {
-    if(hideSelection) Invalidate(ContentRect);
+    if(hideSelection && SelectionLength != 0) Invalidate(ContentRect);
     WithCaret = null;
     base.OnLostFocus();
   }
@@ -1859,7 +1859,6 @@ public class TextBox : Control
 
   public void AppendText(string text) { Text += text; }
   
-  // TODO: use the real clipboard. this is easy, but I don't want to link to System.Windows.Forms :-(
   public void Copy()
   {
     if(SelectionLength != 0) SetClipboardText(SelectedText);
@@ -2056,18 +2055,18 @@ public class TextBox : Control
 
   static string GetClipboardText()
   {
-    string text = clipboard;
+    string text = clipboard; // we'll fall back on using the built-in clipboard
 
     if(Thread.CurrentThread.GetApartmentState() == ApartmentState.STA)
     {
-      for(int i=0; i<2 && Clipboard.ContainsText(); i++) // sometimes the clipboard is busy, so we'll try multiple times
+      for(int i=0; i<3 && Clipboard.ContainsText(); i++) // sometimes the clipboard is busy, so we'll try multiple times
       {
         try
         {
           text = Clipboard.GetText();
           break;
         }
-        catch { Thread.Sleep(0); } // if it fails, sleep for a bit
+        catch(System.Runtime.InteropServices.ExternalException) { Thread.Sleep(0); } // if it fails, sleep for a bit
       }
     }
 
@@ -2078,14 +2077,14 @@ public class TextBox : Control
   {
     if(Thread.CurrentThread.GetApartmentState() == ApartmentState.STA)
     {
-      for(int i=0; i<2; i++) // sometimes the clipboard is busy, so we'll try multiple times
+      for(int i=0; i<3; i++) // sometimes the clipboard is busy, so we'll try multiple times
       {
         try
         {
           if(string.IsNullOrEmpty(text)) Clipboard.Clear();
           else Clipboard.SetText(text);
         }
-        catch { Thread.Sleep(0); } // if it fails, sleep for a bit
+        catch(System.Runtime.InteropServices.ExternalException) { Thread.Sleep(0); } // if it fails, sleep for a bit
       }
     }
 

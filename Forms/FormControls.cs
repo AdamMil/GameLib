@@ -40,7 +40,7 @@ public abstract class FormBase : Control
 {
   protected FormBase()
   {
-    ControlStyle |= ControlStyle.CanReceiveFocus | ControlStyle.Draggable;
+    ControlStyle |= ControlStyle.Draggable;
     ForeColor     = SystemColors.ControlText;
     BackColor     = SystemColors.Control;
     DragThreshold = 3;
@@ -200,10 +200,10 @@ public abstract class FormBase : Control
   public event System.ComponentModel.CancelEventHandler Closing;
   public event EventHandler Closed;
 
-  protected override void OnGotFocus()
+  protected override void OnSelected()
   {
     BringToFront();
-    base.OnGotFocus();
+    base.OnSelected();
   }
 
   protected internal override void OnDragStart(DragEventArgs e)
@@ -474,17 +474,17 @@ public class Form : FormBase
     get { return titleBar; }
   }
 
-  protected override void OnGotFocus()
+  protected override void OnActivated()
   {
-    base.OnGotFocus();
+    base.OnActivated();
     BorderColor = SystemColors.ActiveBorder;
     TitleBar.ForeColor = SystemColors.ActiveCaptionText;
     TitleBar.BackColor = SystemColors.ActiveCaption;
   }
 
-  protected override void OnLostFocus()
+  protected override void OnDeactivated()
   {
-    base.OnLostFocus();
+    base.OnDeactivated();
     BorderColor = SystemColors.InactiveBorder;
     TitleBar.ForeColor = SystemColors.InactiveCaptionText;
     TitleBar.BackColor = SystemColors.InactiveCaption;

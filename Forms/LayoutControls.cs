@@ -184,7 +184,15 @@ public class SplitContainer : Control
   /// <summary>Gets or sets whether the splitter bar is fixed in position and cannot be moved by the user. The default is false.</summary>
   public bool IsSplitterFixed
   {
-    get; set;
+    get { return _isSplitterFixed; }
+    set
+    {
+      if(value != IsSplitterFixed)
+      {
+        _isSplitterFixed = value;
+        if(!value && Focused) Blur();
+      }
+    }
   }
 
   /// <summary>Gets or sets the <see cref="Forms.Orientation"/> of the splitter bar. The default is
@@ -341,7 +349,7 @@ public class SplitContainer : Control
   protected internal override void OnDragStart(DragEventArgs e)
   {
     base.OnDragStart(e);
-    if(!e.Pressed(MouseButton.Left) || !SplitterRect.Contains(e.Start)) e.Cancel = true;
+    if(IsSplitterFixed || !e.Pressed(MouseButton.Left) || !SplitterRect.Contains(e.Start)) e.Cancel = true;
     else dragPosition = Orientation == Orientation.Horizontal ? e.Start.Y : e.Start.X;
   }
 
@@ -399,7 +407,7 @@ public class SplitContainer : Control
   {
     base.OnKeyDown(e);
 
-    if(!e.Handled && e.KE.KeyMods == KeyMod.None)
+    if(!IsSplitterFixed && !e.Handled && e.KE.KeyMods == KeyMod.None)
     {
       if(e.KE.Key == Key.Home)
       {
@@ -437,15 +445,16 @@ public class SplitContainer : Control
   protected internal override void OnMouseDown(ClickEventArgs e)
   {
     base.OnMouseDown(e);
+
     // don't allow the user to focus the control by clicking anywhere except the splitter
-    if(Focused && !SplitterRect.Contains(e.CE.Point)) Blur();
+    if(!e.Handled && Focused && (IsSplitterFixed || !SplitterRect.Contains(e.CE.Point))) Blur();
   }
 
   protected override void OnPaint(PaintEventArgs e)
   {
     base.OnPaint(e);
 
-    if(HasFlag(Flag.Focused))
+    if(Focused)
     {
       Rectangle splitterRect = SplitterRect;
       if(splitterRect.Width != 0 && splitterRect.Height != 0)
@@ -617,7 +626,7 @@ public class SplitContainer : Control
   Size previousSize;
   int _panel1MinSize, _panel2MinSize, _splitterWidth, dragPosition;
   Orientation _orientation;
-  bool _panel1Collapsed, _panel2Collapsed;
+  bool _panel1Collapsed, _panel2Collapsed, _isSplitterFixed;
 
   static void LimitNewSizes(int preferredMinSize, int otherMinSize, ref int preferredNewSize, ref int otherNewSize)
   {

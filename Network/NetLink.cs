@@ -58,7 +58,7 @@ public sealed class LinkMessage : IDisposable
     AttachedStream = attachedStream;
     Flags          = flags;
     Tag            = tag;
-    if(timeout != 0) Deadline = Timing.InternalMsecs + (uint)timeout;
+    if(timeout != 0) Deadline = Timing.InternalMilliseconds + (uint)timeout;
 
     if(attachedStream != null)
     {
@@ -640,7 +640,7 @@ public class NetLink
       uint lag = (uint)(Utility.Random.Next((int)lagVariance*2) + lagAverage - lagVariance);
       if(lag != 0)
       {
-        m.Lag       = Timing.InternalMsecs + lag;
+        m.Lag       = Timing.InternalMilliseconds + lag;
         m.Deadline += lag;
       }
     }
@@ -846,7 +846,7 @@ public class NetLink
     if(!IsConnected) return true;
 
     List<Socket> read = new List<Socket>(2), write = null;
-    uint start = timeoutMs > 0 ? Timing.InternalMsecs : 0;
+    uint start = timeoutMs > 0 ? Timing.InternalMilliseconds : 0;
     while(true)
     {
       read.Add(tcp);
@@ -869,7 +869,7 @@ public class NetLink
       }
       else if(timeoutMs != NoTimeout)
       {
-        uint now = Timing.InternalMsecs, elapsed = now - start;
+        uint now = Timing.InternalMilliseconds, elapsed = now - start;
         if(elapsed >= (uint)timeoutMs) break;
         timeoutMs -= (int)elapsed;
         start = now;
@@ -920,7 +920,7 @@ public class NetLink
 
     if(ret.Count != 0) return ret; // return immediately if any of the links are not connected or have messages
 
-    uint start = timeoutMs > 0 ? Timing.InternalMsecs : 0;
+    uint start = timeoutMs > 0 ? Timing.InternalMilliseconds : 0;
     bool* added = stackalloc bool[links.Count]; // whether the given links have been added to the return array
     while(true)
     {
@@ -967,7 +967,7 @@ public class NetLink
 
       if(timeoutMs != NoTimeout)
       {
-        uint now = Timing.InternalMsecs, elapsed = now - start;
+        uint now = Timing.InternalMilliseconds, elapsed = now - start;
         if(elapsed >= (uint)timeoutMs) break;
         timeoutMs -= (int)elapsed;
         start = now;
@@ -1055,7 +1055,7 @@ public class NetLink
         do
         {
           msg = queue.Peek();
-          if(msg.Deadline != 0 && Timing.InternalMsecs > msg.Deadline)
+          if(msg.Deadline != 0 && Timing.InternalMilliseconds > msg.Deadline)
           {
             queue.Dequeue().Dispose();
             sendQueue--;
@@ -1063,7 +1063,7 @@ public class NetLink
           }
         } while(msg == null && queue.Count != 0);
 
-        if(msg != null && toSend == null && (msg.Lag == 0 || Timing.InternalMsecs < msg.Lag))
+        if(msg != null && toSend == null && (msg.Lag == 0 || Timing.InternalMilliseconds < msg.Lag))
         {
           toSend    = queue.Dequeue();
           sendState = State.Header;

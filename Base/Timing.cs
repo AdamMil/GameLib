@@ -53,10 +53,10 @@ public static class Timing
   /// used to reset the base time point, extending the time until overflow.
   /// </remarks>
   [CLSCompliant(false)]
-  public static uint Msecs { get { return (uint)timer.ElapsedMilliseconds; } }
+  public static uint Milliseconds { get { return (uint)timer.ElapsedMilliseconds; } }
 
   /// <summary>Gets the number of milliseconds that have elapsed since the timer started counting.</summary>
-  public static long LongMsecs { get { return timer.ElapsedMilliseconds; } }
+  public static long LongMilliseconds { get { return timer.ElapsedMilliseconds; } }
 
   /// <summary>Gets the number of seconds that have elapsed since the timer started counting.</summary>
   /// <remarks>While likely insignificant, this property will lose precision as time goes on due to the nature of
@@ -77,7 +77,7 @@ public static class Timing
   }
 
   /// <summary>Gets the number of elapsed milliseconds since the timer started counting. The timer cannot be reset.</summary>
-  internal static uint InternalMsecs
+  internal static uint InternalMilliseconds
   {
     get { return (uint)internalTimer.ElapsedMilliseconds; }
   }
