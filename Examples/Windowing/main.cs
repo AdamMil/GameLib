@@ -32,7 +32,7 @@ namespace WindowingTest
   {
     public CustomDesktop()
     {
-      AutoFocusing = AutoFocus.Click;
+      AutoFocus = AutoFocus.Click;
       BackColor    = SystemColors.AppWorkspace;
       Renderer     = new SurfaceControlRenderer();
 
@@ -198,6 +198,7 @@ namespace WindowingTest
       splitter.Panel2.BorderStyle = splitter.Panel1.BorderStyle;
       splitter.Panel1MinSize      = 100;
       splitter.Panel1.Controls.Add(vertStack);
+      splitter.Panel2.Controls.Add(new TextBox());
       Controls.Add(splitter);
       #endregion
     }
@@ -281,6 +282,12 @@ namespace WindowingTest
             .Click += LayoutControlForm_Click;
         menu.Add(new MenuItem("Exit", 'Q', new KeyCombo(KeyMod.Ctrl, 'Q')))
             .Click += Exit_Click;
+        desktop.Menu.Add(menu);
+
+        menu = new Menu("Focus Mode");
+        menu.Add(new MenuItem("Click")).Click += (o, e) => desktop.AutoFocus = AutoFocus.Click;
+        menu.Add(new MenuItem("Over")).Click += (o, e) => desktop.AutoFocus = AutoFocus.Over;
+        menu.Add(new MenuItem("OverSticky")).Click += (o, e) => desktop.AutoFocus = AutoFocus.OverSticky;
         desktop.Menu.Add(menu);
 
         desktop.Menu.Add(new Menu("Disabled")).Enabled=false;

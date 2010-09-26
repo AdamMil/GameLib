@@ -1100,7 +1100,7 @@ public sealed class Channel
 
   public event ChannelFinishedHandler Finished;
 
-  public int Age { get { return source==null ? 0 : (int)(Timing.Msecs-startTime); } }
+  public int Age { get { return source==null ? 0 : (int)(Timing.Milliseconds-startTime); } }
 
   public int Both
   {
@@ -1148,7 +1148,7 @@ public sealed class Channel
       if(source==null) return;
       fade      = Fade.Out;
       fadeTime  = (uint)fadeMs;
-      fadeStart = Timing.Msecs;
+      fadeStart = Timing.Milliseconds;
       fadeLeft  = EffectiveLeft;
       fadeRight = EffectiveRight;
     }
@@ -1180,7 +1180,7 @@ public sealed class Channel
       if(!source.CanSeek && source.CanRewind && position==0) source.Rewind();
       priority  = source.Priority;
       paused    = false;
-      startTime = Timing.Msecs;
+      startTime = Timing.Milliseconds;
       source.playing++;
       convert = !source.Format.Equals(Audio.Format);
       if(convert)
@@ -1194,7 +1194,7 @@ public sealed class Channel
         fadeTime  = (uint)fadeMs;
         fadeLeft  = fade==Fade.In ? 0 : EffectiveLeft;
         fadeRight = fade==Fade.In ? 0 : EffectiveRight;
-        fadeStart = Timing.Msecs;
+        fadeStart = Timing.Milliseconds;
       }
     }
   }
@@ -1230,7 +1230,7 @@ public sealed class Channel
       }
       if(fade!=Fade.None)
       {
-        uint fadeSoFar = Timing.Msecs-fadeStart;
+        uint fadeSoFar = Timing.Milliseconds-fadeStart;
         int ltarg, rtarg;
         if(fade==Fade.In) { ltarg=left; rtarg=right; }
         else ltarg=rtarg=0;

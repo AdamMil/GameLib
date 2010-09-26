@@ -203,7 +203,7 @@ public class Client
   {
     if(timeoutMs < 0) throw new ArgumentOutOfRangeException("timeoutMs", "Cannot be negative");
     dropDelay   = (uint)timeoutMs;
-    dropStart   = Timing.InternalMsecs;
+    dropStart   = Timing.InternalMilliseconds;
     delayedDrop = true;
   }
 
@@ -385,7 +385,7 @@ public class Client
 
   bool PollCore()
   {
-    if(delayedDrop && Timing.InternalMsecs-dropStart >= dropDelay) link.Close();
+    if(delayedDrop && Timing.InternalMilliseconds-dropStart >= dropDelay) link.Close();
 
     // ReceivePoll() is called by ReceiveMessage as necessary, but we need to call SendPoll ourselves
     link.SendPoll();
