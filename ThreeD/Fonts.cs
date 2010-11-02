@@ -1,44 +1,46 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
-using AdamMil.Mathematics.Geometry;
+using AdamMil.Utilities;
 using GameLib.Interop.OpenGL;
 using GameLib.Interop.SDL;
 using GameLib.Interop.SDLTTF;
 using GameLib.Video;
+using RectanglePacker = AdamMil.Mathematics.Geometry.TwoD.RectanglePacker;
 
 namespace GameLib.Fonts
 {
 
 #region GLFont
+/// <summary>Provides a base class for fonts that render into an OpenGL display.</summary>
 public abstract class GLFont : Font
 {
-  /// <include file="../documentation.xml" path="//Fonts/Render/Point/Pt/*"/>
+  /// <include file="../documentation.xml" path="//Fonts/Render/Point/Pt/*[@name != 'dest']"/>
   public int Render(string text, PointF pt) { return Render(text, pt.X, pt.Y); }
 
-  /// <include file="../documentation.xml" path="//Fonts/Render/Point/XY/*"/>
+  /// <include file="../documentation.xml" path="//Fonts/Render/Point/XY/*[@name != 'dest']"/>
   public abstract int Render(string text, float x, float y);
 
-  /// <include file="../documentation.xml" path="//Fonts/Render/Rect/NoAlign/*"/>
+  /// <include file="../documentation.xml" path="//Fonts/Render/Rect/NoAlign/*[@name != 'dest']"/>
   public PointF Render(string text, RectangleF rect)
   {
     return Render(text, rect, ContentAlignment.TopLeft, 0, 0, breakers);
   }
 
-  /// <include file="../documentation.xml" path="//Fonts/Render/Rect/Align/*"/>
+  /// <include file="../documentation.xml" path="//Fonts/Render/Rect/Align/*[@name != 'dest']"/>
   public PointF Render(string text, RectangleF rect, ContentAlignment align)
   {
     return Render(text, rect, align, 0, 0, breakers);
   }
 
-  /// <include file="../documentation.xml" path="//Fonts/Render/Rect/*[self::NoAlign or self::Offset]/*"/>
+  /// <include file="../documentation.xml" path="//Fonts/Render/Rect/*[self::NoAlign or self::Offset]/*[@name != 'dest']"/>
   /// <remarks>The X and Y offsets into the rectangle are provided to allow continuing rendering where you left off.</remarks>
   public PointF Render(string text, RectangleF rect, int startx, int starty)
   {
     return Render(text, rect, ContentAlignment.TopLeft, startx, starty, breakers);
   }
 
-  /// <include file="../documentation.xml" path="//Fonts/Render/Rect/*[self::Align or self::Offset]/*"/>
+  /// <include file="../documentation.xml" path="//Fonts/Render/Rect/*[self::Align or self::Offset]/*[@name != 'dest']"/>
   /// <param name="breakers">An array of characters that will be used to break the text. Those characters will
   /// mark preferred places within the string to break to a new line.
   /// </param>
@@ -88,10 +90,12 @@ public abstract class GLFont : Font
 #endregion
 
 #region GLTrueTypeFont
+/// <summary>Implements a TrueType font renderer for OpenGL displays.</summary>
 public class GLTrueTypeFont : GLFont
 {
   int MinimumCacheSize = 64;
 
+  /// <include file="../documentation.xml" path="//Fonts/TrueTypeFont/Cons/File/*"/>
   public GLTrueTypeFont(string filename, int pointSize)
   { TTF.Initialize();
     try { font = TTF.OpenFont(filename, pointSize); }
@@ -99,22 +103,27 @@ public class GLTrueTypeFont : GLFont
     Init(pointSize);
   }
 
+  /// <include file="../documentation.xml" path="//Fonts/TrueTypeFont/Cons/*[self::File or self::Index]/*"/>
   public GLTrueTypeFont(string filename, int pointSize, int fontIndex)
   { try { font = TTF.OpenFontIndex(filename, pointSize, fontIndex); }
     catch(NullReferenceException) { unsafe { font = new IntPtr(null); } }
     Init(pointSize);
   }
 
+  /// <include file="../documentation.xml" path="//Fonts/TrueTypeFont/Cons/*[self::Stream or self::WillClose]/*"/>
   public GLTrueTypeFont(System.IO.Stream stream, int pointSize) : this(stream, pointSize, true) { }
 
+  /// <include file="../documentation.xml" path="//Fonts/TrueTypeFont/Cons/*[self::Stream or self::AutoClose]/*"/>
   public GLTrueTypeFont(System.IO.Stream stream, int pointSize, bool autoClose)
   { SeekableStreamRWOps source = new SeekableStreamRWOps(stream, autoClose);
     unsafe { fixed(SDL.RWOps* ops = &source.ops) font = TTF.OpenFontRW(ops, 0, pointSize); }
     Init(pointSize);
   }
 
+  /// <include file="../documentation.xml" path="//Fonts/TrueTypeFont/Cons/*[self::Stream or self::Index or self::WillClose]/*"/>
   public GLTrueTypeFont(System.IO.Stream stream, int pointSize, int fontIndex) : this(stream, pointSize, fontIndex, true) { }
 
+  /// <include file="../documentation.xml" path="//Fonts/TrueTypeFont/Cons/*[self::Stream or self::Index or self::AutoClose]/*"/>
   public GLTrueTypeFont(System.IO.Stream stream, int pointSize, int fontIndex, bool autoClose)
   { SeekableStreamRWOps source = new SeekableStreamRWOps(stream, autoClose);
     unsafe { fixed(SDL.RWOps* ops = &source.ops) font = TTF.OpenFontIndexRW(ops, 0, pointSize, fontIndex); }
@@ -145,6 +154,7 @@ public class GLTrueTypeFont : GLFont
     get { return TTF.FontHeight(font); } 
   }
 
+  /// <include file="../documentation.xml" path="//Fonts/LineHeight/*"/>
   public override int LineHeight
   {
     get { return TTF.FontLineSkip(font); } 
@@ -206,8 +216,8 @@ public class GLTrueTypeFont : GLFont
   }
 
   /// <summary>Gets or sets the rendering style that will be used to render the font.</summary>
-  /// <remarks>Note that <see cref="RenderStyle.Shaded"/> is not supported. It is recommended that you use
-  /// <see cref="RenderStyle.Blended"/> instead.
+  /// <remarks>Note that <see cref="Fonts.RenderStyle.Shaded"/> is not supported. It is recommended that you use
+  /// <see cref="Fonts.RenderStyle.Blended"/> instead.
   /// </remarks>
   public RenderStyle RenderStyle
   {
@@ -234,6 +244,7 @@ public class GLTrueTypeFont : GLFont
     }
   }
 
+  /// <include file="../documentation.xml" path="//Fonts/CalculateSize/*"/>
   public override Size CalculateSize(string text)
   { 
     Size size = new Size(0, Height);
@@ -253,6 +264,7 @@ public class GLTrueTypeFont : GLFont
     return text.Length;
   }
 
+  /// <include file="../documentation.xml" path="//Fonts/Render/Point/XY/*[@name != 'dest']"/>
   public override int Render(string text, float x, float y)
   {
     if(text == null) throw new ArgumentNullException();
@@ -330,6 +342,7 @@ public class GLTrueTypeFont : GLFont
     return (int)(x - start);
   }
 
+  /// <include file="../documentation.xml" path="//Common/Dispose/*"/>
   protected override void Dispose(bool finalizing)
   {
     ClearCache();
@@ -344,6 +357,7 @@ public class GLTrueTypeFont : GLFont
     base.Dispose(finalizing);
   }
 
+  /// <include file="../documentation.xml" path="//Font/OnDisplayFormatChanged/*"/>
   protected override void OnDisplayFormatChanged()
   {
     ClearCache();
@@ -547,7 +561,7 @@ public class GLTrueTypeFont : GLFont
     }
     finally
     {
-      foreach(Surface glyph in glyphs) Utility.Dispose(glyph);
+      foreach(Surface glyph in glyphs) glyph.Dispose();
     }
   }
 

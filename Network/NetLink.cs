@@ -22,6 +22,7 @@ using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using AdamMil.IO;
+using AdamMil.Utilities;
 
 namespace GameLib.Network
 {
@@ -296,8 +297,9 @@ public class NetLink
   
   /// <summary>This event is raised when a message is received by the remote host.</summary>
   /// <remarks>Note that the message must have been sent with the <see cref="SendFlag.NotifyReceived"/> flag
-  /// in order for this event to be raised.
+  /// in order for this event to be raised. Also note that this is not currently implemented.
   /// </remarks>
+  // TODO: implement this
   public event LinkMessageHandler RemoteReceived;
 
   /// <include file="../documentation.xml" path="//Network/Common/IsConnected/*"/>
@@ -637,7 +639,8 @@ public class NetLink
     LinkMessage m = new LinkMessage(data, index, length, attachedStream, flags, timeoutMs, tag);
     if(lagAverage != 0 || lagVariance != 0)
     {
-      uint lag = (uint)(Utility.Random.Next((int)lagVariance*2) + lagAverage - lagVariance);
+      uint lag;
+      lock(random) lag = (uint)(random.Next((int)lagVariance*2) + lagAverage - lagVariance);
       if(lag != 0)
       {
         m.Lag       = Timing.InternalMilliseconds + lag;
@@ -1256,6 +1259,8 @@ public class NetLink
       }
     }
   }
+
+  static readonly Random random = new Random();
 }
 #endregion
 

@@ -21,11 +21,12 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Drawing;
 using System.Threading;
-using GameLib.Video;
+using AdamMil.Utilities;
 using GameLib.Input;
-using Clipboard = System.Windows.Forms.Clipboard;
-using Font = GameLib.Fonts.Font;
-using Timer = System.Windows.Forms.Timer;
+using GameLib.Video;
+using Clipboard=System.Windows.Forms.Clipboard;
+using Font=GameLib.Fonts.Font;
+using Timer=System.Windows.Forms.Timer;
 
 // TODO: add documentation
 // TODO: make caret support be part of the desktop instead of part of the textbox (this allows the system to integrate
@@ -908,7 +909,7 @@ public class ScrollBar : Control
     }
   }
 
-  /// <summary>Gets or sets the orientation of the scrollbar. The default is <see cref="Orientation.Vertical"/>.</summary>
+  /// <summary>Gets or sets the orientation of the scrollbar. The default is <see cref="Forms.Orientation.Vertical"/>.</summary>
   public Orientation Orientation
   {
     get { return orientation; }

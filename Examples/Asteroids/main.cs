@@ -18,14 +18,15 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 using System;
 using System.Collections.Generic;
+using AdamMil.Mathematics.Geometry;
+using AdamMil.Mathematics.Geometry.TwoD;
 using GameLib;
 using GameLib.Audio;
 using GameLib.CD;
 using GameLib.Events;
 using GameLib.Input;
-using GameLib.Video;
 using GameLib.Interop.OpenGL;
-using AdamMil.Mathematics.Geometry.TwoD;
+using GameLib.Video;
 
 namespace Asteroids
 {
@@ -186,7 +187,7 @@ namespace Asteroids
       const int turnSpeed=300, accel=300, bulletSpeed=250;
       if(Keyboard.Pressed(Key.Left)) Angle += turnSpeed*App.TimeDelta;
       if(Keyboard.Pressed(Key.Right)) Angle -= turnSpeed*App.TimeDelta;
-      double angle = Angle*Math.PI/180;
+      double angle = Angle * MathConst.DegreesToRadians;
       if(Keyboard.Pressed(Key.Up))
       {
         Vel += new Vector(0, accel).Rotated(angle)*App.TimeDelta;
@@ -218,7 +219,7 @@ namespace Asteroids
 #if DEBUG
     static string dataPath = "../../../";
 #else
-  static string dataPath = "./data/";
+    static string dataPath = "./data/";
 #endif
     const int STARTSIZE = 75;
 

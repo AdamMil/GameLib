@@ -22,6 +22,9 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Collections.Generic;
 using AdamMil.IO;
+using AdamMil.Utilities;
+using BinaryReader = AdamMil.IO.BinaryReader;
+using BinaryWriter = AdamMil.IO.BinaryWriter;
 
 namespace GameLib.Network
 {
@@ -35,48 +38,32 @@ namespace GameLib.Network
 /// comparatively low performance. In addition to implementing the methods in this interface, the object must have a
 /// default constructor.
 /// </remarks>
+[CLSCompliant(false)]
 public interface INetSerializable
 {
-  /// <summary>Calculates the size in bytes of the serialized message data, not including the size of the attached
-  /// stream, if any.
-  /// </summary>
-  int SizeOf();
-
-  /// <summary>Serializes an object into a byte array.</summary>
-  /// <param name="buf">The byte array into which the object should be serialized.</param>
-  /// <param name="index">The index into <paramref name="buf"/> at which data should be written.</param>
+  /// <summary>Serializes an object into a <see cref="BinaryWriter"/>.</summary>
+  /// <param name="writer">The <see cref="BinaryWriter"/> into which the object should be serialized.</param>
   /// <param name="attachedStream">A variable that can be set to an instance of a stream if the stream should be
   /// attached to the network message. This stream will be closed by the system. If you don't want that to happen, wrap
-  /// the stream with a <see cref="ReferenceCountedStream"/>, with a reference count greater than one.
+  /// the stream with a <see cref="DelegateStream"/> and pass false to the constructor.
   /// </param>
-  /// <remarks>This method will be called by the serialization engine to serialize an object. The only assumption
-  /// that can be made about <paramref name="buf"/> is that there are at least N bytes at <paramref name="index"/>
-  /// than can be written, where N is the value obtained by calling <see cref="SizeOf"/>.
-  /// </remarks>
-  void SerializeTo(byte[] buf, int index, out Stream attachedStream);
+  /// <remarks>This method will be called by the network serialization system to serialize an object.</remarks>
+  void Serialize(BinaryWriter writer, out Stream attachedStream);
 
-  /// <summary>Deserializes an object from a byte array.</summary>
-  /// <param name="buf">The byte array from which the object should be deserialized.</param>
-  /// <param name="index">The index into <paramref name="buf"/> from which data should be read.</param>
+  /// <summary>Deserializes an object from a <see cref="BinaryReader"/>.</summary>
+  /// <param name="reader">The <see cref="BinaryReader"/> from which the object should be deserialized.</param>
   /// <param name="attachedStream">A reference to the stream that was attached to the message, or null if no stream was
   /// attached. You are responsible for closing the stream if it's not null.
   /// </param>
-  /// <remarks>The engine will create an instance of the object using the default constructor and then call this
-  /// method on it. The only assumption that can be made about <paramref name="buf"/> is that there are at least
-  /// N bytes at <paramref name="index"/> than can be used, where N was the value obtained by calling <see
-  /// cref="SizeOf"/> during the serialization process.
+  /// <remarks>The network serialization system will create an instance of the object using the default constructor and then
+  /// call this method on it.
   /// </remarks>
-  /// <returns>The number of bytes read from <paramref name="buf"/>. The return value is used when deserializing
-  /// arrays of objects that implement <see cref="INetSerializable"/>. Since each object can be a different size,
-  /// the return value is used to find the offset of the next item in the array. This should be the same as the
-  /// value that <see cref="SizeOf"/> returned during serialization.
-  /// </returns>
-  int DeserializeFrom(byte[] buf, int index, Stream attachedStream);
+  void Deserialize(BinaryReader reader, Stream attachedStream);
 }
 #endregion
 
 #region MessageConverter
-/// <summary>This class handles the serialization and deserialization of objects for the networking engine.</summary>
+/// <summary>This class handles the serialization and deserialization of objects for the networking system.</summary>
 /// <remarks>Types to be serialized or deserialized must be registered (with the sole exception of arrays of
 /// <see cref="System.Byte"/>), and furthermore, must be registered in the same order in order to be deserialized
 /// by an instance of this class. This means that that for an application using Client and Server, the same types
@@ -192,6 +179,8 @@ public sealed class MessageConverter
   /// <returns>An object by created by deserializing the data from the array.</returns>
   public unsafe object Deserialize(byte[] data, int index, int length, Stream attachedStream)
   {
+    Utility.ValidateRange(data, index, length);
+
     if(types.Count == 0) // if no types are registered, the message must have been a byte array, since that's all that
     {                    // could be sent on the other end, assuming an identical MessageConverter
       if(length == data.Length)
@@ -207,76 +196,85 @@ public sealed class MessageConverter
     }
     else
     {
-      uint id = IOH.ReadBE4U(data, index);
-      index += HeaderSize;
+      uint id = IOH.ReadLE4U(data, index);
+      index  += HeaderSize;
+      length -= HeaderSize;
 
       if(id == 0) // ID 0 is reserved for byte arrays
       {
-        byte[] buf = new byte[length-HeaderSize];
-        Array.Copy(data, index, buf, 0, length-HeaderSize);
+        byte[] buf = new byte[length];
+        Array.Copy(data, index, buf, 0, length);
         return buf;
       }
 
-      bool isArray = (id & 0x80000000) != 0;
-      if(isArray) id &= 0x7FFFFFFF;
-
-      // 'id' is one greater than the actual index
-      if(id > types.Count) throw new ArgumentException("Unregistered type id: " + id);
-      TypeInfo info = (TypeInfo)types[(int)id-1];
-      Type type = info.Type;
-
-      if(isArray) // it's an array of objects
+      using(BinaryReader reader = new BinaryReader(data, index, length))
       {
-        if(info.Constructor != null) // if the object implements INetSerializable
+        bool isArray = (id & 0x80000000) != 0;
+        if(isArray) id &= 0x7FFFFFFF;
+
+        // 'id' is one greater than the actual index
+        if(id > types.Count) throw new ArgumentException("Unregistered type id: " + id);
+        TypeInfo info = (TypeInfo)types[(int)id-1];
+        Type type = info.Type;
+
+        if(isArray) // it's an array of objects
         {
-          System.Collections.ArrayList objects = new System.Collections.ArrayList();
-          while(index < data.Length)
+          if(attachedStream != null)
           {
-            INetSerializable ns = (INetSerializable)info.Constructor.Invoke(null);
-            index += ns.DeserializeFrom(data, index, attachedStream);
-            objects.Add(ns);
+            throw new ArgumentException("An attached stream cannot be used when deserializing arrays of objects.");
           }
-          return objects.ToArray(type);
-        }
-        else // it's an array of objects that don't implement INetSerializable
-        {
-          Array array = Array.CreateInstance(type, (length-HeaderSize) / info.Size);
-          if(array.Length != 0)
+
+          if(info.Constructor != null) // if the object implements INetSerializable
           {
-            fixed(byte* src=data)
+            System.Collections.ArrayList objects = new System.Collections.ArrayList();
+            while((int)reader.Position < length)
             {
-              if(info.Blittable) // if it's a blittable type, we can copy the memory directly
+              INetSerializable ns = (INetSerializable)info.Constructor.Invoke(null);
+              ns.Deserialize(reader, null);
+              objects.Add(ns);
+            }
+            return objects.ToArray(type);
+          }
+          else // it's an array of objects that don't implement INetSerializable
+          {
+            Array array = Array.CreateInstance(type, (length-HeaderSize) / info.Size);
+            if(array.Length != 0)
+            {
+              fixed(byte* src=data)
               {
-                GCHandle handle = GCHandle.Alloc(array, GCHandleType.Pinned);
-                try
+                if(info.Blittable) // if it's a blittable type, we can copy the memory directly
                 {
-                  IntPtr dest = Marshal.UnsafeAddrOfPinnedArrayElement(array, 0);
-                  Interop.Unsafe.Copy(src+index, dest.ToPointer(), array.Length*info.Size);
+                  GCHandle handle = GCHandle.Alloc(array, GCHandleType.Pinned);
+                  try
+                  {
+                    IntPtr dest = Marshal.UnsafeAddrOfPinnedArrayElement(array, 0);
+                    Unsafe.Copy(src+index, dest.ToPointer(), array.Length*info.Size);
+                  }
+                  finally { handle.Free(); }
                 }
-                finally { handle.Free(); }
-              }
-              else // it's not a blittable type, so we have to marshal each item individually
-              {
-                byte* ptr = src+index;
-                for(int i=0; i<array.Length; ptr += info.Size, i++)
+                else // it's not a blittable type, so we have to marshal each item individually
                 {
-                  array.SetValue(Marshal.PtrToStructure(new IntPtr(ptr), type), i);
+                  byte* ptr = src+index;
+                  for(int i=0; i<array.Length; ptr += info.Size, i++)
+                  {
+                    array.SetValue(Marshal.PtrToStructure(new IntPtr(ptr), type), i);
+                  }
                 }
               }
             }
+            return array;
           }
-          return array;
         }
-      }
-      else if(info.Constructor != null) // is a single object that implements INetSerializable
-      {
-        INetSerializable ns = (INetSerializable)info.Constructor.Invoke(null);
-        ns.DeserializeFrom(data, index, attachedStream);
-        return ns;
-      }
-      else // it's a single object that doesn't implement INetSerializable
-      {
-        fixed(byte* src=data) return Marshal.PtrToStructure(new IntPtr(src+index), type);
+        else if(info.Constructor != null) // it's a single object that implements INetSerializable
+        {
+          INetSerializable ns = (INetSerializable)info.Constructor.Invoke(null);
+          ns.Deserialize(reader, attachedStream);
+          return ns;
+        }
+        else // it's a single object that doesn't implement INetSerializable
+        {
+          fixed(byte* src=data) return Marshal.PtrToStructure(new IntPtr(src+index), type);
+        }
       }
     }
   }
@@ -365,27 +363,21 @@ public sealed class MessageConverter
       Array array = (Array)obj;
       if(info.Constructor != null) // it's an array of objects that implement INetSerializable
       {
-        int i=0, j=0;
-        int* sizes = stackalloc int[array.Length]; // create an array to hold the sizes of the individual objects
-        System.Collections.IEnumerator e = array.GetEnumerator();
-        while(e.MoveNext())
+        using(MemoryStream ms = new MemoryStream())
+        using(BinaryWriter writer = new BinaryWriter(ms))
         {
-          sizes[i] = ((INetSerializable)e.Current).SizeOf();
-          j += sizes[i++];
-        }
-
-        ret = new byte[j + HeaderSize]; // allocate the memory for the objects
-        i = 0;
-        j = HeaderSize;
-        e.Reset();
-        while(e.MoveNext())
-        {
-          ((INetSerializable)e.Current).SerializeTo(ret, j, out attachedStream);
-          if(attachedStream != null)
+          writer.Write(0); // add a placeholder for the ID
+          foreach(INetSerializable item in array)
           {
-            throw new ArgumentException("Can't serialize an array of objects that use attached streams.");
+            if(item == null) throw new ArgumentException("An item in the array was null.");
+            item.Serialize(writer, out attachedStream);
+            if(attachedStream != null)
+            {
+              throw new ArgumentException("Can't serialize an array of objects that use attached streams.");
+            }
           }
-          j += sizes[i++];
+          writer.FlushBuffer();
+          ret = ms.ToArray();
         }
       }
       else // it's an array of marshalable objects
@@ -403,7 +395,7 @@ public sealed class MessageConverter
               try
               {
                 IntPtr src = Marshal.UnsafeAddrOfPinnedArrayElement(array, 0);
-                Interop.Unsafe.Copy(src.ToPointer(), dest+HeaderSize, ret.Length-HeaderSize);
+                Unsafe.Copy(src.ToPointer(), dest+HeaderSize, ret.Length-HeaderSize);
               }
               finally { handle.Free(); }
             }
@@ -423,9 +415,14 @@ public sealed class MessageConverter
     }
     else if(info.Constructor != null) // it's a single object that implements INetSerializable
     {
-      INetSerializable ns = (INetSerializable)obj;
-      ret = new byte[ns.SizeOf() + HeaderSize];
-      ns.SerializeTo(ret, HeaderSize, out attachedStream);
+      using(MemoryStream ms = new MemoryStream())
+      using(BinaryWriter writer = new BinaryWriter(ms))
+      {
+        writer.Write(0); // add a placeholder for the ID
+        ((INetSerializable)obj).Serialize(writer, out attachedStream);
+        writer.FlushBuffer();
+        ret = ms.ToArray();
+      }
     }
     else
     {
@@ -439,7 +436,7 @@ public sealed class MessageConverter
     }
 
     id++; // the actual ID is one greater because ID 0 is reserved for byte arrays
-    IOH.WriteBE4U(ret, 0, isArray ? (uint)id | 0x80000000 : (uint)id); // write the header
+    IOH.WriteLE4U(ret, 0, isArray ? (uint)id | 0x80000000 : (uint)id); // write the header (i.e. the ID)
     return ret;
   }
 

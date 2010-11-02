@@ -25,7 +25,7 @@ namespace GameLib
 /// <summary>This class provides methods to accurately measure the passage of time.</summary>
 /// <remarks>Time is normally measured from when the timing system was initialized, but <see cref="Reset"/> can
 /// be used to reset the base time point. The class provides tick-based timing (<see cref="Frequency"/> and
-/// <see cref="Counter"/>) and real-time timing (<see cref="Msecs"/> and <see cref="Seconds"/>). The real-time
+/// <see cref="Counter"/>) and real-time timing (<see cref="Milliseconds"/> and <see cref="Seconds"/>). The real-time
 /// timers are based on the tick-based timers. The tick-based timers provide the maximum resolution and
 /// precision.
 /// </remarks>
@@ -68,7 +68,7 @@ public static class Timing
 
   /// <summary>Resets the timer to zero.</summary>
   /// <remarks>After calling this method, the timer will be reset to zero, so <see cref="Counter"/>,
-  /// <see cref="Msecs"/>, and <see cref="Seconds"/> will all start over from zero.
+  /// <see cref="Milliseconds"/>, and <see cref="Seconds"/> will all start over from zero.
   /// </remarks>
   public static void Reset()
   {

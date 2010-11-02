@@ -23,6 +23,7 @@ using System.Drawing;
 using GameLib.Events;
 using GameLib.Video;
 using Font = GameLib.Fonts.Font;
+using AdamMil.Utilities;
 
 // TODO: fix focusing/selecting to support the scenario that a form that is reselected after being deselected has the
 // control that previously had keyboard focus focused again
@@ -577,8 +578,8 @@ public class Control
   /// <summary>Returns true if this control has input focus.</summary>
   /// <remarks>The control that has input focus will receive keyboard events. Many controls can be selected (see
   /// <see cref="Selected"/>) or active (see <see cref="Active"/>) but only one control can have input focus -- the control whose
-  /// ancestors are all selected, which has the <see cref="ControlStyle.CanReceiveFocus"/> style, is effectively visible and
-  /// effectively enabled, and which doesn't have a selected descendant with those same qualities. To set input focus,
+  /// ancestors are all selected, which has the <see cref="Forms.ControlStyle.CanReceiveFocus"/> style, is effectively visible
+  /// and effectively enabled, and which doesn't have a selected descendant with those same qualities. To set input focus,
   /// use the <see cref="Focus"/> method.
   /// </remarks>
   public bool Focused
@@ -769,18 +770,18 @@ public class Control
 
   /// <summary>Occurs when the mouse button is double-clicked inside a control's area.</summary>
   /// <remarks>If another control has captured mouse input or is the topmost modal contral, this event will only
-  /// be raised for that control. The control must have the <see cref="ControlStyle.DoubleClickable"/> style to
+  /// be raised for that control. The control must have the <see cref="Forms.ControlStyle.DoubleClickable"/> style to
   /// receive this event.
-  /// <seealso cref="DesktopControl.DoubleClickDelay"/>
+  /// <seealso cref="Forms.Desktop.DoubleClickDelay"/>
   /// </remarks>
   public event EventHandler<ClickEventArgs> DoubleClick;
 
   /// <summary>Occurs when the mouse is clicked and dragged inside the control's area.</summary>
   /// <remarks>If another control has captured mouse input or is the topmost modal contral, this event will only
-  /// be raised for that control. The control must have the <see cref="ControlStyle.Draggable"/> style to
+  /// be raised for that control. The control must have the <see cref="Forms.ControlStyle.Draggable"/> style to
   /// receive this event.
-  /// <seealso cref="GuiControl.DragThreshold"/>
-  /// <seealso cref="DesktopControl.DragThreshold"/>
+  /// <seealso cref="Control.DragThreshold"/>
+  /// <seealso cref="Forms.Desktop.DefaultDragThreshold"/>
   /// </remarks>
   public event EventHandler<DragEventArgs> DragStart;
 
@@ -845,14 +846,14 @@ public class Control
 
   /// <summary>Occurs when the mouse button is pressed inside a control's area.</summary>
   /// <remarks>If another control has captured mouse input or is the topmost modal contral, this event will only
-  /// be raised for that control. The control must have the <see cref="ControlStyle.Clickable"/> style to receive
+  /// be raised for that control. The control must have the <see cref="Forms.ControlStyle.Clickable"/> style to receive
   /// this event.
   /// </remarks>
   public event EventHandler<ClickEventArgs> MouseDown;
 
   /// <summary>Occurs when the mouse button is released inside a control's area.</summary>
   /// <remarks>If another control has captured mouse input or is the topmost modal contral, this event will only
-  /// be raised for that control. The control must have the <see cref="ControlStyle.Clickable"/> style to receive
+  /// be raised for that control. The control must have the <see cref="Forms.ControlStyle.Clickable"/> style to receive
   /// this event.
   /// </remarks>
   public event EventHandler<ClickEventArgs> MouseUp;
@@ -1245,8 +1246,8 @@ public class Control
   /// <param name="e">A <see cref="PaintEventArgs"/> that contains the event data.</param>
   /// <remarks>When overriding this method in a derived class, be sure to call the base class'
   /// version to ensure that the default processing gets performed. The proper place to do this is at the start
-  /// of the derived version. The surface's <see cref="Surface.ClipRect">ClipRect</see> property will be set equal
-  /// to the <see cref="PaintEventArgs.DisplayRect"/> property.
+  /// of the derived version. The draw target's <see cref="IGuiRenderTarget.ClipRect" /> property will be set equal
+  /// to the <see cref="PaintEventArgs.DrawRect"/> property.
   /// </remarks>
   protected virtual void OnPaint(PaintEventArgs e)
   {
@@ -1537,7 +1538,7 @@ public class Control
   }
 
   /// <summary>Returns the topmost control at a given point in control coordinates.</summary>
-  /// <param name="point">The point to consider, in control coordinates.</param>
+  /// <param name="controlPoint">The point to consider, in control coordinates.</param>
   /// <returns>The child control at the point specified, or null if none are.</returns>
   /// <remarks>If multiple children overlap at the given point, the one highest in the Z-order will be returned.</remarks>
   public Control GetChildAtPoint(Point controlPoint)
@@ -1605,7 +1606,7 @@ public class Control
   /// logic will be taken into account. Otherwise, <paramref name="newBounds"/> may be modified by layout code, and
   /// the anchor will be updated to reflect the new position. Note that using absolute coordinates does not prevent
   /// later layout logic from altering the control's position. If you want to place a control without having it
-  /// affected by layout logic in the future, give it the <see cref="ControlStyle.DontLayout"/> control style.</para>
+  /// affected by layout logic in the future, give it the <see cref="Forms.ControlStyle.DontLayout"/> control style.</para>
   /// <para>This method is also responsible for calling <see cref="OnLocationChanged"/> and
   /// <see cref="OnSizeChanged"/> as necessary. Overriders should implement their version by calling this base
   /// method.</para>
@@ -1759,7 +1760,7 @@ public class Control
 
   /// <summary>Immediately repaints the entire display surface.</summary>
   /// <remarks>Calling this is equivalent to calling <see cref="Refresh(Rectangle)"/> and passing
-  /// <see cref="WindowRect"/>.
+  /// <see cref="ControlRect"/>.
   /// </remarks>
   public void Refresh() { Refresh(ControlRect); }
 
@@ -1792,11 +1793,10 @@ public class Control
 
   /// <summary>Triggers a relayout of this control's children or descendants.</summary>
   /// <param name="recursive">If true, a recursive layout should be performed.</param>
-  /// <remarks>Calling this method pushes a new <see cref="WindowLayoutEvent"/> onto the event queue for this
-  /// control, if one is not already there. Generally, recursive layouts are not necessary because the default
-  /// layout implementation will trickle down to descendants automatically. However, it can be used to force
-  /// layouts of all descendants to happen at the same time, if that's necessary, though doing so can use
-  /// substantially more CPU time than the default non-recursive, trickle-down implementation.
+  /// <remarks>Generally, recursive layouts are not necessary because the default layout implementation will trickle down to
+  /// descendants automatically. However, it can be used to force layouts of all descendants to happen at the same time, if
+  /// that's necessary, though doing so can use substantially more CPU time than the default non-recursive, trickle-down
+  /// implementation.
   /// </remarks>
   public void TriggerLayout(bool recursive)
   {
@@ -1841,7 +1841,7 @@ public class Control
   /// <remarks>The drag threshold controls how far the mouse has to be dragged for it to register as a drag event. The
   /// value is stored as the distance in pixels squared, so if a movement of 4 pixels is required to signify a drag,
   /// this property should be set to 16, which is 4 squared. As a special case, the value -1, which is the default,
-  /// causes it to use the desktop's <see cref="DesktopControl.DefaultDragThreshold"/> property value.
+  /// causes it to use the desktop's <see cref="Forms.Desktop.DefaultDragThreshold"/> property value.
   /// </remarks>
   protected internal int DragThreshold
   {
@@ -2145,7 +2145,7 @@ public class Control
         HasStyle(ControlStyle.CustomDrawTarget) && (DrawTarget == null || Size != DrawTarget.Size))) // or we need one and ours is invalid
     {
       IGuiRenderTarget oldTarget = DrawTarget;
-      Utility.TryDispose(DrawTarget);
+      Utility.Dispose(DrawTarget);
       DrawTarget = null;
 
       if(HasStyle(ControlStyle.CustomDrawTarget) && Renderer != null)

@@ -16,6 +16,8 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
+#warning Document everything!
+
 using System;
 using System.Drawing;
 using GameLib.Forms;
@@ -28,14 +30,14 @@ namespace GameLib.Forms
 #region AnchorStyle
 /// <summary>
 /// This enum specifies where the control will be anchored in relation to its parent control. See the
-/// <see cref="GuiControl.Anchor"/> property for more information. The members can be ORed together to combine their
+/// <see cref="Control.Anchor"/> property for more information. The members can be ORed together to combine their
 /// effects.
 /// </summary>
 [Flags]
 public enum AnchorStyle
 {
-  /// <summary>The control will not be anchored. This value is typically only used when <see cref="GuiControl.Dock"/>
-  /// is used. If <see cref="GuiControl.Dock"/> is set to <see cref="DockStyle.None"/>, this value will be treated the
+  /// <summary>The control will not be anchored. This value is typically only used when <see cref="Control.Dock"/>
+  /// is used. If <see cref="Control.Dock"/> is set to <see cref="DockStyle.None"/>, this value will be treated the
   /// same as <see cref="TopLeft"/>.
   /// </summary>
   None = 0,
@@ -91,7 +93,7 @@ public enum BorderStyle
 #region ControlStyle
 /// <summary>
 /// This enum is generally used by derived controls to control how they will be treated by the
-/// <see cref="DesktopControl">Desktop</see>. The enumeration members can be ORed together to combine their effects.
+/// <see cref="Desktop" />. The enumeration members can be ORed together to combine their effects.
 /// </summary>
 [Flags]
 public enum ControlStyle
@@ -117,13 +119,13 @@ public enum ControlStyle
   DontLayout = 0x10,
   /// <summary>This flag indicates that the control needs its own draw target.</summary>
   CustomDrawTarget = 0x20,
-  // NOTE: if new control styles are added, GuiControl.Flags should be updated
+  // NOTE: if new control styles are added, Control.Flags should be updated
 }
 #endregion
 
 #region DockStyle
 /// <summary>
-/// This enum specifies where the control will be docked. See the <see cref="GuiControl.Dock"/> property for more
+/// This enum specifies where the control will be docked. See the <see cref="Control.Dock"/> property for more
 /// information.
 /// </summary>
 public enum DockStyle
@@ -175,8 +177,8 @@ public struct RectOffset
   /// <param name="outer">The outer <see cref="Rectangle"/>.</param>
   /// <param name="inner">The inner <see cref="Rectangle"/>.</param>
   /// <remarks>
-  /// The offsets will be calculated in such a way that if this object is used to <see cref="Shrink"/> the outer
-  /// rectangle, the result will be the inner rectangle, and if you <see cref="Grow"/> the inner rectangle, the
+  /// The offsets will be calculated in such a way that if this object is used to <see cref="Shrink(Rectangle)"/> the outer
+  /// rectangle, the result will be the inner rectangle, and if you <see cref="Grow(Rectangle)"/> the inner rectangle, the
   /// result will be the outer rectangle.
   /// </remarks>
   public RectOffset(Rectangle outer, Rectangle inner)
@@ -317,14 +319,14 @@ public struct RectOffset
   /// <summary>This operator grows a <see cref="Rectangle"/> by a <see cref="RectOffset"/>.</summary>
   /// <param name="lhs">The <see cref="Rectangle"/> to enlarge.</param>
   /// <param name="rhs">The <see cref="RectOffset"/> to enlarge by.</param>
-  /// <returns>Returns the result of calling <see cref="Grow"/> on <paramref name="rhs"/> and
+  /// <returns>Returns the result of calling <see cref="Grow(Rectangle)"/> on <paramref name="rhs"/> and
   /// passing <paramref name="lhs"/>.
   /// </returns>
   public static Rectangle operator +(Rectangle lhs, RectOffset rhs) { return rhs.Grow(lhs); }
   /// <summary>This operator shrinks a <see cref="Rectangle"/> by a <see cref="RectOffset"/>.</summary>
   /// <param name="lhs">The <see cref="Rectangle"/> to shrink.</param>
   /// <param name="rhs">The <see cref="RectOffset"/> to shrink by.</param>
-  /// <returns>Returns the result of calling <see cref="Shrink"/> on <paramref name="rhs"/> and
+  /// <returns>Returns the result of calling <see cref="Shrink(Rectangle)"/> on <paramref name="rhs"/> and
   /// passing <paramref name="lhs"/>.
   /// </returns>
   public static Rectangle operator -(Rectangle lhs, RectOffset rhs) { return rhs.Shrink(lhs); }
@@ -479,6 +481,8 @@ public delegate void MouseMoveEventHandler(object sender, MouseMoveEvent e);
 /// </summary>
 public class PaintEventArgs : EventArgs
 {
+  /// <summary>Initializes a new <see cref="PaintEventArgs"/> object.</summary>
+  /// <param name="renderer">The renderer used to paint the control.</param>
   /// <param name="control">The control that is to be painted.</param>
   /// <param name="controlRect">The area within the control to be painted, in control coordinates.
   /// The rectangle will be clipped against the render target's bounds.

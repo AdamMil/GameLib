@@ -53,7 +53,7 @@ public enum EventType
   Repaint,
   /// <summary>An <see cref="ExceptionEvent"/> event.</summary>
   Exception,
-  /// <summary>An event derived from <see cref="ControlEvent"/>.</summary>
+  /// <summary>An event derived from <c>ControlEvent</c>.</summary>
   Control,
   /// <summary>An event derived from <see cref="UserEvent"/>.</summary>
   UserDefined
@@ -182,7 +182,7 @@ public class QuitEvent : Event
 
 /// <summary>This event occurs when the application window is resized.</summary>
 /// <remarks>This event signifies that the user has resized the application window. When this happens, you should
-/// call <see cref="Video.Video.SetMode"/> or <see cref="Video.Video.SetGLMode"/> to set the video mode to the
+/// call <c>Video.SetMode</c> or <c>Video.SetGLMode</c> to set the video mode to the
 /// new size. This event is not triggered when the video mode is set.
 /// </remarks>
 public class ResizeEvent : Event
@@ -205,7 +205,7 @@ public class ResizeEvent : Event
 /// <summary>This event occurs when the application window needs to be redrawn.</summary>
 /// <remarks>This is normally caused by interactions with overlapping windows in the window manager, or by
 /// the application window being minimized (iconified) and restored. Generally, a simple
-/// <see cref="Video.Video.Flip"/> is sufficient to accomplish the redraw.
+/// <c>Video.Flip</c> is sufficient to accomplish the redraw.
 /// </remarks>
 public class RepaintEvent : Event
 { 

@@ -35,8 +35,9 @@ public abstract class MenuItemBase : Control
 {
   protected MenuItemBase()
   {
-    BackColor = SystemColors.Menu;
-    ForeColor = SystemColors.MenuText;
+    BackColor     = SystemColors.Menu;
+    ForeColor     = SystemColors.MenuText;
+    ControlStyle |= ControlStyle.Clickable;
   }
 
   public event EventHandler Click;
@@ -59,6 +60,17 @@ public abstract class MenuItemBase : Control
 
   public virtual Size MeasureItem() { return Size; }
 
+  protected internal override void OnMouseClick(ClickEventArgs e)
+  {
+    base.OnMouseClick(e);
+
+    if(e.CE.Button == MouseButton.Left)
+    {
+      OnClick();
+      e.Handled = true;
+    }
+  }
+
   protected internal virtual void OnClick()
   {
     if(Click != null) Click(this, EventArgs.Empty);
@@ -75,7 +87,7 @@ public class Menu : Control
   public Menu()
   {
     BorderStyle   = BorderStyle.FixedThick;
-    ControlStyle |= ControlStyle.Clickable | ControlStyle.CanReceiveFocus | ControlStyle.DontLayout;
+    ControlStyle |= ControlStyle.CanReceiveFocus | ControlStyle.DontLayout;
     BackColor     = SystemColors.Menu;
     ForeColor     = SystemColors.MenuText;
     SelectedForeColor = SelectedBackColor = Color.Transparent;
@@ -285,35 +297,6 @@ public class Menu : Control
     base.OnMouseUp(e);
   }
 
-  protected internal override void OnMouseClick(ClickEventArgs e)
-  {
-    if(!e.Handled)
-    {
-      if(ControlRect.Contains(e.CE.Point))
-      {
-        foreach(MenuItemBase item in Controls)
-        {
-          if(item.Bounds.Contains(e.CE.Point))
-          {
-            if(item.Enabled)
-            {
-              PostClickEvent(item);
-              Close();
-            }
-            break;
-          }
-        }
-      }
-      else
-      {
-        Close();
-      }
-      e.Handled = true;
-    }
-    
-    base.OnMouseClick(e);
-  }
-
   protected internal override void OnCustomEvent(Events.ControlEvent e)
   {
     ItemClickedEvent ice = e as ItemClickedEvent;
@@ -481,6 +464,7 @@ public abstract class MenuBarBase : Control
           if(buttons[i].Area.Contains(e.CE.Point))
           {
             buttons[i].Menu.PullDown = false;
+            buttons[i].Menu.Capture  = true;
             open = -1;
             break;
           }
