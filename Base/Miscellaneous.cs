@@ -37,48 +37,4 @@ public class ValueChangedEventArgs : EventArgs
   public object OldValue;
 }
 
-/// <summary>This class provides miscellaneous utilities that don't fit anywhere else.</summary>
-public static class Utility
-{
-  /// <summary>Disposes the given object and sets it to null.</summary>
-  public static void Dispose<T>(ref T obj) where T : class, IDisposable
-  {
-    if(obj != null)
-    {
-      obj.Dispose();
-      obj = null;
-    }
-  }
-
-  /// <summary>Disposes the given object, if it's not null.</summary>
-  public static void Dispose(IDisposable obj)
-  {
-    if(obj != null) obj.Dispose();
-  }
-
-  /// <summary>Disposes the given object, if it's disposable and not null.</summary>
-  public static void TryDispose(object obj)
-  {
-    if(obj != null)
-    {
-      IDisposable disposable = obj as IDisposable;
-      if(disposable != null) disposable.Dispose();
-    }
-  }
-
-  /// <summary>Disposes the given object and sets it to null.</summary>
-  public static void TryDispose<T>(ref T obj) where T : class
-  {
-    if(obj != null)
-    {
-      IDisposable disposable = obj as IDisposable;
-      if(disposable != null) disposable.Dispose();
-      obj = null;
-    }
-  }
-
-  /// <summary>This field provides a global random number generator.</summary>
-  public static readonly Random Random = new Random();
-}
-
 } // namespace GameLib

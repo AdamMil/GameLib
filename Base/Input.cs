@@ -553,10 +553,7 @@ public static class Keyboard
 
   /// <summary>Enables key repeat with default delay values.</summary>
   /// <remarks>This method enables key repeating at a low level, using default delay and interval values (a 500
-  /// millisecond delay and 30 millisecond intervals between repeats). WARNING: Using this key repeat is incompatible
-  /// with the <see cref="GameLib.Forms.DesktopControl.KeyRepeatDelay"/> and
-  /// <see cref="GameLib.Forms.DesktopControl.KeyRepeatRate"/> properties, as the
-  /// <see cref="GameLib.Forms.DesktopControl"/> has its own implementation of key repeat.
+  /// millisecond delay and 30 millisecond intervals between repeats).
   /// </remarks>
   public static void EnableKeyRepeat() { EnableKeyRepeat(500, 30); }
   /// <summary>Enables key repeat with the specified delay values, or optionally disables it.</summary>
@@ -564,10 +561,6 @@ public static class Keyboard
   /// <param name="intervalMs">The number of milliseconds between key repeats.</param>
   /// <remarks>This method enables key repeating at a low level with the specified delays, or if
   /// <paramref name="delayMs"/> and <paramref name="intervalMs"/> are zero, disables it.
-  /// WARNING: Using this key repeat is incompatible
-  /// with the <see cref="GameLib.Forms.DesktopControl.KeyRepeatDelay"/> and
-  /// <see cref="GameLib.Forms.DesktopControl.KeyRepeatRate"/> properties, as the
-  /// <see cref="GameLib.Forms.DesktopControl"/> has its own implementation of key repeat.
   /// </remarks>
   public static void EnableKeyRepeat(int delayMs, int intervalMs)
   { if(SDL.EnableKeyRepeat(delayMs, intervalMs)!=0) SDL.RaiseError();

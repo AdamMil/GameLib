@@ -157,11 +157,7 @@ public abstract class Font : IDisposable
     }
   }
 
-  /// <summary>This method is called when the video mode changes.</summary>
-  /// <remarks>If it's important to know when the video mode changes, override this method. Remember to call
-  /// the base class' implementation as well. This might be used to convert font images to a format suitable for
-  /// fast blitting to the screen, for instance.
-  /// </remarks>
+  /// <include file="../documentation.xml" path="//Font/OnDisplayFormatChanged/*"/>
   protected virtual void OnDisplayFormatChanged() { }
 
   internal static readonly char[] breakers = new char[] { ' ', '-', '\n' };
@@ -400,13 +396,13 @@ public class BitmapFont : SurfaceFont
     return x-start;
   }
 
-  /// <summary>See <see cref="Font.OnDisplayFormatChanged"/> for more details regarding this method.</summary>
+  /// <include file="../documentation.xml" path="//Font/OnDisplayFormatChanged/*"/>
   protected override void OnDisplayFormatChanged()
   {
     font = Surface.MakeCompatibleWithDisplay(orig, true, false);
   }
 
-  /// <summary>See <see cref="Font.Dispose(bool)"/> for more details regarding this method.</summary>
+  /// <include file="../documentation.xml" path="//Common/Dispose/*"/>
   protected override void Dispose(bool finalizing)
   {
     base.Dispose(finalizing);

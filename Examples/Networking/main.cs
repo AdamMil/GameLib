@@ -17,13 +17,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 using System;
+using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
 using System.Text;
 using AdamMil.IO;
 using GameLib.Network;
-using System.IO;
 
 namespace NetworkingTest
 {
@@ -100,22 +100,18 @@ namespace NetworkingTest
     }
 
     #region INetSerializeable Members
-    // use formatted binary IO (less efficient, but oh-so-simple)
-    public int SizeOf() { return IOH.CalculateSize(">*v?dp", Array, String); }
-
-    public void SerializeTo(byte[] buf, int index, out Stream attachedStream)
+    public void Serialize(AdamMil.IO.BinaryWriter writer, out Stream attachedStream)
     {
       attachedStream = null;
-      IOH.Write(buf, index, ">*v?dp", Array, String);
+      writer.WriteEncoded(Array.Length);
+      writer.Write(Array);
+      writer.WriteStringWithLength(String);
     }
 
-    public int DeserializeFrom(byte[] buf, int index, Stream attachedStream)
+    public void Deserialize(AdamMil.IO.BinaryReader reader, Stream attachedStream)
     {
-      int bytesRead;
-      object[] data = IOH.Read(buf, index, ">*v?dp", out bytesRead);
-      Array  = (int[])data[0];
-      String = (string)data[1];
-      return bytesRead;
+      Array  = reader.ReadInt32(reader.ReadEncodedInt32());
+      String = reader.ReadStringWithLength();
     }
     #endregion
 

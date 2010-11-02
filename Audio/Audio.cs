@@ -17,15 +17,13 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 using System;
-using System.IO;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using GameLib.Interop;
-using GameLib.Interop.SDL;
+using System.IO;
+using AdamMil.Utilities;
 using GameLib.Interop.GLMixer;
+using GameLib.Interop.SDL;
 using GameLib.Interop.SndFile;
-
-// FIXME: find out why vorbis is unstable
 
 namespace GameLib.Audio
 {
@@ -1306,7 +1304,7 @@ public sealed class Channel
         else
         {
           int* buffer = stackalloc int[samples];
-          GameLib.Interop.Unsafe.Clear(buffer, samples*sizeof(int));
+          Unsafe.Clear(buffer, samples*sizeof(int));
           fixed(byte* src = convBuf)
             GLMixer.Check(GLMixer.ConvertMix(buffer, src, (uint)samples,
                                              (ushort)Audio.Format.Format, Audio.Format.Channels,
@@ -1333,7 +1331,7 @@ public sealed class Channel
           else
           {
             int* buffer = stackalloc int[toRead];
-            GameLib.Interop.Unsafe.Clear(buffer, toRead*sizeof(int));
+            Unsafe.Clear(buffer, toRead*sizeof(int));
             read    = source.ReadFrames(buffer, toRead, -1, -1);
             samples = read*Audio.Format.Channels;
             if(read>0)

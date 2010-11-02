@@ -9,7 +9,7 @@ namespace GameLib.Forms
 {
 
 #region AutoFocus
-/// <summary>This enum is used with the <see cref="DesktopControl.AutoFocus"/> property to determine how and whether the
+/// <summary>This enum is used with the <see cref="Desktop.AutoFocus"/> property to determine how and whether the
 /// desktop will automatically focus controls.
 /// </summary>
 public enum AutoFocus
@@ -59,7 +59,9 @@ public class Desktop : Control, IDisposable
     Dispose(true);
   }
 
-  /// <summary>Gets or sets the <see cref="AutoFocus"/> mode for this desktop. The default is <see cref="AutoFocus.Click"/>.</summary>
+  /// <summary>Gets or sets the <see cref="AutoFocus"/> mode for this desktop. The default is
+  /// <see cref="Forms.AutoFocus.Click"/>.
+  /// </summary>
   public AutoFocus AutoFocus
   {
     get; set;

@@ -18,7 +18,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 using System;
 using System.Drawing;
-using GameLib.Interop;
+using AdamMil.Utilities;
 using GameLib.Interop.OpenGL;
 
 // TODO: support 15-bit color
@@ -404,6 +404,7 @@ public class GLTexture2D : IDisposable, IGuiImage
   public GLTexture2D(int internalFormat, int level, int border, Surface surface)
   { if(!Load(internalFormat, level, border, surface)) throw new OutOfTextureMemoryException();
   }
+  /// <include file="../documentation.xml" path="//Common/Finalizer/*"/>
   ~GLTexture2D() { Dispose(true); }
 
   /// <summary>Unloads this texture from video memory.</summary>

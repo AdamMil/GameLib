@@ -72,6 +72,10 @@
       <Project>{CEB9BC77-B63F-40A1-BEDE-7C32E9B90D55}</Project>
       <Name>AdamMil.IO</Name>
     </ProjectReference>
+    <ProjectReference Include="..\..\AdamMil.net\Utilities\AdamMil.Utilities.csproj">
+      <Project>{29134637-6D08-432C-8161-9DEEE13C955D}</Project>
+      <Name>AdamMil.Utilities</Name>
+    </ProjectReference>
     <ProjectReference Include="..\Base\GameLib.Base.csproj">
       <Project>{711792B7-5B4A-4BAC-9FAE-1476F4A4D5C3}</Project>
       <Name>GameLib.Base</Name>

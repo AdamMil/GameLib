@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Drawing;
-using AdamMil.Mathematics.Geometry;
+using RectanglePacker = AdamMil.Mathematics.Geometry.TwoD.RectanglePacker;
 
 namespace GameLib.Video
 {

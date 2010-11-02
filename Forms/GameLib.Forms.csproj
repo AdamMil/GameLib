@@ -27,6 +27,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <BaseAddress>9437184</BaseAddress>
     <DocumentationFile>bin\Debug\GameLib.Forms.XML</DocumentationFile>
+    <NoWarn>1591</NoWarn>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -38,6 +39,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <BaseAddress>9437184</BaseAddress>
     <DocumentationFile>bin\Release\GameLib.Forms.XML</DocumentationFile>
+    <NoWarn>1591</NoWarn>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />

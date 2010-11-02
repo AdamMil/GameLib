@@ -354,7 +354,7 @@ namespace WindowingTest
       TrueTypeFont newFont = new TrueTypeFont(dataPath+"vera.ttf", oldFont.PointSize == 11 ? 14 : 11);
       newFont.RenderStyle = oldFont.RenderStyle;
       desktop.Font = newFont;
-      GameLib.Utility.Dispose(oldFont);
+      oldFont.Dispose();
     }
 
     static void ToggleFS_Click(object sender, EventArgs e)
