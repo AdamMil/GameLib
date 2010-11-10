@@ -17,6 +17,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 using System;
+using System.Runtime.Serialization;
 
 namespace GameLib.Network
 {
@@ -28,6 +29,8 @@ public class NetworkException : GameLibException
   /// <summary>Initializes this exception.</summary>
   /// <param name="message">The message associated with this exception.</param>
   public NetworkException(string message) : base(message) { }
+  /// <summary>Initializes this exception.</summary>
+  public NetworkException(SerializationInfo info, StreamingContext context) : base(info, context) { }
 }
 
 /// <summary>This exception is thrown when a network connection has been lost.</summary>
@@ -39,6 +42,8 @@ public class ConnectionLostException : NetworkException
   /// <summary>Initializes this exception.</summary>
   /// <param name="message">The message associated with this exception.</param>
   public ConnectionLostException(string message) : base(message) { }
+  /// <summary>Initializes this exception.</summary>
+  public ConnectionLostException(SerializationInfo info, StreamingContext context) : base(info, context) { }
 }
 
 /// <summary>This exception is thrown when a remote connection did not use the expected handshake.</summary>
@@ -50,6 +55,8 @@ public class HandshakeException : NetworkException
   /// <summary>Initializes this exception.</summary>
   /// <param name="message">The message associated with this exception.</param>
   public HandshakeException(string message) : base(message) { }
+  /// <summary>Initializes this exception.</summary>
+  public HandshakeException(SerializationInfo info, StreamingContext context) : base(info, context) { }
 }
 
 } // namespace GameLib.Network

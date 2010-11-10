@@ -849,7 +849,7 @@ public static class WM
   /// </remarks>
   public static bool Active { get { return Events.Events.inputFocus; } }
 
-  /// <summary>Gets whether the application window is minimized (iconified)or not.</summary>
+  /// <summary>Gets whether the application window is minimized (iconified) or not.</summary>
   /// <value>A boolean indicating whether the application window has been minimized (iconified).</value>
   /// <remarks>This property is updated by the <see cref="Events.Events"/> class when it receives an event from
   /// the underlying system, as well as by the <see cref="Minimize"/> method.
@@ -875,9 +875,9 @@ public static class WM
     set { SDL.WM_SetCaption(value, null); }
   }
 
-  /// <summary>Gets or sets whether the mouse cursor will be bounded to the window when in a windowed video mode.
+  /// <summary>Gets or sets whether the mouse cursor will be bound to the window when in a windowed video mode.
   /// </summary>
-  /// <value>A boolean indicating whether the mouse cursor will be bounded to the window when in a windowed video
+  /// <value>A boolean indicating whether the mouse cursor will be bound to the window when in a windowed video
   /// mode. If set to true, the mouse will be forced to say within the window boundaries.
   /// </value>
   public static bool MouseBounded // TODO: possibly move this to Input?
