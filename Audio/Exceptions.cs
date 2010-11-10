@@ -17,6 +17,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 using System;
+using System.Runtime.Serialization;
 
 namespace GameLib.Audio
 {
@@ -28,6 +29,8 @@ public class AudioException : GameLibException
   /// <summary>Initializes this exception.</summary>
   /// <param name="message">The message associated with this exception.</param>
   public AudioException(string message) : base(message) { }
+  /// <summary>Initializes this exception.</summary>
+  public AudioException(SerializationInfo info, StreamingContext context) : base(info, context) { }
 }
 
 } // namespace GameLib.Audio

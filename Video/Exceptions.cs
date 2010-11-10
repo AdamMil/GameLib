@@ -17,6 +17,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 using System;
+using System.Runtime.Serialization;
 
 namespace GameLib.Video
 {
@@ -28,6 +29,8 @@ public class VideoException : GameLibException
   /// <summary>Initializes this exception.</summary>
   /// <param name="message">The message associated with this exception.</param>
   public VideoException(string message) : base(message) { }
+  /// <summary>Initializes this exception.</summary>
+  public VideoException(SerializationInfo info, StreamingContext context) : base(info, context) { }
 }
 
 /// <summary>This exception is thrown when the operating system has deallocated the video memory for a
@@ -39,6 +42,8 @@ public class SurfaceLostException : VideoException
 { 
   /// <summary>Initializes this exception.</summary>
   public SurfaceLostException() : base("The surface has been lost.") { }
+  /// <summary>Initializes this exception.</summary>
+  public SurfaceLostException(SerializationInfo info, StreamingContext context) : base(info, context) { }
 }
 
 } // namespace GameLib.Video

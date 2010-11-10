@@ -67,7 +67,8 @@ public static class TexturePacker
       minSize += size.Width * size.Height;
     }
 
-    minSize += minSize/12; // add a bit of extra space, since it's not likely to fit exactly
+    minSize += minSize/12; // add a bit of extra space to reduce the chance of a resize, since it's not likely to fit exactly
+    // TODO: tune this heuristic
 
     // calculate the starting size
     int width, height;

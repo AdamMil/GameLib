@@ -201,16 +201,16 @@ public class GLTrueTypeFont : GLFont
   /// <summary>Gets or sets the maximum size of the glyph cache. The default is 128.</summary>
   /// <value>The maximum number of glyphs allowed in the glyph cache.</value>
   /// <remarks>This class caches the most recently-used glyphs so they don't have to be recalculated every time
-  /// they're used. Some level of caching is required, so setting this below the minimum will simply use that minimum.
+  /// they're used. Some level of caching is required, so setting this below the minimum will simply use the minimum.
   /// </remarks>
   public int MaxCacheSize
   {
     get { return cacheMax; }
     set
     {
-      if(value < 0) throw new ArgumentException("Cache size cannot be negative");
-      int realSize = Math.Max(MinimumCacheSize, value);
-      if(realSize < list.Count) ClearCache();
+      if(value < 0) throw new ArgumentOutOfRangeException("Cache size cannot be negative");
+      value = Math.Max(MinimumCacheSize, value);
+      if(value < list.Count) ClearCache();
       cacheMax = value;
     }
   }

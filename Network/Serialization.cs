@@ -106,7 +106,7 @@ public sealed class MessageConverter
     foreach(Type type in types) RegisterType(type);
   }
 
-  /// <summary>Registers all non-abstract types in the assembly that equal to or derived from the given base type.</summary>
+  /// <summary>Registers all non-abstract types in the assembly that are equal to or derived from the given base type.</summary>
   /// <include file="../documentation.xml" path="//Network/MessageConverter/RegisterType/*"/>
   public void RegisterTypes(Assembly assembly, Type baseType)
   {

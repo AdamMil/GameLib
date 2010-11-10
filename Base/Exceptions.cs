@@ -17,6 +17,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 using System;
+using System.Runtime.Serialization;
 
 namespace GameLib
 {
@@ -32,6 +33,8 @@ public class GameLibException : Exception
   /// <param name="message">The message associated with this exception.</param>
   /// <param name="innerException">The exception that caused the current exception.</param>
   public GameLibException(string message, Exception innerException) : base(message, innerException) { }
+  /// <summary>Initializes this exception.</summary>
+  public GameLibException(SerializationInfo info, StreamingContext context) : base(info, context) { }
 }
 
 /// <summary>This exception is thrown when the data given to a method is too large for it to handle.</summary>
@@ -51,6 +54,8 @@ public class DataTooLargeException : GameLibException
   /// <param name="message">The message associated with this exception.</param>
   /// <param name="maxSize">The maximum size allowed.</param>
   public DataTooLargeException(string message, int maxSize) : base(message) { this.maxSize=maxSize; }
+  /// <summary>Initializes this exception.</summary>
+  public DataTooLargeException(SerializationInfo info, StreamingContext context) : base(info, context) { }
 
   /// <summary>Gets the maximum size allowed.</summary>
   /// <value>The maximum size allowed, or -1 if the maximum size was not given.</value>
@@ -74,6 +79,8 @@ public class CodecNotFoundException : GameLibException
   /// <summary>Initializes this exception.</summary>
   /// <param name="codec">The name of the codec that could not be found.</param>
   public CodecNotFoundException(string codec) : base("The "+codec+" codec could not be found") { }
+  /// <summary>Initializes this exception.</summary>
+  public CodecNotFoundException(SerializationInfo info, StreamingContext context) : base(info, context) { }
 }
 
 } // namespace GameLib

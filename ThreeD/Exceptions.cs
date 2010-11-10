@@ -17,6 +17,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
 using System;
+using System.Runtime.Serialization;
 
 namespace GameLib.Video
 {
@@ -28,6 +29,8 @@ public class OpenGLException : VideoException
   /// <summary>Initializes this exception.</summary>
   /// <param name="message">The message associated with this exception.</param>
   public OpenGLException(string message) : base(message) { }
+  /// <summary>Initializes this exception.</summary>
+  public OpenGLException(SerializationInfo info, StreamingContext context) : base(info, context) { }
 }
 
 /// <summary>This exception is thrown when OpenGL will not create any more texture handles.</summary>
@@ -36,6 +39,8 @@ public class NoMoreTexturesException : OpenGLException
 { 
   /// <summary>Initializes this exception.</summary>
   public NoMoreTexturesException() : base("GL refuses to create more textures! "+ Interop.OpenGL.GL.glGetError()) { }
+  /// <summary>Initializes this exception.</summary>
+  public NoMoreTexturesException(SerializationInfo info, StreamingContext context) : base(info, context) { }
 }
 
 /// <summary>This exception is thrown when OpenGL is will not create a texture because it would not fit in video
@@ -46,6 +51,8 @@ public class OutOfTextureMemoryException : OpenGLException
 { 
   /// <summary>Initializes this exception.</summary>
   public OutOfTextureMemoryException() : base("Out of texture memory.") { }
+  /// <summary>Initializes this exception.</summary>
+  public OutOfTextureMemoryException(SerializationInfo info, StreamingContext context) : base(info, context) { }
 }
 
 } // namespace GameLib.Video
