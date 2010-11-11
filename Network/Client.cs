@@ -54,7 +54,7 @@ public class Client
   {
     Connect(hostname, port);
   }
-  
+
   /// <summary>Initializes a new instance of the <see cref="Client"/> class and connects to the given endpoint.</summary>
   /// <param name="remote">The <see cref="IPEndPoint"/> to connect to.</param>
   public Client(IPEndPoint remote)
@@ -73,16 +73,16 @@ public class Client
 
   /// <summary>This event is raised when the client is disconnected.</summary>
   public event ClientHandler Disconnected;
-  
+
   /// <summary>This event is raised when a message is received from the server.</summary>
   public event ClientMessageHandler MessageReceived;
-  
+
   /// <summary>This event is raised when remote host receives a message.</summary>
   /// <remarks>Note that this event will only be raised for messages sent with the
   /// <see cref="SendFlag.NotifyReceived"/> flag.
   /// </remarks>
   public event ClientMessageHandler RemoteReceived;
-  
+
   /// <summary>This event is raised when a message is sent over the network.</summary>
   /// <remarks>Note that this event will only be raised for messages sent with the <see cref="SendFlag.NotifySent"/>
   /// flag.
@@ -246,31 +246,31 @@ public class Client
   {
     DoSend(data, 0, data.Length, null, DefaultFlags, 0, data);
   }
-  
+
   /// <include file="../documentation.xml" path="//Network/Client/Send/*[self::Common or self::byteData or self::Length or self::Index]/*"/>
   public void Send(byte[] data, int index, int length)
   {
     DoSend(data, index, length, null, DefaultFlags, 0, data);
   }
-  
+
   /// <include file="../documentation.xml" path="//Network/Client/Send/*[self::Common or self::byteData or self::Flags]/*"/>
   public void Send(byte[] data, SendFlag flags)
   {
     DoSend(data, 0, data.Length, null, flags, 0, data);
   }
-  
+
   /// <include file="../documentation.xml" path="//Network/Client/Send/*[self::Common or self::byteData or self::Index or self::Length or self::Flags]/*"/>
   public void Send(byte[] data, int index, int length, SendFlag flags)
   {
     DoSend(data, index, length, null, flags, 0, data);
   }
-  
+
   /// <include file="../documentation.xml" path="//Network/Client/Send/*[self::Common or self::byteData or self::Flags or self::Timeout]/*"/>
   public void Send(byte[] data, SendFlag flags, int timeoutMs)
   {
     DoSend(data, 0, data.Length, null, flags, timeoutMs, data);
   }
-  
+
   /// <include file="../documentation.xml" path="//Network/Client/Send/*[self::Common or self::byteData or self::Index or self::Length or self::Flags or self::Timeout]/*"/>
   public void Send(byte[] data, int index, int length, SendFlag flags, int timeoutMs)
   {
@@ -282,13 +282,13 @@ public class Client
   {
     Send(data, DefaultFlags, 0);
   }
-  
+
   /// <include file="../documentation.xml" path="//Network/Client/Send/*[self::Common or self::objData or self::Flags]/*"/>
   public void Send(object data, SendFlag flags)
   {
     Send(data, flags, 0);
   }
-  
+
   /// <include file="../documentation.xml" path="//Network/Client/Send/*[self::Common or self::objData or self::Flags or self::Timeout]/*"/>
   public void Send(object data, SendFlag flags, int timeoutMs)
   {
@@ -450,7 +450,7 @@ public class Client
   {
     OnMessageSent(msg.Tag);
   }
-  
+
   void OnRemoteReceived(NetLink link, LinkMessage msg)
   {
     OnRemoteReceived(msg.Tag);

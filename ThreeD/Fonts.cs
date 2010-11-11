@@ -134,30 +134,30 @@ public class GLTrueTypeFont : GLFont
   /// <remarks>The maximum pixel ascent can also be interpreted as the distance from the top of the font to the
   /// baseline.
   /// </remarks>
-  public int Ascent 
+  public int Ascent
   {
-    get { return TTF.FontAscent(font); } 
+    get { return TTF.FontAscent(font); }
   }
 
   /// <summary>Gets the maximum pixel descent of all glyphs in the font.</summary>
   /// <remarks>The maximum pixel descent can also be interpreted as the distance from the baseline to the bottom of
   /// the font.
   /// </remarks>
-  public int Descent 
+  public int Descent
   {
-    get { return TTF.FontDescent(font); } 
+    get { return TTF.FontDescent(font); }
   }
 
   /// <summary>Gets the height of the font, in pixels.</summary>
-  public override int Height 
+  public override int Height
   {
-    get { return TTF.FontHeight(font); } 
+    get { return TTF.FontHeight(font); }
   }
 
   /// <include file="../documentation.xml" path="//Fonts/LineHeight/*"/>
   public override int LineHeight
   {
-    get { return TTF.FontLineSkip(font); } 
+    get { return TTF.FontLineSkip(font); }
   }
 
   /// <summary>Gets the size of the font, in points. This is the value passed to the constructor.</summary>
@@ -167,15 +167,15 @@ public class GLTrueTypeFont : GLFont
   }
 
   /// <summary>Gets the name of the font family.</summary>
-  public string FamilyName 
+  public string FamilyName
   {
-    get { return TTF.FontFaceFamilyName(font); } 
+    get { return TTF.FontFaceFamilyName(font); }
   }
-  
+
   /// <summary>Gets the name of the font style.</summary>
-  public string StyleName 
+  public string StyleName
   {
-    get { return TTF.FontFaceStyleName(font); } 
+    get { return TTF.FontFaceStyleName(font); }
   }
 
   /// <summary>Gets or sets the foreground color of the font.</summary>
@@ -225,7 +225,7 @@ public class GLTrueTypeFont : GLFont
     set
     {
       if(value == RenderStyle.Shaded) throw new NotSupportedException("The Shaded style is not supported.");
-      renderStyle = value; 
+      renderStyle = value;
     }
   }
 
@@ -246,7 +246,7 @@ public class GLTrueTypeFont : GLFont
 
   /// <include file="../documentation.xml" path="//Fonts/CalculateSize/*"/>
   public override Size CalculateSize(string text)
-  { 
+  {
     Size size = new Size(0, Height);
     for(int i=0; i<text.Length; i++) size.Width += GetChar(text, i, false).Advance;
     return size;
@@ -280,7 +280,7 @@ public class GLTrueTypeFont : GLFont
       GL.glBlendFunc(DesiredSourceBlend, DesiredDestBlend);
     }
 
-    if(bgColor.A != 0)
+    if(!bgColor.IsTransparent)
     {
       int width = 0;
       for(int i=0; i<text.Length; i++) width += GetChar(text, i, false).Advance;
@@ -348,7 +348,7 @@ public class GLTrueTypeFont : GLFont
     ClearCache();
 
     if(font != IntPtr.Zero)
-    { 
+    {
       TTF.CloseFont(font);
       TTF.Deinitialize();
       font = IntPtr.Zero;
@@ -502,7 +502,7 @@ public class GLTrueTypeFont : GLFont
     {
       charsToCache[node.Value.Index] = node.Value;
     }
-    
+
     // remove the characters from the list that we couldn't add
     if(node != null)
     {
@@ -535,7 +535,7 @@ public class GLTrueTypeFont : GLFont
       // pack the glyphs into a rectangle
       bool requiresPowerOfTwo = !OpenGL.HasNonPowerOfTwoExtension;
       Point[] points = TexturePacker.PackTexture(sizes, true, requiresPowerOfTwo, out packer);
-      
+
       // create a surface to hold the new glyphs
       cacheSurface = new Surface(packer.TotalSize.Width, packer.TotalSize.Height, new PixelFormat(32, true));
 
@@ -588,9 +588,8 @@ public class GLTrueTypeFont : GLFont
     try
     {
       Style = index.Style;
-      SDL.Color white = new SDL.Color(255, 255, 255);
-      SDL.Surface* surfacePtr = index.Blended ?
-          TTF.RenderGlyph_Blended(font, index.Char, white) : TTF.RenderGlyph_Solid(font, index.Char, white);
+      SDL.Surface* surfacePtr = index.Blended ? TTF.RenderGlyph_Blended(font, index.Char, Color.White)
+                                              : TTF.RenderGlyph_Solid(font, index.Char, Color.White);
       if(surfacePtr == null) TTF.RaiseError();
 
       Surface surface = new Surface(surfacePtr, true);
@@ -602,10 +601,10 @@ public class GLTrueTypeFont : GLFont
 
   void Init(int pointSize)
   {
-    if(font == IntPtr.Zero) 
-    { 
-      TTF.Deinitialize(); 
-      TTF.RaiseError(); 
+    if(font == IntPtr.Zero)
+    {
+      TTF.Deinitialize();
+      TTF.RaiseError();
     }
     PointSize = pointSize;
   }
@@ -640,7 +639,7 @@ public class GLTrueTypeFont : GLFont
   readonly LinkedList<CachedChar> list = new LinkedList<CachedChar>();
   readonly Dictionary<CacheIndex, LinkedListNode<CachedChar>> nodesByIndex = new Dictionary<CacheIndex, LinkedListNode<CachedChar>>();
   RectanglePacker packer;
-  Color color = Color.White, bgColor = Color.Transparent;
+  Color color = Color.White, bgColor = Color.Empty;
   int cacheMax = 128;
   FontStyle fontStyle;
   RenderStyle renderStyle = RenderStyle.Solid;

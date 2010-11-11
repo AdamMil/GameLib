@@ -34,7 +34,7 @@ namespace OpenGLTest
 #if DEBUG
     static string dataPath = "../../../";
 #else
-  static string dataPath = "./data/"; 
+  static string dataPath = "./data/";
 #endif
 
     const int NUM_PARTICLES=150;

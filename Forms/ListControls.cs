@@ -257,7 +257,7 @@ public abstract class ListControl : ScrollableControl
     {
       get { return stateVersion; }
     }
-    
+
     internal int Version
     {
       get { return version; }
@@ -305,7 +305,7 @@ public abstract class ListControl : ScrollableControl
         return string.Compare(list.GetObjectText(a.Object), list.GetObjectText(b.Object),
                               StringComparison.CurrentCulture);
       }
-      
+
       ListControl list;
     }
 
@@ -496,7 +496,7 @@ public abstract class ListControl : ScrollableControl
   {
     get { return items; }
   }
-  
+
   public abstract int SelectedIndex { get; set; }
 
   public SelectedIndexCollection SelectedIndices
@@ -559,7 +559,7 @@ public abstract class ListControl : ScrollableControl
   {
     return FindString(startsWith, 0);
   }
-  
+
   public int FindString(string startsWith, int from)
   {
     for(; from < items.Count; from++) if(GetItemText(from).StartsWith(startsWith)) return from;
@@ -570,7 +570,7 @@ public abstract class ListControl : ScrollableControl
   {
     return FindStringExact(text, 0);
   }
-  
+
   public int FindStringExact(string text, int from)
   {
     for(; from < items.Count; from++) if(GetItemText(from) == text) return from;
@@ -586,12 +586,12 @@ public abstract class ListControl : ScrollableControl
   {
     return Items.list[index].Is(ItemState.Selected);
   }
-  
+
   public void SetSelected(int index, bool selected)
   {
     SetSelected(index, selected, false);
   }
-  
+
   public void SetSelected(int index, bool selected, bool deselectOthers)
   {
     Item rit = items.list[index];
@@ -622,10 +622,10 @@ public abstract class ListControl : ScrollableControl
   {
     return item.ToString();
   }
-  
+
   protected virtual void InvalidateItem(int index) { }
   protected virtual void OnListChanged() { }
-  
+
   protected virtual void OnSelectedIndexChanged()
   {
     if(SelectedIndexChanged != null) SelectedIndexChanged(this, EventArgs.Empty);
@@ -693,7 +693,7 @@ public class ListBox : ListControl
   {
     get; set;
   }
-  
+
   public Color SelectedForeColor
   {
     get; set;
@@ -785,7 +785,7 @@ public class ListBox : ListControl
   {
     return GetPreferredSize(Items.Count);
   }
-  
+
   public Size GetPreferredSize(int numItems)
   {
     if(numItems < 0 || numItems > Items.Count) throw new ArgumentOutOfRangeException();
@@ -839,7 +839,7 @@ public class ListBox : ListControl
     {
       back = SelectedBackColor;
       fore = SelectedForeColor;
-      if(back.A != 0) e.Target.FillArea(bounds, back);
+      if(!back.IsTransparent) e.Target.FillArea(bounds, back);
     }
     else
     {
@@ -853,7 +853,7 @@ public class ListBox : ListControl
       EffectiveFont.Color     = fore;
       EffectiveFont.BackColor = back;
       e.Target.DrawText(EffectiveFont, GetItemText(index), bounds.Location);
-      if(index == CursorPosition) e.Renderer.DrawBox(e.Target, bounds, Color.FromArgb(128, fore));
+      if(index == CursorPosition) e.Renderer.DrawBox(e.Target, bounds, new Color(fore, 128));
     }
   }
 
@@ -861,7 +861,7 @@ public class ListBox : ListControl
   {
     return FindChar(c, 0);
   }
-  
+
   protected int FindChar(char c, int start)
   {
     c = char.ToUpper(c);
@@ -1221,7 +1221,7 @@ public class ListBox : ListControl
   {
     DragTo(index, null);
   }
-  
+
   void DragTo(int index, KeyEventArgs e)
   {
     if(index != CursorPosition)
@@ -1268,7 +1268,7 @@ public class ListBox : ListControl
   {
     ScrollDown(null);
   }
-  
+
   void ScrollDown(KeyEventArgs e)
   {
     int bi = GetBottomIndex();
@@ -1296,7 +1296,7 @@ public class ListBox : ListControl
   {
     ScrollUp(null);
   }
-  
+
   void ScrollUp(KeyEventArgs e)
   {
     int newIndex = CursorPosition;
@@ -1532,12 +1532,12 @@ public class ComboBox : ListControl
   {
     return new ListBox(items);
   }
-  
+
   protected virtual TextBox MakeTextBox()
   {
     return new TextBox();
   }
-  
+
   protected override void OnEffectiveFontChanged(ValueChangedEventArgs e)
   {
     base.OnEffectiveFontChanged(e);
@@ -1572,7 +1572,7 @@ public class ComboBox : ListControl
       }
       e.Handled = true;
     }
-    
+
     base.OnMouseDown(e);
   }
 
@@ -1603,7 +1603,7 @@ public class ComboBox : ListControl
   {
     base.OnPaint(e);
     e.Renderer.DrawArrowButton(e.Target, ControlToDraw(BoxRect), ArrowDirection.Down, BoxRect.Width / 4, depressed,
-                               SystemColors.Control, EffectivelyEnabled ? Color.Black : SystemColors.GrayText);
+                               SystemColors.Control, EffectivelyEnabled ? Color.Black : (Color)SystemColors.GrayText);
   }
 
   protected override void LayOutChildren()
@@ -1623,7 +1623,7 @@ public class ComboBox : ListControl
     {
       Control parent = style == ComboBoxStyle.Simple ? this : (Control)Desktop;
       if(parent == null) return;
-      
+
       ListBox.Parent = parent;
 
       if(parent == this)

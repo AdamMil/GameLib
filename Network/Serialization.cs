@@ -158,7 +158,7 @@ public sealed class MessageConverter
       info.Blittable = (mt == MarshalType.Blittable);
     }
 
-    // find a new place 
+    // find a new place
     typeIDs[type] = types.Count;
     types.Add(info);
   }
@@ -469,7 +469,7 @@ public sealed class MessageConverter
 
     /*try { new ReflectionPermission(ReflectionPermissionFlag.NoFlags).Demand(); }
     catch(System.Security.SecurityException) { return MarshalType.Marshalable; }*/
-    
+
     return GetMarshalType(type, null);
   }
 
@@ -483,7 +483,7 @@ public sealed class MessageConverter
     foreach(FieldInfo fi in type.GetFields(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public))
     {
       Type ft = fi.FieldType;
-      
+
       if(ft.IsPrimitive || ft.IsEnum)
       {
         // primitive types are blittable and so don't change the marshal type
@@ -492,7 +492,7 @@ public sealed class MessageConverter
       {
         // reference fields without layout attributes are allowed if they have a suitable MarshalAs attribute
         if(!ft.IsValueType && !ft.IsLayoutSequential && !ft.IsExplicitLayout)
-        { 
+        {
           MarshalAsAttribute ma = (MarshalAsAttribute)Attribute.GetCustomAttribute(fi, typeof(MarshalAsAttribute), false);
           if(ma != null)
           {

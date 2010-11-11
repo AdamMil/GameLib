@@ -90,19 +90,19 @@ public sealed class LinkMessage : IDisposable
   {
     get; private set;
   }
-  
+
   /// <summary>This property returns the length of the message data, in bytes.</summary>
   public int Length
   {
     get; private set;
   }
-  
+
   /// <summary>This property returns the <see cref="SendFlag"/> value that was used to send the message.</summary>
   public SendFlag Flags
   {
     get; private set;
   }
-  
+
   /// <summary>This property returns the context value that was passed to the Send() method.</summary>
   /// <remarks>Note that this value is not transmitted across the network, so it will be null for received messages.</remarks>
   public object Tag
@@ -280,21 +280,21 @@ public class NetLink
 
   /// <summary>This event is raised when the network link is connected.</summary>
   public event NetLinkHandler Connected;
-  
+
   /// <summary>This event is raised when the network link is disconnected.</summary>
   public event NetLinkHandler Disconnected;
-  
+
   /// <summary>This event is raised when a message has been received. The message is still within the receive queue,
   /// and can be retrieved using <see cref="Receive"/> or <see cref="ReceiveMessage"/>.
   /// </summary>
   public event NetLinkHandler MessageReceived;
-  
+
   /// <summary>This event is raised when a message is sent over the network.</summary>
   /// <remarks>Note that the message must have been sent with the <see cref="SendFlag.NotifySent"/> flag
   /// in order for this event to be raised.
   /// </remarks>
   public event LinkMessageHandler MessageSent;
-  
+
   /// <summary>This event is raised when a message is received by the remote host.</summary>
   /// <remarks>Note that the message must have been sent with the <see cref="SendFlag.NotifyReceived"/> flag
   /// in order for this event to be raised. Also note that this is not currently implemented.
@@ -468,7 +468,7 @@ public class NetLink
         else tcp.Shutdown(SocketShutdown.Send);
       }
     }
-    
+
     // TODO: can we remove this line?
     sendQueue = 0; // duplicated just in case SendPoll() changes it
   }
@@ -477,14 +477,14 @@ public class NetLink
   public QueueStatus GetQueueStatus(QueueStatusFlag flags)
   {
     QueueStatus status = new QueueStatus();
-    
+
     if(connected)
     {
       if((flags & QueueStatusFlag.LowPriority) != 0) AddSendQueueStatistics(ref status, low);
       if((flags & QueueStatusFlag.NormalPriority) != 0) AddSendQueueStatistics(ref status, norm);
       if((flags & QueueStatusFlag.HighPriority) != 0) AddSendQueueStatistics(ref status, high);
     }
-    
+
     if((flags & QueueStatusFlag.ReceiveQueue) != 0 && recv != null && recv.Count != 0)
     {
       lock(recv)
@@ -496,7 +496,7 @@ public class NetLink
         }
       }
     }
-    
+
     return status;
   }
 
@@ -559,25 +559,25 @@ public class NetLink
   {
     Send(data, 0, data.Length, null, DefaultFlags, 0, null);
   }
-  
+
   /// <include file="../documentation.xml" path="//Network/NetLink/Send/*[self::Common or self::Index]/*"/>
   public void Send(byte[] data, int index, int length)
   {
     Send(data, index, length, null, DefaultFlags, 0, null);
   }
-  
+
   /// <include file="../documentation.xml" path="//Network/NetLink/Send/*[self::Common or self::Index or self::Flags]/*"/>
   public void Send(byte[] data, int index, int length, SendFlag flags)
   {
     Send(data, index, length, null, flags, 0, null);
   }
-  
+
   /// <include file="../documentation.xml" path="//Network/NetLink/Send/*[self::Common or self::Flags]/*"/>
   public void Send(byte[] data, SendFlag flags)
   {
     Send(data, 0, data.Length, null, flags, 0, null);
   }
-  
+
   /// <include file="../documentation.xml" path="//Network/NetLink/Send/*[self::Common or self::Flags or self::Timeout]/*"/>
   public void Send(byte[] data, SendFlag flags, int timeoutMs)
   {
@@ -615,7 +615,7 @@ public class NetLink
     if(length >= MaxMessageSize) throw new DataTooLargeException("The message data is too long.", MaxMessageSize);
     if(timeoutMs < 0) throw new ArgumentOutOfRangeException("timeoutMs", "cannot be negative");
     if(index < 0 || length < 0 || index+length > data.Length) throw new ArgumentOutOfRangeException("index or length");
-    
+
     if(attachedStream != null)
     {
       if(!attachedStream.CanSeek)
@@ -672,7 +672,7 @@ public class NetLink
     }
 
     SendPoll();
-    
+
     if(!connected) throw new ConnectionLostException();
   }
 
@@ -1090,7 +1090,7 @@ public class NetLink
         // TODO: we should be able to send small streams over UDP, but i that's probably not important in practice...
         bool sendWithTcp = (toSend.Flags & SendFlag.Reliable) != 0 || toSend.AttachedStream != null ||
                            dataLength > udpMax;
-        
+
         // if we're sending with UDP, we'll need to fit the entire message into the send buffer, so resize it
         if(!sendWithTcp && sendBuf.Length < toSend.Length+HeaderSize) sendBuf = new byte[toSend.Length+HeaderSize];
 

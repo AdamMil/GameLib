@@ -25,7 +25,7 @@ namespace GameLib.Interop.SndFile
 
 [System.Security.SuppressUnmanagedCodeSecurity()]
 internal static class SF
-{ 
+{
   [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
   public unsafe delegate long LengthHandler(IntPtr context);
   [UnmanagedFunctionPointer(CallingConvention.Cdecl)]

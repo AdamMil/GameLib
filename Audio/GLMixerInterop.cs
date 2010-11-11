@@ -25,7 +25,7 @@ namespace GameLib.Interop.GLMixer
 [CLSCompliant(false)]
 [System.Security.SuppressUnmanagedCodeSecurity()]
 public static class GLMixer
-{ 
+{
   [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
   internal unsafe delegate void MixCallback(int* stream, uint samples, IntPtr context);
 

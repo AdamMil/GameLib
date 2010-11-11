@@ -21,6 +21,7 @@ using System.Drawing;
 using System.IO;
 using AdamMil.Utilities;
 using GameLib.Interop.SDL;
+using SysColor = System.Drawing.Color;
 
 // TODO: support 15-bit color (pixelformat, etc)
 
@@ -62,7 +63,7 @@ public enum ImageType
 
 [Flags]
 public enum SurfaceFlag
-{ 
+{
   /// <summary>Default flags.</summary>
   None = 0,
 
@@ -135,9 +136,9 @@ public enum SurfaceFlag
 // TODO: allow Surface to be inherited from
 [System.Security.SuppressUnmanagedCodeSecurity()]
 public sealed class Surface : IDisposable, IGuiRenderTarget
-{ 
+{
   /// <include file="../documentation.xml" path="//Video/Surface/Cons/FromBmp/*"/>
-  /// <remarks>Using this is equivalent to using <see cref="Surface(Bitmap,SurfaceFlag)"/> and passing 
+  /// <remarks>Using this is equivalent to using <see cref="Surface(Bitmap,SurfaceFlag)"/> and passing
   /// <see cref="SurfaceFlag.None"/>. You may want to use <see cref="CloneDisplay"/> to convert the surface
   /// into something that matches the display surface, for efficiency.
   /// </remarks>
@@ -201,7 +202,14 @@ public sealed class Surface : IDisposable, IGuiRenderTarget
       Lock();
       unsafe
       {
-        if(depth == 8) SetPalette(bitmap.Palette.Entries);
+        if(depth == 8)
+        {
+          System.Drawing.Imaging.ColorPalette palette = bitmap.Palette;
+          Color[] colors = new Color[Math.Min(PaletteSize, palette.Entries.Length)];
+          for(int i=0; i<colors.Length; i++) colors[i] = palette.Entries[i];
+          SetPalette(colors);
+        }
+
         byte* src=(byte*)data.Scan0, dest=(byte*)Data;
         if(data.Stride == Pitch)
         {
@@ -319,7 +327,7 @@ public sealed class Surface : IDisposable, IGuiRenderTarget
   /// </param>
   /// <param name="type">The <see cref="ImageType"/> of the image contained in the stream.</param>
   /// <remarks>Using this is equivalent to using <see cref="Surface(System.IO.Stream,ImageType,bool)"/> and passing
-  /// true to automatically close the stream. 
+  /// true to automatically close the stream.
   /// You may want to use <see cref="CloneDisplay"/> to convert the
   /// surface into something that matches the display surface, for efficiency.
   /// </remarks>
@@ -457,7 +465,7 @@ public sealed class Surface : IDisposable, IGuiRenderTarget
   /// the color key will not be processed.
   /// This property will not cause blits to respect the color key unless the color key is also enabled.
   /// The <see cref="UsingKey"/> property can be used to enable and disable the use of the color key. If this
-  /// property is set to <see cref="Color.Transparent"/>,
+  /// property is set to <see cref="Color.Empty"/>,
   /// <see cref="UsingKey"/> will automatically be set to false. The color key will be ignored if the surface has
   /// an alpha channel. In that case, use the alpha channel to mark pixels as transparent by setting the alpha value
   /// to zero (transparent).
@@ -637,7 +645,7 @@ public sealed class Surface : IDisposable, IGuiRenderTarget
   ///  N    N    Y   The RGB data is copied from the source and the alpha
   ///                value of the copied pixels is set to opaque. If UsingKey
   ///                is set, only the pixels not matching the color key value
-  ///                are copied. 
+  ///                are copied.
   ///  Y    Y    Y   The source is alpha blended with the destination using
   ///                the source alpha channel. The alpha channel in the
   ///                destination surface is left untouched. The color key is
@@ -728,12 +736,13 @@ public sealed class Surface : IDisposable, IGuiRenderTarget
   /// <param name="color">The color to set the color key to.</param>
   /// <remarks>The color key is used during blitting to mark source pixels as transparent. Source pixels matching
   /// the color key will not be copied. This method sets the color key and then sets <see cref="UsingKey"/> to false
-  /// if <paramref name="color"/> is <see cref="Color.Transparent"/> and true otherwise.
+  /// if <paramref name="color"/> is <see cref="Color.Empty"/> and true otherwise.
   /// </remarks>
   public unsafe void SetColorKey(Color color)
-  { key      = color;
+  {
+    key      = color;
     rawKey   = MapColor(color);
-    UsingKey = color!=Color.Transparent; // relies on UsingKey to set the SDL key value
+    UsingKey = color != Color.Empty; // relies on UsingKey to set the SDL key value
   }
 
   /// <summary>This method sets the color key and enables/disables transparent blitting.</summary>
@@ -779,18 +788,20 @@ public sealed class Surface : IDisposable, IGuiRenderTarget
   /// <returns>The raw pixel value closest to the color given.</returns>
   [CLSCompliant(false)]
   public unsafe uint MapColor(Color color)
-  { return SDL.MapRGBA(surface->Format, color.R, color.G, color.B, color.A);
+  {
+    return SDL.MapRGBA(surface->Format, color.R, color.G, color.B, color.Alpha);
   }
   /// <summary>Maps a <see cref="Color"/> to the nearest raw pixel value.</summary>
   /// <param name="color">The <see cref="Color"/> to map.</param>
   /// <param name="alpha">The alpha value to use for the color.</param>
   /// <returns>The raw pixel value closest to the color given.</returns>
-  /// <remarks>The alpha value passed overrides the alpha value contained in the <see cref="Color.A"/>
+  /// <remarks>The alpha value passed overrides the alpha value contained in the <see cref="Color.Alpha"/>
   /// property of <paramref name="color"/>.
   /// </remarks>
   [CLSCompliant(false)]
   public unsafe uint MapColor(Color color, byte alpha)
-  { return SDL.MapRGBA(surface->Format, color.R, color.G, color.B, alpha);
+  {
+    return SDL.MapRGBA(surface->Format, color.R, color.G, color.B, alpha);
   }
   /// <summary>Maps a color specified as RGB components to the nearest raw pixel value.</summary>
   /// <returns>The raw pixel value closest to the color given.</returns>
@@ -811,16 +822,18 @@ public sealed class Surface : IDisposable, IGuiRenderTarget
   /// <returns>The <see cref="Color"/> corresponding to <paramref name="color"/>.</returns>
   [CLSCompliant(false)]
   public unsafe Color MapColor(uint color)
-  { byte r, g, b, a;
+  {
+    byte r, g, b, a;
     SDL.GetRGBA(color, surface->Format, out r, out g, out b, out a);
-    return Color.FromArgb(a, r, g, b);
+    return new Color(r, g, b, a);
   }
 
   /// <summary>Returns the logical color palette.</summary>
   /// <returns>An array of <see cref="Color"/> containing the logical color palette.</returns>
   /// <exception cref="VideoException">Thrown if the surface has no associated palette.</exception>
   public Color[] GetPalette()
-  { Color[] colors = new Color[PaletteSize];
+  {
+    Color[] colors = new Color[PaletteSize];
     GetPalette(colors);
     return colors;
   }
@@ -830,7 +843,8 @@ public sealed class Surface : IDisposable, IGuiRenderTarget
   /// <remarks>This will not fill the entire array if it's longer than the number of entries in the palette.</remarks>
   /// <exception cref="ArgumentNullException">Thrown if <paramref name="colors"/> is null.</exception>
   public void GetPalette(Color[] colors)
-  { if(colors==null) throw new ArgumentNullException("colors");
+  {
+    if(colors==null) throw new ArgumentNullException("colors");
     GetPalette(colors, 0, 0, Math.Min(PaletteSize, colors.Length));
   }
   /// <summary>Gets the logical palette colors.</summary>
@@ -843,42 +857,38 @@ public sealed class Surface : IDisposable, IGuiRenderTarget
   /// <exception cref="ArgumentNullException">Thrown if <paramref name="colors"/> is null.</exception>
   public void GetPalette(Color[] colors, int numColors) { GetPalette(colors, 0, 0, numColors); }
   public unsafe void GetPalette(Color[] colors, int startIndex, int startColor, int numColors)
-  { ValidatePaletteArgs(colors, startColor, numColors);
+  {
+    Utility.ValidateRange(colors, startIndex, numColors);
+    ValidatePaletteArgs(startColor, numColors);
 
-    SDL.Color* palette = surface->Format->Palette->Colors;
-    for(int i=0; i<numColors; i++)
-    { SDL.Color c = palette[startColor+i];
-      colors[startIndex+i] = Color.FromArgb(c.Red, c.Green, c.Blue);
-    }
+    Color* palette = surface->Format->Palette->Colors + startColor;
+    for(int i=0; i<numColors; i++) colors[startIndex+i] = palette[i];
   }
 
   /// <include file="../documentation.xml" path="//Video/Surface/SetPalette/*[self::Logical or self::A or self::EN]/*"/>
   public bool SetPalette(Color[] colors)
-  { if(colors==null) throw new ArgumentNullException("colors");
+  {
+    if(colors==null) throw new ArgumentNullException("colors");
     return SetPalette(colors, 0, 0, colors.Length, PaletteType.Logical);
   }
   /// <include file="../documentation.xml" path="//Video/Surface/SetPalette/*[self::Logical or self::AN or self::EN]/*"/>
   public bool SetPalette(Color[] colors, int numColors)
-  { return SetPalette(colors, 0, 0, numColors, PaletteType.Logical);
+  {
+    return SetPalette(colors, 0, 0, numColors, PaletteType.Logical);
   }
   /// <include file="../documentation.xml" path="//Video/Surface/SetPalette/*[self::Logical or self::AA]/*"/>
   public bool SetPalette(Color[] colors, int startIndex, int startColor, int numColors)
-  { return SetPalette(colors, startIndex, startColor, numColors, PaletteType.Logical);
+  {
+    return SetPalette(colors, startIndex, startColor, numColors, PaletteType.Logical);
   }
   /// <summary>Sets palette colors.</summary>
   /// <param name="type">The palette to change (<see cref="PaletteType"/>).</param>
   /// <include file="../documentation.xml" path="//Video/Surface/SetPalette/*[self::Common or self::AA]/*"/>
   public unsafe bool SetPalette(Color[] colors, int startIndex, int startColor, int numColors, PaletteType type)
-  { ValidatePaletteArgs(colors, startColor, numColors);
-
-    SDL.Color* array = stackalloc SDL.Color[numColors];
-    for(int i=0; i<numColors; i++)
-    { Color c = colors[startIndex+i];
-      array[i].Red   = c.R;
-      array[i].Green = c.G;
-      array[i].Blue  = c.B;
-    }
-    return SDL.SetPalette(surface, (uint)type, array, startColor, numColors)==1;
+  {
+    Utility.ValidateRange(colors, startIndex, numColors);
+    ValidatePaletteArgs(startColor, numColors);
+    fixed(Color* colorPtr=colors) return SDL.SetPalette(surface, (uint)type, colorPtr+startIndex, startColor, numColors) == 1;
   }
 
   /// <include file="../documentation.xml" path="//Video/Surface/CreateCompatible/*"/>
@@ -1204,19 +1214,22 @@ public sealed class Surface : IDisposable, IGuiRenderTarget
     if(Depth==8)
     {
       System.Drawing.Imaging.ColorPalette pal = bitmap.Palette;
-      GetPalette(pal.Entries, PaletteSize);
+
+      Color[] colors = new Color[Math.Min(PaletteSize, pal.Entries.Length)];
+      GetPalette(colors);
+      for(int i=0; i<colors.Length; i++) pal.Entries[i] = colors[i];
+
       bitmap.Palette = pal;
     }
     return bitmap;
   }
 
-  unsafe void ValidatePaletteArgs(Color[] colors, int startColor, int numColors)
-  { SDL.Palette* palette = surface->Format->Palette;
+  unsafe void ValidatePaletteArgs(int startColor, int numColors)
+  {
+    SDL.Palette* palette = surface->Format->Palette;
     if(palette==null) throw new VideoException("This surface does not have an associated palette.");
     int max = palette->Entries;
-    if(startColor<0 || numColors<0 || numColors>max || startColor+numColors>max)
-      throw new ArgumentOutOfRangeException();
-    if(colors==null) throw new ArgumentNullException("array");
+    if(startColor<0 || numColors>max || startColor+numColors>max) throw new ArgumentOutOfRangeException();
   }
 
   unsafe void WritePCX(Stream stream)
@@ -1399,8 +1412,8 @@ public sealed class Surface : IDisposable, IGuiRenderTarget
 
   void IGuiRenderTarget.FillArea(Rectangle area, Color color)
   {
-    if(color.A == 255) Fill(area, color);
-    else if(color.A != 0) Primitives.FilledBox(this, area, color);
+    if(color.Alpha == 255) Fill(area, color);
+    else if(color.Alpha != 0) Shapes.FilledBox(this, area, color);
   }
 
   PixelFormat format;

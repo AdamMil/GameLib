@@ -116,19 +116,19 @@ public class Server
 
   /// <summary>This event is raised when a player has connected to the server.</summary>
   public event PlayerHandler PlayerConnected;
-  
+
   /// <summary>This event is raised when a player has disconnected from the server.</summary>
   public event PlayerHandler PlayerDisconnected;
-  
+
   /// <summary>This event is raised when a message has been received.</summary>
   public event ServerMessageHandler MessageReceived;
-  
+
   /// <summary>This event is raised when a message has been received by a remote host.</summary>
   /// <remarks>Note that this event will only be raised for messages sent with the
   /// <see cref="SendFlag.NotifyReceived"/> flag.
   /// </remarks>
   public event ServerMessageHandler RemoteReceived;
-  
+
   /// <summary>This event is raised when a message has been sent over the network.</summary>
   /// <remarks>Note that this event will only be raised for messages sent with the <see cref="SendFlag.NotifySent"/>
   /// flag.
@@ -211,7 +211,7 @@ public class Server
       thread.Abort();
       thread = null;
     }
-    
+
     StopListening();
     quit   = false;
     nextID = 1;
@@ -510,7 +510,7 @@ public class Server
   {
     SendToAllExcept(player, data, 0, data.Length, DefaultFlags);
   }
-  
+
   /// <include file="../documentation.xml" path="//Network/Server/SendToAllExcept/*[self::CommonToAllExcept or self::byteData or self::Index]/*"/>
   public void SendToAllExcept(ServerPlayer player, byte[] data, int index, int length)
   {
@@ -522,19 +522,19 @@ public class Server
   {
     RawSendToAllExcept(player, data, 0, data.Length, null, flags, 0, data);
   }
-  
+
   /// <include file="../documentation.xml" path="//Network/Server/SendToAllExcept/*[self::CommonToAllExcept or self::byteData or self::Index or self::Flags]/*"/>
   public void SendToAllExcept(ServerPlayer player, byte[] data, int index, int length, SendFlag flags)
   {
     RawSendToAllExcept(player, cvt.Serialize(data, index, length), null, flags, 0, data);
   }
-  
+
   /// <include file="../documentation.xml" path="//Network/Server/SendToAllExcept/*[self::CommonToAllExcept or self::byteData or self::Flags or self::Timeout]/*"/>
   public void SendToAllExcept(ServerPlayer player, byte[] data, SendFlag flags, int timeoutMs)
   {
     RawSendToAllExcept(player, data, 0, data.Length, null, flags, timeoutMs, data);
   }
-  
+
   /// <include file="../documentation.xml" path="//Network/Server/SendToAllExcept/*[self::CommonToAllExcept or self::byteData or self::Index or self::Flags or self::Timeout]/*"/>
   public void SendToAllExcept(ServerPlayer player, byte[] data, int index, int length, SendFlag flags, int timeoutMs)
   {
@@ -546,13 +546,13 @@ public class Server
   {
     SendToAllExcept(player, data, DefaultFlags, 0);
   }
-  
+
   /// <include file="../documentation.xml" path="//Network/Server/SendToAllExcept/*[self::CommonToAllExcept or self::objData or self::Flags]/*"/>
   public void SendToAllExcept(ServerPlayer player, object data, SendFlag flags)
   {
     SendToAllExcept(player, data, flags, 0);
   }
-  
+
   /// <include file="../documentation.xml" path="//Network/Server/SendToAllExcept/*[self::CommonToAllExcept or self::objData or self::Flags or self::Timeout]/*"/>
   public void SendToAllExcept(ServerPlayer player, object data, SendFlag flags, int timeoutMs)
   {
@@ -665,7 +665,7 @@ public class Server
   {
     if(thread == null) throw new InvalidOperationException("Server not initialized yet.");
   }
-  
+
   void OnRemoteReceived(NetLink link, LinkMessage msg)
   {
     SentMessage sent = (SentMessage)msg.Tag;

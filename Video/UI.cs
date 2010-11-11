@@ -24,12 +24,6 @@ namespace GameLib.Video
 
 public static class UIHelper
 {
-  /// <summary>Blends two colors together.</summary>
-  /// <param name="a">The first color.</param>
-  /// <param name="b">The second color.</param>
-  /// <returns>A <see cref="Color"/> that is the average of <paramref name="a"/> and <paramref name="b"/>.</returns>
-  public static Color Blend(Color a, Color b) { return Color.FromArgb((a.R+b.R)/2, (a.G+b.G)/2, (a.B+b.B)/2); }
-
   /// <summary>Calculate the point at which an object should be drawn.</summary>
   /// <param name="container">The container in which the object will be drawn.</param>
   /// <param name="itemSize">The size of the object to draw.</param>
@@ -55,7 +49,7 @@ public static class UIHelper
   /// <returns>A new color that is equal to or darker than <paramref name="baseColor"/>.</returns>
   public static Color GetDarkColor(Color baseColor)
   {
-    return Color.FromArgb(baseColor.R/2, baseColor.G/2, baseColor.B/2);
+    return new Color((byte)(baseColor.R/2), (byte)(baseColor.G/2), (byte)(baseColor.B/2), baseColor.Alpha);
   }
 
   /// <summary>Given a base color, returns a light color for use in 3D shading.</summary>
@@ -63,8 +57,8 @@ public static class UIHelper
   /// <returns>A new color that is equal to or lighter than <paramref name="baseColor"/>.</returns>
   public static Color GetLightColor(Color baseColor)
   {
-    return Color.FromArgb(baseColor.R+(255-baseColor.R)*2/3, baseColor.G+(255-baseColor.G)*2/3,
-                          baseColor.B+(255-baseColor.B)*2/3);
+    return new Color((byte)(baseColor.R+(255-baseColor.R)*2/3), (byte)(baseColor.G+(255-baseColor.G)*2/3),
+                     (byte)(baseColor.B+(255-baseColor.B)*2/3), baseColor.Alpha);
   }
 
   /// <summary>Returns true if <paramref name="align"/> specifies left alignment.</summary>

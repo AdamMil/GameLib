@@ -69,7 +69,7 @@ public class StackPanel : LayoutPanel
   public bool AutoSize
   {
     get { return _autoSize; }
-    set  
+    set
     {
       if(value != AutoSize)
       {
@@ -598,7 +598,7 @@ public class SplitContainer : Control
   {
     Rectangle availableArea = ContentRect;
     if(Orientation == Orientation.Horizontal)
-    { 
+    {
       Panel1.Bounds = new Rectangle(availableArea.Left, availableArea.Top, availableArea.Width, Panel1.Height);
       Rectangle bounds = new Rectangle(availableArea.Left, availableArea.Top, availableArea.Width, Panel2.Height);
       if(!Panel1Collapsed) bounds.Y += Panel1.Height + SplitterWidth;

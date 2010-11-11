@@ -181,38 +181,38 @@ public class Line : Control
 {
   public Line()
   {
-    Size = new Size(1, 1); 
+    Size = new Size(1, 1);
   }
 
-  public Line(Color color) 
+  public Line(Color color)
   {
-    Size      = new Size(1, 1); 
-    ForeColor = color; 
+    Size      = new Size(1, 1);
+    ForeColor = color;
   }
 
   public bool Antialiased
   {
     get { return antialiased; }
-    set 
+    set
     {
-      if(antialiased != value) 
-      { 
+      if(antialiased != value)
+      {
         antialiased = value;
         Invalidate();
-      } 
+      }
     }
   }
 
   public bool TopToBottom
   {
     get { return topToBottom; }
-    set 
+    set
     {
-      if(topToBottom != value) 
+      if(topToBottom != value)
       {
         topToBottom = value;
-        Invalidate(); 
-      } 
+        Invalidate();
+      }
     }
   }
 
@@ -221,7 +221,7 @@ public class Line : Control
     base.OnPaint(e);
 
     Color color = GetEffectiveForeColor();
-    if(color.A != 0)
+    if(!color.IsTransparent)
     {
       Rectangle drawRect = GetContentDrawRect();
       Point p1 = topToBottom ? drawRect.Location : new Point(drawRect.X, drawRect.Bottom - 1);
@@ -250,7 +250,7 @@ public abstract class LabelBase : Control
       if(EffectiveFont != null)
       {
         Rectangle rect = GetContentDrawRect();
-        EffectiveFont.Color     = EffectivelyEnabled ? GetEffectiveForeColor() : SystemColors.GrayText;
+        EffectiveFont.Color     = EffectivelyEnabled ? GetEffectiveForeColor() : (Color)SystemColors.GrayText;
         EffectiveFont.BackColor = GetEffectiveBackColor();
         e.Target.DrawText(EffectiveFont, Text, rect, TextAlign);
       }
@@ -273,7 +273,7 @@ public abstract class LabelBase : Control
 
   protected virtual void OnTextAlignChanged(ValueChangedEventArgs e)
   {
-    Invalidate(); 
+    Invalidate();
   }
 
   ContentAlignment _textAlign = ContentAlignment.TopLeft;
@@ -450,7 +450,7 @@ public abstract class ButtonBase : LabelBase
   protected internal override void OnKeyDown(KeyEventArgs e)
   {
     base.OnKeyDown(e);
-    
+
     if(!e.Handled)
     {
       if(e.KE.Key == Key.Enter || e.KE.Key == Key.KpEnter)
@@ -496,7 +496,7 @@ public abstract class ButtonBase : LabelBase
       if(AutoPress && !IsDepressed) Invalidate();
     }
   }
-  
+
   protected virtual void OnClick(ClickEventArgs e)
   {
     if(Click != null) Click(this, e);
@@ -614,18 +614,18 @@ public class CheckBox : ButtonBase
 
   public CheckBox(bool isChecked) : this()
   {
-    Checked = isChecked; 
+    Checked = isChecked;
   }
-  
+
   public CheckBox(string text) : this()
   {
-    Text = text; 
+    Text = text;
   }
-  
-  public CheckBox(string text, bool isChecked) : this() 
+
+  public CheckBox(string text, bool isChecked) : this()
   {
-    Text    = text; 
-    Checked = isChecked; 
+    Text    = text;
+    Checked = isChecked;
   }
 
   public event EventHandler CheckedChanged;
@@ -675,15 +675,15 @@ public class CheckBox : ButtonBase
   }
 
   protected override void OnGotFocus()
-  { 
-    Invalidate(); 
-    base.OnGotFocus(); 
-  }
-  
-  protected override void OnLostFocus() 
-  { 
+  {
     Invalidate();
-    base.OnLostFocus(); 
+    base.OnGotFocus();
+  }
+
+  protected override void OnLostFocus()
+  {
+    Invalidate();
+    base.OnLostFocus();
   }
 
   protected override void OnPaint(PaintEventArgs e)
@@ -867,7 +867,7 @@ public class ScrollBar : Control
   /// <summary>Gets whether the user is currently dragging the thumb.</summary>
   public bool IsDraggingThumb
   {
-    get { return dragOffset != -1; } 
+    get { return dragOffset != -1; }
   }
 
   /// <summary>Gets or sets the amount added to or subtracted from <see cref="Value"/> when the scrollbar is adjusted
@@ -884,12 +884,12 @@ public class ScrollBar : Control
   {
     get { return max; }
     set
-    { 
+    {
       if(value != max)
       {
         max = value;
         if(Value > max) Value = max;
-        Invalidate(); 
+        Invalidate();
       }
     }
   }
@@ -898,14 +898,14 @@ public class ScrollBar : Control
   public int Minimum
   {
     get { return min; }
-    set 
+    set
     {
-      if(value != min) 
+      if(value != min)
       {
         min = value;
         if(Value < min) Value = min;
         Invalidate();
-      } 
+      }
     }
   }
 
@@ -944,7 +944,7 @@ public class ScrollBar : Control
         if(value < 0 || value > 1) throw new ArgumentOutOfRangeException();
         thumbSize = value;
         Invalidate();
-      } 
+      }
     }
   }
 
@@ -1197,30 +1197,30 @@ public class ScrollBar : Control
     if(AutoUpdate) Value = value + SmallIncrement;
     if(Up != null) Up(this, EventArgs.Empty);
   }
-  
+
   protected virtual void OnPageDown()
   {
     if(AutoUpdate) Value = value - LargeIncrement;
     if(PageDown != null) PageDown(this, EventArgs.Empty);
   }
-  
+
   protected virtual void OnPageUp()
   {
     if(AutoUpdate) Value = value + LargeIncrement;
     if(PageUp != null) PageUp(this, EventArgs.Empty);
   }
-  
+
   protected virtual void OnThumbDragStart(ThumbEventArgs e)
   {
     if(ThumbDragStart != null) ThumbDragStart(this, e);
   }
-  
+
   protected virtual void OnThumbDragMove(ThumbEventArgs e)
   {
     if(AutoUpdate) Value = e.End;
     if(ThumbDragMove != null) ThumbDragMove(this, e);
   }
-  
+
   protected virtual void OnThumbDragEnd(ThumbEventArgs e)
   {
     if(AutoUpdate) Value = e.End;
@@ -1272,7 +1272,7 @@ public class ScrollBar : Control
   protected int ValueToThumb(int value)
   {
     int range = max - min;
-    return (range == 0 ? min : (value - min)*SpaceExcludingThumb/range) + EndSize; 
+    return (range == 0 ? min : (value - min)*SpaceExcludingThumb/range) + EndSize;
   }
 
   sealed class ClickRepeat : Events.ControlEvent
@@ -1297,7 +1297,7 @@ public class ScrollBar : Control
     ArrowDirection arrow = place == ClickPlace.Up ? horizontal ? ArrowDirection.Right : ArrowDirection.Down
                                                   : horizontal ? ArrowDirection.Left  : ArrowDirection.Up;
     Renderer.DrawArrowButton(e.Target, rect, arrow, EndSize / 4, down == place, GetEffectiveForeColor(),
-                             EffectivelyEnabled ? Color.Black : SystemColors.GrayText);
+                             EffectivelyEnabled ? Color.Black : (Color)SystemColors.GrayText);
   }
 
   void OnMouseDown(ClickPlace place)
@@ -1426,7 +1426,7 @@ public class TextBox : Control
   public bool ReadOnly
   {
     get { return readOnly; }
-    set { readOnly = value; } 
+    set { readOnly = value; }
   }
 
   public string SelectedText
@@ -1447,9 +1447,9 @@ public class TextBox : Control
     }
   }
 
-  public int SelectionEnd 
+  public int SelectionEnd
   {
-    get { return selectLen < 0 ? caretPosition : caretPosition + selectLen; } 
+    get { return selectLen < 0 ? caretPosition : caretPosition + selectLen; }
   }
 
   public int SelectionLength
@@ -1466,12 +1466,12 @@ public class TextBox : Control
     }
   }
 
-  public int SelectionStart 
+  public int SelectionStart
   {
-    get { return selectLen < 0 ? caretPosition + selectLen : caretPosition; } 
+    get { return selectLen < 0 ? caretPosition + selectLen : caretPosition; }
   }
 
-  public bool SelectOnFocus 
+  public bool SelectOnFocus
   {
     get { return selectOnFocus; }
     set { selectOnFocus = value; }
@@ -1502,17 +1502,17 @@ public class TextBox : Control
 
   #region Events
   public event EventHandler ModifiedChanged;
-  
+
   protected virtual void OnModifiedChanged()
   {
     if(ModifiedChanged != null) ModifiedChanged(this, EventArgs.Empty);
   }
-  
+
   protected virtual void OnCaretPositionChanged(ValueChangedEventArgs e)
   {
     Invalidate(ContentRect);
   }
-  
+
   protected virtual void OnCaretFlash()
   {
     if(Desktop != null)
@@ -1800,7 +1800,7 @@ public class TextBox : Control
 
       string text = Text.Substring(visibleStart, visibleEnd - visibleStart);
 
-      Color fore = EffectivelyEnabled ? GetEffectiveForeColor() : SystemColors.GrayText;
+      Color fore = EffectivelyEnabled ? GetEffectiveForeColor() : (Color)SystemColors.GrayText;
       Color back = GetEffectiveBackColor();
 
       EffectiveFont.Color     = fore;
@@ -1824,7 +1824,7 @@ public class TextBox : Control
         EffectiveFont.Color     = back;
         EffectiveFont.BackColor = fore;
         location.X += e.Target.DrawText(EffectiveFont, selectedText, location);
-        
+
         // draw the text after the selection
         if(SelectionEnd < visibleEnd)
         {
@@ -1859,7 +1859,7 @@ public class TextBox : Control
   #endregion
 
   public void AppendText(string text) { Text += text; }
-  
+
   public void Copy()
   {
     if(SelectionLength != 0) SetClipboardText(SelectedText);
@@ -1900,7 +1900,7 @@ public class TextBox : Control
     CaretPosition   = start;
     SelectionLength = length;
   }
-  
+
   public void SelectAll()
   {
     CaretPosition   = Text.Length;
@@ -1931,7 +1931,7 @@ public class TextBox : Control
   }
 
   int CtrlScan(int dir)
-  { 
+  {
     string text = Text;
     int i = caretPosition;
     if(dir < 0)
@@ -2013,7 +2013,7 @@ public class TextBox : Control
       {
         bool hadValue = withCaret != null;
         if(withCaret != null) withCaret.Invalidate(withCaret.ContentRect);
-        
+
         withCaret = value;
 
         if(withCaret != null)

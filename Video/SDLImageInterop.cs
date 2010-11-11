@@ -25,9 +25,9 @@ namespace GameLib.Interop.SDLImage
 
 [System.Security.SuppressUnmanagedCodeSecurity()]
 internal static class Image
-{ 
+{
   public static class Type
-  { 
+  {
     public const string Bmp  = "BMP";
     public const string Gif  = "GIF";
     public const string Jpeg = "JPG";
@@ -40,20 +40,20 @@ internal static class Image
     public const string Xcf  = "XCF";
     public const string Xpm  = "XPM";
     public const string Xv   = "XV";
-    
+
     // NOTE: These items must be in the same order as the ImageType enum items.
     public static readonly string[] Types = new string[]
-    { 
+    {
       Bmp, Gif, Jpeg, Lbm, Pcx, Png, Pnm, Tga, Tiff, Xcf, Xpm, Xv
     };
   }
 
-	[DllImport(Config.SdlImageImportPath, ExactSpelling=true, EntryPoint="IMG_Load", CallingConvention=CallingConvention.Cdecl)]
-	public unsafe static extern SDL.SDL.Surface* Load(string file);
-	[DllImport(Config.SdlImageImportPath, ExactSpelling=true, EntryPoint="IMG_Load_RW", CallingConvention=CallingConvention.Cdecl)]
-	public unsafe static extern SDL.SDL.Surface* Load_RW(SDL.SDL.RWOps* ops, int freesrc);
+  [DllImport(Config.SdlImageImportPath, ExactSpelling=true, EntryPoint="IMG_Load", CallingConvention=CallingConvention.Cdecl)]
+  public unsafe static extern SDL.SDL.Surface* Load(string file);
+  [DllImport(Config.SdlImageImportPath, ExactSpelling=true, EntryPoint="IMG_Load_RW", CallingConvention=CallingConvention.Cdecl)]
+  public unsafe static extern SDL.SDL.Surface* Load_RW(SDL.SDL.RWOps* ops, int freesrc);
   [DllImport(Config.SdlImageImportPath, ExactSpelling=true, EntryPoint="IMG_LoadTyped_RW", CallingConvention=CallingConvention.Cdecl)]
-	public unsafe static extern SDL.SDL.Surface* LoadTyped_RW(SDL.SDL.RWOps* ops, int freesrc, string type);
+  public unsafe static extern SDL.SDL.Surface* LoadTyped_RW(SDL.SDL.RWOps* ops, int freesrc, string type);
 }
 
 } // namespace GameLib.Interop.SDLImage

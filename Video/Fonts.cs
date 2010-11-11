@@ -23,6 +23,7 @@ using AdamMil.Collections;
 using GameLib.Video;
 using GameLib.Interop.SDL;
 using GameLib.Interop.SDLTTF;
+using Color = GameLib.Color;
 
 namespace GameLib.Fonts
 {
@@ -36,7 +37,7 @@ namespace GameLib.Fonts
 /// Fonts are not thread-safe, however, so you should not render text from muliple threads at the same time.
 /// </remarks>
 public abstract class Font : IDisposable
-{ 
+{
   /// <summary>Initializes the font.</summary>
   protected Font()
   { Video.Video.Initialize();
@@ -58,7 +59,7 @@ public abstract class Font : IDisposable
   /// </remarks>
   public abstract Color Color { get; set; }
   /// <summary>Gets or sets the color of the area behind the font.</summary>
-  /// <remarks>This property can be set to <see cref="System.Drawing.Color.Transparent"/> if you don't want the
+  /// <remarks>This property can be set to <see cref="GameLib.Color.Empty"/> if you don't want the
   /// background behind the font to be filled in. The interpretation of this property is up to the implementing class,
   /// however, so see the documentation for the derived classes for more details.
   /// </remarks>
@@ -178,18 +179,18 @@ public abstract class SurfaceFont : Font
   public Point Render(Surface dest, string text, Rectangle rect)
   { return Render(dest, text, rect, ContentAlignment.TopLeft, 0, 0, breakers);
   }
-  
+
   /// <include file="../documentation.xml" path="//Fonts/Render/Rect/Align/*"/>
   public Point Render(Surface dest, string text, Rectangle rect, ContentAlignment align)
   { return Render(dest, text, rect, align, 0, 0, breakers);
   }
-  
+
   /// <include file="../documentation.xml" path="//Fonts/Render/Rect/*[self::NoAlign or self::Offset]/*"/>
   /// <remarks>The X and Y offsets into the rectangle are provided to allow continuing rendering where you left off.</remarks>
   public Point Render(Surface dest, string text, Rectangle rect, int startx, int starty)
   { return Render(dest, text, rect, ContentAlignment.TopLeft, startx, starty, breakers);
   }
-  
+
   /// <include file="../documentation.xml" path="//Fonts/Render/Rect/*[self::Align or self::Offset]/*"/>
   /// <param name="breakers">An array of characters that will be used to break the text. Those characters will
   /// mark preferred places within the string to break to a new line.
@@ -239,7 +240,7 @@ public abstract class SurfaceFont : Font
   { Size size = CalculateSize(text);
     Render(dest, text, (dest.Width-size.Width)/2, (dest.Height-size.Height)/2);
   }
-  
+
   /// <summary>Renders text centered horizontally within a surface at a specified vertical location.</summary>
   /// <param name="dest">The surface to render into.</param>
   /// <param name="text">The text to render.</param>
@@ -268,7 +269,7 @@ public abstract class SurfaceFont : Font
 /// <summary>This enum contains different types of font styles, which can be ORed together.</summary>
 [Flags]
 public enum FontStyle : byte
-{ 
+{
   /// <summary>Normal font rendering.</summary>
   Normal=0,
   /// <summary>Renders the font bolded.</summary>
@@ -288,7 +289,7 @@ public enum FontStyle : byte
 /// should not be used by other threads simultaneously.
 /// </remarks>
 public class BitmapFont : SurfaceFont
-{ 
+{
   /// <summary>Initializes a fixed-width font with default spacing.</summary>
   /// <include file="../documentation.xml" path="//Fonts/BitmapFont/BitmapFont1/*"/>
   public BitmapFont(Surface font, string charset, int charWidth) : this(font, charset, charWidth, 1, 2) { }
@@ -336,9 +337,7 @@ public class BitmapFont : SurfaceFont
   /// <summary>Since the source of data for this font is a bitmap, this property does nothing.</summary>
   public override Color Color { get { return Color.White; } set { } }
   /// <summary>Controls the background color.</summary>
-  /// <value>The color filled behind the font. If set to <see cref="System.Drawing.Color.Transparent"/>,
-  /// the background will not be filled.
-  /// </value>
+  /// <value>The color filled behind the font. If set to <see cref="GameLib.Color.Empty"/>, the background will not be filled.</value>
   public override Color BackColor
   { get { return bgColor; }
     set { bgColor=value; }
@@ -377,7 +376,9 @@ public class BitmapFont : SurfaceFont
   public override int Render(Surface dest, string text, int x, int y)
   { int start=x;
     if(widths==null)
-    { if(bgColor.A != 0) dest.Fill(new Rectangle(x, y, text.Length*(width+xAdd), lineHeight), bgColor);
+    {
+      if(!bgColor.IsTransparent) dest.Fill(new Rectangle(x, y, text.Length*(width+xAdd), lineHeight), bgColor);
+
       for(int i=0,add=width+xAdd; i<text.Length; i++)
       { int off = GetOffset(text[i]);
         if(off!=-1) font.Blit(dest, new Rectangle(off*width, 0, width, Height), x, y);
@@ -385,9 +386,12 @@ public class BitmapFont : SurfaceFont
       }
     }
     else
-    { if(bgColor.A != 0) dest.Fill(new Rectangle(x, y, CalculateSize(text).Width, lineHeight), bgColor);
+    {
+      if(!bgColor.IsTransparent) dest.Fill(new Rectangle(x, y, CalculateSize(text).Width, lineHeight), bgColor);
+
       for(int i=0; i<text.Length; i++)
-      { int off = GetOffset(text[i]);
+      {
+        int off = GetOffset(text[i]);
         if(off==-1) continue;
         font.Blit(dest, new Rectangle(offsets[off], 0, widths[off], Height), x, y);
         x += widths[off]+xAdd;
@@ -411,7 +415,7 @@ public class BitmapFont : SurfaceFont
   }
 
   int GetOffset(char c)
-  { 
+  {
     if(contiguous)
     { if(charset.Length==0 || c<charset[0] || c>charset[charset.Length-1]) return -1;
       return c-charset[0];
@@ -420,10 +424,11 @@ public class BitmapFont : SurfaceFont
   }
 
   void Init()
-  { OnDisplayFormatChanged();
-    bgColor = Color.Transparent;
+  {
+    OnDisplayFormatChanged();
+    bgColor = Color.Empty;
     contiguous = true;
-    for(int i=1; i<charset.Length; i++) if(charset[i]!=charset[i-1]+1) { contiguous=false; break; }
+    for(int i=1; i<charset.Length; i++) if(charset[i] != charset[i-1]+1) { contiguous=false; break; }
   }
 
   Surface font, orig;
@@ -438,7 +443,7 @@ public class BitmapFont : SurfaceFont
 #region RenderStyle
 /// <summary>This enum contains values which specify how font glyphs should be rendered.</summary>
 public enum RenderStyle : byte
-{ 
+{
   /// <summary>The glyphs will be rendered solid using the foreground color, with no antialiasing.
   /// With <see cref="SurfaceFont"/>-based fonts, this method provides the highest performance, and crisp text.
   /// With OpenGL-based fonts, the performance is identical for all render styles.
@@ -473,7 +478,7 @@ public enum RenderStyle : byte
 /// share it. See the <see cref="Font"/> base class for more details.
 /// </remarks>
 public class TrueTypeFont : SurfaceFont
-{ 
+{
   /// <include file="../documentation.xml" path="//Fonts/TrueTypeFont/Cons/File/*"/>
   public TrueTypeFont(string filename, int pointSize)
   { TTF.Initialize();
@@ -518,8 +523,8 @@ public class TrueTypeFont : SurfaceFont
   public RenderStyle RenderStyle { get { return rstyle; } set { rstyle=value; } }
   /// <summary>Gets or sets the foreground color of the font.</summary>
   public override Color Color
-  { get { return color; }
-    set { if(color!=value) { color=value; sdlColor=new SDL.Color(value); } }
+  {
+    get; set;
   }
   /// <summary>Gets or sets the background color of the font.</summary>
   /// <remarks>
@@ -530,15 +535,17 @@ public class TrueTypeFont : SurfaceFont
   /// </para>
   /// <para>If <see cref="ShadeColorCloak"/> is true, setting this property will actually set the
   /// <see cref="ShadeColor"/> property, and this property will always be
-  /// <see cref="System.Drawing.Color.Transparent"/>. This allows the shade color to be controlled by the background
+  /// <see cref="GameLib.Color.Empty"/>. This allows the shade color to be controlled by the background
   /// color, which is part of the standard <see cref="Font"/> interface.
   /// </para>
   /// </remarks>
   public override Color BackColor
-  { get { return bgColor; }
+  {
+    get { return bgColor; }
     set
-    { if(shadeCloak) ShadeColor=value;
-      else if(bgColor!=value) { bgColor=value; sdlBgColor=new SDL.Color(value); }
+    {
+      if(shadeCloak) ShadeColor=value;
+      else bgColor=value;
     }
   }
   /// <summary>Determines whether the alpha channel will be copied to the destination surface.</summary>
@@ -550,39 +557,43 @@ public class TrueTypeFont : SurfaceFont
   /// <see cref="GameLib.Fonts.RenderStyle.Blended"/>, because the other render styles do not use alpha blending.
   /// </remarks>
   public bool CopyAlpha
-  { get { return copyAlpha; }
-    set { copyAlpha=value; }
+  {
+    get; set;
   }
   /// <summary>Gets or sets the color used to shade the font when <see cref="RenderStyle"/> is set to
   /// <see cref="GameLib.Fonts.RenderStyle.Shaded"/>.
   /// </summary>
-  /// <remarks>If this property is set to <see cref="System.Drawing.Color.Empty"/>, the <see cref="BackColor"/>
+  /// <remarks>If this property is set to <see cref="GameLib.Color.Empty"/>, the <see cref="BackColor"/>
   /// will be used instead to shade the font. If both this and <see cref="BackColor"/> are set to
-  /// <see cref="System.Drawing.Color.Transparent"/>, the font will be shaded against a black background.
+  /// <see cref="GameLib.Color.Empty"/>, the font will be shaded against a black background.
   /// </remarks>
   public Color ShadeColor
-  { get { return shadeColor; }
-    set { if(shadeColor!=value) { shadeColor=value; sdlShadeColor=new SDL.Color(value); } }
+  {
+    get; set;
   }
   /// <summary>Controls whether the <see cref="ShadeColor"/> property will cloak the <see cref="BackColor"/>
   /// property.
   /// </summary>
   /// <remarks>While set to true, altering the <see cref="BackColor"/> property will actually alter the
   /// <see cref="ShadeColor"/> property, and the <see cref="BackColor"/> property will always be
-  /// <see cref="System.Drawing.Color.Transparent"/>. This allows the shade color to be controlled by the background
+  /// <see cref="GameLib.Color.Empty"/>. This allows the shade color to be controlled by the background
   /// color, which is part of the standard <see cref="Font"/> interface. If this is false, the default, a shaded
   /// font will behave in an intuitive way, but classes that use the generic <see cref="Font"/> interface will not
   /// be able to set <see cref="ShadeColor"/> to something different from the <see cref="BackColor"/>.
   /// </remarks>
   public bool ShadeColorCloak
-  { get { return shadeCloak; }
+  {
+    get { return shadeCloak; }
     set
-    { if(value!=shadeCloak)
-      { if(value && shadeColor.IsEmpty && bgColor.A != 0)
-        { ShadeColor = bgColor;
-          BackColor  = Color.Transparent;
+    {
+      if(value != shadeCloak)
+      {
+        if(value && ShadeColor.IsEmpty && !bgColor.IsTransparent)
+        {
+          ShadeColor = bgColor;
+          BackColor  = Color.Empty;
         }
-        shadeCloak=value;
+        shadeCloak = value;
       }
     }
   }
@@ -635,7 +646,7 @@ public class TrueTypeFont : SurfaceFont
 
   /// <include file="../documentation.xml" path="//Fonts/CalculateSize/*"/>
   public override Size CalculateSize(string text)
-  { 
+  {
     Size size = new Size(0, Height);
     for(int i=0; i<text.Length; i++) size.Width += GetChar(text[i]).Advance;
     return size;
@@ -654,14 +665,17 @@ public class TrueTypeFont : SurfaceFont
 
   /// <include file="../documentation.xml" path="//Fonts/Render/Point/XY/*"/>
   public override int Render(Surface dest, string text, int x, int y)
-  { int start = x;
-    if(bgColor.A != 0)
-    { int width=0;
+  {
+    if(!bgColor.IsTransparent)
+    {
+      int width=0;
       for(int i=0; i<text.Length; i++) width += GetChar(text[i]).Advance;
       dest.Fill(new Rectangle(x, y, width, Height), bgColor);
     }
+
+    int start = x;
     for(int i=0; i<text.Length; i++)
-    { 
+    {
       CachedChar c = GetChar(text[i]);
       // if the first character has a negative offset, clip the surface so as not to render above or to the left of
       // the render position given to us
@@ -699,10 +713,10 @@ public class TrueTypeFont : SurfaceFont
   }
 
   protected sealed class CachedChar : IDisposable
-  { 
+  {
     public CachedChar() { }
     public CachedChar(char c) { Char=c; }
-    
+
     public void Dispose() { Surface.Dispose(); }
 
     public Surface Surface;
@@ -713,8 +727,9 @@ public class TrueTypeFont : SurfaceFont
   }
 
   protected CachedChar GetChar(char c)
-  { Color shade = !shadeColor.IsEmpty ? shadeColor : bgColor.A != 0 ? bgColor : Color.Black;
-    CacheIndex ind = new CacheIndex(c, color.ToArgb(), shade.ToArgb(), fstyle, rstyle);
+  {
+    Color shade = !ShadeColor.IsEmpty ? ShadeColor : bgColor.IsTransparent ? Color.Black : bgColor;
+    CacheIndex ind = new CacheIndex(c, Color.Value, shade.Value, fstyle, rstyle);
     LinkedListNode<CachedChar> node;
     CachedChar cc;
     if(map.TryGetValue(ind, out node))
@@ -733,19 +748,20 @@ public class TrueTypeFont : SurfaceFont
     cc.Width   = maxx-minx;
     cc.Advance = advance;
     unsafe
-    { SDL.Surface* surface=null;
+    {
+      SDL.Surface* surface=null;
       switch(rstyle)
-      { case RenderStyle.Solid: surface = TTF.RenderGlyph_Solid(font, c, sdlColor); break;
+      { case RenderStyle.Solid: surface = TTF.RenderGlyph_Solid(font, c, Color); break;
         case RenderStyle.Shaded:
-          surface = TTF.RenderGlyph_Shaded(font, c, sdlColor,
-                                           !shadeColor.IsEmpty ? sdlShadeColor :
-                                           bgColor.A != 0      ? sdlBgColor    : new SDL.Color(Color.Black));
+          surface = TTF.RenderGlyph_Shaded(font, c, Color,
+                                           !ShadeColor.IsEmpty ? ShadeColor :
+                                           bgColor.IsTransparent ? Color.Black : bgColor);
           break;
-        case RenderStyle.Blended: surface = TTF.RenderGlyph_Blended(font, c, sdlColor); break;
+        case RenderStyle.Blended: surface = TTF.RenderGlyph_Blended(font, c, Color); break;
       }
       if(surface==null) TTF.RaiseError();
       cc.Surface = new Surface(surface, true);
-      if(rstyle==RenderStyle.Shaded && shade.A != 0) cc.Surface.SetColorKey(shade);
+      if(rstyle==RenderStyle.Shaded && !shade.IsTransparent) cc.Surface.SetColorKey(shade);
     }
 
     if(cacheMax!=0)
@@ -754,7 +770,7 @@ public class TrueTypeFont : SurfaceFont
     }
     done:
     if(Video.Video.DisplaySurface != null)
-    { 
+    {
       if(compatible == -1) compatible = cc.Surface.IsCompatible(true) ? 1 : 0;
       if(!cc.Compatible && compatible==0)
       {
@@ -762,7 +778,7 @@ public class TrueTypeFont : SurfaceFont
         cc.Compatible = true;
       }
     }
-    cc.Surface.UsingAlpha = cc.Surface.Format.AlphaMask!=0 && !copyAlpha;
+    cc.Surface.UsingAlpha = cc.Surface.Format.AlphaMask!=0 && !CopyAlpha;
     return cc;
   }
 
@@ -771,7 +787,7 @@ public class TrueTypeFont : SurfaceFont
 
   /// <summary>Clears the glyph cache.</summary>
   protected void ClearCache()
-  { 
+  {
     map.Clear();
     foreach(CachedChar c in list) c.Dispose();
     list.Clear();
@@ -783,7 +799,7 @@ public class TrueTypeFont : SurfaceFont
     ClearCache();
 
     if(font != IntPtr.Zero)
-    { 
+    {
       TTF.CloseFont(font);
       TTF.Deinitialize();
       font = IntPtr.Zero;
@@ -793,18 +809,22 @@ public class TrueTypeFont : SurfaceFont
   }
 
   internal struct CacheIndex
-  { public CacheIndex(char c, int color, int shadeColor, FontStyle fstyle, RenderStyle rstyle)
-    { Char=c; Color=color; ShadeColor=shadeColor; FontStyle=fstyle; RenderStyle=rstyle;
+  {
+    public CacheIndex(char c, uint color, uint shadeColor, FontStyle fstyle, RenderStyle rstyle)
+    {
+      Char=c; Color=(int)color; ShadeColor=(int)shadeColor; FontStyle=fstyle; RenderStyle=rstyle;
     }
 
     public override bool Equals(object obj)
-    { CacheIndex ci = (CacheIndex)obj;
+    {
+      CacheIndex ci = (CacheIndex)obj;
       return Char==ci.Char && FontStyle==ci.FontStyle && RenderStyle==ci.RenderStyle && Color==ci.Color &&
              ShadeColor==ci.ShadeColor;
     }
 
     public override int GetHashCode()
-    { return (((int)Char<<16) | ((int)FontStyle<<8) | (int)RenderStyle) ^ Color ^ ShadeColor;
+    {
+      return (((int)Char<<16) | ((int)FontStyle<<8) | (int)RenderStyle) ^ Color ^ ShadeColor;
     }
 
     public readonly int Color, ShadeColor;
@@ -814,28 +834,29 @@ public class TrueTypeFont : SurfaceFont
   }
 
   void CacheRemove(LinkedListNode<CachedChar> node)
-  { node.Value.Dispose();
+  {
+    node.Value.Dispose();
     map.Remove(node.Value.Index);
     list.Remove(node);
   }
 
   void Init(int pointSize)
-  { if(font == IntPtr.Zero) { TTF.Deinitialize(); TTF.RaiseError(); }
+  {
+    if(font == IntPtr.Zero) { TTF.Deinitialize(); TTF.RaiseError(); }
     RenderStyle = RenderStyle.Solid;
     Color       = Color.White;
-    BackColor   = Color.Transparent;
+    BackColor   = Color.Empty;
     PointSize   = pointSize;
   }
 
   LinkedList<CachedChar> list = new LinkedList<CachedChar>();
   Dictionary<CacheIndex,LinkedListNode<CachedChar>> map = new Dictionary<CacheIndex,LinkedListNode<CachedChar>>();
-  Color        color, bgColor, shadeColor;
-  int          cacheMax=192, compatible=-1;
-  FontStyle    fstyle;
-  RenderStyle  rstyle;
-  SDL.Color sdlColor, sdlBgColor, sdlShadeColor;
+  Color       bgColor;
+  int         cacheMax=192, compatible=-1;
+  FontStyle   fstyle;
+  RenderStyle rstyle;
   IntPtr    font;
-  bool      shadeCloak, copyAlpha;
+  bool      shadeCloak;
 }
 #endregion
 

@@ -27,7 +27,7 @@ namespace GameLib.Input
 #region Types
 /// <summary>An enum representing mouse buttons in the system.</summary>
 public enum MouseButton : byte
-{ 
+{
   /// <summary>The left mouse button.</summary>
   Left=0,
   /// <summary>The middle mouse button.</summary>
@@ -238,7 +238,7 @@ public enum Key : int
 /// <summary>This enum contains keyboard modifier bitmask values.</summary>
 [Flags]
 public enum KeyMod
-{ 
+{
   /// <summary>No keyboard modifiers.</summary>
   None=0,
   /// <summary>Left shift key.</summary>
@@ -280,7 +280,7 @@ public enum KeyMod
 
 /// <summary>This class represents a key combination and provides methods for matching it against keyboard events.</summary>
 public struct KeyCombo
-{ 
+{
   /// <summary>Initializes this key combination from a keyboard event.</summary>
   /// <param name="e">The <see cref="KeyboardEvent"/> from which this key combination will be initialized.</param>
   /// <remarks>This constructor sets the <see cref="Key"/>, <see cref="Char"/>, and <see cref="KeyMod"/> fields from
@@ -481,7 +481,7 @@ public delegate void JoyButtonHandler(Joystick js, JoyButtonEvent e);
 /// <summary>This class represents the keyboard.</summary>
 /// <remarks>This class is updated by the <see cref="Input.ProcessEvent"/> method.</remarks>
 public static class Keyboard
-{ 
+{
   /// <summary>Occurs when a keyboard key is pressed or released.</summary>
   /// <remarks>This event is raised by the <see cref="Input.ProcessEvent"/> method.</remarks>
   // TODO: I think this should be an event.
@@ -593,7 +593,7 @@ public static class Keyboard
 /// <summary>This class represents the mouse.</summary>
 /// <remarks>This class is updated by the <see cref="Input.ProcessEvent"/> method.</remarks>
 public static class Mouse
-{ 
+{
   /// <summary>Occurs when the mouse is moved.</summary>
   /// <remarks>This event is raised by the <see cref="Input.ProcessEvent"/> method.</remarks>
   public static event MouseMoveHandler  MouseMove;
@@ -708,10 +708,10 @@ public static class Mouse
 /// <summary>This class represents a joystick.</summary>
 /// <remarks>This class is updated by <see cref="Input.ProcessEvent"/>.</remarks>
 public sealed class Joystick : IDisposable
-{ 
+{
   /// <summary>This struct represents a joystick ball (a trackball like device embedded in some joysticks).</summary>
   public struct Ball
-  { 
+  {
     /// <summary>The position of the ball. This is calculated by summing the relative movements of the ball since
     /// joysticks were enabled.
     /// </summary>
@@ -915,7 +915,7 @@ public sealed class Joystick : IDisposable
 /// <see cref="GameLib.Events"/> events), but using them can simplify many types of input processing.
 /// </remarks>
 public static class Input
-{ 
+{
   /// <summary>Returns true if the input subsystem has been initialized.</summary>
   public static bool Initialized { get { return initCount>0; } }
 

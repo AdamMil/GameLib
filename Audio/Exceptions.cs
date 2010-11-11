@@ -25,7 +25,7 @@ namespace GameLib.Audio
 /// <summary>This is the base class for all audio-related exceptions in GameLib.</summary>
 [Serializable]
 public class AudioException : GameLibException
-{ 
+{
   /// <summary>Initializes this exception.</summary>
   /// <param name="message">The message associated with this exception.</param>
   public AudioException(string message) : base(message) { }
