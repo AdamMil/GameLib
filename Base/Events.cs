@@ -28,7 +28,7 @@ namespace GameLib.Events
 /// <summary>This enum holds values specifying various types of events.</summary>
 [Flags]
 public enum EventType
-{ 
+{
   /// <summary>A <see cref="FocusEvent"/> event.</summary>
   Focus,
   /// <summary>A <see cref="KeyboardEvent"/> event.</summary>
@@ -64,7 +64,7 @@ public enum EventType
 /// </summary>
 [Flags]
 public enum FocusType
-{ 
+{
   /// <summary>Mouse focus was gained or lost. Typically this occurs when the mouse is moved into or out of the
   /// window.
   /// </summary>
@@ -82,7 +82,7 @@ public enum FocusType
 /// <summary>This enum holds values specifying the position of a joystick POV hat.</summary>
 [Flags]
 public enum HatPosition : byte
-{ 
+{
   /// <summary>The hat is centered (not pushed in any position).</summary>
   Center=0,
   /// <summary>The hat is pushed upwards.</summary>
@@ -105,7 +105,7 @@ public enum HatPosition : byte
 
 /// <summary>This enum contains values specifying from where an exception was thrown.</summary>
 public enum ExceptionLocation
-{ 
+{
   /// <summary>An unknown or unspecified location.</summary>
   Unknown,
   /// <summary>The exception was thrown from the audio thread.</summary>
@@ -120,7 +120,7 @@ public enum ExceptionLocation
 /// class what to do with the event.
 /// </summary>
 public enum FilterAction
-{ 
+{
   /// <summary>The event should be passed onto the next filter, or queued (accepted) if there are no other filters.</summary>
   Continue,
   /// <summary>The event should be dropped (rejected) immediately.</summary>
@@ -134,7 +134,7 @@ public enum FilterAction
 /// <summary>This abstract class is the base of all GameLib events.</summary>
 /// <remarks>User-defined events should be derived from <see cref="UserEvent"/>, not this class.</remarks>
 public abstract class Event
-{ 
+{
   /// <summary>Initializes this event.</summary>
   /// <param name="type">The <see cref="EventType"/> of this event.</param>
   protected Event(EventType type) { this.type=type; }
@@ -151,7 +151,7 @@ public abstract class Event
 /// This event will not be triggered when the application is first started.
 /// </remarks>
 public class FocusEvent : Event
-{ 
+{
   /// <summary>Initializes this event.</summary>
   public FocusEvent() : base(EventType.Focus) { }
 
@@ -175,7 +175,7 @@ public class FocusEvent : Event
 /// normally.
 /// </remarks>
 public class QuitEvent : Event
-{ 
+{
   /// <summary>Initializes this event.</summary>
   public QuitEvent() : base(EventType.Quit) { }
 }
@@ -186,7 +186,7 @@ public class QuitEvent : Event
 /// new size. This event is not triggered when the video mode is set.
 /// </remarks>
 public class ResizeEvent : Event
-{ 
+{
   /// <summary>Initializes this event.</summary>
   public ResizeEvent() : base(EventType.Resize) { }
 
@@ -208,7 +208,7 @@ public class ResizeEvent : Event
 /// <c>Video.Flip</c> is sufficient to accomplish the redraw.
 /// </remarks>
 public class RepaintEvent : Event
-{ 
+{
   /// <summary>Initializes this event.</summary>
   public RepaintEvent() : base(EventType.Repaint) { }
 }
@@ -217,7 +217,7 @@ public class RepaintEvent : Event
 /// <remarks>Applications wanting to create custom events should derive classes from this, not <see cref="Event"/>.
 /// </remarks>
 public abstract class UserEvent : Event
-{ 
+{
   /// <summary>Initializes this event.</summary>
   /// <remarks>This constructor sets <see cref="Event.Type"/> to <see cref="EventType.UserDefined"/>.</remarks>
   protected UserEvent() : base(EventType.UserDefined) { }
@@ -230,7 +230,7 @@ public abstract class UserEvent : Event
 /// scenarios, you can derive from this class to allow it to provide more information.
 /// </remarks>
 public class ExceptionEvent : Event
-{ 
+{
   /// <summary>Initializes this event.</summary>
   /// <param name="e">The exception that occurred.</param>
   /// <remarks>This constructor sets <see cref="Location"/> to <see cref="ExceptionLocation.UserThread"/>.</remarks>
@@ -261,7 +261,7 @@ public class ExceptionEvent : Event
 #region Keyboard event
 /// <summary>This event occurs when a key is pressed or released.</summary>
 public class KeyboardEvent : Event
-{ 
+{
   /// <summary>Initializes this event.</summary>
   public KeyboardEvent() : base(EventType.Keyboard) { }
 
@@ -352,7 +352,7 @@ public class KeyboardEvent : Event
   /// <remarks>The scancode of the key is the location of the key on the physical keyboard as reported by the
   /// hardware. Generally, this field should not be used as most systems have keys mapped to a virtual keyboard.
   /// The <see cref="Key"/> field should be used to get the virtual key code and the <see cref="Char"/> field should
-  /// be used to get character 
+  /// be used to get character
   /// </remarks>
   public byte Scan;
 
@@ -365,7 +365,7 @@ public class KeyboardEvent : Event
 #region Mouse events
 /// <summary>This event occurs when the mouse is moved while the application has mouse focus.</summary>
 public class MouseMoveEvent : Event
-{ 
+{
   /// <summary>Initializes this event.</summary>
   public MouseMoveEvent() : base(EventType.MouseMove) { }
 
@@ -422,7 +422,7 @@ public class MouseMoveEvent : Event
 
 /// <summary>Occurs when a mouse button is pressed or released or the mouse wheel is moved.</summary>
 public class MouseClickEvent : Event
-{ 
+{
   /// <summary>Initializes this event.</summary>
   public MouseClickEvent() : base(EventType.MouseClick) { }
   internal MouseClickEvent(ref SDL.MouseButtonEvent evt) : base(EventType.MouseClick)
@@ -456,7 +456,7 @@ public class MouseClickEvent : Event
 #region Joystick events
 /// <summary>Occurs when a joystick is moved along an axis.</summary>
 public class JoyMoveEvent : Event
-{ 
+{
   /// <summary>Initializes this event.</summary>
   public JoyMoveEvent() : base(EventType.JoyMove) { }
   internal JoyMoveEvent(ref SDL.JoyAxisEvent evt) : base(EventType.JoyMove)
@@ -480,7 +480,7 @@ public class JoyMoveEvent : Event
 /// <remarks>Some joysticks have trackball-like devices embedded in them. This event occurs when one of those is moved.
 /// </remarks>
 public class JoyBallEvent : Event
-{ 
+{
   /// <summary>Initializes this event.</summary>
   public JoyBallEvent() : base(EventType.JoyBall) { }
   internal JoyBallEvent(ref SDL.JoyBallEvent evt) : base(EventType.JoyBall)
@@ -504,7 +504,7 @@ public class JoyBallEvent : Event
 
 /// <summary>Occurs when a joystick POV hat is moved.</summary>
 public class JoyHatEvent : Event
-{ 
+{
   /// <summary>Initializes this event.</summary>
   public JoyHatEvent() : base(EventType.JoyHat) { }
   internal JoyHatEvent(ref SDL.JoyHatEvent evt) : base(EventType.JoyHat)
@@ -523,7 +523,7 @@ public class JoyHatEvent : Event
 
 /// <summary>Occurs when a joystick button is pressed or released.</summary>
 public class JoyButtonEvent : Event
-{ 
+{
   /// <summary>Initializes this event.</summary>
   public JoyButtonEvent() : base(EventType.JoyButton) { }
   internal JoyButtonEvent(ref SDL.JoyButtonEvent evt) : base(EventType.JoyButton)
@@ -579,7 +579,7 @@ public delegate bool IdleProcedure();
 /// The event subsystem must be initialized by calling <see cref="Events.Initialize"/> before use.
 /// </remarks>
 public static class Events
-{ 
+{
   /// <summary>A value representing an infinite amount of time.</summary>
   /// <remarks>This value can be passed to <see cref="NextEvent"/> and <see cref="PeekEvent"/> to request that
   /// they block until an event becomes available.
@@ -587,9 +587,9 @@ public static class Events
   public const int Infinite = -1;
 
   /// <summary>Returns true if the event subsystem has been initialized.</summary>
-  public static bool Initialized 
+  public static bool Initialized
   {
-    get { return initCount > 0; } 
+    get { return initCount > 0; }
   }
 
   /// <summary>Gets or sets the maximum size of the event queue.</summary>
@@ -599,7 +599,7 @@ public static class Events
   /// </remarks>
   /// <exception cref="ArgumentOutOfRangeException">Thrown if the value is less than or equal to zero.</exception>
   public static int MaxQueueSize
-  { 
+  {
     get { return maxEvents; }
     set
     {
@@ -629,7 +629,7 @@ public static class Events
   /// <see cref="System.Threading.Monitor"/> or the C# <c>lock</c> statement. Note that methods that alter the event
   /// queue, like <see cref="PushEvent"/>, automatically take this lock.
   /// </remarks>
-  public static object SyncRoot 
+  public static object SyncRoot
   {
     get { return queue; }
   }
@@ -640,10 +640,10 @@ public static class Events
   /// being that the application is about to quit. See <see cref="GameLib.Events.EventProcedure"/> for more information
   /// on this.
   /// </remarks>
-  public static bool QuitFlag 
+  public static bool QuitFlag
   {
-    get { return quit; } 
-    set { quit = value; } 
+    get { return quit; }
+    set { quit = value; }
   }
 
   /// <summary>Initializes the event subsystem.</summary>
@@ -651,9 +651,9 @@ public static class Events
   /// same number of times to finally deinitialize the system.
   /// </remarks>
   public static void Initialize()
-  { 
+  {
     if(initCount++ == 0)
-    { 
+    {
       mods = (KeyMod)SDL.GetModState();
       SDL.Initialize(SDL.InitFlag.Video);
       SDL.Initialize(SDL.InitFlag.EventThread); // SDL quirk: this must be done AFTER video
@@ -667,7 +667,7 @@ public static class Events
   /// in order to deinitialize the event subsystem. All messages still waiting in the queue will be lost.
   /// </remarks>
   public static void Deinitialize()
-  { 
+  {
     if(initCount == 0) throw new InvalidOperationException("Deinitialize called too many times!");
     if(--initCount == 0)
     {
@@ -838,9 +838,9 @@ public static class Events
   /// zero and passing false to signal that the event is not to be removed from the queue.
   /// </remarks>
   /// <exception cref="InvalidOperationException">Thrown if the event subsystem has not been initialized.</exception>
-  public static Event PeekEvent() 
+  public static Event PeekEvent()
   {
-    return GetEvent(0, false); 
+    return GetEvent(0, false);
   }
 
   /// <summary>Removes and returns the next event from the queue.</summary>
@@ -863,9 +863,9 @@ public static class Events
   /// signal that the event is not to be removed from the queue.
   /// </remarks>
   /// <exception cref="InvalidOperationException">Thrown if the event subsystem has not been initialized.</exception>
-  public static Event PeekEvent(int timeout) 
-  { 
-    return GetEvent(timeout, false); 
+  public static Event PeekEvent(int timeout)
+  {
+    return GetEvent(timeout, false);
   }
 
   /// <summary>Removes and returns the next event from the queue.</summary>
@@ -878,7 +878,7 @@ public static class Events
   /// </remarks>
   /// <exception cref="InvalidOperationException">Thrown if the event subsystem has not been initialized.</exception>
   public static Event NextEvent(int timeout)
-  { 
+  {
     return GetEvent(timeout, true);
   }
 
@@ -897,7 +897,7 @@ public static class Events
   /// </returns>
   /// <exception cref="ArgumentNullException">Thrown if <paramref name="evt"/> is null.</exception>
   public static bool PushEvent(Event evt, bool filter)
-  { 
+  {
     if(evt == null) throw new ArgumentNullException();
     AssertInit();
     if(filter && !ShouldAllowEvent(evt)) return false;
@@ -948,17 +948,17 @@ public static class Events
   /// See <see cref="GameLib.Events.EventProcedure"/> for more information.
   /// </remarks>
   public static bool PumpEvent(bool waitForEvent)
-  { 
+  {
     if(waitForEvent && QuitFlag) return false;
 
     Event e = NextEvent(0);
     if(e == null)
-    { 
+    {
       if(idleProcs.Count != 0)
-      { 
+      {
         bool morework;
         do
-        { 
+        {
           morework = false;
           foreach(IdleProcedure idleProc in idleProcs)
           {
@@ -994,7 +994,7 @@ public static class Events
   /// </remarks>
   public static void PumpEvents()
   {
-    PumpEvents(null, null); 
+    PumpEvents(null, null);
   }
 
   /// <summary>Handle events until the application decides to quit.</summary>
@@ -1004,9 +1004,9 @@ public static class Events
   /// <remarks>Calling this method is equivalent to calling <see cref="PumpEvents(EventProcedure,IdleProcedure)"/>
   /// and passing null for the <see cref="IdleProcedure"/> parameter.
   /// </remarks>
-  public static void PumpEvents(EventProcedure proc) 
+  public static void PumpEvents(EventProcedure proc)
   {
-    PumpEvents(proc, null); 
+    PumpEvents(proc, null);
   }
 
   /// <summary>Handle events until the application decides to quit.</summary>
@@ -1052,7 +1052,7 @@ public static class Events
   /// not.
   /// </summary>
   static unsafe Event PollSDLEvent()
-  { 
+  {
     Event ret = null;
     SDL.Event evt;
     do
@@ -1069,11 +1069,11 @@ public static class Events
 
   /// <summary>Waits for and retrieves the next SDL event that passes the event filters.</summary>
   static unsafe Event NextSDLEvent()
-  { 
+  {
     Event ret;
     SDL.Event evt;
     while(true)
-    { 
+    {
       if(SDL.WaitEvent(out evt) != 0)
       {
         // the UserEvent0 event is used to wake up this method when an event is pushed into the queue with PushEvent()
@@ -1086,17 +1086,17 @@ public static class Events
   }
 
   static void AssertInit()
-  { 
-    if(initCount == 0) throw new InvalidOperationException("Events not initialized yet"); 
+  {
+    if(initCount == 0) throw new InvalidOperationException("Events not initialized yet");
   }
 
   /// <summary>Converts an SDL event into a GameLib event.</summary>
   static unsafe Event ConvertEvent(ref SDL.Event evt)
   {
     switch(evt.Type)
-    { 
+    {
       case SDL.EventType.Active:
-      { 
+      {
         FocusEvent e = new FocusEvent(ref evt.Active);
 
         if((e.FocusType&FocusType.Application) != 0) minimized = e.Focused;
@@ -1109,13 +1109,13 @@ public static class Events
       }
 
       case SDL.EventType.KeyDown: case SDL.EventType.KeyUp:
-      { 
+      {
         KeyboardEvent e = new KeyboardEvent(ref evt.Keyboard);
         mods = mods & ~KeyMod.StatusMask | e.StatusMods;
         if(e.Down)
         {
           switch(e.Key) // SDL's mod handling is quirky, so i'll do it myself
-          { 
+          {
             case Key.LeftShift: mods |= KeyMod.LeftShift; break;
             case Key.RightShift: mods |= KeyMod.RightShift; break;
             case Key.LeftCtrl:  mods |= KeyMod.LeftCtrl;  break;
@@ -1129,7 +1129,7 @@ public static class Events
         else
         {
           switch(e.Key)
-          { 
+          {
             case Key.LeftShift: mods &= ~KeyMod.LeftShift; break;
             case Key.RightShift: mods &= ~KeyMod.RightShift; break;
             case Key.LeftCtrl:  mods &= ~KeyMod.LeftCtrl;  break;
@@ -1160,7 +1160,7 @@ public static class Events
 
   /// <summary>Adds an event to the queue, first dequeueing the oldest event if the queue is full.</summary>
   static void QueueEvent(Event evt)
-  { 
+  {
     if(queue.Count >= maxEvents) queue.Dequeue();
     queue.Enqueue(evt);
   }

@@ -382,7 +382,7 @@ namespace Asteroids
           if(a.Size>35)
           {
             for(int i=0; i<2; i++)
-              asteroids.Add(new Asteroid(a.Size*2/3, a.Pos, a.Vel/4 + 
+              asteroids.Add(new Asteroid(a.Size*2/3, a.Pos, a.Vel/4 +
                             new Vector(Rand.Next(160)-80, Rand.Next(120)-60)));
             continue;
           }

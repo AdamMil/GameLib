@@ -86,8 +86,8 @@ namespace BasicVideo
       Surface temp = new Surface(100, 100, 24); // 100x100x24bpp surface without alpha blending
       temp.SetColorKey(Color.Magenta); // set its transparent color to be magenta
       temp.Fill(Color.Magenta); // and fill it with magenta (transparent)
-      Primitives.Box(temp, temp.Bounds, Color.Green); // draw a box surrounding it
-      Primitives.Circle(temp, temp.Width/2, temp.Height/2, 40, Color.Red); // with a red circle
+      Shapes.Box(temp, temp.Bounds, Color.Green); // draw a box surrounding it
+      Shapes.Circle(temp, temp.Width/2, temp.Height/2, 40, Color.Red); // with a red circle
       // now blit the temporary onto the display buffer
       temp.Blit(Video.DisplaySurface, 40, (Video.Height-temp.Height)/2);
       temp.Dispose();

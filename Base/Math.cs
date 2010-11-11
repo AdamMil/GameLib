@@ -183,7 +183,7 @@ public static class GLMath
 // TODO: use a union like Fixed64 does
 [Serializable, StructLayout(LayoutKind.Sequential)]
 public struct Fixed32 : IFormattable, IComparable, IConvertible
-{ 
+{
   /// <summary>Initializes this fixed-point number from a floating point number.</summary>
   /// <param name="value">A floating point number from which the fixed-point number will be initialized.</param>
   /// <remarks>Due to the greater range and potential precision of a 64-bit double, the value passed may not be
@@ -524,7 +524,7 @@ public struct Fixed32 : IFormattable, IComparable, IConvertible
 /// </remarks>
 [Serializable, StructLayout(LayoutKind.Explicit, Size=8)]
 public struct Fixed64 : IFormattable, IComparable, IConvertible
-{ 
+{
   /// <summary>Initializes this fixed-point class from a floating point number.</summary>
   /// <param name="value">A floating point number from which the fixed-point number will be initialized.</param>
   /// <remarks>Due to the greater range of a 64-bit double, the value passed may not be able to be accurately

@@ -25,7 +25,7 @@ namespace GameLib.CD
 
 /// <summary>This enum contains the possible status values for a CD-ROM drive.</summary>
 public enum CDStatus
-{ 
+{
   /// <summary>The drive has no disc loaded.</summary>
   TrayEmpty=SDL.CDStatus.TrayEmpty,
   /// <summary>The drive has a disc loaded, but is not currently playing.</summary>
@@ -40,7 +40,7 @@ public enum CDStatus
 
 /// <summary>This enum contains the types of tracks that can be encountered.</summary>
 public enum TrackType
-{ 
+{
   /// <summary>The track contains CD-Audio and can be played.</summary>
   Audio=SDL.TrackType.Audio,
   /// <summary>The track does not contain CD-Audio and should not be played.</summary>
@@ -249,7 +249,7 @@ public unsafe sealed class Drive
 /// the CD-ROM subsystem.
 /// </remarks>
 public static class CD
-{ 
+{
   /// <summary>Returns the number of frames in one second of CD audio.</summary>
   /// <value>The number of frames in one second of CD audio.</value>
   /// <remarks>A frame is about 1/75th of a second.</remarks>

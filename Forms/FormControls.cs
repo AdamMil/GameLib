@@ -454,7 +454,7 @@ public class Form : FormBase
 
         int right = rect.Right - 1, bottom = rect.Bottom - 1;
 
-        Color c = EffectivelyEnabled ? GetEffectiveForeColor() : SystemColors.GrayText;
+        Color c = EffectivelyEnabled ? GetEffectiveForeColor() : (Color)SystemColors.GrayText;
         e.Renderer.DrawLine(e.Target, new Point(rect.X, rect.Y), new Point(right - 1, bottom), c, false);
         e.Renderer.DrawLine(e.Target, new Point(rect.X + 1, rect.Y), new Point(right, bottom), c, false);
         e.Renderer.DrawLine(e.Target, new Point(rect.X, bottom), new Point(right - 1, rect.Y), c, false);
@@ -696,12 +696,12 @@ public sealed class MessageBox : Form
   {
     return Create(caption, text, MessageBoxButtons.Ok);
   }
-  
+
   public static MessageBox Create(string caption, string text, MessageBoxButtons buttons)
   {
     return Create(caption, text, buttons, 0);
   }
-  
+
   public static MessageBox Create(string caption, string text, MessageBoxButtons buttons, int defaultButton)
   {
     string[] buttonTexts;
@@ -717,12 +717,12 @@ public sealed class MessageBox : Form
 
     return Create(caption, text, buttonTexts, defaultButton);
   }
-  
+
   public static MessageBox Create(string caption, string text, string[] buttonText)
   {
     return Create(caption, text, buttonText, 0);
   }
-  
+
   public static MessageBox Create(string caption, string text, string[] buttonText, int defaultButton)
   {
     if(buttonText.Length == 0) throw new ArgumentException("Can't create a MessageBox with no buttons!", "buttonText");
@@ -735,23 +735,23 @@ public sealed class MessageBox : Form
   {
     Create(caption, text).Show(desktop);
   }
-  
+
   public static int Show(Desktop desktop, string caption, string text, MessageBoxButtons buttons)
   {
     return Create(caption, text, buttons, 0).Show(desktop);
   }
-  
+
   public static int Show(Desktop desktop, string caption, string text,
                          MessageBoxButtons buttons, int defaultButton)
   {
     return Create(caption, text, buttons, defaultButton).Show(desktop);
   }
-  
+
   public static int Show(Desktop desktop, string caption, string text, string[] buttonText)
   {
     return Create(caption, text, buttonText).Show(desktop);
   }
-  
+
   public static int Show(Desktop desktop, string caption, string text, string[] buttonText, int defaultButton)
   {
     return Create(caption, text, buttonText, defaultButton).Show(desktop);

@@ -25,7 +25,7 @@ namespace GameLib.Video
 /// <summary>This is the base class for all video-related exceptions in GameLib.</summary>
 [Serializable]
 public class VideoException : GameLibException
-{ 
+{
   /// <summary>Initializes this exception.</summary>
   /// <param name="message">The message associated with this exception.</param>
   public VideoException(string message) : base(message) { }
@@ -39,7 +39,7 @@ public class VideoException : GameLibException
 /// </summary>
 [Serializable]
 public class SurfaceLostException : VideoException
-{ 
+{
   /// <summary>Initializes this exception.</summary>
   public SurfaceLostException() : base("The surface has been lost.") { }
   /// <summary>Initializes this exception.</summary>

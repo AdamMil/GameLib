@@ -43,7 +43,7 @@ namespace GameLib.Interop
 // TODO: see if this is even necessary...
 [StructLayout(LayoutKind.Explicit, Size=4)]
 public sealed class DelegateMarshaller
-{ 
+{
   /// <summary>Initializes this class from a delegate.</summary>
   /// <param name="func">A delegate for which you want an unmanaged function pointer.</param>
   public DelegateMarshaller(Delegate func) { this.func=func; }

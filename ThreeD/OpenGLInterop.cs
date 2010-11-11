@@ -32,7 +32,7 @@ namespace GameLib.Interop.OpenGL
 /// <remarks>This class currently supports OpenGL through version 1.3.</remarks>
 [System.Security.SuppressUnmanagedCodeSecurity()]
 public static class GL
-{ 
+{
   #region OpenGL 1.1
   #region Flags, Enums, Defines, etc
   #region AccumOp
@@ -1398,6 +1398,8 @@ public static class GL
   [CLSCompliant(false)]
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
   public static extern void glColor4usv([In] ushort[] v);
+  public static void glColor(Color c) { glColor4ub(c.R, c.G, c.B, c.Alpha); }
+  public static void glColor(byte alpha, Color c) { glColor4ub(c.R, c.G, c.B, alpha); }
   public static void glColor(System.Drawing.Color c) { glColor4ub(c.R, c.G, c.B, c.A); }
   public static void glColor(byte alpha, System.Drawing.Color c) { glColor4ub(c.R, c.G, c.B, alpha); }
   [DllImport(Config.OpenGLImportPath, ExactSpelling=true, CallingConvention=CallingConvention.Winapi)]
@@ -3334,7 +3336,7 @@ public static class GL
 /// </summary>
 [System.Security.SuppressUnmanagedCodeSecurity()]
 public static class GLU
-{ 
+{
   #region General
   #region Enums & Constants
   public const int GLU_VERSION    = 100800;
@@ -3393,7 +3395,7 @@ public static class GLU
   public unsafe static extern int gluBuild2DMipmaps(int target, int components, int width, int height, int format, int type, [In] byte[] data);
   #endregion
   #endregion
-  
+
   #region Tessellation
   #region Constants
   /* TessProperties */
@@ -3436,7 +3438,7 @@ public static class GLU
   public const int GLU_TESS_COORD_TOO_LARGE        =GLU_TESS_ERROR5;
   public const int GLU_TESS_NEED_COMBINE_CALLBACK  =GLU_TESS_ERROR6;
   #endregion
-  
+
   #region Delegates
   [UnmanagedFunctionPointer(Config.GluCallbackConvention)]
   public delegate void GLUtessBeginProc(int type);
@@ -3482,7 +3484,7 @@ public static class GLU
   [DllImport(Config.GluImportPath, CallingConvention=CallingConvention.Winapi)]
   public unsafe static extern void gluTessVertex(IntPtr tessellator, double* coords3d, IntPtr context);
   [DllImport(Config.GluImportPath, CallingConvention=CallingConvention.Winapi)]
-  public static extern void gluTessEndContour(IntPtr tessellator);   
+  public static extern void gluTessEndContour(IntPtr tessellator);
   [DllImport(Config.GluImportPath, CallingConvention=CallingConvention.Winapi)]
   public static extern void gluTessEndPolygon(IntPtr tessellator);
   [DllImport(Config.GluImportPath, CallingConvention=CallingConvention.Winapi)]

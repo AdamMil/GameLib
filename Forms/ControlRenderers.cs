@@ -57,10 +57,10 @@ public abstract class ControlRenderer : IControlRenderer
   public void DrawBackgroundColor(Control control, PaintEventArgs e, Color backColor)
   {
     if(control == null || e == null) throw new ArgumentNullException();
-    if(backColor.A != 0) e.Target.FillArea(e.DrawRect, backColor);
+    if(!backColor.IsTransparent) e.Target.FillArea(e.DrawRect, backColor);
   }
 
-  public void DrawBackgroundImage(Control control, PaintEventArgs e, IGuiImage backImage, 
+  public void DrawBackgroundImage(Control control, PaintEventArgs e, IGuiImage backImage,
                                   ContentAlignment imageAlignment)
   {
     if(control == null || e == null) throw new ArgumentNullException();
@@ -77,7 +77,7 @@ public abstract class ControlRenderer : IControlRenderer
   public void DrawBorder(Control control, PaintEventArgs e, BorderStyle style, Color color)
   {
     if(control == null || e == null) throw new ArgumentNullException();
-    if(style != BorderStyle.None && color.A != 0) DrawBorder(e.Target, control.GetDrawRect(), style, color);
+    if(style != BorderStyle.None && !color.IsTransparent) DrawBorder(e.Target, control.GetDrawRect(), style, color);
   }
 
   public abstract void DrawBox(IGuiRenderTarget target, Rectangle rect, Color color);
@@ -134,13 +134,13 @@ public sealed class SurfaceControlRenderer : ControlRenderer
         x = rect.X + (rect.Width - 1) / 2; y = rect.Y + (rect.Height - arrowSize) / 2;
         if(direction == ArrowDirection.Up) { s = 0; si = 1; }
         else { s = arrowSize - 1; si = -1; }
-        for(int i = 0; i < arrowSize; s += si, i++) Primitives.Line(surface, x - s, y + i, x + s, y + i, color);
+        for(int i = 0; i < arrowSize; s += si, i++) Shapes.Line(surface, x - s, y + i, x + s, y + i, color);
         break;
       case ArrowDirection.Left: case ArrowDirection.Right:
         x = rect.X + (rect.Width - arrowSize) / 2; y = rect.Y + (rect.Height - 1) / 2;
         if(direction == ArrowDirection.Left) { s = 0; si = 1; }
         else { s = arrowSize - 1; si = -1; }
-        for(int i = 0; i < arrowSize; s += si, i++) Primitives.Line(surface, x + i, y - s, x + i, y + s, color);
+        for(int i = 0; i < arrowSize; s += si, i++) Shapes.Line(surface, x + i, y - s, x + i, y + s, color);
         break;
     }
   }
@@ -149,7 +149,7 @@ public sealed class SurfaceControlRenderer : ControlRenderer
   public override void DrawBorder(IGuiRenderTarget target, Rectangle rect, BorderStyle border, Color color)
   {
     if(target == null) throw new ArgumentNullException();
-    if(border != BorderStyle.None && color.A != 0)
+    if(border != BorderStyle.None && !color.IsTransparent)
     {
       DrawBorder(GetSurface(target), rect, border, color, (border & BorderStyle.Depressed) != 0);
     }
@@ -157,7 +157,7 @@ public sealed class SurfaceControlRenderer : ControlRenderer
 
   public override void DrawBox(IGuiRenderTarget target, Rectangle rect, Color color)
   {
-    Primitives.Box(GetSurface(target), rect, color);
+    Shapes.Box(GetSurface(target), rect, color);
   }
 
   public override void DrawCheckBox(Control control, PaintEventArgs e, Point drawPoint,
@@ -165,8 +165,7 @@ public sealed class SurfaceControlRenderer : ControlRenderer
   {
     Surface surface = GetSurface(e.Target);
     Rectangle box = new Rectangle(drawPoint, GetCheckBoxSize(control));
-    DrawBorder(surface, box, BorderStyle.Fixed3D, enabled ? SystemColors.ActiveBorder : SystemColors.InactiveBorder,
-               true);
+    DrawBorder(surface, box, BorderStyle.Fixed3D, enabled ? SystemColors.ActiveBorder : SystemColors.InactiveBorder, true);
     box.Inflate(-2, -2); // border
     surface.Fill(box, !depressed && enabled ? SystemColors.Window : SystemColors.Control);
     if(isChecked) DrawCheck(surface, box.X+1, box.Y+1, SystemColors.ControlText);
@@ -180,8 +179,8 @@ public sealed class SurfaceControlRenderer : ControlRenderer
   public override void DrawLine(IGuiRenderTarget target, Point p1, Point p2, Color color, bool antialiased)
   {
     Surface surface = GetSurface(target);
-    if(antialiased) Primitives.LineAA(surface, p1, p2, color);
-    else Primitives.Line(surface, p1, p2, color);
+    if(antialiased) Shapes.LineAA(surface, p1, p2, color);
+    else Shapes.Line(surface, p1, p2, color);
   }
 
   public override bool IsTranslucent(IGuiRenderTarget target)
@@ -197,7 +196,7 @@ public sealed class SurfaceControlRenderer : ControlRenderer
     switch(border & BorderStyle.TypeMask)
     {
       case BorderStyle.FixedFlat:
-        Primitives.Box(surface, rect, color);
+        Shapes.Box(surface, rect, color);
         break;
       case BorderStyle.Fixed3D:
         if(depressed)
@@ -210,10 +209,10 @@ public sealed class SurfaceControlRenderer : ControlRenderer
           c1 = UIHelper.GetLightColor(color);
           c2 = UIHelper.GetDarkColor(color);
         }
-        Primitives.HLine(surface, rect.X, rect.Right - 2, rect.Y, c1);
-        Primitives.VLine(surface, rect.X, rect.Y, rect.Bottom - 2, c1);
-        Primitives.HLine(surface, rect.X, rect.Right - 1, rect.Bottom - 1, c2);
-        Primitives.VLine(surface, rect.Right - 1, rect.Y, rect.Bottom - 1, c2);
+        Shapes.HLine(surface, rect.X, rect.Right - 2, rect.Y, c1);
+        Shapes.VLine(surface, rect.X, rect.Y, rect.Bottom - 2, c1);
+        Shapes.HLine(surface, rect.X, rect.Right - 1, rect.Bottom - 1, c2);
+        Shapes.VLine(surface, rect.Right - 1, rect.Y, rect.Bottom - 1, c2);
         break;
       case BorderStyle.FixedThick: case BorderStyle.Resizeable:
         if(depressed)
@@ -231,15 +230,15 @@ public sealed class SurfaceControlRenderer : ControlRenderer
           c4 = UIHelper.GetDarkColor(c3);
         }
 
-        Primitives.HLine(surface, rect.X, rect.Right - 2, rect.Y, c1);
-        Primitives.VLine(surface, rect.X, rect.Y, rect.Bottom - 2, c1);
-        Primitives.HLine(surface, rect.X, rect.Right - 1, rect.Bottom - 1, c4);
-        Primitives.VLine(surface, rect.Right - 1, rect.Y, rect.Bottom - 1, c4);
+        Shapes.HLine(surface, rect.X, rect.Right - 2, rect.Y, c1);
+        Shapes.VLine(surface, rect.X, rect.Y, rect.Bottom - 2, c1);
+        Shapes.HLine(surface, rect.X, rect.Right - 1, rect.Bottom - 1, c4);
+        Shapes.VLine(surface, rect.Right - 1, rect.Y, rect.Bottom - 1, c4);
         rect.Inflate(-1, -1);
-        Primitives.HLine(surface, rect.X, rect.Right - 2, rect.Y, c2);
-        Primitives.VLine(surface, rect.X, rect.Y, rect.Bottom - 2, c2);
-        Primitives.HLine(surface, rect.X, rect.Right - 1, rect.Bottom - 1, c3);
-        Primitives.VLine(surface, rect.Right - 1, rect.Y, rect.Bottom - 1, c3);
+        Shapes.HLine(surface, rect.X, rect.Right - 2, rect.Y, c2);
+        Shapes.VLine(surface, rect.X, rect.Y, rect.Bottom - 2, c2);
+        Shapes.HLine(surface, rect.X, rect.Right - 1, rect.Bottom - 1, c3);
+        Shapes.VLine(surface, rect.Right - 1, rect.Y, rect.Bottom - 1, c3);
         break;
     }
   }
@@ -253,8 +252,8 @@ public sealed class SurfaceControlRenderer : ControlRenderer
   {
     for(int yo = 0; yo < 3; yo++)
     {
-      Primitives.Line(surface, x, y + yo + 2, x + 2, y + yo + 4, color);
-      Primitives.Line(surface, x + 3, y + yo + 3, x + 6, y + yo, color);
+      Shapes.Line(surface, x, y + yo + 2, x + 2, y + yo + 4, color);
+      Shapes.Line(surface, x + 3, y + yo + 3, x + 6, y + yo, color);
     }
   }
 

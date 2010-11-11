@@ -23,6 +23,7 @@ using GameLib.Fonts;
 using GameLib.Forms;
 using GameLib.Input;
 using GameLib.Video;
+using Color = GameLib.Color;
 
 namespace WindowingTest
 {
@@ -33,8 +34,8 @@ namespace WindowingTest
     public CustomDesktop()
     {
       AutoFocus = AutoFocus.Click;
-      BackColor    = SystemColors.AppWorkspace;
-      Renderer     = new SurfaceControlRenderer();
+      BackColor = SystemColors.AppWorkspace;
+      Renderer  = new SurfaceControlRenderer();
 
       menu.Dock = DockStyle.Top;
 
@@ -53,7 +54,7 @@ namespace WindowingTest
     }
 
     protected override void OnEffectiveFontChanged(GameLib.ValueChangedEventArgs e)
-    { 
+    {
       // we want things to adjust to the font size
       if(EffectiveFont != null) menu.Height = EffectiveFont.LineHeight*3/2;
       base.OnEffectiveFontChanged(e);
@@ -146,8 +147,7 @@ namespace WindowingTest
     void btn_Click(object sender, ClickEventArgs e)
     {
       Random rand = new Random(); // change everything to a random color
-      BackColor = bar.ForeColor = Color.FromArgb(rand.Next(255), rand.Next(255),
-                                                 rand.Next(255));
+      BackColor = bar.ForeColor = new Color((byte)rand.Next(255), (byte)rand.Next(255), (byte)rand.Next(255));
       bar.BackColor = UIHelper.GetDarkColor(bar.ForeColor);
     }
     #endregion

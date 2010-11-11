@@ -25,7 +25,7 @@ namespace GameLib.Network
 /// <summary>This is the base class for all network-related exceptions in GameLib.</summary>
 [Serializable]
 public class NetworkException : GameLibException
-{ 
+{
   /// <summary>Initializes this exception.</summary>
   /// <param name="message">The message associated with this exception.</param>
   public NetworkException(string message) : base(message) { }
@@ -36,7 +36,7 @@ public class NetworkException : GameLibException
 /// <summary>This exception is thrown when a network connection has been lost.</summary>
 [Serializable]
 public class ConnectionLostException : NetworkException
-{ 
+{
   /// <summary>Initializes this exception.</summary>
   public ConnectionLostException() : base("The connection has been lost.") { }
   /// <summary>Initializes this exception.</summary>
@@ -49,7 +49,7 @@ public class ConnectionLostException : NetworkException
 /// <summary>This exception is thrown when a remote connection did not use the expected handshake.</summary>
 [Serializable]
 public class HandshakeException : NetworkException
-{ 
+{
   /// <summary>Initializes this exception.</summary>
   public HandshakeException() : base("An error occurred during handshaking. Connection aborted") { }
   /// <summary>Initializes this exception.</summary>

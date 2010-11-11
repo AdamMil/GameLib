@@ -95,7 +95,7 @@ internal static class SDL
   [Flags]
   public enum VideoFlag : uint
   { None = 0,
-    SWSurface   = 0x00000000, HWSurface = 0x00000001, AsyncBlit    = 0x00000004, 
+    SWSurface   = 0x00000000, HWSurface = 0x00000001, AsyncBlit    = 0x00000004,
     AnyFormat   = 0x10000000, HWPalette = 0x20000000, DoubleBuffer = 0x40000000,
     FullScreen  = 0x80000000, OpenGL    = 0x00000002, OpenGLBlit   = 0x0000000A,
     Resizable   = 0x00000010, NoFrame   = 0x00000020, RLEAccel     = 0x00004000,
@@ -145,20 +145,6 @@ internal static class SDL
     public override string ToString() { return ToRectangle().ToString(); }
     public short  X, Y;
     public ushort Width, Height;
-  }
-  [StructLayout(LayoutKind.Explicit, Size=4)]
-  public struct Color
-  { 
-    public Color(System.Drawing.Color c) { Value=0; Red=c.R; Green=c.G; Blue=c.B; Alpha=c.A; }
-    public Color(byte red, byte green, byte blue) { Value=0; Red=red; Green=green; Blue=blue; Alpha=255; }
-    public Color(byte red, byte green, byte blue, byte alpha) { Value=0; Red=red; Green=green; Blue=blue; Alpha=alpha; }
-    public override string ToString() { return string.Format("{0},{1},{2},{3}",Red,Green,Blue,Alpha); }
-    [FieldOffset(0)] public byte Red;
-    [FieldOffset(1)] public byte Green;
-    [FieldOffset(2)] public byte Blue;
-    [FieldOffset(3)] public byte Alpha; // TODO: make bigendian friendly? (is it necessary? check SDL docs)
-
-    [FieldOffset(0)] public uint Value;
   }
   [StructLayout(LayoutKind.Sequential, Pack=4)]
   public unsafe struct Palette

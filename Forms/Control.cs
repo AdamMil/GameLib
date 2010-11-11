@@ -20,10 +20,10 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Drawing;
+using AdamMil.Utilities;
 using GameLib.Events;
 using GameLib.Video;
 using Font = GameLib.Fonts.Font;
-using AdamMil.Utilities;
 
 // TODO: fix focusing/selecting to support the scenario that a form that is reselected after being deselected has the
 // control that previously had keyboard focus focused again
@@ -45,7 +45,7 @@ using AdamMil.Utilities;
 
 namespace GameLib.Forms
 {
-  
+
 /* Coordinate systems:
  *   Control coordinates - pixels relative to the control (used for most purposes, such as layout)
  *   Screen coordinates - pixels relative to the display device (used primarily for handling mouse input)
@@ -64,14 +64,14 @@ public class Control
   #region ControlCollection
   /// <summary>This class provides a strongly-typed collection of <see cref="Control"/> objects.</summary>
   public class ControlCollection : Collection<Control>
-  { 
+  {
     internal ControlCollection(Control parent) { this.parent = parent; }
 
     /// <summary>Adds several new child controls at once.</summary>
     /// <param name="controls">An array containing the controls to add.</param>
     public void AddRange(params Control[] controls)
-    { 
-      foreach(Control c in controls) Add(c); 
+    {
+      foreach(Control c in controls) Add(c);
     }
 
     /// <summary>Returns a value indicating whether the given control exists in this collection.</summary>
@@ -134,7 +134,7 @@ public class Control
     /// </remarks>
     public Control Find(string name)
     {
-      return Find(name, false); 
+      return Find(name, false);
     }
 
     /// <summary>Finds a control by name and returns a reference to it, or null if the control could not be found.</summary>
@@ -146,7 +146,7 @@ public class Control
     {
       int index = IndexOf(name);
       if(index != -1) return this[index];
-      
+
       if(deepSearch)
       {
         foreach(Control child in this)
@@ -171,13 +171,13 @@ public class Control
     }
 
     protected sealed override void ClearItems()
-    { 
+    {
       foreach(Control control in this) control.SetParent(null);
       base.ClearItems();
     }
 
     protected sealed override void InsertItem(int index, Control control)
-    { 
+    {
       if(control == null) throw new ArgumentNullException();
       if(control.Parent != null) throw new ArgumentException("This control already has a parent.");
       parent.ValidateNewChild(control);
@@ -187,14 +187,14 @@ public class Control
     }
 
     protected sealed override void RemoveItem(int index)
-    { 
+    {
       Control control = this[index];
       base.RemoveItem(index);
       control.SetParent(null);
     }
 
     protected sealed override void SetItem(int index, Control control)
-    { 
+    {
       if(control == null) throw new ArgumentNullException();
       Control oldControl = this[index];
       if(oldControl != control)
@@ -228,8 +228,8 @@ public class Control
   {
     get { return _backColor; }
     set
-    { 
-      if(value.ToArgb() != BackColor.ToArgb())
+    {
+      if(value != BackColor)
       {
         _backColor = value;
         Invalidate();
@@ -244,8 +244,8 @@ public class Control
   {
     get { return _color; }
     set
-    { 
-      if(value.ToArgb() != ForeColor.ToArgb())
+    {
+      if(value != ForeColor)
       {
         _color = value;
         Invalidate();
@@ -297,7 +297,7 @@ public class Control
     {
       Color old = BorderColor;
       _borderColor = value;
-      if(value.ToArgb() != old.ToArgb() && BorderWidth != 0) Invalidate();
+      if(value != old && BorderWidth != 0) Invalidate();
     }
   }
 
@@ -609,10 +609,10 @@ public class Control
   /// <remarks>If a control has key preview, it will receive keyboard events before its children, and have
   /// a chance to process and/or cancel them.
   /// </remarks>
-  public bool KeyPreview 
+  public bool KeyPreview
   {
-    get { return HasFlag(Flag.KeyPreview); } 
-    set { SetFlags(Flag.KeyPreview, value); } 
+    get { return HasFlag(Flag.KeyPreview); }
+    set { SetFlags(Flag.KeyPreview, value); }
   }
 
   /// <summary>Gets or sets whether this is a modal control.</summary>
@@ -949,7 +949,7 @@ public class Control
   /// </remarks>
   protected virtual void OnForeColorChanged(ValueChangedEventArgs e)
   {
-    if(((Color)e.OldValue).ToArgb() != GetEffectiveForeColor().ToArgb()) Invalidate();
+    if((Color)e.OldValue != GetEffectiveForeColor()) Invalidate();
   }
 
   /// <summary>Called when the <see cref="Location"/> property has changed.</summary>
@@ -1074,7 +1074,7 @@ public class Control
     SetFlags(Flag.PendingLayout | Flag.RecursiveLayout, false);
     anchorSpace = ContentRect;
     LayOutChildren();
-    
+
     if(e.Recursive)
     {
       foreach(Control child in Controls) child.OnLayout(e);
@@ -1175,7 +1175,7 @@ public class Control
   /// <param name="e">A <see cref="KeyEventArgs"/> that contains the event data.</param>
   /// <remarks>This method will only be called for keystrokes that produce characters. When overriding this
   /// method in a derived class, be sure to call the base class' version to ensure that the default processing
-  /// gets performed. 
+  /// gets performed.
   /// </remarks>
   protected internal virtual void OnKeyPress(KeyEventArgs e) { if(KeyPress != null) KeyPress(this, e); }
 
@@ -1397,7 +1397,7 @@ public class Control
     {
       throw new ArgumentException("The control does not belong to the given ancestor.");
     }
-    
+
     return controlPoint;
   }
 
@@ -1691,7 +1691,7 @@ public class Control
 
   /// <summary>Invalidates the entire control, so that it will be redrawn on the next rendering of the desktop.</summary>
   public void Invalidate() { Invalidate(ControlRect); }
-  
+
   /// <summary>Invalidates a portion of the control, in control coordinates, so that it will be redrawn on the next
   /// rendering of the desktop.
   /// </summary>
@@ -1709,7 +1709,7 @@ public class Control
     else if(EffectivelyVisible) // otherwise, no part of the parent should be visible
     {
       AddInvalidatedRegion(dirtyRect);
-      
+
       // finally, if we need a repaint and don't have one pending, notify the desktop that we need one
       if(invalid.Width != 0 && !HasFlag(Flag.PendingRepaint) && EffectivelyVisible && Desktop != null)
       {
@@ -1753,9 +1753,9 @@ public class Control
   /// <param name="recursive">Determines whether the layout will recurse and lay out all descendents.
   /// See <see cref="TriggerLayout(bool)"/> for more information.
   /// </param>
-  public void PerformLayout(bool recursive) 
+  public void PerformLayout(bool recursive)
   {
-    OnLayout(new LayoutEventArgs(recursive)); 
+    OnLayout(new LayoutEventArgs(recursive));
   }
 
   /// <summary>Immediately repaints the entire display surface.</summary>
@@ -1825,7 +1825,7 @@ public class Control
   /// <remarks>Calling this method is equivalent to calling <see cref="TabToNextControl(bool)"/> and passing false.</remarks>
   public void TabToNextControl()
   {
-    TabToNextControl(false); 
+    TabToNextControl(false);
   }
 
   /// <summary>This method selects the next or previous control in the tab order.
@@ -1833,8 +1833,8 @@ public class Control
   /// </summary>
   /// <param name="reverse">If true, selects the previous control. Otherwise, selects the next control.</param>
   public void TabToNextControl(bool reverse)
-  { 
-    SelectedControl = GetNextControl(reverse); 
+  {
+    SelectedControl = GetNextControl(reverse);
   }
 
   /// <summary>Gets or sets the drag threshold for this control.</summary>
@@ -1887,14 +1887,7 @@ public class Control
   /// <summary>Gets the control's effective border color by returning a default color if the border color is not set.</summary>
   protected Color GetEffectiveBorderColor()
   {
-    if(BorderColor.IsEmpty)
-    {
-      return Focused ? SystemColors.ActiveBorder : SystemColors.InactiveBorder;
-    }
-    else
-    {
-      return BorderColor;
-    }
+    return BorderColor.IsEmpty ? (Color)(Focused ? SystemColors.ActiveBorder : SystemColors.InactiveBorder) : BorderColor;
   }
 
   /// <summary>Gets the control's effective background color by returning the first color of the control or of an
@@ -1904,9 +1897,9 @@ public class Control
   {
     for(Control control = this; control != null; control = control.Parent)
     {
-      if(control.BackColor.A != 0) return control.BackColor;
+      if(!control.BackColor.IsTransparent) return control.BackColor;
     }
-    return Color.Transparent;
+    return Color.Empty;
   }
 
   /// <summary>Gets the control's effective foreground color by returning the first color of the control or of an
@@ -1916,9 +1909,9 @@ public class Control
   {
     for(Control control = this; control != null; control = control.Parent)
     {
-      if(control.ForeColor.A != 0) return control.ForeColor;
+      if(!control.ForeColor.IsTransparent) return control.ForeColor;
     }
-    return Color.Transparent;
+    return Color.Empty;
   }
 
   protected virtual void LayOutChildren()
@@ -2058,7 +2051,7 @@ public class Control
   {
     get
     {
-      if(BackColor.A != 255) return true;
+      if(!BackColor.IsOpaque) return true;
 
       if(Renderer != null)
       {
@@ -2234,7 +2227,7 @@ public class Control
   {
     SetFlags(Flag.EffectivelyEnabled, Enabled && (Parent == null || Parent.EffectivelyEnabled));
     SetFlags(Flag.EffectivelyVisible, Visible && (Parent == null || Parent.EffectivelyVisible));
-    
+
     if(Parent != null)
     {
       bool hadNoDesktop = Desktop == null;
@@ -2260,7 +2253,7 @@ public class Control
       _effectiveFont = Font;
       SetRenderer(null);
     }
-    
+
     foreach(Control child in Controls) child.RecursivelySetEffectiveValues();
   }
 
@@ -2295,7 +2288,7 @@ public class Control
 
   void SetParent(Control control)
   {
-    if(HasFlag(Flag.JustSetParent)) // if we're manipulating the ControlCollection 
+    if(HasFlag(Flag.JustSetParent)) // if we're manipulating the ControlCollection
     {                               // and don't want it performing all these actions...
       _parent = control; // just set the parent
     }
@@ -2355,7 +2348,7 @@ public class Control
 
   RectOffset _padding;
 
-  Color _backColor = Color.Transparent, _color, _borderColor;
+  Color _backColor = Color.Empty, _color, _borderColor;
 
   IGuiImage _backImage;
 

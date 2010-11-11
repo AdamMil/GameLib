@@ -25,7 +25,7 @@ namespace GameLib.Video
 /// <summary>This is the base class of all OpenGL-related exceptions in GameLib.</summary>
 [Serializable]
 public class OpenGLException : VideoException
-{ 
+{
   /// <summary>Initializes this exception.</summary>
   /// <param name="message">The message associated with this exception.</param>
   public OpenGLException(string message) : base(message) { }
@@ -36,7 +36,7 @@ public class OpenGLException : VideoException
 /// <summary>This exception is thrown when OpenGL will not create any more texture handles.</summary>
 [Serializable]
 public class NoMoreTexturesException : OpenGLException
-{ 
+{
   /// <summary>Initializes this exception.</summary>
   public NoMoreTexturesException() : base("GL refuses to create more textures! "+ Interop.OpenGL.GL.glGetError()) { }
   /// <summary>Initializes this exception.</summary>
@@ -48,7 +48,7 @@ public class NoMoreTexturesException : OpenGLException
 /// </summary>
 [Serializable]
 public class OutOfTextureMemoryException : OpenGLException
-{ 
+{
   /// <summary>Initializes this exception.</summary>
   public OutOfTextureMemoryException() : base("Out of texture memory.") { }
   /// <summary>Initializes this exception.</summary>

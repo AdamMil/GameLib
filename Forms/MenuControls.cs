@@ -24,6 +24,7 @@ using System.Drawing;
 using System.Threading;
 using GameLib.Video;
 using GameLib.Input;
+using Color = GameLib.Color;
 using Font = GameLib.Fonts.Font;
 
 namespace GameLib.Forms
@@ -46,13 +47,13 @@ public abstract class MenuItemBase : Control
   {
     get; set;
   }
-  
+
   public char HotKey
   {
     get { return hotKey; }
     set { hotKey = char.ToUpper(value); }
   }
-  
+
   public Menu Menu
   {
     get { return (Menu)Parent; }
@@ -90,14 +91,14 @@ public class Menu : Control
     ControlStyle |= ControlStyle.CanReceiveFocus | ControlStyle.DontLayout;
     BackColor     = SystemColors.Menu;
     ForeColor     = SystemColors.MenuText;
-    SelectedForeColor = SelectedBackColor = Color.Transparent;
+    SelectedForeColor = SelectedBackColor = Color.Empty;
   }
 
   public Menu(string text) : this()
   {
     Text = text;
   }
-  
+
   public Menu(string text, KeyCombo globalHotKey) : this(text)
   {
     GlobalHotKey = globalHotKey;
@@ -115,14 +116,12 @@ public class Menu : Control
 
   public Color SelectedBackColor
   {
-    get;
-    set;
+    get; set;
   }
 
   public Color SelectedForeColor
   {
-    get;
-    set;
+    get; set;
   }
 
   public Control SourceControl
@@ -137,7 +136,7 @@ public class Menu : Control
     Controls.Add(item);
     return item;
   }
-  
+
   public void Clear()
   {
     Controls.Clear();
@@ -158,12 +157,12 @@ public class Menu : Control
   {
     Show(source, position, false, true);
   }
-  
+
   public void Show(Control source, Point position, bool pullDown)
   {
     Show(source, position, pullDown, true);
   }
-  
+
   public void Show(Control source, Point position, bool pullDown, bool wait)
   {
     if(source == null) throw new ArgumentNullException();
@@ -418,7 +417,7 @@ public abstract class MenuBarBase : Control
         return true;
       }
     }
-    
+
     foreach(Menu menu in menus)
     {
       if(menu.Enabled)
@@ -477,7 +476,7 @@ public abstract class MenuBarBase : Control
         e.CE.Point = buttons[open].Menu.ParentToControl(ControlToAncestor(e.CE.Point, Desktop));
         buttons[open].Menu.OnMouseUp(e);
       }
-      
+
       e.Handled = true;
     }
 
@@ -517,7 +516,7 @@ public abstract class MenuBarBase : Control
         Invalidate(buttons[over].Area);
       }
     }
-    
+
     done: base.OnMouseMove(e);
   }
 
@@ -532,7 +531,7 @@ public abstract class MenuBarBase : Control
         break;
       }
     }
-    
+
     if(oldOver != -1)
     {
       buttons[oldOver].Over = false;
@@ -542,7 +541,7 @@ public abstract class MenuBarBase : Control
         Invalidate(buttons[oldOver].Area);
       }
     }
-    
+
     base.OnMouseLeave();
   }
 
@@ -551,13 +550,13 @@ public abstract class MenuBarBase : Control
     Relayout();
     base.OnParentChanged(e);
   }
-  
+
   protected override void OnEffectiveFontChanged(ValueChangedEventArgs e)
   {
     base.OnEffectiveFontChanged(e);
     Relayout();
   }
-  
+
   protected override void OnResize()
   {
     Relayout();
@@ -583,7 +582,7 @@ public abstract class MenuBarBase : Control
     public ButtonState State;
     public bool Over;
   }
-  
+
   protected MenuButton[] Buttons
   {
     get { return buttons; }
@@ -625,7 +624,7 @@ public abstract class MenuBarBase : Control
   {
     Open(menu, true);
   }
-  
+
   void Open(int menu, bool pullDown)
   {
     buttons[menu].State = ButtonState.Open;
@@ -655,17 +654,17 @@ public class MenuItem : MenuItemBase
   {
     Padding = new RectOffset(2, 0);
   }
-  
+
   public MenuItem(string text) : this()
   {
     Text = text;
   }
-  
+
   public MenuItem(string text, char hotKey) : this(text)
   {
     HotKey = hotKey;
   }
-  
+
   public MenuItem(string text, char hotKey, KeyCombo globalHotKey) : this(text, hotKey)
   {
     GlobalHotKey = globalHotKey;
@@ -675,7 +674,7 @@ public class MenuItem : MenuItemBase
   {
     get { return selBack; }
   }
-  
+
   public Color RawSelectedForeColor
   {
     get { return selFore; }
@@ -685,10 +684,10 @@ public class MenuItem : MenuItemBase
   {
     get
     {
-      if(selBack.A != 0) return selBack;
+      if(!selBack.IsTransparent) return selBack;
 
       Menu menu = (Menu)Parent;
-      return menu == null || menu.SelectedBackColor.A == 0 ? GetEffectiveForeColor() : menu.SelectedBackColor;
+      return menu == null || menu.SelectedBackColor.IsTransparent ? GetEffectiveForeColor() : menu.SelectedBackColor;
     }
     set
     {
@@ -701,9 +700,9 @@ public class MenuItem : MenuItemBase
   {
     get
     {
-      if(selFore.A != 0) return selFore;
+      if(!selFore.IsTransparent) return selFore;
       Menu menu = (Menu)Parent;
-      return menu == null || menu.SelectedForeColor.A == 0 ? BackColor : menu.SelectedForeColor;
+      return menu == null || menu.SelectedForeColor.IsTransparent ? BackColor : menu.SelectedForeColor;
     }
     set
     {
@@ -718,7 +717,7 @@ public class MenuItem : MenuItemBase
     Invalidate();
     base.OnMouseEnter();
   }
-  
+
   protected internal override void OnMouseLeave()
   {
     mouseOver = false;
@@ -829,7 +828,7 @@ public class MenuBar : MenuBarBase
       }
     }
   }
-  
+
   protected override void OnPaint(PaintEventArgs e)
   {
     base.OnPaint(e);
@@ -841,7 +840,7 @@ public class MenuBar : MenuBarBase
       {
         if(button.Area.IntersectsWith(e.ControlRect))
         {
-          EffectiveFont.Color = button.Menu.Enabled ? GetEffectiveForeColor() : SystemColors.GrayText;
+          EffectiveFont.Color = button.Menu.Enabled ? GetEffectiveForeColor() : (Color)SystemColors.GrayText;
           Point renderPt =
             UIHelper.CalculateAlignment(ControlToDraw(button.Area),
                                         EffectiveFont.CalculateSize(button.Menu.Text), ContentAlignment.MiddleCenter);

@@ -31,7 +31,7 @@ namespace GameLib.Video
 /// <summary>This class provides some high-level support for interfacing with the OpenGL API.</summary>
 // TODO: add more methods
 public static class OpenGL
-{ 
+{
   /// <summary>Returns a collection of extensions supported by OpenGL.</summary>
   /// <value>A collection of strings representing the extensions supported by OpenGL.</value>
   public static System.Collections.ICollection Extensions
@@ -222,7 +222,7 @@ public static class OpenGL
           type   = GL.GL_UNSIGNED_SHORT_5_5_5_1;
         }
         else if(pf.RedMask==0xF800 && pf.GreenMask==0x7E0 && pf.BlueMask==0x1F)
-        { 
+        {
           format = GL.GL_RGB;
           type = GL.GL_UNSIGNED_SHORT_5_6_5;
         }
@@ -242,7 +242,7 @@ public static class OpenGL
           #endif
       }
       else if(surface.Depth==32 && pf.AlphaMask!=0)
-      { 
+      {
         #if BIGENDIAN
         if(pf.RedMask==0xFF000000 && pf.GreenMask==0xFF0000 && pf.BlueMask==0xFF00 && pf.AlphaMask==0xFF)
           format = GL.GL_RGBA;
@@ -370,7 +370,7 @@ public static class OpenGL
 /// <summary>This class wraps an OpenGL texture handle.</summary>
 // TODO: add support for mipmapping
 public class GLTexture2D : IDisposable, IGuiImage
-{ 
+{
   /// <summary>Creates an uninitialized instance of this class.</summary>
   /// <remarks>After using this constructor, no texture will have been loaded. <see cref="Load"/> will have to
   /// be called before this class can be used.
@@ -444,7 +444,7 @@ public class GLTexture2D : IDisposable, IGuiImage
   public int ImgWidth
   { get { return imgSize.Width; }
     set
-    { 
+    {
       if(value < 0) throw new ArgumentOutOfRangeException("ImgWidth", value, "must not be negative");
       imgSize.Width = value;
       texCoordWidth = TexWidth == 0 ? 0 : (double)value / TexWidth;
@@ -565,7 +565,7 @@ public class GLTexture2D : IDisposable, IGuiImage
   /// <summary>Unloads the texture from video memory.</summary>
   /// <remarks>If no texture is loaded, this method will do nothing.</remarks>
   public void Unload()
-  { 
+  {
     if(texture != 0)
     {
       if(GL.glGetIntegerv(GL.GL_TEXTURE_BINDING_2D) == texture) GL.glBindTexture(GL.GL_TEXTURE_2D, 0);

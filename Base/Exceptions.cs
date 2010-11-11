@@ -25,7 +25,7 @@ namespace GameLib
 /// <summary>This is the base class for all exceptions specific to GameLib.</summary>
 [Serializable]
 public class GameLibException : Exception
-{ 
+{
   /// <summary>Initializes this exception.</summary>
   /// <param name="message">The message associated with this exception.</param>
   public GameLibException(string message) : base(message) { }
@@ -40,7 +40,7 @@ public class GameLibException : Exception
 /// <summary>This exception is thrown when the data given to a method is too large for it to handle.</summary>
 [Serializable]
 public class DataTooLargeException : GameLibException
-{ 
+{
   /// <summary>Initializes this exception.</summary>
   public DataTooLargeException() : base("The data is too large.") { maxSize=-1; }
   /// <summary>Initializes this exception.</summary>
@@ -73,7 +73,7 @@ public class DataTooLargeException : GameLibException
 /// <summary>This exception is thrown when an encoder or decoder could not be found for the given data.</summary>
 [Serializable]
 public class CodecNotFoundException : GameLibException
-{ 
+{
   /// <summary>Initializes this exception.</summary>
   public CodecNotFoundException() : base("The requested codec could not be found") { }
   /// <summary>Initializes this exception.</summary>

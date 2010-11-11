@@ -33,7 +33,7 @@ namespace GameLib.Video
 /// </remarks>
 [Flags]
 public enum PaletteType
-{ 
+{
   /// <summary>The logical palette will be set.</summary>
   Logical=SDL.PaletteType.Logical,
   /// <summary>The physical palette will be set.</summary>
@@ -47,7 +47,7 @@ public enum PaletteType
 /// </summary>
 [CLSCompliant(false)]
 public class GLOptions
-{ 
+{
   /// <summary>The size of the frame buffer's red channel, in bits.</summary>
   /// <remarks>This field defaults to -1, which indicates that this OpenGL property should not be altered.</remarks>
   public sbyte Red=-1;
@@ -138,7 +138,7 @@ public sealed class PixelFormat
   /// </remarks>
   public PixelFormat(int depth, bool withAlpha, bool queryVideoInfo)
   {
-    Depth = depth; 
+    Depth = depth;
     GenerateDefaultMasks(withAlpha, queryVideoInfo);
   }
 
@@ -194,9 +194,9 @@ public sealed class PixelFormat
   /// <summary>Generates default channel masks for the current bit depth, without an alpha channel and querying the
   /// video hardware to get the best masks.
   /// </summary>
-  public void GenerateDefaultMasks() 
+  public void GenerateDefaultMasks()
   {
-    GenerateDefaultMasks(false, true); 
+    GenerateDefaultMasks(false, true);
   }
 
   /// <summary>Generates default channel masks for the current bit depth, querying the
@@ -217,7 +217,7 @@ public sealed class PixelFormat
   public void GenerateDefaultMasks(bool withAlpha, bool queryVideoInfo)
   {
     switch(Depth) // TODO: make big-endian compatible (?)
-    { 
+    {
       case 16:
         if(queryVideoInfo && Video.Info.Format.Depth == 16 && withAlpha == (Video.Info.Format.AlphaMask != 0))
         {
@@ -262,7 +262,7 @@ public sealed class PixelFormat
           AlphaMask = Depth == 24 || !withAlpha ? 0 : 0xFF000000;
         }
         break;
-      
+
       default: RedMask = GreenMask = BlueMask = AlphaMask = 0; break;
     }
   }
@@ -290,7 +290,7 @@ public sealed class PixelFormat
   /// formats, because the entire palettes need to be compared.
   /// </remarks>
   public bool IsCompatible(PixelFormat format, bool okayIfFormatHasNoAlpha)
-  { 
+  {
     if(format.Depth != Depth || format.RedMask != RedMask ||
        format.GreenMask != GreenMask || format.BlueMask != BlueMask ||
        format.AlphaMask != AlphaMask && (!okayIfFormatHasNoAlpha || format.AlphaMask != 0))
@@ -303,7 +303,7 @@ public sealed class PixelFormat
       if(p1==null && p2==null) return true;
       if(p1==null || p2==null) return false;
       if(p1->Entries != p2->Entries) return false;
-      for(int i=0; i<p1->Entries; i++) if(p1->Colors[i].Value != p2->Colors[i].Value) return false;
+      for(int i=0; i<p1->Entries; i++) if(p1->Colors[i] != p2->Colors[i]) return false;
     }
     return true;
   }
@@ -320,7 +320,7 @@ public sealed class PixelFormat
 /// </remarks>
 [CLSCompliant(false)]
 public sealed class GammaRamp
-{ 
+{
   /// <summary>Gets the array for the red component.</summary>
   /// <value>An array of 256 unsigned shorts.</value>
   /// <remarks>See <see cref="GammaRamp"/> for a description of the array's expected contents.</remarks>
@@ -343,11 +343,11 @@ public sealed class GammaRamp
 /// can be used.
 /// </summary>
 public static class Video
-{ 
+{
   #region VideoInfo
   /// <summary>This class contains informations about the video hardware.</summary>
   public class VideoInfo
-  { 
+  {
     internal unsafe VideoInfo(SDL.VideoInfo* info)
     {
       flags     = info->flags;
@@ -425,10 +425,10 @@ public static class Video
   /// <exception cref="InvalidOperationException">Thrown if the video subsystem has not been initialized.</exception>
   public static VideoInfo Info
   {
-    get 
+    get
     {
       AssertInit();
-      return info; 
+      return info;
     }
   }
 
@@ -841,7 +841,7 @@ public static class Video
 /// windowed video mode.
 /// </summary>
 public static class WM
-{ 
+{
   /// <summary>Gets whether the application window is active (focused) or not.</summary>
   /// <value>A boolean indicating whether the application window has input focus.</value>
   /// <remarks>This property is updated by the <see cref="Events.Events"/> class when it receives an event from
@@ -867,8 +867,10 @@ public static class WM
   /// <value>A string containing the title displayed in the application's window.</value>
   /// <remarks>This should be set after the video mode is set for maximum compatibility.</remarks>
   public static string WindowTitle
-  { get
-    { string title, icon;
+  {
+    get
+    {
+      string title, icon;
       SDL.WM_GetCaption(out title, out icon);
       return title;
     }
@@ -881,8 +883,10 @@ public static class WM
   /// mode. If set to true, the mouse will be forced to say within the window boundaries.
   /// </value>
   public static bool MouseBounded // TODO: possibly move this to Input?
-  { get
-    { SDL.GrabMode mode = SDL.WM_GrabInput(SDL.GrabMode.Query);
+  {
+    get
+    {
+      SDL.GrabMode mode = SDL.WM_GrabInput(SDL.GrabMode.Query);
       return mode==SDL.GrabMode.On;
     }
     set { SDL.WM_GrabInput(value ? SDL.GrabMode.On : SDL.GrabMode.Off); }
@@ -891,13 +895,15 @@ public static class WM
   /// <summary>Sets the icon in use for the window.</summary>
   /// <remarks>The surface used for the icon currently must be 32x32 for compatibility.</remarks>
   public static void SetIcon(Surface icon)
-  { if(icon.Width!=32 || icon.Height!=32) throw new ArgumentException("Icon should be 32x32 for compatibility");
+  {
+    if(icon.Width!=32 || icon.Height!=32) throw new ArgumentException("Icon should be 32x32 for compatibility");
     unsafe { SDL.WM_SetIcon(icon.surface, null); }
   }
 
   /// <summary>Attempts to minimize (iconify) the window.</summary>
   public static void Minimize()
-  { if(SDL.WM_IconifyWindow()!=0) SDL.RaiseError();
+  {
+    if(SDL.WM_IconifyWindow()!=0) SDL.RaiseError();
     Events.Events.minimized = true;
   }
 }

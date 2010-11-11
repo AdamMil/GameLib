@@ -248,7 +248,7 @@ public class Desktop : Control, IDisposable
   /// Thus, the event should still be passed to all other desktops, if there are multiple.
   /// </returns>
   /// <remarks>The main application event handler should pass events to this method in the order they are received. The desktop
-  /// will use them to handle all user interaction with the desktop and its controls. 
+  /// will use them to handle all user interaction with the desktop and its controls.
   /// <seealso cref="Events.Events"/> <seealso cref="Input.Input.ProcessEvent"/>
   /// </remarks>
   public bool ProcessEvent(Event e, bool passToInput)
@@ -294,7 +294,7 @@ public class Desktop : Control, IDisposable
           }
 
           at = child.ParentToControl(at); // convert 'at' to the child's control coordinates
-          
+
           // if we focus on mouse over, try to select the current child
           if(passModal)
           {
@@ -393,7 +393,7 @@ public class Desktop : Control, IDisposable
 
         // TODO: we should avoid trying to drag mouse wheel movements
         if(me.Down) // if the mouse button has been depressed...
-        { 
+        {
           // consider a drag if the click passed the modal check and and we're not already tracking a drag
           if(passModal && dragging == null && control.HasStyle(ControlStyle.Draggable))
           {
@@ -508,7 +508,7 @@ public class Desktop : Control, IDisposable
 
   protected sealed override void ValidateNewParent(Control newParent)
   {
- 	  throw new ArgumentException("A desktop cannot be placed within another control.");
+     throw new ArgumentException("A desktop cannot be placed within another control.");
   }
 
   internal Control CapturingControl
@@ -585,7 +585,7 @@ public class Desktop : Control, IDisposable
 
   /// <summary>Adds a rectangle to the list of updated rectangles.</summary>
   void AddUpdatedArea(Rectangle area)
-  { 
+  {
     // TODO: combine rectangles more efficiently so there's no overlap
     int i;
     for(i=0; i < updatedLen; i++)

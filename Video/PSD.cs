@@ -28,7 +28,7 @@ enum PSDChannel { Alpha=-1, Red=0, Green=1, Blue=2 };
 
 #region PSDLayer
 public sealed class PSDLayer
-{ 
+{
   /// <summary>Initializes this layer as being empty, with zero bounds.</summary>
   public PSDLayer() : this(null, new Rectangle(), null) { }
   /// <summary>Initializes this layer with the specified bounds.</summary>
@@ -166,7 +166,7 @@ public sealed class PSDLayer
 #region PSDImage
 /// <summary>This class represents a PSD format image.</summary>
 public sealed class PSDImage
-{ 
+{
   /// <summary>Gets or sets the size of the flattened image.</summary>
   /// <remarks>This property gets/sets the <see cref="Width"/> and <see cref="Height"/> properties.</remarks>
   public Size Size { get { return new Size(Width, Height); } set { Width=value.Width; Height=value.Height; } }
@@ -245,7 +245,7 @@ public sealed class PSDImage
 /// </para>
 /// </remarks>
 public sealed class PSDCodec
-{ 
+{
   /// <summary>Determines whether the codec is currently in a reading mode.</summary>
   /// <remarks>The codec is in a reading mode if <see cref="StartReading"/> has been called to begin reading, and
   /// <see cref="FinishReading"/> has not yet been called to end reading.
@@ -880,7 +880,7 @@ public sealed class PSDCodec
           int length = width*height;
           if(!recognized) stream.Skip(length);
           else if(length<=65536)
-          { 
+          {
             byte[] data = new byte[length];
             stream.ReadOrThrow(data, 0, data.Length);
             fixed(byte* sdata=data)
@@ -1044,7 +1044,7 @@ public sealed class PSDCodec
   }
 
   unsafe void WriteRawBits(Surface surface, int channel, bool layer)
-  { 
+  {
     byte[] data = new byte[1024];
     if(layer || channel==0) stream.WriteBE2(0); // no compression
     int xinc=surface.Depth/8, yinc=surface.Pitch-surface.Width*xinc, blen=0;
