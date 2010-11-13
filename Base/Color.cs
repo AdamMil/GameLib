@@ -21,6 +21,8 @@ using System.Collections.Generic;
 using KnownColor = System.Drawing.KnownColor;
 using SysColor   = System.Drawing.Color;
 
+// TODO: implement HSL space
+
 namespace GameLib
 {
 
@@ -30,10 +32,10 @@ public enum BlendMode
 {
   /// <summary>The blend color is used.</summary>
   Normal,
-  /// <summary>The two colors are added, with channels saturating at white. (This blend mode is also called linear dodge.)</summary>
+  /// <summary>The two colors are added, with channels saturating at white. (This blend mode is also called "linear dodge".)</summary>
   Add,
   /// <summary>Not quite the opposite of <see cref="Add"/>, this causes dark colors to be truncated instead of light ones.
-  /// Negative intensities produce black. (This blend mode is also called linear burn.)
+  /// Negative intensities produce black. (This blend mode is also called "linear burn".)
   /// </summary>
   Subtract,
   /// <summary>The resulting color is the absolute value of the difference between the two colors. Blending with black produces
@@ -119,7 +121,9 @@ public enum BlendMode
   Color,
   /// <summary>Preserves the HCL hue and luma of the base color while adopting the chroma of the blend color.</summary>
   Chroma,
-  /// <summary>Preserves the HCL hue and chroma of the base color while adopting the luma of the blend color.</summary>
+  /// <summary>Preserves the HCL hue and chroma of the base color while adopting the luma of the blend color. This blend mode is
+  /// also called "luminosity".
+  /// </summary>
   Luma,
   /// <summary>Preserves the HCL luma of the base color while adopting  the hue and chroma of the blend color.</summary>
   HueChroma,
@@ -132,16 +136,16 @@ public enum BlendMode
 public struct Color
 {
   /// <summary>Initializes a new, gray, opaque <see cref="Color"/> from a brightness value.</summary>
-  public Color(byte value)
+  public Color(byte brightness)
   {
-    red   = green = blue = value;
+    red   = green = blue = brightness;
     alpha = 255;
   }
 
   /// <summary>Initializes a new, gray <see cref="Color"/> from a brightness value and an alpha value.</summary>
-  public Color(byte value, byte alpha)
+  public Color(byte brightness, byte alpha)
   {
-    red = green = blue = value;
+    red = green = blue = brightness;
     this.alpha = alpha;
   }
 
@@ -304,8 +308,8 @@ public struct Color
   /// <summary>Converts the color to grayscale, using the standard gamma correction (30% red, 59% green, and 11% blue).</summary>
   public Color ToGrayscale()
   {
-    byte value = (byte)((red*30 + green*59 + blue*11 + 50) / 100); // the integer version is faster than the floating point one
-    return new Color(value, value, value, alpha);
+    // the integer version is faster than the floating point one
+    return new Color((byte)((red*30 + green*59 + blue*11 + 50) / 100), alpha);
   }
 
   /// <summary>Converts this color into a string of the form "#rrggbb" or "#rrggbbaa" where "rr", "gg", "bb", and "aa" represent
@@ -339,6 +343,7 @@ public struct Color
   /// <param name="luma">A variable that will receive the luma, from 0 to 1.</param>
   public void ToHCL(out float hue, out float chroma, out float luma)
   {
+    // http://www.wikimedia.org/en/wiki/HSL_and_HSV#Hue_and_chroma and http://www.wikimedia.org/en/wiki/HSL_and_HSV#Lightness
     float r = red*(1f/255), g = green*(1f/255), b = blue*(1f/255), min = r, max = r;
 
     if(g < min) min = g;
@@ -369,12 +374,58 @@ public struct Color
     }
   }
 
+  /// <summary>Converts this color into an HSL (hue-saturation-lightness) color.</summary>
+  /// <param name="hue">A variable that will receive the hue, as a value from 0 to 1, representing degrees from 0 to 360.</param>
+  /// <param name="saturation">A variable that will receive the saturation, from 0 to 1. Note that this is not the same as the
+  /// saturation component of the HSV (hue-saturation-value, or HSB [hue-saturation-brightness]) color space.
+  /// </param>
+  /// <param name="lightness">A variable that will receive the lightness, from 0 to 1.</param>
+  public void ToHSL(out float hue, out float saturation, out float lightness)
+  {
+    // http://www.wikimedia.org/en/wiki/HSL_and_HSV#Lightness and http://www.wikimedia.org/en/wiki/HSL_and_HSV#Saturation
+    float r = red*(1f/255), g = green*(1f/255), b = blue*(1f/255), min = r, max = r;
+
+    if(g < min) min = g;
+    else max = g;
+
+    if(b < min) min = b;
+    else if(b > max) max = b;
+
+    float maxPlusMin = max + min;
+    lightness = maxPlusMin * 0.5f;
+
+    float delta = max - min;
+    if(delta == 0)
+    {
+      hue        = 0;
+      saturation = 0;
+    }
+    else
+    {
+      float inverseDelta = (1f/6) / delta, v;
+      if(r == max) v = (g-b)*inverseDelta;
+      else if(g == max) v = (b-r)*inverseDelta + 1f/3;
+      else v = (r-g)*inverseDelta + 2f/3;
+
+      if(v >= 1) v -= 1;
+      else if(v < 0) v += 1;
+      hue = v;
+
+      v = delta / (1 - Math.Abs(maxPlusMin-1));
+      if(v > 1) v = 1; // it's possible that it can go slightly over, due to floating point error
+      saturation = v;
+    }
+  }
+
   /// <summary>Converts this color into an HSV (hue-saturation-value, also known as HSB [hue-saturation-brightness]) color.</summary>
   /// <param name="hue">A variable that will receive the hue, as a value from 0 to 1, representing degrees from 0 to 360.</param>
-  /// <param name="saturation">A variable that will receive the saturation, from 0 to 1.</param>
+  /// <param name="saturation">A variable that will receive the saturation, from 0 to 1. Note that this is not the same as the
+  /// saturation component of  the HSL (hue-saturation-lightness) color space.
+  /// </param>
   /// <param name="value">A variable that will receive the value (brightness), from 0 to 1.</param>
   public void ToHSV(out float hue, out float saturation, out float value)
   {
+    // http://www.wikimedia.org/en/wiki/HSL_and_HSV#Lightness and http://www.wikimedia.org/en/wiki/HSL_and_HSV#Saturation
     float r = red*(1f/255), g = green*(1f/255), b = blue*(1f/255), min = r, max = r;
 
     if(g < min) min = g;
@@ -527,29 +578,6 @@ public struct Color
     return color;
   }
 
-  /// <summary>Returns a new <see cref="Color"/> constructed from the given <see cref="KnownColor"/> value.</summary>
-  public static Color FromKnownColor(KnownColor color)
-  {
-    return SysColor.FromKnownColor(color);
-  }
-
-  /// <summary>Returns a new, opaque <see cref="Color"/> constructed from the given red, green, and blue values, which must be
-  /// from 0 to 255.
-  /// </summary>
-  public static Color FromRGB(int red, int green, int blue)
-  {
-    return FromRGBA(red, green, blue, 255);
-  }
-
-  /// <summary>Returns a new <see cref="Color"/> constructed from the given red, green, blue, and alpha values, which must be
-  /// from 0 to 255.
-  /// </summary>
-  public static Color FromRGBA(int red, int green, int blue, int alpha)
-  {
-    if(((red|green|blue|alpha) & ~0xFF) != 0) throw new ArgumentOutOfRangeException(); // ensure all values are from 0-255
-    return new Color((byte)red, (byte)green, (byte)blue, (byte)alpha);
-  }
-
   /// <summary>Returns a new <see cref="Color"/> constructed from the given HCL (hue-chroma-luma) color. Not all HCL colors can
   /// be represented in the RGB gamut. Colors outside the gamut will be clipped along by adjusting the chroma downward.
   /// </summary>
@@ -570,16 +598,6 @@ public struct Color
       if(hue == 1) hue = 0; // if the hue was already an integer, then it'll have become equal to 1, so make it zero
     }
 
-    // optimize calculation of hff = (1 - abs(hueFace%2 - 1))
-    // 0   -> 0   = H-0
-    // 0.1 -> 0.1 = H-0
-    // 1   -> 1   = 2-H
-    // 1.1 -> 0.9 = 2-H
-    // 2   -> 0   = H-2
-    // 2.1 -> 0.1 = H-2
-    // 3   -> 1   = 4-H
-    // 3.1 -> 0.9 = 4-H
-    // etc...
     float hueFace = hue*6;
     int hueFaceInt = (int)hueFace, term = (hueFaceInt+1) & ~1;
     float hff = (hueFaceInt&1) == 0 ? hueFace - term : term - hueFace;
@@ -610,15 +628,15 @@ public struct Color
       if(b < min) min = b;
       else if(b > max) max = b;
 
-      // if it's out of gamut, adjust the chroma and retry. in both cases, the chroma will be adjusted downwards
-      // if we take v1=1, v2=hff, and v3=0, then
+      // if it's out of gamut, adjust the chroma and retry. in both cases, the chroma will be adjusted downwards.
+      // if we take v1=1, v2=hff, and v3=0, then (assuming hueFaceInt==0, for example)
       //
       // r = luma + chroma*v1 + luma - chroma*v1*0.3 - chroma*v2*0.59 - chroma*v3*0.11 =
       //     luma + chroma*(v1 - 0.3*v1 - 0.59*v2 - 0.11*v3) =
-      //     luma + chroma*(0.7*v1 - 0.59*v2 - 0.11*v3)  (for example, assuming hueFaceInt==0)
+      //     luma + chroma*(0.7*v1 - 0.59*v2 - 0.11*v3)
       //
-      // so we can consider that r,g,b = luma + chroma*whatever. then we'll take the maximum and minimum r,g,b values and see if
-      // they're out of bounds.
+      // since none of v1, v2, or v3 depend on luma or chroma, so we simply can consider that r,g,b = luma + chroma*whatever.
+      // then we'll take the maximum and minimum r,g,b values and see if they're out of bounds.
       //
       // IN CASE MAX > 1:
       // luma + chroma*whatever = max   (where max > 1)
@@ -649,13 +667,13 @@ public struct Color
       if(max > 1)
       {
         chroma *= (1 - max) / (max - luma) + 1;
-        clipped = 1;
+        clipped = 1; // remember that we clipped to the upper bound
         goto retry;
       }
       else if(min < 0)
       {
         chroma *= -min / (min - luma) + 1;
-        clipped = -1;
+        clipped = -1; // remember that we clipped to the lower bound
         goto retry;
       }
     }
@@ -669,43 +687,70 @@ public struct Color
     return new Color(ScaleAndRound(r), ScaleAndRound(g), ScaleAndRound(b));
   }
 
+  /// <summary>Returns a new <see cref="Color"/> constructed from the given HSL (hue-saturation-lightness) color.</summary>
+  /// <param name="hue">The hue, from 0 to 1, representing 0 to 360 degrees. Values outside [0,1) are also accepted.</param>
+  /// <param name="saturation">The saturation, from 0 to 1. Note that this is not the same as the saturation component of the HSV
+  /// (hue-saturation-value, or HSB [hue-saturation-brightness]) color space.
+  /// </param>
+  /// <param name="lightness">The lightness, from 0 to 1.</param>
+  public static Color FromHSL(float hue, float saturation, float lightness)
+  {
+    if(saturation < 0 || saturation > 1 || lightness < 0 || lightness > 1) throw new ArgumentOutOfRangeException();
+    float chroma = saturation * (1 - Math.Abs(lightness*2-1));
+    return FromHS(hue, chroma, lightness - chroma*0.5f);
+  }
+
   /// <summary>Returns a new <see cref="Color"/> constructed from the given HSV (hue-saturation-value, also known as HSB
   /// [hue-saturation-brightness]) color.
   /// </summary>
   /// <param name="hue">The hue, from 0 to 1, representing 0 to 360 degrees. Values outside [0,1) are also accepted.</param>
-  /// <param name="saturation">The saturation, from 0 to 1.</param>
+  /// <param name="saturation">The saturation, from 0 to 1. Note that this is not the same as the saturation component of the HSL
+  /// (hue-saturation-lightness) color space.
+  /// </param>
   /// <param name="value">The value (brightness), from 0 to 1.</param>
   public static Color FromHSV(float hue, float saturation, float value)
   {
     if(saturation < 0 || saturation > 1 || value < 0 || value > 1) throw new ArgumentOutOfRangeException();
+    float chroma = saturation*value;
+    return FromHS(hue, chroma, value - chroma);
+  }
 
-    if(hue >= 1)
-    {
-      hue -= (int)hue;
-    }
-    else if(hue < 0)
-    {
-      hue -= (int)hue - 1;
-      if(hue == 1) hue = 0; // if the hue was already an integer, then it'll have become equal to 1, so make it zero
-    }
+  /// <summary>Returns a new <see cref="Color"/> constructed from the given <see cref="KnownColor"/> value.</summary>
+  public static Color FromKnownColor(KnownColor color)
+  {
+    return SysColor.FromKnownColor(color);
+  }
 
-    float hueFace = hue*6, v1 = value * (1 - saturation);
-    int hueFaceInt = (int)hueFace;
-    float hueFaceFraction = hueFace - hueFaceInt;
-    float v2 = value * (1 - saturation * hueFaceFraction), v3 = value * (1 - saturation * (1 - hueFaceFraction));
-    float r, g, b;
+  /// <summary>Returns a new, opaque <see cref="Color"/> constructed from the given red, green, and blue values, which must be
+  /// from 0 to 255.
+  /// </summary>
+  public static Color FromRGB(int red, int green, int blue)
+  {
+    return FromRGBA(red, green, blue, 255);
+  }
 
-    switch(hueFaceInt)
-    {
-      case 0: r = value; g = v3; b = v1; break;
-      case 1: r = v2; g = value; b = v1; break;
-      case 2: r = v1; g = value; b = v3; break;
-      case 3: r = v1; g = v2; b = value; break;
-      case 4: r = v3; g = v1; b = value; break;
-      default: r = value; g = v1; b = v2; break;
-    }
+  /// <summary>Returns a new <see cref="Color"/> constructed from the given red, green, blue, and alpha values, which must be
+  /// from 0 to 255.
+  /// </summary>
+  public static Color FromRGBA(int red, int green, int blue, int alpha)
+  {
+    if(((red|green|blue|alpha) & ~0xFF) != 0) throw new ArgumentOutOfRangeException(); // ensure all values are from 0-255
+    return new Color((byte)red, (byte)green, (byte)blue, (byte)alpha);
+  }
 
-    return new Color(ScaleAndRound(r), ScaleAndRound(g), ScaleAndRound(b));
+  /// <summary>Returns a new gray <see cref="Color"/> constructed from the given brightness value, which must be from 0 to 255.</summary>
+  public static Color FromValue(int brightness)
+  {
+    return FromValue(brightness, 255);
+  }
+
+  /// <summary>Returns a new gray <see cref="Color"/> constructed from the given brightness and alpha values, which must be from
+  /// 0 to 255.
+  /// </summary>
+  public static Color FromValue(int brightness, int alpha)
+  {
+    if(((brightness|alpha) & ~0xFF) != 0) throw new ArgumentOutOfRangeException(); // ensure all values are from 0-255
+    return new Color((byte)brightness, (byte)alpha);
   }
 
   /// <summary>Parses a string (as returned from <see cref="ToString"/> or <see cref="ToHexString"/>) back into a
@@ -1025,6 +1070,45 @@ public struct Color
 
     clampMax:
     return value > 255 ? (byte)255 : (byte)value;
+  }
+
+  /// <summary>Creates a color, given its hue, chroma, and minimum component value.</summary>
+  static Color FromHS(float hue, float chroma, float min)
+  {
+    if(hue >= 1)
+    {
+      hue -= (int)hue;
+    }
+    else if(hue < 0)
+    {
+      hue -= (int)hue - 1;
+      if(hue == 1) hue = 0; // if the hue was already an integer, then it'll have become equal to 1, so make it zero
+    }
+
+    // optimize calculation of hff = (1 - abs(hueFace%2 - 1))
+    // 0   -> 0   = H-0
+    // 0.1 -> 0.1 = H-0
+    // 1   -> 1   = 2-H
+    // 1.1 -> 0.9 = 2-H
+    // 2   -> 0   = H-2
+    // 2.1 -> 0.1 = H-2
+    // 3   -> 1   = 4-H
+    // 3.1 -> 0.9 = 4-H
+    // etc...
+    float hueFace = hue*6;
+    int hueFaceInt = (int)hueFace, term = (hueFaceInt+1) & ~1;
+    float v = chroma * ((hueFaceInt&1) == 0 ? hueFace - term : term - hueFace), r, g, b;
+    switch(hueFaceInt)
+    {
+      case 0: r = chroma; g = v; b = 0; break;
+      case 1: r = v; g = chroma; b = 0; break;
+      case 2: r = 0; g = chroma; b = v; break;
+      case 3: r = 0; g = v; b = chroma; break;
+      case 4: r = v; g = 0; b = chroma; break;
+      default: r = chroma; g = 0; b = v; break;
+    }
+
+    return new Color(ScaleAndRound(r+min), ScaleAndRound(g+min), ScaleAndRound(b+min));
   }
 
   static int GetNibble(char c)
