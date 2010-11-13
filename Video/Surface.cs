@@ -23,7 +23,7 @@ using AdamMil.Utilities;
 using GameLib.Interop.SDL;
 using SysColor = System.Drawing.Color;
 
-// TODO: support 15-bit color (pixelformat, etc)
+// TODO: see if we can optimize MapColor() to avoid p/invoke in most cases
 
 namespace GameLib.Video
 {
@@ -133,8 +133,7 @@ public enum SurfaceFlag
 }
 #endregion
 
-// TODO: allow Surface to be inherited from
-[System.Security.SuppressUnmanagedCodeSecurity()]
+[System.Security.SuppressUnmanagedCodeSecurity]
 public sealed class Surface : IDisposable, IGuiRenderTarget
 {
   /// <include file="../documentation.xml" path="//Video/Surface/Cons/FromBmp/*"/>
@@ -151,7 +150,8 @@ public sealed class Surface : IDisposable, IGuiRenderTarget
   /// into something that matches the display surface, for efficiency.
   /// </param>
   public Surface(Bitmap bitmap, SurfaceFlag flags)
-  { System.Drawing.Imaging.PixelFormat format;
+  {
+    System.Drawing.Imaging.PixelFormat format;
     int depth;
     switch(bitmap.PixelFormat)
     { case System.Drawing.Imaging.PixelFormat.Format1bppIndexed:
@@ -571,120 +571,151 @@ public sealed class Surface : IDisposable, IGuiRenderTarget
   /// <include file="../documentation.xml" path="//Video/Surface/Fill/*[self::Rect or self::R]/*"/>
   [CLSCompliant(false)]
   public unsafe void Fill(Rectangle rect, uint color)
-  { SDL.Rect drect = new SDL.Rect(rect);
+  {
+    SDL.Rect drect = new SDL.Rect(rect);
     SDL.Check(SDL.FillRect(surface, ref drect, color));
+  }
+
+  /// <summary>Blends this surface onto a destination surface using the given <see cref="BlendMode"/>. The surfaces must be
+  /// the same size.
+  /// </summary>
+  /// <include file="../documentation.xml" path="//Video/Surface/Blend/*"/>
+  public void Blend(Surface dest, BlendMode blendMode)
+  {
+    Blend(dest, Bounds, Point.Empty, blendMode);
+  }
+
+  /// <summary>Blends this surface onto a destination surface, using the given <see cref="BlendMode"/>.</summary>
+  /// <include file="../documentation.xml" path="//Video/Surface/Blend/*"/>
+  public void Blend(Surface dest, Point destPt, BlendMode blendMode)
+  {
+    Blend(dest, Bounds, destPt, blendMode);
+  }
+
+  /// <summary>Blends this surface onto a destination surface, using the given <see cref="BlendMode"/>.</summary>
+  /// <include file="../documentation.xml" path="//Video/Surface/Blend/*"/>
+  public void Blend(Surface dest, int destX, int destY, BlendMode blendMode)
+  {
+    Blend(dest, Bounds, new Point(destX, destY), blendMode);
+  }
+
+  /// <summary>Blends a portion of this surface onto a destination surface using the given <see cref="BlendMode"/>.</summary>
+  /// <include file="../documentation.xml" path="//Video/Surface/Blend/*"/>
+  public void Blend(Surface dest, Rectangle srcRect, int destX, int destY, BlendMode blendMode)
+  {
+    Blend(dest, srcRect, new Point(destX, destY), blendMode);
+  }
+
+  /// <summary>Blends a portion of this surface onto a destination surface using the given <see cref="BlendMode"/>.</summary>
+  /// <include file="../documentation.xml" path="//Video/Surface/Blend/*"/>
+  public void Blend(Surface dest, Rectangle srcRect, Point destPt, BlendMode blendMode)
+  {
+    if(dest == null) throw new ArgumentNullException();
+    if(!Bounds.Contains(srcRect)) throw new ArgumentOutOfRangeException("The rectangle is out of bounds.");
+
+    if(UsingAlpha && alpha == 0) return;
+
+    Rectangle destRect = Rectangle.Intersect(new Rectangle(destPt, srcRect.Size), dest.ClipRect);
+    if(srcRect.Size != destRect.Size) // if the destination rectangle was clipped...
+    {
+      if(destRect.Width == 0 || destRect.Height == 0) return;
+      srcRect.Offset(destRect.X - destPt.X, destRect.Y - destPt.Y);
+      srcRect.Size = destRect.Size;
+    }
+
+    int srcAdvance = GetPixelSize(), destAdvance = dest.GetPixelSize();
+
+    Lock();
+    try
+    {
+      dest.Lock();
+      try
+      {
+        unsafe
+        {
+          byte* srcLine  = (byte*)Data + srcRect.Y*Pitch + srcRect.X*srcAdvance;
+          byte* destLine = (byte*)dest.Data + destRect.Y*dest.Pitch + destRect.X*destAdvance;
+          bool usingKey = UsingKey; // cache this so we don't have to check the surface flags per pixel
+          bool scaleAlpha = alpha != 255 && UsingAlpha, saturateAlpha = Format.AlphaMask != 0 && !UsingAlpha;
+          for(int y=srcRect.Height; y != 0; srcLine+=Pitch, destLine+=dest.Pitch, y--)
+          {
+            byte* srcPixel = srcLine, destPixel = destLine;
+            for(int x=srcRect.Width; x != 0; srcPixel+=srcAdvance, destPixel+=destAdvance, x--)
+            {
+              uint rawSrc = GetPixelRaw(srcPixel);
+              if(usingKey && rawSrc == rawKey) continue;
+
+              Color srcColor = MapColor(rawSrc);
+              if(scaleAlpha) srcColor = new Color(srcColor, (byte)((srcColor.Alpha*alpha+255)/256));
+              else if(saturateAlpha) srcColor = new Color(srcColor, 255);
+
+              Color destColor = dest.MapColor(dest.GetPixelRaw(destPixel));
+              dest.PutPixelRaw(destPixel, dest.MapColor(Color.Blend(destColor, srcColor, blendMode)));
+            }
+          }
+        }
+      }
+      finally
+      {
+        dest.Unlock();
+      }
+    }
+    finally
+    {
+      Unlock();
+    }
   }
 
   /// <summary>Blits this surface onto a destination surface at the top left corner.</summary>
   /// <param name="dest">The destination surface to blit onto.</param>
-  /// <remarks>Calling this is equivalent to calling <see cref="Blit(Surface,int,int)"/> and passing
-  /// 0,0 for the destination coordinate. For details about how blitting works (including alpha blending), see
-  /// <see cref="Blit(Surface,Rectangle,int,int)"/>.
-  /// This method should not be called when either surface is locked.
-  /// </remarks>
+  /// <include file="../documentation.xml" path="//Video/Surface/Blit/Remarks/*"/>
   public void Blit(Surface dest) { Blit(dest, 0, 0); }
-  /// <include file="../documentation.xml" path="//Video/Surface/Blit/*[self::Whole or self::Pt]/*"/>
-  /// <remarks>Calling this method is equivalent to calling <see cref="Blit(Surface,int,int)"/> and passing the X and
-  /// Y coordinates of the point. For details about how blitting works (including alpha blending), see
-  /// <see cref="Blit(Surface,Rectangle,int,int)"/>.
-  /// This method should not be called when either surface is locked.
-  /// </remarks>
+  /// <include file="../documentation.xml" path="//Video/Surface/Blit/*[self::Whole or self::Pt or self::Remarks]/*"/>
   public void Blit(Surface dest, Point dpt) { Blit(dest, dpt.X, dpt.Y); }
-  /// <include file="../documentation.xml" path="//Video/Surface/Blit/*[self::Whole or self::XY]/*"/>
+  /// <include file="../documentation.xml" path="//Video/Surface/Blit/*[self::Whole or self::XY or self::Remarks]/*"/>
   /// <remarks>This method blits the entire surface onto the destination surface, with the upper left corner of the
   /// blit beginning at the specified point. For details about how blitting works (including alpha blending), see
   /// <see cref="Blit(Surface,Rectangle,int,int)"/>.
   /// This method should not be called when either surface is locked.
   /// </remarks>
   public unsafe void Blit(Surface dest, int dx, int dy)
-  { SDL.Rect drect = new SDL.Rect(dx, dy, Width, Height);
+  {
+    SDL.Rect drect = new SDL.Rect(dx, dy, Width, Height);
     SDL.Check(SDL.BlitSurface(surface, null, dest.surface, &drect));
   }
-  /// <include file="../documentation.xml" path="//Video/Surface/Blit/*[self::Part or self::Pt]/*"/>
-  /// <remarks>Calling this method is equivalent to calling <see cref="Blit(Surface,Rectangle,int,int)"/> and passing
-  /// the X and Y coordinates of the point. For details about how blitting works (including alpha blending), see
-  /// <see cref="Blit(Surface,Rectangle,int,int)"/>.
-  /// This method should not be called when either surface is locked.
-  /// </remarks>
+  /// <include file="../documentation.xml" path="//Video/Surface/Blit/*[self::Part or self::Pt or self::Remarks]/*"/>
   public void Blit(Surface dest, Rectangle src, Point dpt) { Blit(dest, src, dpt.X, dpt.Y); }
-  /// <include file="../documentation.xml" path="//Video/Surface/Blit/*[self::Part or self::XY]/*"/>
-  /// <remarks>This method blits the given area of this surface onto the destination surface, with the upper left
-  /// corner of the blit beginning at the specified point. Blitting respects the <see cref="ClipRect"/> set
-  /// on the destination surface. This method should not be called when either surface is locked.
-  /// The logic of alpha blending and color keys works as follows:
-  /// <code>
-  /// IF UsingAlpha THEN
-  ///   IF has alpha channel (Format.AlphaMask != 0) THEN
-  ///     Blit using alpha channel and ignore the color key
-  ///   ELSE IF UsingKey THEN
-  ///     Blit using the color key (ColorKey) and the surface alpha (Alpha)
-  ///   ELSE
-  ///     Blit using the surface alpha (Alpha)
-  /// ELSE IF UsingKey
-  ///   Blit using the color key (ColorKey)
-  /// ELSE
-  ///   Opaque rectangular blit (if both surfaces have an alpha channel,
-  ///   the alpha information will be COPIED)
-  /// </code>
-  /// The effects of surfaces with various combinations of alpha channels is as follows:
-  /// <code>
-  /// USA = Source surface's UsingAlpha value
-  /// SHA = Source surface has an alpha channel (Format->AlphaMask!=0)
-  /// DHA = Destination surface has an alpha channel (Format->AlphaMask!=0)
-  /// UsingKey refers to the source surface's UsingKey value
-  /// USA  SHA  DHA  Effect
-  ///  Y    Y    N   The source is alpha-blended with the destination,
-  ///                using the alpha channel. The color key and surface
-  ///                alpha are ignored.
-  ///  N    Y    N   The RGB data is copied from the source. The source alpha
-  ///                channel and the surface alpha value are ignored.
-  ///  Y    N    Y   The source is alpha blended with the destination using
-  ///                the surface alpha value. If UsingKey is set, only the
-  ///                pixels not matching the color key value are copied. The
-  ///                alpha channel of the copied pixels is set to opaque.
-  ///  N    N    Y   The RGB data is copied from the source and the alpha
-  ///                value of the copied pixels is set to opaque. If UsingKey
-  ///                is set, only the pixels not matching the color key value
-  ///                are copied.
-  ///  Y    Y    Y   The source is alpha blended with the destination using
-  ///                the source alpha channel. The alpha channel in the
-  ///                destination surface is left untouched. The color key is
-  ///                ignored.
-  ///  N    Y    Y   The RGBA data is copied to the destination surface.
-  ///                If UsingKey is set, only the pixels not matching the
-  ///                color key value are copied.
-  ///  Y    N    N   The source is alpha blended with the destination using
-  ///                the surface alpha value. If UsingKey is set, only the
-  ///                pixels not matching the color key value are copied.
-  ///  N    N    N   The RGB data is copied from the source. If UsingKey is
-  ///                set, only the pixels not matching the color key value
-  ///                are copied.
-  /// </code>
-  /// </remarks>
+  /// <include file="../documentation.xml" path="//Video/Surface/Blit/*[self::Part or self::XY or self::Remarks]/*"/>
   public unsafe void Blit(Surface dest, Rectangle src, int dx, int dy)
-  { SDL.Rect srect = new SDL.Rect(src), drect = new SDL.Rect(dx, dy, src.Width, src.Height);
+  {
+    SDL.Rect srect = new SDL.Rect(src), drect = new SDL.Rect(dx, dy, src.Width, src.Height);
     SDL.Check(SDL.BlitSurface(surface, &srect, dest.surface, &drect));
   }
 
   /// <include file="../documentation.xml" path="//Video/Surface/GetPixel/*[self::C or self::Pt]/*"/>
   public Color GetPixel(Point point) { return MapColor(GetPixelRaw(point.X, point.Y)); }
+
   /// <include file="../documentation.xml" path="//Video/Surface/GetPixel/*[self::C or self::XY]/*"/>
   public Color GetPixel(int x, int y) { return MapColor(GetPixelRaw(x, y)); }
 
   /// <include file="../documentation.xml" path="//Video/Surface/GetPixel/*[self::R or self::Pt]/*"/>
   [CLSCompliant(false)]
   public uint GetPixelRaw(Point point) { return GetPixelRaw(point.X, point.Y); }
+
   /// <include file="../documentation.xml" path="//Video/Surface/GetPixel/*[self::R or self::XY]/*"/>
   [CLSCompliant(false)]
   public uint GetPixelRaw(int x, int y)
-  { if(!Bounds.Contains(x, y)) throw new ArgumentOutOfRangeException();
+  {
+    if(!Bounds.Contains(x, y)) throw new ArgumentOutOfRangeException();
     Lock();
     try
-    { unsafe
-      { byte* line = (byte*)Data+y*Pitch;
+    {
+      unsafe
+      {
+        byte* line = (byte*)Data + y*Pitch;
         switch(Depth)
-        { case 8:  return *(line+x);
-          case 16: return *((ushort*)line+x);
+        {
+          case 32: return *((uint*)line+x);
           case 24:
             byte* ptr = line+x*3;
             #if BIGENDIAN
@@ -692,8 +723,9 @@ public sealed class Surface : IDisposable, IGuiRenderTarget
             #else
             return *(ushort*)ptr | (uint)(*(ptr+2)<<16); // TODO: make big-endian safe
             #endif
-          case 32: return *((uint*)line+x);
-          default: throw new VideoException("Unhandled depth: "+Depth);
+          case 16: return *((ushort*)line+x);
+          case 8: return *(line+x);
+          default: throw new VideoException("Unhandled depth: "+Depth.ToString());
         }
       }
     }
@@ -710,21 +742,25 @@ public sealed class Surface : IDisposable, IGuiRenderTarget
   /// <include file="../documentation.xml" path="//Video/Surface/PutPixel/*[self::R or self::XY]/*"/>
   [CLSCompliant(false)]
   public void PutPixel(int x, int y, uint color)
-  { if(!ClipRect.Contains(x, y)) return;
+  {
+    if(!ClipRect.Contains(x, y)) return;
     Lock();
     try
-    { unsafe
-      { byte* line = (byte*)Data+y*Pitch;
+    {
+      unsafe
+      {
+        byte* line = (byte*)Data+y*Pitch;
         switch(Depth)
-        { case 8:  *(line+x) = (byte)color; break;
-          case 16: *((ushort*)line+x) = (ushort)color; break;
+        {
+          case 32: *((uint*)line+x) = color; break;
           case 24:
             byte* ptr = line+x*3;
             *(ushort*)ptr = (ushort)color; // TODO: make big-endian safe
             *(ptr+2) = (byte)(color>>16);
             break;
-          case 32: *((uint*)line+x) = color; break;
-          default: throw new VideoException("Unhandled depth: "+Depth);
+          case 16: *((ushort*)line+x) = (ushort)color; break;
+          case 8: *(line+x) = (byte)color; break;
+          default: throw new VideoException("Unhandled depth: "+Depth.ToString());
         }
       }
     }
@@ -1099,24 +1135,37 @@ public sealed class Surface : IDisposable, IGuiRenderTarget
     Init();
   }
 
-  static unsafe Bitmap BitmapFromData(int width, int height, int stride, System.Drawing.Imaging.PixelFormat format,
-                               void* data)
-  { return BitmapFromData(width, height, stride, stride, format, data);
+  unsafe uint GetPixelRaw(byte* pixel)
+  {
+    switch(Depth)
+    {
+      case 32: return *(uint*)pixel;
+      case 24: return *(ushort*)pixel | (uint)(*(pixel+2)<<16); // TODO: make big-endian safe
+      case 16: return *(ushort*)pixel;
+      case 8: return *pixel;
+      default: throw new VideoException("Unhandled depth: "+Depth.ToString());
+    }
   }
 
-  static unsafe Bitmap BitmapFromData(int width, int height, int row, int stride,
-                                      System.Drawing.Imaging.PixelFormat format, void* data)
-  { Bitmap bmp = new Bitmap(width, height, format);
-    System.Drawing.Imaging.BitmapData bd = bmp.LockBits(new Rectangle(0, 0, width, height),
-                                                        System.Drawing.Imaging.ImageLockMode.WriteOnly, format);
-    try
-    { if(bd.Stride<0) throw new NotImplementedException("Can't handle bottom-up images");
-      byte* src=(byte*)data, dest=(byte*)bd.Scan0.ToPointer();
-      if(bd.Stride==stride) Unsafe.Copy(src, dest, height*stride);
-      else for(; height!=0; src += stride, dest += bd.Stride, height--) Unsafe.Copy(src, dest, row);
+  unsafe void PutPixelRaw(byte* pixel, uint color)
+  {
+    switch(Depth)
+    {
+      case 32: *(uint*)pixel = color; break;
+      case 24:
+        *(ushort*)pixel = (ushort)color; // TODO: make big-endian safe
+        *(pixel+2)      = (byte)(color>>16);
+        break;
+      case 16: *(ushort*)pixel = (ushort)color; break;
+      case 8: *pixel = (byte)color; break;
+      default: throw new VideoException("Unhandled depth: "+Depth.ToString());
     }
-    finally { bmp.UnlockBits(bd); }
-    return bmp;
+  }
+
+  int GetPixelSize()
+  {
+    if((Depth&7) != 0) throw new VideoException("Unhandled depth: "+Depth.ToString());
+    return Depth/8;
   }
 
   unsafe void Init()
@@ -1233,7 +1282,8 @@ public sealed class Surface : IDisposable, IGuiRenderTarget
   }
 
   unsafe void WritePCX(Stream stream)
-  { byte[] pbuf = new byte[768];
+  {
+    byte[] pbuf = new byte[768];
 
     using(AdamMil.IO.BinaryWriter sw = new AdamMil.IO.BinaryWriter(stream))
     {
@@ -1351,9 +1401,11 @@ public sealed class Surface : IDisposable, IGuiRenderTarget
   }
 
   unsafe void Dispose(bool finalizing)
-  { if(autoFree && surface!=null)
-    { SDL.FreeSurface(surface);
-      surface=null;
+  {
+    if(autoFree && surface != null)
+    {
+      SDL.FreeSurface(surface);
+      surface = null;
     }
   }
 
@@ -1423,6 +1475,30 @@ public sealed class Surface : IDisposable, IGuiRenderTarget
 
   internal unsafe SDL.Surface* surface;
   bool autoFree;
+
+  static unsafe Bitmap BitmapFromData(int width, int height, int stride, System.Drawing.Imaging.PixelFormat format,
+                               void* data)
+  {
+    return BitmapFromData(width, height, stride, stride, format, data);
+  }
+
+  static unsafe Bitmap BitmapFromData(int width, int height, int row, int stride,
+                                      System.Drawing.Imaging.PixelFormat format, void* data)
+  {
+    Bitmap bmp = new Bitmap(width, height, format);
+    System.Drawing.Imaging.BitmapData bd = bmp.LockBits(new Rectangle(0, 0, width, height),
+                                                        System.Drawing.Imaging.ImageLockMode.WriteOnly, format);
+    try
+    {
+      if(bd.Stride<0) throw new NotImplementedException("Can't handle bottom-up images");
+      byte* src=(byte*)data, dest=(byte*)bd.Scan0.ToPointer();
+      if(bd.Stride==stride) Unsafe.Copy(src, dest, height*stride);
+      else for(; height!=0; src += stride, dest += bd.Stride, height--) Unsafe.Copy(src, dest, row);
+    }
+    finally { bmp.UnlockBits(bd); }
+    return bmp;
+  }
+
 }
 
 } // namespace GameLib.Video
