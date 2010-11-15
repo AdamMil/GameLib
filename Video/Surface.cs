@@ -23,8 +23,6 @@ using AdamMil.Utilities;
 using GameLib.Interop.SDL;
 using SysColor = System.Drawing.Color;
 
-// TODO: see if we can optimize MapColor() to avoid p/invoke in most cases
-
 namespace GameLib.Video
 {
 
@@ -224,7 +222,11 @@ public sealed class Surface : IDisposable, IGuiRenderTarget
         }
       }
     }
-    catch { Dispose(); throw; }
+    catch
+    {
+      Dispose();
+      throw;
+    }
     finally
     {
       bitmap.UnlockBits(data);
@@ -245,7 +247,8 @@ public sealed class Surface : IDisposable, IGuiRenderTarget
   /// <see cref="PixelFormat.GenerateDefaultMasks"/> for more information).
   /// </remarks>
   public Surface(int width, int height, int depth, SurfaceFlag flags)
-  { InitFromFormat(width, height, new PixelFormat(depth, (flags&SurfaceFlag.SourceAlpha)!=0), flags);
+  {
+    InitFromFormat(width, height, new PixelFormat(depth, (flags&SurfaceFlag.SourceAlpha)!=0), flags);
   }
 
   /// <include file="../documentation.xml" path="//Video/Surface/Cons/FromFormat/*"/>
@@ -259,7 +262,8 @@ public sealed class Surface : IDisposable, IGuiRenderTarget
   /// <param name="flags">The <see cref="SurfaceFlag"/> flags to use when initializing this surface.</param>
   [CLSCompliant(false)]
   public Surface(int width, int height, PixelFormat format, SurfaceFlag flags)
-  { InitFromFormat(width, height, format, flags);
+  {
+    InitFromFormat(width, height, format, flags);
   }
 
   /// <summary>Initializes this surface by loading an image from a file.</summary>
@@ -270,9 +274,16 @@ public sealed class Surface : IDisposable, IGuiRenderTarget
   /// into something that matches the display surface, for efficiency.
   /// </remarks>
   public unsafe Surface(string filename)
-  { if(filename.Length>4 && filename.ToLower().LastIndexOf(".psd")==filename.Length-4)
+  {
+    if(string.IsNullOrEmpty(filename)) throw new ArgumentException();
+    if(filename.EndsWith(".psd", StringComparison.OrdinalIgnoreCase))
+    {
       InitFromSurface(PSDCodec.ReadComposite(filename));
-    else InitFromSurface(Interop.SDLImage.Image.Load(filename));
+    }
+    else
+    {
+      InitFromSurface(Interop.SDLImage.Image.Load(filename));
+    }
   }
 
   /// <summary>Initializes this surface by loading an image from a file.</summary>
@@ -282,9 +293,15 @@ public sealed class Surface : IDisposable, IGuiRenderTarget
   /// into something that matches the display surface, for efficiency.
   /// </remarks>
   public unsafe Surface(string filename, ImageType type)
-  { if(type==ImageType.Psd) InitFromSurface(PSDCodec.ReadComposite(filename));
+  {
+    if(string.IsNullOrEmpty(filename)) throw new ArgumentException();
+    if(type==ImageType.Psd)
+    {
+      InitFromSurface(PSDCodec.ReadComposite(filename));
+    }
     else
-    { SDL.RWOps* ops = SDL.RWFromFile(filename, "rb");
+    {
+      SDL.RWOps* ops = SDL.RWFromFile(filename, "rb");
       if(ops==null) throw new System.IO.FileNotFoundException("The file could not be opened", filename);
       InitFromSurface(Interop.SDLImage.Image.LoadTyped_RW(ops, 1, Interop.SDLImage.Image.Type.Types[(int)type]));
     }
@@ -310,13 +327,21 @@ public sealed class Surface : IDisposable, IGuiRenderTarget
   /// <param name="autoClose">If true, the stream will be closed after the image is successfully loaded.</param>
   /// <remarks>This constructor will attempt to detect the type of the image, but it is recommended that you use
   /// <see cref="Surface(System.IO.Stream,ImageType,bool)"/> if possible for efficiency and because the detection
-  /// may not be perfect. You may want to use <see cref="CloneDisplay"/> to convert the surface
-  /// into something that matches the display surface, for efficiency.
+  /// may not be perfect. (For instance, it will not detect a PSD in an unseekable stream.) You may want to use
+  /// <see cref="CloneDisplay"/> to convert the surface into something that matches the display surface, for improved blitting
+  /// performance.
   /// </remarks>
   public unsafe Surface(System.IO.Stream stream, bool autoClose)
-  { if(PSDCodec.IsPSD(stream)) InitFromSurface(PSDCodec.ReadComposite(stream, autoClose));
+  {
+    if(stream == null) throw new ArgumentNullException();
+
+    if(stream.CanSeek && PSDCodec.IsPSD(stream))
+    {
+      InitFromSurface(PSDCodec.ReadComposite(stream, autoClose));
+    }
     else
-    { SeekableStreamRWOps ss = new SeekableStreamRWOps(stream, autoClose);
+    {
+      SeekableStreamRWOps ss = new SeekableStreamRWOps(stream, autoClose);
       fixed(SDL.RWOps* ops = &ss.ops) InitFromSurface(Interop.SDLImage.Image.Load_RW(ops, 0));
     }
   }
@@ -344,16 +369,22 @@ public sealed class Surface : IDisposable, IGuiRenderTarget
   /// surface into something that matches the display surface, for efficiency.
   /// </remarks>
   public unsafe Surface(System.IO.Stream stream, ImageType type, bool autoClose)
-  { if(type==ImageType.Psd) InitFromSurface(PSDCodec.ReadComposite(stream, autoClose));
+  {
+    if(type==ImageType.Psd)
+    {
+      InitFromSurface(PSDCodec.ReadComposite(stream, autoClose));
+    }
     else
-    { SeekableStreamRWOps ss = new SeekableStreamRWOps(stream, autoClose);
+    {
+      SeekableStreamRWOps ss = new SeekableStreamRWOps(stream, autoClose);
       fixed(SDL.RWOps* ops = &ss.ops)
         InitFromSurface(Interop.SDLImage.Image.LoadTyped_RW(ops, 0, Interop.SDLImage.Image.Type.Types[(int)type]));
     }
   }
 
   internal unsafe Surface(SDL.Surface* surface, bool autoFree)
-  { if(surface==null) throw new ArgumentNullException("surface");
+  {
+    if(surface==null) throw new ArgumentNullException("surface");
     this.surface=surface; this.autoFree=autoFree;
     Init();
   }
@@ -362,26 +393,49 @@ public sealed class Surface : IDisposable, IGuiRenderTarget
   ~Surface() { Dispose(true); }
 
   /// <summary>Frees the resources held by the surface.</summary>
-  public void Dispose() { Dispose(false); GC.SuppressFinalize(this); }
+  public void Dispose()
+  {
+    Dispose(false);
+    GC.SuppressFinalize(this);
+  }
 
   /// <summary>Gets the width of the image.</summary>
   /// <value>The width of the image, in pixels.</value>
-  public unsafe int Width  { get { return surface->Width; } }
+  public unsafe int Width
+  {
+    get { return surface->Width; }
+  }
+
   /// <summary>Gets the height of the image.</summary>
   /// <value>The height of the image, in pixels.</value>
-  public unsafe int Height { get { return surface->Height; } }
+  public unsafe int Height
+  {
+    get { return surface->Height; }
+  }
+
   /// <summary>Gets the color depth of the image.</summary>
   /// <value>The color depth of the image, in bits per pixel.</value>
-  public int Depth { get { return format.Depth; } }
+  public int Depth
+  {
+    get { return format.Depth; }
+  }
+
   /// <summary>Gets the size of the image.</summary>
   /// <value>A <see cref="Size"/> structure containing the width and height of the image.</value>
-  public Size Size { get { return new Size(Width, Height); } }
+  public Size Size
+  {
+    get { return new Size(Width, Height); }
+  }
+
   /// <summary>Gets the bounds of the image.</summary>
   /// <value>A <see cref="Rectangle"/> containing the bounds of the image. <see cref="Rectangle.X"/> and
   /// <see cref="Rectangle.Y"/> will be 0, and <see cref="Rectangle.Width"/> and <see cref="Rectangle.Height"/>
   /// will be the width and height of the surface.
   /// </value>
-  public Rectangle Bounds { get { return new Rectangle(0, 0, Width, Height); } }
+  public Rectangle Bounds
+  {
+    get { return new Rectangle(0, 0, Width, Height); }
+  }
 
   /// <summary>Returns the number of bytes per row of image data.</summary>
   /// <value>The number of bytes per row of image data.</value>
@@ -390,40 +444,61 @@ public sealed class Surface : IDisposable, IGuiRenderTarget
   /// is locked (see <see cref="Lock"/> and <see cref="Locked"/>). You shouldn't alter the data between the end of
   /// the actual pixel data and the end of the row.
   /// </remarks>
-  public unsafe int Pitch { get { return surface->Pitch; } }
+  public unsafe int Pitch
+  {
+    get { return surface->Pitch; }
+  }
+
   /// <summary>Gets a pointer to the raw image data.</summary>
   /// <value>A pointer to the raw image data.</value>
   /// <remarks>This property is only valid while the image is locked (see <see cref="Lock"/> and
   /// <see cref="Locked"/>).
   /// </remarks>
   [CLSCompliant(false)]
-  public unsafe void* Data { get { return surface->Pixels; } }
+  public unsafe void* Data
+  {
+    get { return surface->Pixels; }
+  }
 
   /// <summary>Gets the pixel format of the surface.</summary>
   /// <value>A <see cref="PixelFormat"/> object describing the pixel format of this surface.</value>
   [CLSCompliant(false)]
-  public PixelFormat Format { get { return format; } }
+  public PixelFormat Format
+  {
+    get { return format; }
+  }
 
   /// <summary>Gets the number of entries in this surface's logical palette.</summary>
   /// <value>The number of entries in this surface's logical palette.</value>
   public unsafe int PaletteSize
-  { get
-    { SDL.Palette* palette = surface->Format->Palette;
+  {
+    get
+    {
+      SDL.Palette* palette = format.format.Palette;
       return palette==null ? 0 : palette->Entries;
     }
   }
 
   /// <summary>Returns true if this surface has a logical palette.</summary>
   /// <value>A boolean indicating whether this surface has a logical palette.</value>
-  public bool HasPalette { get { return PaletteSize!=0; } }
+  public unsafe bool HasPalette
+  {
+    get { return format.format.Palette != null; }
+  }
 
   /// <summary>Returns true if this surface has a physical palette.</summary>
   /// <value>A boolean indicating whether this surface has a physical palette.</value>
-  public bool HasPhysicalPalette { get { return (Flags&SurfaceFlag.PhysicalPalette) != 0; } }
+  public bool HasPhysicalPalette
+  {
+    get { return (Flags&SurfaceFlag.PhysicalPalette) != 0; }
+  }
 
   /// <summary>Returns true if this surface is locked.</summary>
   /// <value>A boolean indicating whether this surface is locked.</value>
-  public unsafe bool Locked { get { return lockCount!=0; } }
+  public unsafe bool Locked
+  {
+    get { return lockCount!=0; }
+  }
 
   /// <summary>Returns the flags for this surface.</summary>
   /// <value>The <see cref="SurfaceFlag"/> flags for this surface.</value>
@@ -436,9 +511,11 @@ public sealed class Surface : IDisposable, IGuiRenderTarget
   /// <value>A rectangle to which blits and other drawing operations will be clipped.</value>
   /// <remarks>If you create any primitive drawing code, you should honor the clipping rectangle.</remarks>
   public unsafe Rectangle ClipRect
-  { get { return surface->ClipRect.ToRectangle(); }
+  {
+    get { return surface->ClipRect.ToRectangle(); }
     set
-    { SDL.Rect rect = new SDL.Rect(value);
+    {
+      SDL.Rect rect = new SDL.Rect(value);
       SDL.SetClipRect(surface, ref rect);
     }
   }
@@ -454,8 +531,13 @@ public sealed class Surface : IDisposable, IGuiRenderTarget
   /// If this property is set to 255 (opaque), <see cref="UsingAlpha"/> will automatically be set to false.
   /// </remarks>
   public byte Alpha
-  { get { return alpha; }
-    set { if(UsingAlpha) SetSurfaceAlpha(value); else alpha=value; }
+  {
+    get { return alpha; }
+    set
+    {
+      if(UsingAlpha) SetSurfaceAlpha(value);
+      else alpha=value;
+    }
   }
 
   /// <summary>Gets or sets the color key for this surface.</summary>
@@ -471,8 +553,13 @@ public sealed class Surface : IDisposable, IGuiRenderTarget
   /// to zero (transparent).
   /// </remarks>
   public Color ColorKey
-  { get { return key; }
-    set { if(UsingKey) SetColorKey(value); else rawKey=MapColor(key=value); }
+  {
+    get { return key; }
+    set
+    {
+      if(UsingKey) SetColorKey(value);
+      else rawKey=MapColor(key=value);
+    }
   }
 
   /// <summary>Gets or sets the raw color key for this surface.</summary>
@@ -486,11 +573,17 @@ public sealed class Surface : IDisposable, IGuiRenderTarget
   /// </remarks>
   [CLSCompliant(false)]
   public uint RawColorKey
-  { get { return rawKey; }
+  {
+    get { return rawKey; }
     set
-    { if(UsingKey) SetColorKey(value);
+    {
+      if(UsingKey)
+      {
+        SetColorKey(value);
+      }
       else
-      { rawKey = value;
+      {
+        rawKey = value;
         key    = MapColor(value);
       }
     }
@@ -500,10 +593,18 @@ public sealed class Surface : IDisposable, IGuiRenderTarget
   /// <value>A boolean indicating whether alpha blending will be used during blit operations.</value>
   /// <remarks>See <see cref="Blit(Surface,Rectangle,int,int)"/> to see how this property affects blits.</remarks>
   public unsafe bool UsingAlpha
-  { get { return (surface->Flags&(uint)SDL.VideoFlag.SrcAlpha) != 0; }
+  {
+    get { return (surface->Flags&(uint)SDL.VideoFlag.SrcAlpha) != 0; }
     set
-    { if(value) SDL.Check(SDL.SetAlpha(surface, (uint)(SDL.VideoFlag.SrcAlpha | (UsingRLE ? SDL.VideoFlag.RLEAccel : 0)), alpha));
-      else SDL.Check(SDL.SetAlpha(surface, (uint)(UsingRLE ? SDL.VideoFlag.RLEAccel : 0), 255));
+    {
+      if(value)
+      {
+        SDL.Check(SDL.SetAlpha(surface, (uint)(SDL.VideoFlag.SrcAlpha | (UsingRLE ? SDL.VideoFlag.RLEAccel : 0)), alpha));
+      }
+      else
+      {
+        SDL.Check(SDL.SetAlpha(surface, (uint)(UsingRLE ? SDL.VideoFlag.RLEAccel : 0), 255));
+      }
     }
   }
 
@@ -511,10 +612,18 @@ public sealed class Surface : IDisposable, IGuiRenderTarget
   /// <value>A boolean indicating whether the color key will be used during blit operations.</value>
   /// <remarks>See <see cref="Blit(Surface,Rectangle,int,int)"/> to see how this property affects blits.</remarks>
   public unsafe bool UsingKey
-  { get { return (surface->Flags&(uint)SDL.VideoFlag.SrcColorKey) != 0; }
+  {
+    get { return (surface->Flags&(uint)SDL.VideoFlag.SrcColorKey) != 0; }
     set
-    { if(value) SDL.Check(SDL.SetColorKey(surface, (uint)(SDL.VideoFlag.SrcColorKey | (UsingRLE ? SDL.VideoFlag.RLEAccel : 0)), rawKey));
-      else SDL.Check(SDL.SetColorKey(surface, (uint)(UsingRLE ? SDL.VideoFlag.RLEAccel : 0), 0));
+    {
+      if(value)
+      {
+        SDL.Check(SDL.SetColorKey(surface, (uint)(SDL.VideoFlag.SrcColorKey | (UsingRLE ? SDL.VideoFlag.RLEAccel : 0)), rawKey));
+      }
+      else
+      {
+        SDL.Check(SDL.SetColorKey(surface, (uint)(UsingRLE ? SDL.VideoFlag.RLEAccel : 0), 0));
+      }
     }
   }
 
@@ -525,11 +634,25 @@ public sealed class Surface : IDisposable, IGuiRenderTarget
   /// color and does not change often.
   /// </remarks>
   public unsafe bool UsingRLE
-  { get { return (surface->Flags&(uint)SDL.VideoFlag.RLEAccel) != 0; }
+  {
+    get
+    {
+      return (surface->Flags&(uint)SDL.VideoFlag.RLEAccel) != 0;
+    }
     set
-    { if(value==UsingRLE) return;
-      if(value) SDL.Check(SDL.SetColorKey(surface, (uint)((UsingKey ? SDL.VideoFlag.SrcColorKey : 0) | SDL.VideoFlag.RLEAccel), rawKey));
-      else SDL.Check(SDL.SetColorKey(surface, UsingKey ? (uint)SDL.VideoFlag.SrcColorKey : 0, rawKey));
+    {
+      if(value != UsingRLE)
+      {
+        if(value)
+        {
+          SDL.Check(SDL.SetColorKey(surface, (uint)((UsingKey ? SDL.VideoFlag.SrcColorKey : 0) | SDL.VideoFlag.RLEAccel),
+                                    rawKey));
+        }
+        else
+        {
+          SDL.Check(SDL.SetColorKey(surface, UsingKey ? (uint)SDL.VideoFlag.SrcColorKey : 0, rawKey));
+        }
+      }
     }
   }
 
@@ -559,15 +682,20 @@ public sealed class Surface : IDisposable, IGuiRenderTarget
   /// This method respects the <see cref="ClipRect"/> set on the surface.
   /// </remarks>
   public void Fill() { Fill(Bounds, MapColor(Color.Black)); }
+
   /// <include file="../documentation.xml" path="//Video/Surface/Fill/*[self::Rect]/*"/>
   public void Fill(Rectangle rect) { Fill(rect, MapColor(Color.Black)); }
+
   /// <include file="../documentation.xml" path="//Video/Surface/Fill/*[self::Whole or self::C]/*"/>
   public void Fill(Color color) { Fill(Bounds, MapColor(color)); }
+
   /// <include file="../documentation.xml" path="//Video/Surface/Fill/*[self::Whole or self::R]/*"/>
   [CLSCompliant(false)]
   public void Fill(uint color) { Fill(Bounds, color); }
+
   /// <include file="../documentation.xml" path="//Video/Surface/Fill/*[self::Rect or self::C]/*"/>
   public void Fill(Rectangle rect, Color color) { Fill(rect, MapColor(color)); }
+
   /// <include file="../documentation.xml" path="//Video/Surface/Fill/*[self::Rect or self::R]/*"/>
   [CLSCompliant(false)]
   public unsafe void Fill(Rectangle rect, uint color)
@@ -670,8 +798,10 @@ public sealed class Surface : IDisposable, IGuiRenderTarget
   /// <param name="dest">The destination surface to blit onto.</param>
   /// <include file="../documentation.xml" path="//Video/Surface/Blit/Remarks/*"/>
   public void Blit(Surface dest) { Blit(dest, 0, 0); }
+
   /// <include file="../documentation.xml" path="//Video/Surface/Blit/*[self::Whole or self::Pt or self::Remarks]/*"/>
   public void Blit(Surface dest, Point dpt) { Blit(dest, dpt.X, dpt.Y); }
+
   /// <include file="../documentation.xml" path="//Video/Surface/Blit/*[self::Whole or self::XY or self::Remarks]/*"/>
   /// <remarks>This method blits the entire surface onto the destination surface, with the upper left corner of the
   /// blit beginning at the specified point. For details about how blitting works (including alpha blending), see
@@ -685,6 +815,7 @@ public sealed class Surface : IDisposable, IGuiRenderTarget
   }
   /// <include file="../documentation.xml" path="//Video/Surface/Blit/*[self::Part or self::Pt or self::Remarks]/*"/>
   public void Blit(Surface dest, Rectangle src, Point dpt) { Blit(dest, src, dpt.X, dpt.Y); }
+
   /// <include file="../documentation.xml" path="//Video/Surface/Blit/*[self::Part or self::XY or self::Remarks]/*"/>
   public unsafe void Blit(Surface dest, Rectangle src, int dx, int dy)
   {
@@ -734,11 +865,14 @@ public sealed class Surface : IDisposable, IGuiRenderTarget
 
   /// <include file="../documentation.xml" path="//Video/Surface/PutPixel/*[self::C or self::Pt]/*"/>
   public void PutPixel(Point point, Color color) { PutPixel(point.X, point.Y, MapColor(color)); }
+
   /// <include file="../documentation.xml" path="//Video/Surface/PutPixel/*[self::C or self::XY]/*"/>
   public void PutPixel(int x, int y, Color color) { PutPixel(x, y, MapColor(color)); }
+
   /// <include file="../documentation.xml" path="//Video/Surface/PutPixel/*[self::R or self::Pt]/*"/>
   [CLSCompliant(false)]
   public void PutPixel(Point point, uint color) { PutPixel(point.X, point.Y, color); }
+
   /// <include file="../documentation.xml" path="//Video/Surface/PutPixel/*[self::R or self::XY]/*"/>
   [CLSCompliant(false)]
   public void PutPixel(int x, int y, uint color)
@@ -788,7 +922,8 @@ public sealed class Surface : IDisposable, IGuiRenderTarget
   /// </remarks>
   [CLSCompliant(false)]
   public unsafe void SetColorKey(uint color)
-  { rawKey   = color;
+  {
+    rawKey   = color;
     key      = MapColor(color);
     UsingKey = true; // relies on UsingKey to set the SDL key value
   }
@@ -800,7 +935,8 @@ public sealed class Surface : IDisposable, IGuiRenderTarget
   /// to false if <paramref name="alpha"/> is 255 (opaque) and true otherwise.
   /// </remarks>
   public unsafe void SetSurfaceAlpha(byte alpha)
-  { this.alpha = alpha;
+  {
+    this.alpha = alpha;
     UsingAlpha = alpha!=255;
   }
 
@@ -809,14 +945,19 @@ public sealed class Surface : IDisposable, IGuiRenderTarget
   /// valid until the surface is unlocked. The lock is recursive, so you can lock the surface multiple times.
   /// <see cref="Unlock"/> must be called the same number of times to finally unlock the surface.
   /// </remarks>
-  public unsafe void Lock() { if(lockCount++==0) SDL.Check(SDL.LockSurface(surface)); }
+  public unsafe void Lock()
+  {
+    if(lockCount++ == 0) SDL.Check(SDL.LockSurface(surface));
+  }
+
   /// <summary>This method unlocks the surface.</summary>
   /// <remarks><see cref="Lock"/> is recursive, so the surface can be locked multiple times. This method must be
   /// called the same number of times to finally unlock the surface.
   /// </remarks>
   public unsafe void Unlock()
-  { if(lockCount==0) throw new InvalidOperationException("Unlock called too many times");
-    if(--lockCount==0) SDL.UnlockSurface(surface);
+  {
+    if(lockCount == 0) throw new InvalidOperationException("Unlock called too many times");
+    if(--lockCount == 0) SDL.UnlockSurface(surface);
   }
 
   /// <summary>Maps a <see cref="Color"/> to the nearest raw pixel value.</summary>
@@ -825,8 +966,9 @@ public sealed class Surface : IDisposable, IGuiRenderTarget
   [CLSCompliant(false)]
   public unsafe uint MapColor(Color color)
   {
-    return SDL.MapRGBA(surface->Format, color.R, color.G, color.B, color.Alpha);
+    return MapColor(color.R, color.G, color.B, color.Alpha);
   }
+
   /// <summary>Maps a <see cref="Color"/> to the nearest raw pixel value.</summary>
   /// <param name="color">The <see cref="Color"/> to map.</param>
   /// <param name="alpha">The alpha value to use for the color.</param>
@@ -837,8 +979,9 @@ public sealed class Surface : IDisposable, IGuiRenderTarget
   [CLSCompliant(false)]
   public unsafe uint MapColor(Color color, byte alpha)
   {
-    return SDL.MapRGBA(surface->Format, color.R, color.G, color.B, alpha);
+    return MapColor(color.R, color.G, color.B, alpha);
   }
+
   /// <summary>Maps a color specified as RGB components to the nearest raw pixel value.</summary>
   /// <returns>The raw pixel value closest to the color given.</returns>
   [CLSCompliant(false)]
@@ -846,13 +989,25 @@ public sealed class Surface : IDisposable, IGuiRenderTarget
   {
     return MapColor(r, g, b, 255);
   }
+
   /// <summary>Maps a color specified as RGBA components to the nearest raw pixel value.</summary>
   /// <returns>The raw pixel value closest to the color given.</returns>
   [CLSCompliant(false)]
   public unsafe uint MapColor(byte r, byte g, byte b, byte a)
   {
-    return SDL.MapRGBA(surface->Format, r, g, b, a);
+    if(HasPalette)
+    {
+      return SDL.MapRGBA(surface->Format, r, g, b, a);
+    }
+    else
+    {
+      return ((uint)r >> format.format.Rloss << format.format.Rshift) |
+             ((uint)g >> format.format.Gloss << format.format.Gshift) |
+             ((uint)b >> format.format.Bloss << format.format.Bshift) |
+             (((uint)a >> format.format.Aloss << format.format.Ashift) & format.AlphaMask);
+    }
   }
+
   /// <summary>Maps a raw pixel value to the corresponding <see cref="Color"/>.</summary>
   /// <param name="color">The raw pixel value to map.</param>
   /// <returns>The <see cref="Color"/> corresponding to <paramref name="color"/>.</returns>
@@ -860,7 +1015,30 @@ public sealed class Surface : IDisposable, IGuiRenderTarget
   public unsafe Color MapColor(uint color)
   {
     byte r, g, b, a;
-    SDL.GetRGBA(color, surface->Format, out r, out g, out b, out a);
+    if(HasPalette)
+    {
+      SDL.GetRGBA(color, surface->Format, out r, out g, out b, out a);
+    }
+    else
+    {
+      uint v = (color & format.format.Rmask) >> format.format.Rshift;
+      r = (byte)((v << format.format.Rloss) + (v >> (8 - (format.format.Rloss << 1))));
+      v = (color & format.format.Gmask) >> format.format.Gshift;
+      g = (byte)((v << format.format.Gloss) + (v >> (8 - (format.format.Gloss << 1))));
+      v = (color & format.format.Bmask) >> format.format.Bshift;
+      b = (byte)((v << format.format.Bloss) + (v >> (8 - (format.format.Bloss << 1))));
+
+      if(format.AlphaMask == 0)
+      {
+        a = 255;
+      }
+      else
+      {
+        v = (color & format.AlphaMask) >> format.format.Ashift;
+        a = (byte)((v << format.format.Aloss) + (v >> (8 - (format.format.Aloss << 1))));
+      }
+    }
+
     return new Color(r, g, b, a);
   }
 
@@ -897,7 +1075,7 @@ public sealed class Surface : IDisposable, IGuiRenderTarget
     Utility.ValidateRange(colors, startIndex, numColors);
     ValidatePaletteArgs(startColor, numColors);
 
-    Color* palette = surface->Format->Palette->Colors + startColor;
+    Color* palette = format.format.Palette->Colors + startColor;
     for(int i=0; i<numColors; i++) colors[startIndex+i] = palette[i];
   }
 
@@ -1123,13 +1301,15 @@ public sealed class Surface : IDisposable, IGuiRenderTarget
   }
 
   internal unsafe void InitFromSurface(Surface surface)
-  { InitFromSurface(surface.surface);
+  {
+    InitFromSurface(surface.surface);
     surface.surface=null;
     surface.Dispose();
   }
 
   internal unsafe void InitFromSurface(SDL.Surface* surface)
-  { if(surface==null) SDL.RaiseError();
+  {
+    if(surface==null) SDL.RaiseError();
     this.surface=surface;
     autoFree = true;
     Init();
@@ -1169,9 +1349,10 @@ public sealed class Surface : IDisposable, IGuiRenderTarget
   }
 
   unsafe void Init()
-  { format = new PixelFormat(surface->Format);
-    rawKey = surface->Format->Key;
-    key = MapColor(rawKey);
+  {
+    format = new PixelFormat(surface->Format);
+    rawKey = format.format.Key;
+    key    = MapColor(rawKey);
   }
 
   unsafe void InitFromFormat(int width, int height, PixelFormat format, SurfaceFlag flags)
@@ -1275,7 +1456,7 @@ public sealed class Surface : IDisposable, IGuiRenderTarget
 
   unsafe void ValidatePaletteArgs(int startColor, int numColors)
   {
-    SDL.Palette* palette = surface->Format->Palette;
+    SDL.Palette* palette = format.format.Palette;
     if(palette==null) throw new VideoException("This surface does not have an associated palette.");
     int max = palette->Entries;
     if(startColor<0 || numColors>max || startColor+numColors>max) throw new ArgumentOutOfRangeException();

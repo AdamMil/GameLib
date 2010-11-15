@@ -21,7 +21,9 @@ using System.Collections.Generic;
 using KnownColor = System.Drawing.KnownColor;
 using SysColor   = System.Drawing.Color;
 
-// TODO: implement HSL space
+// TODO: see if we can eliminate the type initialization check every time a static member is accessed (due to the struct missing
+// the beforefieldinit flag because it has a static constructor), perhaps using a trick similar to the one we used for
+// the Timing class
 
 namespace GameLib
 {
@@ -71,7 +73,7 @@ public enum BlendMode
   /// <summary>Lightens the base color by decreasing the contrast with the blend color. Blending with black has no effect.</summary>
   ColorDodge,
   /// <summary>Burns or dodges the color such that the base channel is burned if the blend channel is less than medium value and
-  /// dodged otherwise. (The burn and dodge is not exactly the same as <see cref="ColorBurn"/> and <see cref="ColorDodge"/>.)
+  /// dodged otherwise. (The burn and dodge are not exactly the same as <see cref="ColorBurn"/> and <see cref="ColorDodge"/>.)
   /// The effect is similar to shining a diffused spotlight on the image.
   /// </summary>
   SoftLight,
@@ -80,13 +82,13 @@ public enum BlendMode
   /// </summary>
   HardLight,
   /// <summary>Burns or dodges the color (by increasing or decreasing the contrast) such that the base channel is burned if the
-  /// blend channel is less than medium value and dodged otherwise. (The burn and dodge is not exactly the same as
+  /// blend channel is less than medium value and dodged otherwise. (The burn and dodge are not exactly the same as
   /// <see cref="ColorBurn"/> and <see cref="ColorDodge"/>.)
   /// </summary>
   VividLight,
   /// <summary>Burns or dodges the color (by increasing or decreasing the brightness) such that the base channel is burned if the
-  /// blend channel is less than medium value and dodged otherwise. (The burn and dodge are the same as <see cref="Subtract"/>
-  /// and <see cref="Add"/>.)
+  /// blend channel is less than medium value and dodged otherwise. (The burn and dodge are not exactly the same as
+  /// <see cref="ColorBurn"/> and <see cref="ColorDodge"/>.)
   /// </summary>
   LinearLight,
   /// <summary>If the blend channel is less than medium value, then the blend channel is used only if the base channel is
@@ -94,8 +96,8 @@ public enum BlendMode
   /// channel is darker.
   /// </summary>
   PinLight,
-  /// <summary>Adds the two colors together. Colors that are not fully saturated are reduced to zero. The result is a color
-  /// that's a mix of bright red, bright green, and bright blue.
+  /// <summary>Adds the two colors together. Channels that are not fully saturated are reduced to zero. The result is a color
+  /// that's one of the eight colors that can be formed by combining the fully bright and saturated primary colors.
   /// </summary>
   HardMix,
   /// <summary>Takes the brighter of each color channel.</summary>
@@ -110,15 +112,9 @@ public enum BlendMode
   Freeze,
   /// <summary>The opposite of <see cref="Freeze"/>.</summary>
   Heat,
-  // NOTE: these HSV and HCL blending modes must remain grouped together and must not be reordered
-  /// <summary>Preserves the HSV saturation and value (brightness) of the base color while adopting the hue of the blend color.</summary>
+  // NOTE: the following blending modes must remain grouped together and must not be reordered
+  /// <summary>Preserves the HCL chroma and luma of the base color while adopting the hue of the blend color.</summary>
   Hue,
-  /// <summary>Preserves the HSV hue and value (brightness) of the base color while adopting the saturation of the blend color.</summary>
-  Saturation,
-  /// <summary>Preserves the HSV hue and saturation of the base color while adopting the value (brightness) of the blend color.</summary>
-  Value,
-  /// <summary>Preserves the HSV value (brightness) of the base color while adopting the hue and saturation of the blend color.</summary>
-  Color,
   /// <summary>Preserves the HCL hue and luma of the base color while adopting the chroma of the blend color.</summary>
   Chroma,
   /// <summary>Preserves the HCL hue and chroma of the base color while adopting the luma of the blend color. This blend mode is
@@ -126,7 +122,23 @@ public enum BlendMode
   /// </summary>
   Luma,
   /// <summary>Preserves the HCL luma of the base color while adopting  the hue and chroma of the blend color.</summary>
-  HueChroma,
+  Color,
+  /// <summary>Preserves the HSV saturation and value (brightness) of the base color while adopting the hue of the blend color.</summary>
+  HSVHue,
+  /// <summary>Preserves the HSV hue and value (brightness) of the base color while adopting the saturation of the blend color.</summary>
+  HSVSaturation,
+  /// <summary>Preserves the HSV hue and saturation of the base color while adopting the value (brightness) of the blend color.</summary>
+  Brightness,
+  /// <summary>Preserves the HSV value (brightness) of the base color while adopting the hue and saturation of the blend color.</summary>
+  HSVColor,
+  /// <summary>Preserves the HSL saturation and lightness of the base color while adopting the hue of the blend color.</summary>
+  HSLHue,
+  /// <summary>Preserves the HSL hue and lightness of the base color while adopting the saturation of the blend color.</summary>
+  HSLSaturation,
+  /// <summary>Preserves the HSL hue and saturation of the base color while adopting the lightness of the blend color.</summary>
+  Lightness,
+  /// <summary>Preserves the HSL lightness of the base color while adopting the hue and saturation of the blend color.</summary>
+  HSLColor,
 }
 #endregion
 
@@ -185,9 +197,9 @@ public struct Color
 
   static Color()
   {
+    // create maps of named color to value and value to named color
     string[] names = Enum.GetNames(typeof(KnownColor));
     KnownColor[] values = (KnownColor[])Enum.GetValues(typeof(KnownColor));
-
     namedColors = new Dictionary<string, uint>(names.Length);
     colorNames = new Dictionary<uint, string>(names.Length);
     for(int i=0; i<names.Length; i++)
@@ -198,11 +210,13 @@ public struct Color
       if(!color.IsSystemColor) colorNames[colorValue] = names[i]; // we don't want system colors because they name UI components
     }
 
-    // create a square root table used for the soft light blend mode. the values are scaled to the full range of 0-255, so the
-    // square root of 64 is not stored as 8, but rather as 128, since sqrt(64.0/255)*255 ~= 128. this gives us more resolution
-    sqrtTable = new byte[256];
-    for(int i=0; i<sqrtTable.Length; i++) sqrtTable[i] = (byte)Math.Round(Math.Sqrt(i/255.0)*255);
+    // create a square root table used for the soft light blend mode. the values are scaled to the range of 0-64770, so the
+    // square root of 64 is not stored as 8, but rather as 32448, since sqrt(64.0/255)*64770 ~= 32448. this gives us more
+    // resolution while simultaneously simplifying the math in the soft blend mode
+    sqrtTable = new ushort[256];
+    for(int i=0; i<sqrtTable.Length; i++) sqrtTable[i] = (ushort)Math.Round(Math.Sqrt(i/255.0)*(255*254));
 
+    // initialize the predefined color values
     Empty   = new Color();
     Black   = new Color(0, 0, 0);
     Blue    = new Color(0, 0, 255);
@@ -277,6 +291,7 @@ public struct Color
     get { return red; }
   }
 
+
   /// <summary>Gets the color as an integer value that can be passed to <see cref="Color(uint)"/>. This value should not be
   /// serialized, as it is not guaranteed to be portable across different machine architectures.
   /// </summary>
@@ -285,6 +300,7 @@ public struct Color
   {
     get
     {
+      // this was measured as being faster than combining the components manually
       fixed(Color* p=&this) return *(uint*)p;
     }
     private set
@@ -320,7 +336,7 @@ public struct Color
   public unsafe string ToHexString()
   {
     const string hexChars = "0123456789abcdef";
-    bool isOpaque = IsOpaque; // guard against a highly unlikely, but possible race condition that could lead to buffer overrun
+    bool isOpaque = IsOpaque; // guard against IsOpaque being changed by another thread, causing buffer overrun
     char* chars = stackalloc char[isOpaque ? 7 : 9];
     chars[0] = '#';
     chars[1] = hexChars[red>>4];
@@ -341,6 +357,7 @@ public struct Color
   /// <param name="hue">A variable that will receive the hue, as a value from 0 to 1, representing degrees from 0 to 360.</param>
   /// <param name="chroma">A variable that will receive the chroma, from 0 to 1.</param>
   /// <param name="luma">A variable that will receive the luma, from 0 to 1.</param>
+  /// <include file="../documentation.xml" path="//Color/HCL/*"/>
   public void ToHCL(out float hue, out float chroma, out float luma)
   {
     // http://www.wikimedia.org/en/wiki/HSL_and_HSV#Hue_and_chroma and http://www.wikimedia.org/en/wiki/HSL_and_HSV#Lightness
@@ -380,6 +397,7 @@ public struct Color
   /// saturation component of the HSV (hue-saturation-value, or HSB [hue-saturation-brightness]) color space.
   /// </param>
   /// <param name="lightness">A variable that will receive the lightness, from 0 to 1.</param>
+  /// <include file="../documentation.xml" path="//Color/HSLHSV/*"/>
   public void ToHSL(out float hue, out float saturation, out float lightness)
   {
     // http://www.wikimedia.org/en/wiki/HSL_and_HSV#Lightness and http://www.wikimedia.org/en/wiki/HSL_and_HSV#Saturation
@@ -423,6 +441,7 @@ public struct Color
   /// saturation component of  the HSL (hue-saturation-lightness) color space.
   /// </param>
   /// <param name="value">A variable that will receive the value (brightness), from 0 to 1.</param>
+  /// <include file="../documentation.xml" path="//Color/HSLHSV/*"/>
   public void ToHSV(out float hue, out float saturation, out float value)
   {
     // http://www.wikimedia.org/en/wiki/HSL_and_HSV#Lightness and http://www.wikimedia.org/en/wiki/HSL_and_HSV#Saturation
@@ -530,43 +549,63 @@ public struct Color
     }
     else
     {
-      if(blendMode >= BlendMode.Hue && blendMode <= BlendMode.HueChroma) // if we're using whole-color-based methods
-      {
-        float baseH, baseS, baseV, blendH, blendS, blendV;
-        if(blendMode >= BlendMode.Chroma) // if we're using the HCL color model (so S=chroma and V=luma)...
-        {
-          baseColor.ToHCL(out baseH, out baseS, out baseV);
-          blendColor.ToHCL(out blendH, out blendS, out blendV);
-
-          switch(blendMode)
-          {
-            case BlendMode.Chroma: color = Color.FromHCL(baseH, blendS, baseV); break;
-            case BlendMode.Luma: color = Color.FromHCL(baseH, baseS, blendV); break;
-            case BlendMode.HueChroma: color = Color.FromHCL(blendH, blendS, baseV); break;
-            default: throw new ArgumentException();
-          }
-        }
-        else // we're using the HSV color model
-        {
-          baseColor.ToHSV(out baseH, out baseS, out baseV);
-          blendColor.ToHSV(out blendH, out blendS, out blendV);
-
-          switch(blendMode)
-          {
-            case BlendMode.Hue: color = Color.FromHSV(blendH, baseS, baseV); break;
-            case BlendMode.Saturation: color = Color.FromHSV(baseH, blendS, baseV); break;
-            case BlendMode.Value: color = Color.FromHSV(baseH, baseS, blendV); break;
-            case BlendMode.Color: color = Color.FromHSV(blendH, blendS, baseV); break;
-            default: throw new ArgumentException();
-          }
-        }
-      }
-      else // if we're using channel-based methods
+      // blend the two colors together ignoring their alpha values to get the result color
+      if(blendMode < BlendMode.Hue) // if we're using channel-based methods
       {
         color = new Color(Blend(baseColor.red, blendColor.red, blendMode), Blend(baseColor.green, blendColor.green, blendMode),
                           Blend(baseColor.blue, blendColor.blue, blendMode), baseColor.alpha);
       }
+      else // if we're using whole-color-based methods
+      {
+        float baseH, baseS, baseL, blendH, blendS, blendL;
+        if(blendMode < BlendMode.HSVHue) // if we're using the HCL color model (so S=chroma and L=luma)...
+        {
+          baseColor.ToHCL(out baseH, out baseS, out baseL);
+          blendColor.ToHCL(out blendH, out blendS, out blendL);
 
+          switch(blendMode)
+          {
+            case BlendMode.Hue: color = Color.FromHCL(blendH, baseS, baseL); break;
+            case BlendMode.Chroma: color = Color.FromHCL(baseH, blendS, baseL); break;
+            case BlendMode.Luma: color = Color.FromHCL(baseH, baseS, blendL); break;
+            default: /*case BlendMode.Color:*/ color = Color.FromHCL(blendH, blendS, baseL); break;
+          }
+        }
+        else if(blendMode < BlendMode.HSLHue) // we're using the HSV color model (so S=saturation and L=value)
+        {
+          baseColor.ToHSV(out baseH, out baseS, out baseL);
+          blendColor.ToHSV(out blendH, out blendS, out blendL);
+
+          switch(blendMode)
+          {
+            case BlendMode.HSVHue: color = Color.FromHSV(blendH, baseS, baseL); break;
+            case BlendMode.HSVSaturation: color = Color.FromHSV(baseH, blendS, baseL); break;
+            case BlendMode.Brightness: color = Color.FromHSV(baseH, baseS, blendL); break;
+            default: /*case BlendMode.HSVColor:*/ color = Color.FromHSV(blendH, blendS, baseL); break;
+          }
+        }
+        else // we're using the HSL color model (so S=saturation and L=lightness)
+        {
+          baseColor.ToHSL(out baseH, out baseS, out baseL);
+          blendColor.ToHSL(out blendH, out blendS, out blendL);
+
+          switch(blendMode)
+          {
+            case BlendMode.HSLHue: color = Color.FromHSL(blendH, baseS, baseL); break;
+            case BlendMode.HSLSaturation: color = Color.FromHSL(baseH, blendS, baseL); break;
+            case BlendMode.Lightness: color = Color.FromHSL(baseH, baseS, blendL); break;
+            case BlendMode.HSLColor: color = Color.FromHSL(blendH, blendS, baseL); break;
+            default: throw new ArgumentException();
+          }
+        }
+
+        // the color calculated above has an alpha of 255, but we want it to have the alpha of the base color. if the base color
+        // has a different alpha, and the blend color is opaque (so we won't enter the alpha blending block below, which takes
+        // care of it for us), then update the alpha value
+        if(baseColor.alpha != 255 && blendColor.alpha == 255) color = new Color(color, baseColor.alpha);
+      }
+
+      // now apply the blend color's alpha value to blend the result color with the base color. in 
       if(blendColor.alpha != 255)
       {
         color = new Color(Blend(baseColor.red, color.red, blendColor.alpha),
@@ -579,11 +618,12 @@ public struct Color
   }
 
   /// <summary>Returns a new <see cref="Color"/> constructed from the given HCL (hue-chroma-luma) color. Not all HCL colors can
-  /// be represented in the RGB gamut. Colors outside the gamut will be clipped along by adjusting the chroma downward.
+  /// be represented in the RGB gamut. Colors outside the gamut will be clipped by adjusting the chroma downward.
   /// </summary>
   /// <param name="hue">The hue, from 0 to 1, representing 0 to 360 degrees. Values outside [0,1) are also accepted.</param>
   /// <param name="chroma">The chroma, from 0 to 1.</param>
   /// <param name="luma">The luma, from 0 to 1.</param>
+  /// <include file="../documentation.xml" path="//Color/HCL/*"/>
   public static Color FromHCL(float hue, float chroma, float luma)
   {
     if(chroma < 0 || chroma > 1 || luma < 0 || luma > 1) throw new ArgumentOutOfRangeException();
@@ -601,9 +641,9 @@ public struct Color
     float hueFace = hue*6;
     int hueFaceInt = (int)hueFace, term = (hueFaceInt+1) & ~1;
     float hff = (hueFaceInt&1) == 0 ? hueFace - term : term - hueFace;
-    int clipped = 0;
+    bool clipped = false;
 
-    retry:
+    recalculate:
     float x = chroma * hff, r, g, b;
     switch(hueFaceInt)
     {
@@ -620,7 +660,7 @@ public struct Color
     g += x;
     b += x;
 
-    if(clipped == 0) // if we haven't checked whether the color is in-gamut, do so
+    if(!clipped) // if we haven't checked whether the color is in-gamut, do so
     {
       float min = r, max = r;
       if(g < min) min = g;
@@ -628,10 +668,10 @@ public struct Color
       if(b < min) min = b;
       else if(b > max) max = b;
 
-      // if it's out of gamut, adjust the chroma and retry. in both cases, the chroma will be adjusted downwards.
+      // if it's out of gamut, adjust the chroma and retry. in all cases, the chroma will be adjusted downwards.
       // if we take v1=1, v2=hff, and v3=0, then (assuming hueFaceInt==0, for example)
       //
-      // r = luma + chroma*v1 + luma - chroma*v1*0.3 - chroma*v2*0.59 - chroma*v3*0.11 =
+      // r = luma + chroma*v1 - chroma*v1*0.3 - chroma*v2*0.59 - chroma*v3*0.11 =
       //     luma + chroma*(v1 - 0.3*v1 - 0.59*v2 - 0.11*v3) =
       //     luma + chroma*(0.7*v1 - 0.59*v2 - 0.11*v3)
       //
@@ -664,25 +704,16 @@ public struct Color
       // scale - 1 = -min / (chroma*whatever)
       // scale = -min / (chroma*whatever) + 1
 
-      if(max > 1)
-      {
-        chroma *= (1 - max) / (max - luma) + 1;
-        clipped = 1; // remember that we clipped to the upper bound
-        goto retry;
-      }
-      else if(min < 0)
-      {
-        chroma *= -min / (min - luma) + 1;
-        clipped = -1; // remember that we clipped to the lower bound
-        goto retry;
-      }
+      if(max > 1) chroma *= (1 - max) / (max - luma) + 1;
+      else if(min < 0) chroma *= -min / (min - luma) + 1;
+
+      clipped = true; // remember that we clipped to the upper bound
+      goto recalculate; // and recalculate r, g, and b
     }
-    else if(clipped < 0) // if we adjusted the chroma in an attempt to clip the color to the RGB gamut, the clipping may not
-    {                    // be exact, due to floating point error, so we'll just clamp them now. we only need to clamp on the
-      if(r < 0) r = 0;   // negative side, because if it's just slightly greater than 1 it won't cause the result from
-      if(g < 0) g = 0;   // ScaleAndRound() to be out of bounds. it would need to be about 1.0019 before that happens...
-      if(b < 0) b = 0;
-    }
+
+    // if we adjusted the chroma in an attempt to clip the color to the RGB gamut, the clipping may not be exact, due to floating
+    // point error (i.e. they may be slightly less than 0 or greater than 1), but we don't need to clamp the values because they
+    // should be close enough to not cause the result to be out of bounds
 
     return new Color(ScaleAndRound(r), ScaleAndRound(g), ScaleAndRound(b));
   }
@@ -693,6 +724,7 @@ public struct Color
   /// (hue-saturation-value, or HSB [hue-saturation-brightness]) color space.
   /// </param>
   /// <param name="lightness">The lightness, from 0 to 1.</param>
+  /// <include file="../documentation.xml" path="//Color/HSLHSV/*"/>
   public static Color FromHSL(float hue, float saturation, float lightness)
   {
     if(saturation < 0 || saturation > 1 || lightness < 0 || lightness > 1) throw new ArgumentOutOfRangeException();
@@ -708,6 +740,7 @@ public struct Color
   /// (hue-saturation-lightness) color space.
   /// </param>
   /// <param name="value">The value (brightness), from 0 to 1.</param>
+  /// <include file="../documentation.xml" path="//Color/HSLHSV/*"/>
   public static Color FromHSV(float hue, float saturation, float value)
   {
     if(saturation < 0 || saturation > 1 || value < 0 || value > 1) throw new ArgumentOutOfRangeException();
@@ -777,10 +810,10 @@ public struct Color
   {
     if(!string.IsNullOrEmpty(str))
     {
-      if(str[0] == '#')
+      if(str[0] == '#') // if it starts with a '#' character, try parsing it has a hex string
       {
         uint rgba = 0;
-        if(str.Length == 7 || str.Length == 9)
+        if(str.Length == 7 || str.Length == 9) // if it uses two characters per byte...
         {
           for(int i=str.Length-2; i > 0; i-=2)
           {
@@ -790,7 +823,7 @@ public struct Color
           }
           if(str.Length == 7) rgba |= 0xFF000000;
         }
-        else if(str.Length == 4 || str.Length == 5)
+        else if(str.Length == 4 || str.Length == 5) // if it uses one character per byte...
         {
           for(int i=str.Length-1; i > 0; i--)
           {
@@ -800,7 +833,7 @@ public struct Color
           }
           if(str.Length == 4) rgba |= 0xFF000000;
         }
-        else
+        else // it's not a valid length
         {
           goto failed;
         }
@@ -862,7 +895,7 @@ public struct Color
   static byte Blend(byte a, byte b, byte blendAlpha)
   {
     // we want a + round((b-a)*alpha). with byte values, that would be a + ((b-a)*blendAlpha+128)/255. but to avoid the division,
-    // we calculate (255*255+128+n)/256 == 255.5 and get n=255. so we add 128+255=383 and divide by 256
+    // we solve (255*255+128+n)/256 == 255.5 and get n=255. so we add 128+255=383 and divide by 256
     return (byte)(a + ((b-a)*blendAlpha+383)/256);
   }
 
@@ -921,7 +954,7 @@ public struct Color
       case BlendMode.Exclusion: // a + b - 2ab
         // with byte values, 2ab is in [0,130050]. we want it in the range of [0,510], so we have to divide by 255. or, we can
         // simply not multiply by 2 in the first place and get ab in [0,65025]. then we need to divide by 127.5. we don't want to
-        // do that either, so we calculate (65025+n)/128 == 510, and get n=255. so we can add 255 and divide by 128
+        // do that either, so we solve (65025+n)/128 == 510, and get n=255. so we can add 255 and divide by 128
         return (byte)(baseValue + blendValue - (baseValue*blendValue+255)/128);
 
       case BlendMode.Freeze: // 1 - (1-a)^2/b
@@ -949,7 +982,7 @@ public struct Color
 
       case BlendMode.HardLight: // 2ab [if b<0.5], 1 - 2*(1-a)*(1-b) [otherwise]
         // with byte values, 2ab is in [0,32385], but we want it in the range of [0,255]. so we should divide by 127, but to
-        // avoid the division we'll instead calculate (32385+n)/128 == 255 and get n==255.
+        // avoid the division we'll instead solve (32385+n)/128 == 255 and get n==255.
         if(blendValue < 128) return (byte)((baseValue*blendValue+255) >> 7);
         else return (byte)(255 - (((255-baseValue)*(255-blendValue)+255) >> 7));
 
@@ -1029,18 +1062,18 @@ public struct Color
         if(blendValue < 128)
         {
           // with byte values, 2ab is within [0,64770] and a^2(1-2b) is within [0,16581375]. we need the two terms to contribute
-          // equally, so we calculate (16581375+n)/256 == 64770 and get n == -255. then, the formula as a whole should be within
-          // [0,64770]. but we want the whole formula to be within [0,255], so we calculate (64770+n)/256 == 255 and get n==510.
+          // equally, so we solve (16581375+n)/256 == 64770 and get n == -255. then, the formula as a whole should be within
+          // [0,64770]. but we want the whole formula to be within [0,255], so we solve (64770+n)/256 == 255 and get n==510.
           return (byte)((2*baseValue*blendValue + ((baseValue*baseValue*(255-2*blendValue)-255)/256) + 510)/256);
         }
         else
         {
-          // with byte values, sqrt(a)*(2b-1) is within [0,65025] and 2a*(1-b) is within [0,64770]. we need the two terms to
-          // contribute equally, so we use (65025+n)/256 == 255 (n==255) and (64770+n)/256 == 255 (n==510). however, this is not
-          // correct because we should be scaling to get the terms into the same range rather than translating. the result is
-          // that for some values, it can be out of bounds. so instead of adding 510 to the right term, we'll add 255 to both,
-          // for a total of 510. this seems to work, and the difference from the actually correct result should be very small
-          return (byte)((sqrtTable[baseValue]*(2*blendValue-255) + 2*baseValue*(255-blendValue) + 510)/256);
+          // with byte values, sqrt(a)*(2b-1) is within [0,16516350] and 2a*(1-b) is within [0,64770]. we need the two terms to
+          // contribute equally, so instead of multiplying the second term by 2, we multiply by 2*255. then the total expression
+          // is within [0,16516350]. we need to scale this to [0,255], so we should divide by 64770. it'd be faster to use a
+          // power of two, so we'll divide by 65536 (2^16) instead, and solve (16516350+n)/65536 == 255, and find that
+          // n == 195330
+          return (byte)((sqrtTable[baseValue]*(2*blendValue-255) + 510*baseValue*(255-blendValue) + 195330) >> 16);
         }
 
       case BlendMode.Subtract: // a+b-1
@@ -1126,7 +1159,7 @@ public struct Color
 
   readonly static Dictionary<string, uint> namedColors;
   readonly static Dictionary<uint, string> colorNames;
-  readonly static byte[] sqrtTable;
+  readonly static ushort[] sqrtTable;
 }
 
 } // namespace GameLib
