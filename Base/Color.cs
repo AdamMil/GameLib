@@ -675,7 +675,7 @@ public struct Color
       //     luma + chroma*(v1 - 0.3*v1 - 0.59*v2 - 0.11*v3) =
       //     luma + chroma*(0.7*v1 - 0.59*v2 - 0.11*v3)
       //
-      // since none of v1, v2, or v3 depend on luma or chroma, so we simply can consider that r,g,b = luma + chroma*whatever.
+      // since none of v1, v2, or v3 depend on luma or chroma, we can simply consider that r,g,b = luma + chroma*whatever.
       // then we'll take the maximum and minimum r,g,b values and see if they're out of bounds.
       //
       // IN CASE MAX > 1:

@@ -1,5 +1,14 @@
 <?xml version="1.0" encoding="utf-8" ?> 
 <GameLib>
+  <Common>
+    <Dispose>
+      <summary>Releases unmanaged resources used by the object.</summary>
+    </Dispose>
+    <Finalizer>
+      <summary>Releases unmanaged resources used by the object.</summary>
+    </Finalizer>
+  </Common>
+  
   <IComparable>
     <CompareTo>
       <summary>Compares the current instance with another object of the same type.</summary>
@@ -103,6 +112,58 @@
     </ToUInt32>
   </IConvertible>
 
+  <Color>
+    <HCL>
+      <remarks>
+        <para>
+          The HCL (hue-chroma-luma) color model is, like HSL (hue-saturation-lightness) and HSV (hue-saturation-value), a
+          transformation of the RGB color space in an attempt to provide more perceptually relevant dimensions. In the HSL and
+          HSV systems, changing one component causes substantial changes in the others as well.
+          For instance, altering the hue causes a change in perceived saturation and brightness. These changes are
+          nonlinear and can go in either direction, making them difficult to intuitively predict. The HCL model, however,
+          achieves greater perceived independence between its dimensions, allowing one component to be adjusted with fewer
+          perceived changes to the others. Its dimensions are also more perceptually relevant, with the luma value being much
+          better correlated with actual perceived lightness than either HSL's lightness or HSV's value. For these reasons, it
+          is better for color blending and image adjustment, and is used by <see cref="BlendMode.Hue" />,
+          <see cref="BlendMode.Chroma" />, <see cref="BlendMode.Luma" />, and <see cref="BlendMode.Color" />.
+        </para>
+        <para>
+          However, it does not map one-to-one with the RGB model. All RGB colors can be represented as HCL colors, but there
+          are many HCL colors that cannot be represented in RGB. This complicates its use in certain applications. Like
+          HSL and HSV, and RGB generally, HCL is device-dependent, and does not describe actual colors, only the relative
+          intensities of whatever RGB primaries the display device uses.
+        </para>
+      </remarks>
+    </HCL>
+    <HSLHSV>
+      <para>
+        HSL (hue-saturation-lightness) and HSV (hue-saturation-value, also known as HSB [hue-saturation-brightness]) are two
+        quite similar color models that represent a
+        transformation of the RGB color space into ones that provide more perceptually relevant dimensions. In both models,
+        the RGB cube is transformed into a cylinder with hue being the circular angle (with red at 0 degrees, green at 120
+        degrees, and blue at 240 degrees), and lightness (or value) increasing from 0 at the bottom to 1 at the top. If you
+        consider a line passing vertically through the center, both systems represent saturation as the (shortest) distance from
+        a color point to the line, and the line itself passes through the gray colors (from black to white). Both systems also
+        place the pure colors around the outside edge of a circular slice of the cylinder. The difference is that HSL places the
+        pure colors in the vertical center of the cylinder (i.e. they have a lightness of 0.5), while HSV places them at the top
+        (i.e. they have a value of 1).
+      </para>
+      <para>
+        Both systems map one-to-one with RGB, so any HSL or HSV color is a valid RGB color, and vice-versa. This makes their use
+        straightforward in color pickers and other applications where out-of-gamut colors would be troublesome. Because of their
+        many similarities, it may be difficult to choose between HSL and HSV. Typically, HSL does a better job of representing
+        brightness, while HSV does a better job of representing saturation. However neither does the job particularly well, as
+        both have substantial perceived dependencies among their components. Changing hue, for instance, causes changes in
+        perceived saturation and brightness, and the changes are non-linear and difficult to predict. This makes both systems
+        poor for image adjustment applications, as it is impossible to adjust a single component without producing apparent
+        changes in the others. HCL is a better choice for image adjustment, but its chroma component is less intuitive than the
+        saturation components of HSL and HSV, making it a poorer choice for color pickers and similar applications.
+        Like RGB generally, HSL and HSV are device-dependent, and do not describe actual colors,
+        only the relative intensities of whatever RGB primaries the display device uses.
+      </para>
+    </HSLHSV>
+  </Color>
+
   <Fonts>
     <LineHeight>
       <summary>Gets the vertical offset that should be added to move the draw position to the next line. This is
@@ -127,6 +188,15 @@
       <param name="width">The available width, in pixels.</param>
       <returns>The number of characters that would fully fit within the given width.</returns>
     </HowManyFit>
+
+    <OnDisplayFormatChanged>
+      <summary>This method is called when the video mode changes.</summary>
+      <remarks>
+        If it's important to know when the video mode changes, override this method. Remember to call
+        the base class' implementation as well. This might be used to convert font images to a format suitable for
+        fast blitting to the screen, for instance.
+      </remarks>
+    </OnDisplayFormatChanged>
     
     <Render>
       <Point>
@@ -1004,7 +1074,100 @@
         <param name="dx">The X coordinate of the destination point where the blit will begin.</param>
         <param name="dy">The Y coordinate of the destination point where the blit will begin.</param>
       </XY>
+      <remarks>
+        Blitting respects the <see cref="ClipRect"/> set on the destination surface. This method should not be called when
+        either surface is locked. The logic of alpha blending and color keys works as follows:
+        <code>
+IF UsingAlpha THEN
+  IF has alpha channel (Format.AlphaMask != 0) THEN
+    Blit using alpha channel and ignore the color key
+  ELSE IF UsingKey THEN
+    Blit using the color key (ColorKey) and the surface alpha (Alpha)
+  ELSE
+    Blit using the surface alpha (Alpha)
+ELSE IF UsingKey
+  Blit using the color key (ColorKey)
+ELSE
+  Opaque rectangular blit (if both surfaces have an alpha channel,
+  the alpha information will be COPIED)
+</code>
+The effects of surfaces with various combinations of alpha channels is as follows:
+<code>
+USA = Source surface's UsingAlpha value
+SHA = Source surface has an alpha channel (Format->AlphaMask!=0)
+DHA = Destination surface has an alpha channel (Format->AlphaMask!=0)
+UsingKey refers to the source surface's UsingKey value.
+USA  SHA  DHA  Effect
+ N    N    N   The pixels are copied from the source. If UsingKey is set, only the
+               pixels not matching the color key value are copied.
+ N    N    Y   The pixels are copied from the source and the alpha value of the
+               copied pixels is set to opaque. If UsingKey is set, only the pixels
+               not matching the color key value are copied.
+ N    Y    N   The RGB data is copied from the source. The source alpha channel and
+               the surface alpha value are ignored. If UsingKey is set, only the
+               pixels not matching the color key value are copied.
+ N    Y    Y   The RGBA data is copied to the destination surface. If UsingKey is
+               set, only the pixels not matching the color key value are copied.
+ Y    N    N   The source is alpha blended with the destination using the surface
+               alpha value. If UsingKey is set, only the pixels not matching the
+               color key value are copied.
+ Y    N    Y   The source is alpha blended with the destination using the surface
+               alpha value. If UsingKey is set, only the pixels not matching the
+               color key value are copied. The alpha channel of the copied pixels
+               is set to opaque.
+ Y    Y    N   The source is alpha-blended with the destination, using the alpha
+               channel. The color key and surface alpha are ignored.
+ Y    Y    Y   The source is alpha blended with the destination using the source
+               alpha channel. The alpha channel in the destination surface is
+               unchanged. The color key is ignored.
+        </code>
+      </remarks>
     </Blit>
+
+    <Blend>
+      <remarks>
+        Blending respects the <see cref="ClipRect"/> set on the destination surface. This method can be called when either
+        surface is locked. The logic of alpha blending and color keys works as follows:
+        <code>
+IF UsingAlpha THEN
+  IF has alpha channel (Format.AlphaMask != 0) THEN
+    Blit using alpha channel and ignore the color key
+  ELSE IF UsingKey THEN
+    Blit using the color key (ColorKey) and the surface alpha (Alpha)
+  ELSE
+    Blit using the surface alpha (Alpha)
+ELSE IF UsingKey
+  Blit using the color key (ColorKey)
+ELSE
+  Opaque rectangular blit (if both surfaces have an alpha channel,
+  the alpha information will be COPIED)
+        </code>
+        Each source pixel is first blended with the destination pixel using the blend mode, without considering alpha values, to
+        produce a result pixel. Then, the result pixel is copied or alpha blended with the destination as follows.
+        <code>
+USA = Source surface's UsingAlpha value
+SHA = Source surface has alpha (Alpha != 255 or Format->AlphaMask!=0)
+HSA = Destination surface has an alpha channel (Format->AlphaMask!=0)
+UsingKey refers to the source surface's UsingKey value, and the "source alpha" is
+a combination of the source pixel's alpha channel (if any) and the source surface's
+alpha value (if not opaque). For instance, if the alpha channel value is 128 and
+the surface alpha value is 128, the effective source alpha will be 64.
+USA  SHA  Effect
+ N    *   The result pixels are copied to the destination. If UsingKey is set,
+          only the source pixels not matching the color key value are
+          processed. The destination alpha channel is unchanged.
+
+ Y    N   The result pixels are copied to the destination. If UsingKey is set,
+          only the source pixels not matching the color key value are
+          processed. The destination alpha channel is unchanged.
+
+ Y    Y   The result pixels are alpha-blended with the destination, using the
+          source alpha. If UsingKey is set, only the source pixels not matching
+          the color key value are processed.  The destination alpha channel is
+          unchanged.
+        </code>
+      </remarks>
+    </Blend>
     
     <GetPixel>
       <C>
