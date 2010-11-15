@@ -26,20 +26,11 @@ namespace GameLib
 /// <remarks>Time is normally measured from when the timing system was initialized, but <see cref="Reset"/> can
 /// be used to reset the base time point. The class provides tick-based timing (<see cref="Frequency"/> and
 /// <see cref="Counter"/>) and real-time timing (<see cref="Milliseconds"/> and <see cref="Seconds"/>). The real-time
-/// timers are based on the tick-based timers. The tick-based timers provide the maximum resolution and
-/// precision.
+/// timers are based on the tick-based timers. The tick-based timers provide the maximum resolution and precision. The timing
+/// methods are all thread-safe.
 /// </remarks>
 public static class Timing
 {
-  static Timing()
-  {
-    timer = new Stopwatch();
-    timer.Start();
-
-    internalTimer = new Stopwatch();
-    internalTimer.Start();
-  }
-
   /// <summary>Gets the frequency of the counter, in ticks per second.</summary>
   /// <remarks>This property represents how many ticks are added to <see cref="Counter"/> in one second.</remarks>
   public static long Frequency { get { return Stopwatch.Frequency; } }
@@ -72,8 +63,11 @@ public static class Timing
   /// </remarks>
   public static void Reset()
   {
-    timer.Reset();
-    timer.Start();
+    lock(lockObject)
+    {
+      timer.Reset();
+      timer.Start();
+    }
   }
 
   /// <summary>Gets the number of elapsed milliseconds since the timer started counting. The timer cannot be reset.</summary>
@@ -82,7 +76,21 @@ public static class Timing
     get { return (uint)internalTimer.ElapsedMilliseconds; }
   }
 
-  static readonly Stopwatch timer, internalTimer;
+  // define a type of stopwatch that automatically starts in order to avoid having to use a static constructor to call Start().
+  // the reason is that a static constructor will cause the compiler to not add the beforefieldinit flag to the class, incurring
+  // a check to see whether the class is initialized every time a member of the class is accessed. (the beforefieldinit flag lets
+  // the runtime initialize the class early [i.e. before any field is accessed] so the JIT compiler can guarantee that it's
+  // already initialized whenever a member is accessed)
+  sealed class AutoStartStopwatch : Stopwatch
+  {
+    public AutoStartStopwatch()
+    {
+      Start();
+    }
+  }
+
+  static readonly Stopwatch timer = new Stopwatch(), internalTimer = new Stopwatch();
+  static readonly object lockObject = new object();
 }
 
 } // namespace GameLib

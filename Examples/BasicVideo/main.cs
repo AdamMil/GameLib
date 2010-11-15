@@ -16,12 +16,13 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 
-using System;
 using System.Drawing;
+using GameLib;
 using GameLib.Events;
 using GameLib.Fonts;
 using GameLib.Input;
 using GameLib.Video;
+using Color = GameLib.Color;
 
 namespace BasicVideo
 {
@@ -42,7 +43,7 @@ namespace BasicVideo
 
       font = new TrueTypeFont(dataPath+"vera.ttf", 16); // load a font
       font.RenderStyle = RenderStyle.Blended;
-      font.Color = Color.Pink;
+      font.Color = Color.Parse("#FFC0CB"); // use a pink color for the font
       smiley = new Surface(dataPath+"smiley.png"); // load a smiley face image
 
       Draw();
@@ -82,6 +83,9 @@ namespace BasicVideo
       smiley.Blit(Video.DisplaySurface, (Video.Width-smiley.Width)/2, (Video.Height-smiley.Height)/2);
       smiley.UsingAlpha = false; // turn off alpha blending for this image
       smiley.Blit(Video.DisplaySurface, (Video.Width-smiley.Width)/2, 0); // blit it centered horizontally only
+
+      // blend the smiley face over the text to alter its color
+      smiley.Blend(Video.DisplaySurface, Video.Width-smiley.Width, (Video.Height-smiley.Height)/2, BlendMode.Color);
 
       Surface temp = new Surface(100, 100, 24); // 100x100x24bpp surface without alpha blending
       temp.SetColorKey(Color.Magenta); // set its transparent color to be magenta
