@@ -18,12 +18,14 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 using System;
 using System.Drawing;
+using GameLib;
 using GameLib.Events;
 using GameLib.Fonts;
 using GameLib.Forms;
 using GameLib.Input;
 using GameLib.Video;
 using Color = GameLib.Color;
+using Font  = GameLib.Fonts.Font;
 
 namespace WindowingTest
 {
@@ -53,7 +55,7 @@ namespace WindowingTest
       base.OnKeyDown(e);
     }
 
-    protected override void OnEffectiveFontChanged(GameLib.ValueChangedEventArgs e)
+    protected override void OnEffectiveFontChanged(ValueChangedEventArgs<Font> e)
     {
       // we want things to adjust to the font size
       if(EffectiveFont != null) menu.Height = EffectiveFont.LineHeight*3/2;
@@ -77,7 +79,7 @@ namespace WindowingTest
       bar.Minimum = 64; // allow alpha values from 64-255
       bar.Value   = bar.Maximum = 255;
       bar.Dock    = DockStyle.Right; // dock the bar on the right
-      bar.ValueChanged += new GameLib.ValueChangedEventHandler(bar_ValueChanged);
+      bar.ValueChanged += bar_ValueChanged;
 
       label1.Dock = DockStyle.Top;
       label1.TextAlign = ContentAlignment.MiddleCenter;
@@ -121,7 +123,7 @@ namespace WindowingTest
 
     // make everything scale to the font size. normally not necessary if you
     // know the font, but want we everything to work properly regardless
-    protected override void OnEffectiveFontChanged(GameLib.ValueChangedEventArgs e)
+    protected override void OnEffectiveFontChanged(ValueChangedEventArgs<Font> e)
     {
       if(EffectiveFont != null)
       {
@@ -139,7 +141,7 @@ namespace WindowingTest
       base.OnEffectiveFontChanged(e);
     }
 
-    void bar_ValueChanged(object sender, GameLib.ValueChangedEventArgs e)
+    void bar_ValueChanged(object sender, ValueChangedEventArgs<int> e)
     {
       UpdateAlpha(); // update the alpha value when the scrollbar changes
     }

@@ -165,7 +165,9 @@ public enum FixedPanel
 /// <summary>Implements a control that divides its content area into two resizable panels, divided by a movable bar.</summary>
 public class SplitContainer : Control
 {
-  /// <summary>Initializes a new vertical <see cref="SplitContainer"/>.</summary>
+  /// <summary>Initializes a new vertical <see cref="SplitContainer"/>. The orientation can be changed with the
+  /// <see cref="Orientation"/> property.
+  /// </summary>
   public SplitContainer()
   {
     const int DefaultSplitterWidth = 4;
@@ -454,6 +456,8 @@ public class SplitContainer : Control
   {
     base.OnPaint(e);
 
+    PaintSplitter(e);
+
     if(Focused)
     {
       Rectangle splitterRect = SplitterRect;
@@ -488,6 +492,10 @@ public class SplitContainer : Control
   /// class to allow default processing to occur.
   /// </summary>
   protected virtual void OnSplitterMoved() { }
+
+  protected virtual void PaintSplitter(PaintEventArgs e)
+  {
+  }
 
   int Panel1Size
   {

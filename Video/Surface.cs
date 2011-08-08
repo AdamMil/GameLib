@@ -1076,7 +1076,8 @@ public sealed class Surface : IDisposable, IGuiRenderTarget
     ValidatePaletteArgs(startColor, numColors);
 
     Color* palette = format.format.Palette->Colors + startColor;
-    for(int i=0; i<numColors; i++) colors[startIndex+i] = palette[i];
+    // it seems that SDL returns palette colors with alpha == 0, so change the alpha to 255
+    for(int i=0; i<numColors; i++) colors[startIndex+i] = new Color(palette[i], 255);
   }
 
   /// <include file="../documentation.xml" path="//Video/Surface/SetPalette/*[self::Logical or self::A or self::EN]/*"/>

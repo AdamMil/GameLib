@@ -638,7 +638,7 @@ public sealed class PSDCodec
   }
 
   /// <param name="filename">A path to the file into which the PSD data will be written.</param>
-  /// <include file="../documentation.xml" path="//Video/PSDCodec/Write_Surface/*"/>
+  /// <include file="../documentation.xml" path="//Video/PSDCodec/Write_Surface/*[@name != 'stream']"/>
   public void Write(Surface surface, string filename) { Write(surface, File.Open(filename, FileMode.Create)); }
   /// <param name="stream">A stream into which PSD image data will be written. The stream must be seekable, with its
   /// entire range devoted to the PSD data for this image. The stream will be closed automatically.
@@ -846,7 +846,7 @@ public sealed class PSDCodec
   }
 
   /// <param name="filename">A path to the file into which the PSD data will be written.</param>
-  /// <include file="../documentation.xml" path="//Video/PSDCodec/Write_Surface/*"/>
+  /// <include file="../documentation.xml" path="//Video/PSDCodec/Write_Surface/*[@name != 'stream']"/>
   public static void WritePSD(Surface surface, string filename) { new PSDCodec().Write(surface, filename); }
   /// <param name="stream">A stream into which PSD image data will be written. The stream must be seekable, with its
   /// entire range devoted to the PSD data for this image. The stream will be closed automatically.

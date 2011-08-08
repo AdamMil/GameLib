@@ -250,8 +250,8 @@ public sealed class PixelFormat
           RedMask   = Video.Info.Format.RedMask;
           GreenMask = Video.Info.Format.GreenMask;
           BlueMask  = Video.Info.Format.BlueMask;
-          AlphaMask = Depth == 24 || !withAlpha     ? 0 :
-                      Video.Info.Format.Depth == 32 ? Video.Info.Format.AlphaMask :
+          AlphaMask = Depth == 24 || !withAlpha        ? 0 :
+                      Video.Info.Format.AlphaMask != 0 ? Video.Info.Format.AlphaMask :
                       0xFFFFFFFF & ~(RedMask | BlueMask | GreenMask);
         }
         else
@@ -675,7 +675,6 @@ public static class Video
       if(opts.AccumAlpha!=-1) SDL.SetAttribute(SDL.Attribute.AccumAlphaSize, opts.AccumAlpha);
     }
     SetMode(width, height, depth, (uint)(flags|SurfaceFlag.OpenGL));
-    usingGL = true;
   }
 
   /// <summary>This function returns the current gamma settings.</summary>
@@ -813,6 +812,7 @@ public static class Video
     display = new Surface(surface, false);
     UpdateInfo();
     if((flags & (uint)SDL.VideoFlag.FullScreen) == 0) WM.WindowTitle = WM.WindowTitle; // assuming SDL doesn't reset it
+    usingGL = (flags & (uint)SDL.VideoFlag.OpenGL) != 0;
     if(ModeChanged!=null) ModeChanged();
   }
 

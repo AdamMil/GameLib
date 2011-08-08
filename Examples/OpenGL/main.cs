@@ -24,7 +24,6 @@ using GameLib.Input;
 using GameLib.Video;
 using GameLib.Interop.OpenGL;
 using AdamMil.Mathematics.Geometry;
-using AdamMil.Mathematics.Geometry.TwoD;
 
 namespace OpenGLTest
 {
@@ -43,8 +42,8 @@ namespace OpenGLTest
     struct Particle
     {
       public float Life, Decay, R, G, B, Angle, AngleVel;
-      public Point Pos;
-      public Vector Vel;
+      public Point2 Pos;
+      public Vector2 Vel;
     }
 
     static void Main()
@@ -138,7 +137,7 @@ namespace OpenGLTest
 
     static void UpdateParticles(float timeDelta)
     {
-      Vector gravity = Gravity*timeDelta; // gravity for this update
+      Vector2 gravity = Gravity*timeDelta; // gravity for this update
 
       for(int i=0; i<3; i++) // smooth, random color transitions
       {
@@ -160,7 +159,7 @@ namespace OpenGLTest
         GL.glGetDoublev(GL.GL_PROJECTION_MATRIX, proj);
         GL.glGetIntegerv(GL.GL_VIEWPORT, view);
         GLU.gluUnProject(Mouse.X, view[3]-Mouse.Y, 1, model, proj, view, out x, out y, out z);
-        Vector dir = new Vector(x/2, y/2);
+        Vector2 dir = new Vector2(x/2, y/2);
         length = dir.Length;
         angle  = dir.Angle;
       }
@@ -178,13 +177,13 @@ namespace OpenGLTest
         }
         else
         { // make a velocity pointing at 0 degrees, then rotate by 'angle'
-          Vector vel = new Vector((Rand.Next(200)+800)/2500f,
-                                  (Rand.Next(100)-50)/1500f)
+          Vector2 vel = new Vector2((Rand.Next(200)+800)/2500f,
+                                   (Rand.Next(100)-50)/1500f)
                         .Rotated(angle)*length; // and multiply by 'length'
           Particles[i].Vel   = vel;
           Particles[i].Decay = Math.Max((float)Rand.NextDouble(), 0.1f);
           Particles[i].Life  = 1f;
-          Particles[i].Pos   = new Point(0, 0); // position of the spigot
+          Particles[i].Pos   = new Point2(0, 0); // position of the spigot
           Particles[i].Angle = 0;
           // rotate faster for higher velocities
           Particles[i].AngleVel = (float)((Rand.Next(360)-180)*vel.LengthSqr/10);
@@ -194,7 +193,7 @@ namespace OpenGLTest
     }
 
     static Particle[] Particles = new Particle[NUM_PARTICLES];
-    static Vector Gravity = new Vector(0, -1);
+    static Vector2 Gravity = new Vector2(0, -1);
     static Random Rand = new Random();
     static GLTexture2D texture = new GLTexture2D();
     static float[] Color=new float[3], Cinc=new float[3];

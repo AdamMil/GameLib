@@ -348,12 +348,13 @@ public struct Fixed32 : IFormattable, IComparable, IConvertible
   #endregion
 
   /// <summary>Implicitly converts an integer to a <see cref="Fixed32"/>.</summary>
-  /// <param name="i">An integer.</param>
+  /// <param name="value">An integer.</param>
   /// <returns>A <see cref="Fixed32"/> representing the given integer.</returns>
   /// <exception cref="OverflowException">Thrown if <paramref name="value"/> cannot be represented by this type.</exception>
-  public static implicit operator Fixed32(int i)
-  { if(i<-32768 || i>32767) throw new OverflowException();
-    return new Fixed32((uint)(i<<16));
+  public static implicit operator Fixed32(int value)
+  {
+    if(value<-32768 || value>32767) throw new OverflowException();
+    return new Fixed32((uint)(value<<16));
   }
   /// <summary>Implicitly converts a double to a <see cref="Fixed32"/>.</summary>
   /// <param name="d">A double value.</param>
@@ -676,14 +677,15 @@ public struct Fixed64 : IFormattable, IComparable, IConvertible
     }
 
     if(rhs.value<0x100000000)
-    { quot  = Math.DivRem(lhs.value, rhs.value, out rem)<<32;
-      quot += Math.DivRem(rem<<32, rhs.value, out rem);
+    {
+      quot = ((lhs.value / rhs.value) << 32) + ((lhs.value % rhs.value) << 32) / rhs.value;
     }
     else if(rhs.value<0x1000000000000)
-    { Math.DivRem(lhs.value>>32, rhs.value, out rem);
-      quot  = Math.DivRem((rem<<32)+(uint)lhs.value, rhs.value, out rem)<<32;
-      quot += Math.DivRem(rem<<16, rhs.value, out rem)<<16;
-      quot += Math.DivRem(rem<<16, rhs.value, out rem);
+    {
+      rem   = (((lhs.value>>32) % rhs.value) << 32) + (uint)lhs.value;
+      quot  = (rem / rhs.value) << 32;
+      rem   = (rem % rhs.value) << 16;
+      quot += ((rem / rhs.value) << 16) + ((rem % rhs.value) << 16) / rhs.value;
     }
     else // fall back on long division
     { // TODO: optimize for divisor>=dividend

@@ -1,5 +1,5 @@
-Microsoft Visual Studio Solution File, Format Version 10.00
-# Visual Studio 2008
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenGL", "OpenGL\OpenGL.csproj", "{0B8359A3-E384-4426-A280-A448BBCF4283}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Audio", "Audio\Audio.csproj", "{8FCEFC22-3E71-4BF4-B30E-DD77C32B579F}"

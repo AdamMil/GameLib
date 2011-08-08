@@ -25,7 +25,7 @@ public interface IControlRenderer
   void DrawCheckBox(Control control, PaintEventArgs e, Point drawPoint, bool isChecked, bool depressed, bool enabled);
   void DrawFocusRect(Control control, PaintEventArgs e, Rectangle rect, Color color);
   void DrawLine(IGuiRenderTarget target, Point p1, Point p2, Color color, bool antialiased);
-  int GetBorderWidth(BorderStyle style);
+  Size GetBorderThickness(BorderStyle style);
   Size GetCheckBoxSize(Control control);
   bool IsTranslucent(IGuiRenderTarget target);
 }
@@ -90,15 +90,15 @@ public abstract class ControlRenderer : IControlRenderer
   public abstract void DrawLine(IGuiRenderTarget target, Point p1, Point p2, Color color, bool antialiased);
 
   /// <summary>Returns the thickness of a border, in pixels.</summary>
-  public int GetBorderWidth(BorderStyle border)
+  public virtual Size GetBorderThickness(BorderStyle border)
   {
     switch(border & BorderStyle.TypeMask)
     {
       case BorderStyle.FixedFlat:
-      case BorderStyle.Fixed3D: return 1;
+      case BorderStyle.Fixed3D: return new Size(1, 1);
       case BorderStyle.FixedThick:
-      case BorderStyle.Resizeable: return 2;
-      default: return 0;
+      case BorderStyle.Resizeable: return new Size(2, 2);
+      default: return Size.Empty;
     }
   }
 

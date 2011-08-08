@@ -21,10 +21,6 @@ using System.Collections.Generic;
 using KnownColor = System.Drawing.KnownColor;
 using SysColor   = System.Drawing.Color;
 
-// TODO: see if we can eliminate the type initialization check every time a static member is accessed (due to the struct missing
-// the beforefieldinit flag because it has a static constructor), perhaps using a trick similar to the one we used for
-// the Timing class
-
 namespace GameLib
 {
 
@@ -195,47 +191,6 @@ public struct Color
     Value = value;
   }
 
-  static Color()
-  {
-    // create maps of named color to value and value to named color
-    string[] names = Enum.GetNames(typeof(KnownColor));
-    KnownColor[] values = (KnownColor[])Enum.GetValues(typeof(KnownColor));
-    namedColors = new Dictionary<string, uint>(names.Length);
-    colorNames = new Dictionary<uint, string>(names.Length);
-    for(int i=0; i<names.Length; i++)
-    {
-      SysColor color = SysColor.FromKnownColor(values[i]);
-      uint colorValue = ((Color)color).Value;
-      namedColors.Add(names[i].ToLowerInvariant(), colorValue);
-      if(!color.IsSystemColor) colorNames[colorValue] = names[i]; // we don't want system colors because they name UI components
-    }
-
-    // create a square root table used for the soft light blend mode. the values are scaled to the range of 0-64770, so the
-    // square root of 64 is not stored as 8, but rather as 32448, since sqrt(64.0/255)*64770 ~= 32448. this gives us more
-    // resolution while simultaneously simplifying the math in the soft blend mode
-    sqrtTable = new ushort[256];
-    for(int i=0; i<sqrtTable.Length; i++) sqrtTable[i] = (ushort)Math.Round(Math.Sqrt(i/255.0)*(255*254));
-
-    // initialize the predefined color values
-    Empty   = new Color();
-    Black   = new Color(0, 0, 0);
-    Blue    = new Color(0, 0, 255);
-    Cyan    = new Color(0, 255, 255);
-    Gray    = new Color(128, 128, 128);
-    Green   = new Color(0, 128, 0);
-    Lime    = new Color(0, 255, 0);
-    Magenta = new Color(255, 0, 255);
-    Maroon  = new Color(128, 0, 0);
-    Navy    = new Color(0, 0, 128);
-    Olive   = new Color(128, 128, 0);
-    Purple  = new Color(128, 0, 128);
-    Red     = new Color(255, 0, 0);
-    Silver  = new Color(192, 192, 192);
-    Teal    = new Color(0, 128, 128);
-    Yellow  = new Color(255, 255, 0);
-    White   = new Color(255, 255, 255);
-  }
-
   /// <summary>Gets the alpha value of the color, from 0 (transparent) to 255 (opaque).</summary>
   public byte Alpha
   {
@@ -280,7 +235,7 @@ public struct Color
     get
     {
       string name;
-      colorNames.TryGetValue(Value, out name);
+      tables.colorNames.TryGetValue(Value, out name);
       return name;
     }
   }
@@ -523,15 +478,16 @@ public struct Color
   public static Color Blend(Color a, Color b, float blendFactor)
   {
     if(blendFactor < 0 || blendFactor > 1) throw new ArgumentOutOfRangeException();
-    return Blend(a, b, (byte)(blendFactor*255+0.5f));
+    return Blend(a, b, (int)(blendFactor*255+0.5f));
   }
 
   /// <summary>Blends two colors together using the given alpha value. If <paramref name="blendAlpha"/> is close to 0, a color
   /// close to <paramref name="a"/> is returned, and if <paramref name="blendAlpha"/> is close to 255, a color close to
   /// <paramref name="b"/> is returned. The alpha channels are also blended.
   /// </summary>
-  public static Color Blend(Color a, Color b, byte blendAlpha)
+  public static Color Blend(Color a, Color b, int blendAlpha)
   {
+    if((blendAlpha & ~0xFF) != 0) throw new ArgumentOutOfRangeException(); // ensure blendAlpha is from 0 to 255
     byte alpha = a.alpha == b.alpha ? a.alpha : Blend(a.alpha, b.alpha, blendAlpha); // alpha is likely to be the same
     return new Color(Blend(a.red, b.red, blendAlpha), Blend(a.green, b.green, blendAlpha), Blend(a.blue, b.blue, blendAlpha),
                      alpha);
@@ -844,7 +800,7 @@ public struct Color
       else
       {
         uint value;
-        if(!namedColors.TryGetValue(str.ToLowerInvariant(), out value)) goto failed;
+        if(!tables.namedColors.TryGetValue(str.ToLowerInvariant(), out value)) goto failed;
         color = new Color(value);
         return true;
       }
@@ -856,47 +812,52 @@ public struct Color
   }
 
   /// <summary>Gets an empty color (#00000000).</summary>
-  public static readonly Color Empty;
+  public static readonly Color Empty = new Color();
   /// <summary>Gets the color black (#000000).</summary>
-  public static readonly Color Black;
+  public static readonly Color Black = new Color(0, 0, 0);
   /// <summary>Gets the color blue (#0000ff).</summary>
-  public static readonly Color Blue;
+  public static readonly Color Blue = new Color(0, 0, 255);
   /// <summary>Gets the color cyan (#00ffff).</summary>
-  public static readonly Color Cyan;
+  public static readonly Color Cyan = new Color(0, 255, 255);
   /// <summary>Gets the color gray (#808080).</summary>
-  public static readonly Color Gray;
+  public static readonly Color Gray = new Color(128, 128, 128);
   /// <summary>Gets the color green (#008000).</summary>
-  public static readonly Color Green;
+  public static readonly Color Green = new Color(0, 128, 0);
   /// <summary>Gets the color lime (#00ff00).</summary>
-  public static readonly Color Lime;
+  public static readonly Color Lime = new Color(0, 255, 0);
   /// <summary>Gets the color magenta (#ff00ff).</summary>
-  public static readonly Color Magenta;
+  public static readonly Color Magenta = new Color(255, 0, 255);
   /// <summary>Gets the color maroon (#800000).</summary>
-  public static readonly Color Maroon;
+  public static readonly Color Maroon = new Color(128, 0, 0);
   /// <summary>Gets the color navy (#000080).</summary>
-  public static readonly Color Navy;
+  public static readonly Color Navy = new Color(0, 0, 128);
   /// <summary>Gets the color olive (#808000).</summary>
-  public static readonly Color Olive;
+  public static readonly Color Olive = new Color(128, 128, 0);
   /// <summary>Gets the color purple (#800080).</summary>
-  public static readonly Color Purple;
+  public static readonly Color Purple = new Color(128, 0, 128);
   /// <summary>Gets the color red (#ff0000).</summary>
-  public static readonly Color Red;
+  public static readonly Color Red = new Color(255, 0, 0);
   /// <summary>Gets the color silver (#c0c0c0).</summary>
-  public static readonly Color Silver;
+  public static readonly Color Silver = new Color(192, 192, 192);
   /// <summary>Gets the color teal (#008080).</summary>
-  public static readonly Color Teal;
+  public static readonly Color Teal = new Color(0, 128, 128);
   /// <summary>Gets the color yellow (#ffff00).</summary>
-  public static readonly Color Yellow;
+  public static readonly Color Yellow = new Color(255, 255, 0);
   /// <summary>Gets the color white (#ffffff).</summary>
-  public static readonly Color White;
+  public static readonly Color White = new Color(255, 255, 255);
 
   byte red, green, blue, alpha;
 
-  static byte Blend(byte a, byte b, byte blendAlpha)
+  static byte Blend(byte a, byte b, int blendAlpha)
   {
-    // we want a + round((b-a)*alpha). with byte values, that would be a + ((b-a)*blendAlpha+128)/255. but to avoid the division,
-    // we solve (255*255+128+n)/256 == 255.5 and get n=255. so we add 128+255=383 and divide by 256
-    return (byte)(a + ((b-a)*blendAlpha+383)/256);
+    // we want a + round((b-a)*alpha). we want to use integer math, so we figure that it's the same as
+    // a + ((b-a)*blendAlpha+127.5)/255 = a + ((b-a)*blendAlpha*2+255)/510. we want to avoid division, though, while still
+    // keeping the rounding operation. unfortunately, it can't be done simply by solving for (255*255+128+n)/512 = 255.5 since
+    // that would cause an error when b-a = 0 (we'd get n=255, so (0+128+255)/256 = 1, which shouldn't happen, since if a=b=255,
+    // then we get a result of 256, which is an overflow. neither can we solve for (255*255+128+n/256) == 255, since that would
+    // fail to apply the rounding effect. we could use a table to compute the value of 'n' for various ranges from 0 to 255*255,
+    // but using the table happens to be slower than simply using the division
+    return (byte)(a + ((b-a)*blendAlpha)/255);
   }
 
   static byte Blend(byte baseValue, byte blendValue, BlendMode blendMode)
@@ -1073,7 +1034,7 @@ public struct Color
           // is within [0,16516350]. we need to scale this to [0,255], so we should divide by 64770. it'd be faster to use a
           // power of two, so we'll divide by 65536 (2^16) instead, and solve (16516350+n)/65536 == 255, and find that
           // n == 195330
-          return (byte)((sqrtTable[baseValue]*(2*blendValue-255) + 510*baseValue*(255-blendValue) + 195330) >> 16);
+          return (byte)((tables.sqrtTable[baseValue]*(2*blendValue-255) + 510*baseValue*(255-blendValue) + 195330) >> 16);
         }
 
       case BlendMode.Subtract: // a+b-1
@@ -1157,9 +1118,41 @@ public struct Color
     return (byte)(f*255+0.5f);
   }
 
-  readonly static Dictionary<string, uint> namedColors;
-  readonly static Dictionary<uint, string> colorNames;
-  readonly static ushort[] sqrtTable;
+  // NOTE: we store the static tables in a nested structure to prevent the initialization check every time a table is accessed,
+  // which would be caused by the C# compiler removing the beforefieldinit flag from structures that have static constructors.
+  // so by using a standard constructor on the nested structure we can avoid the static constructor entirely
+  #region Tables
+  struct Tables
+  {
+    internal Tables(bool dummy)
+    {
+      // create maps of named color to value and value to named color
+      string[] names = Enum.GetNames(typeof(KnownColor));
+      KnownColor[] values = (KnownColor[])Enum.GetValues(typeof(KnownColor));
+      namedColors = new Dictionary<string, uint>(names.Length);
+      colorNames = new Dictionary<uint, string>(names.Length);
+      for(int i=0; i<names.Length; i++)
+      {
+        SysColor color = SysColor.FromKnownColor(values[i]);
+        uint colorValue = ((Color)color).Value;
+        namedColors.Add(names[i].ToLowerInvariant(), colorValue);
+        if(!color.IsSystemColor) colorNames[colorValue] = names[i]; // we don't want system colors because they name UI components
+      }
+
+      // create a square root table used for the soft light blend mode. the values are scaled to the range of 0-64770, so the
+      // square root of 64 is not stored as 8, but rather as 32448, since sqrt(64.0/255)*64770 ~= 32448. this gives us more
+      // resolution while simultaneously simplifying the math in the soft blend mode
+      sqrtTable = new ushort[256];
+      for(int i=0; i<sqrtTable.Length; i++) sqrtTable[i] = (ushort)Math.Round(Math.Sqrt(i/255.0)*(255*254));
+    }
+
+    internal readonly ushort[] sqrtTable;
+    internal readonly Dictionary<string, uint> namedColors;
+    internal readonly Dictionary<uint, string> colorNames;
+  }
+  #endregion
+
+  static readonly Tables tables = new Tables(false);
 }
 
 } // namespace GameLib

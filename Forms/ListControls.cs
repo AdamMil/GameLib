@@ -743,7 +743,7 @@ public class ListBox : ListControl
         else SetSelected(newValue, true, true);
 
         OnSelectedIndexChanged();
-        if(Text != text) OnTextChanged(new ValueChangedEventArgs(text));
+        if(Text != text) OnTextChanged(new ValueChangedEventArgs<string>(text));
       }
     }
   }
@@ -1171,7 +1171,7 @@ public class ListBox : ListControl
     CalculateIndexes();
   }
 
-  protected override void OnVerticalScroll(object bar, ValueChangedEventArgs e)
+  protected override void OnVerticalScroll(object bar, ValueChangedEventArgs<int> e)
   {
     base.OnVerticalScroll(bar, e);
     TopIndex = VerticalScrollBar.Value;
@@ -1538,7 +1538,7 @@ public class ComboBox : ListControl
     return new TextBox();
   }
 
-  protected override void OnEffectiveFontChanged(ValueChangedEventArgs e)
+  protected override void OnEffectiveFontChanged(ValueChangedEventArgs<Font> e)
   {
     base.OnEffectiveFontChanged(e);
 
@@ -1685,7 +1685,7 @@ public class ComboBox : ListControl
 
     if(!string.Equals(TextBox.Text, ListBox.Text, StringComparison.Ordinal))
     {
-      ValueChangedEventArgs ve = new ValueChangedEventArgs(TextBox.Text);
+      ValueChangedEventArgs<string> ve = new ValueChangedEventArgs<string>(TextBox.Text);
       myChange = true;
       TextBox.Text = ListBox.Text;
       myChange = false;
@@ -1705,7 +1705,7 @@ public class ComboBox : ListControl
     }
   }
 
-  void textBox_TextChanged(object sender, ValueChangedEventArgs e)
+  void textBox_TextChanged(object sender, ValueChangedEventArgs<string> e)
   {
     if(!myChange)
     {

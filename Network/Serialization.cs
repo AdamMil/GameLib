@@ -473,7 +473,7 @@ public sealed class MessageConverter
     return GetMarshalType(type, null);
   }
 
-  static MarshalType GetMarshalType(Type type, List<Type> typesSeen)
+  static MarshalType GetMarshalType(Type type, HashSet<Type> typesSeen)
   {
     if(type.IsPrimitive || type.IsEnum) return MarshalType.Blittable; // primitive and enum types are all blittable
 
@@ -516,10 +516,9 @@ public sealed class MessageConverter
 
         // the field type is either a value type or a reference type with a layout attribute.
         // recursively examine its fields if we haven't seen it before
-        if(typesSeen == null) typesSeen = new List<Type>();
-        if(!typesSeen.Contains(ft))
+        if(typesSeen == null) typesSeen = new HashSet<Type>();
+        if(typesSeen.Add(ft))
         {
-          typesSeen.Add(ft);
           MarshalType mt = GetMarshalType(ft, typesSeen);
           if(mt < marshalType) marshalType = mt;
           if(mt == MarshalType.Unmarshalable) break;
