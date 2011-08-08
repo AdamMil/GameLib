@@ -129,7 +129,8 @@ public abstract class ScrollableControl : Control
   {
     base.LayOutChildren();
 
-    Rectangle rect = Rectangle.Inflate(ControlRect, -BorderWidth, -BorderWidth);
+    Size borderThickness = BorderThickness;
+    Rectangle rect = Rectangle.Inflate(ControlRect, -borderThickness.Width, -borderThickness.Height);
     if(horz != null)
     {
       horz.SetBounds(rect.X, rect.Bottom - horz.Height, rect.Width - (vert == null ? 0 : vert.Height), horz.Height,
@@ -146,9 +147,9 @@ public abstract class ScrollableControl : Control
     return new ScrollBar(orientation);
   }
 
-  protected virtual void OnHorzizontalScroll(object bar, ValueChangedEventArgs e) { }
+  protected virtual void OnHorzizontalScroll(object bar, ValueChangedEventArgs<int> e) { }
 
-  protected virtual void OnVerticalScroll(object bar, ValueChangedEventArgs e) { }
+  protected virtual void OnVerticalScroll(object bar, ValueChangedEventArgs<int> e) { }
 
   protected internal override void OnMouseWheel(ClickEventArgs e)
   {
@@ -244,17 +245,7 @@ public abstract class LabelBase : Control
   protected override void OnPaint(PaintEventArgs e)
   {
     base.OnPaint(e);
-
-    if(Text.Length != 0)
-    {
-      if(EffectiveFont != null)
-      {
-        Rectangle rect = GetContentDrawRect();
-        EffectiveFont.Color     = EffectivelyEnabled ? GetEffectiveForeColor() : (Color)SystemColors.GrayText;
-        EffectiveFont.BackColor = GetEffectiveBackColor();
-        e.Target.DrawText(EffectiveFont, Text, rect, TextAlign);
-      }
-    }
+    PaintText(e);
   }
 
   public ContentAlignment TextAlign
@@ -264,16 +255,27 @@ public abstract class LabelBase : Control
     {
       if(_textAlign != value)
       {
-        ValueChangedEventArgs e = new ValueChangedEventArgs(_textAlign);
+        ValueChangedEventArgs<ContentAlignment> e = new ValueChangedEventArgs<ContentAlignment>(_textAlign);
         _textAlign = value;
         OnTextAlignChanged(e);
       }
     }
   }
 
-  protected virtual void OnTextAlignChanged(ValueChangedEventArgs e)
+  protected virtual void OnTextAlignChanged(ValueChangedEventArgs<ContentAlignment> e)
   {
     Invalidate();
+  }
+
+  protected virtual void PaintText(PaintEventArgs e)
+  {
+    if(Text.Length != 0 && EffectiveFont != null)
+    {
+      Rectangle rect = GetContentDrawRect();
+      EffectiveFont.Color     = EffectivelyEnabled ? GetEffectiveForeColor() : (Color)SystemColors.GrayText;
+      EffectiveFont.BackColor = GetEffectiveBackColor();
+      e.Target.DrawText(EffectiveFont, Text, rect, TextAlign);
+    }
   }
 
   ContentAlignment _textAlign = ContentAlignment.TopLeft;
@@ -310,16 +312,17 @@ public class Label : LabelBase
     AutoSizeLabel();
   }
 
-  protected override void OnEffectiveFontChanged(ValueChangedEventArgs e)
+  protected override void OnEffectiveFontChanged(ValueChangedEventArgs<Font> e)
   {
     base.OnEffectiveFontChanged(e);
     AutoSizeLabel();
   }
 
-  protected override void OnTextChanged(ValueChangedEventArgs e)
+  protected override void OnTextChanged(ValueChangedEventArgs<string> e)
   {
     base.OnTextChanged(e);
     AutoSizeLabel();
+    Invalidate();
   }
 
   protected virtual void AutoSizeLabel()
@@ -552,7 +555,7 @@ public class Button : ButtonBase
     }
   }
 
-  protected override void OnEffectiveFontChanged(ValueChangedEventArgs e)
+  protected override void OnEffectiveFontChanged(ValueChangedEventArgs<Font> e)
   {
     base.OnEffectiveFontChanged(e);
     AutoSizeButton();
@@ -576,7 +579,7 @@ public class Button : ButtonBase
     OnContentOffsetChanged();
   }
 
-  protected override void OnTextChanged(ValueChangedEventArgs e)
+  protected override void OnTextChanged(ValueChangedEventArgs<string> e)
   {
     base.OnTextChanged(e);
     AutoSizeButton();
@@ -1018,7 +1021,7 @@ public class ScrollBar : Control
   #region Events
   public event EventHandler Down, Up, PageDown, PageUp;
   public event EventHandler<ThumbEventArgs> ThumbDragStart, ThumbDragMove, ThumbDragEnd;
-  public event ValueChangedEventHandler ValueChanged;
+  public event ValueChangedEventHandler<int> ValueChanged;
 
   protected internal override void OnMouseDown(ClickEventArgs e)
   {
@@ -1180,7 +1183,7 @@ public class ScrollBar : Control
     e.Renderer.DrawBorder(e.Target, rect, BorderStyle.FixedThick, color);
   }
 
-  protected virtual void OnValueChanged(ValueChangedEventArgs e)
+  protected virtual void OnValueChanged(ValueChangedEventArgs<int> e)
   {
     if(ValueChanged != null) ValueChanged(this, e);
     Refresh();
@@ -1313,7 +1316,7 @@ public class ScrollBar : Control
   }
 
   ThumbEventArgs thumbArgs = new ThumbEventArgs();
-  ValueChangedEventArgs valChange = new ValueChangedEventArgs(null);
+  ValueChangedEventArgs<int> valChange = new ValueChangedEventArgs<int>(0);
   float thumbSize;
   int value, min, max = 100, dragOffset = -1;
   Orientation orientation = Orientation.Vertical;
@@ -1369,7 +1372,7 @@ public class TextBox : Control
       {
         if(value < 0 || value > Text.Length) throw new ArgumentOutOfRangeException("CaretPosition");
         int oldlen = selectLen;
-        ValueChangedEventArgs e = new ValueChangedEventArgs(caretPosition);
+        ValueChangedEventArgs<int> e = new ValueChangedEventArgs<int>(caretPosition);
         caretPosition = value;
         if(selectLen > 0)
         {
@@ -1508,7 +1511,7 @@ public class TextBox : Control
     if(ModifiedChanged != null) ModifiedChanged(this, EventArgs.Empty);
   }
 
-  protected virtual void OnCaretPositionChanged(ValueChangedEventArgs e)
+  protected virtual void OnCaretPositionChanged(ValueChangedEventArgs<int> e)
   {
     Invalidate(ContentRect);
   }
@@ -1850,7 +1853,7 @@ public class TextBox : Control
     else base.OnCustomEvent(e);
   }
 
-  protected override void OnTextChanged(ValueChangedEventArgs e)
+  protected override void OnTextChanged(ValueChangedEventArgs<string> e)
   {
     base.OnTextChanged(e);
     if(caretPosition > Text.Length) caretPosition = Text.Length;

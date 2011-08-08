@@ -70,26 +70,15 @@ public static class Timing
     }
   }
 
-  /// <summary>Gets the number of elapsed milliseconds since the timer started counting. The timer cannot be reset.</summary>
+  /// <summary>Gets the number of elapsed milliseconds since the timer started counting. The timer cannot be reset, and will
+  /// overflow after about 49.7 days.
+  /// </summary>
   internal static uint InternalMilliseconds
   {
     get { return (uint)internalTimer.ElapsedMilliseconds; }
   }
 
-  // define a type of stopwatch that automatically starts in order to avoid having to use a static constructor to call Start().
-  // the reason is that a static constructor will cause the compiler to not add the beforefieldinit flag to the class, incurring
-  // a check to see whether the class is initialized every time a member of the class is accessed. (the beforefieldinit flag lets
-  // the runtime initialize the class early [i.e. before any field is accessed] so the JIT compiler can guarantee that it's
-  // already initialized whenever a member is accessed)
-  sealed class AutoStartStopwatch : Stopwatch
-  {
-    public AutoStartStopwatch()
-    {
-      Start();
-    }
-  }
-
-  static readonly Stopwatch timer = new Stopwatch(), internalTimer = new Stopwatch();
+  static readonly Stopwatch timer = Stopwatch.StartNew(), internalTimer = Stopwatch.StartNew();
   static readonly object lockObject = new object();
 }
 

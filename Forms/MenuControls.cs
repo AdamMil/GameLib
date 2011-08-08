@@ -68,6 +68,7 @@ public abstract class MenuItemBase : Control
     if(e.CE.Button == MouseButton.Left)
     {
       OnClick();
+      if(Menu != null) Menu.Close();
       e.Handled = true;
     }
   }
@@ -88,7 +89,7 @@ public class Menu : Control
   public Menu()
   {
     BorderStyle   = BorderStyle.FixedThick;
-    ControlStyle |= ControlStyle.CanReceiveFocus | ControlStyle.DontLayout;
+    ControlStyle |= ControlStyle.CanReceiveFocus | ControlStyle.Clickable | ControlStyle.DontLayout;
     BackColor     = SystemColors.Menu;
     ForeColor     = SystemColors.MenuText;
     SelectedForeColor = SelectedBackColor = Color.Empty;
@@ -234,6 +235,17 @@ public class Menu : Control
     TriggerLayout();
   }
 
+  protected internal override void OnMouseClick(ClickEventArgs e)
+  {
+    if(!e.Handled && IsOpen && !ControlRect.Contains(e.CE.Point))
+    {
+      Close();
+      e.Handled = true;
+    }
+
+    base.OnMouseClick(e);
+  }
+  
   protected virtual void OnPopup()
   {
     if(Popup != null) Popup(this, EventArgs.Empty);
@@ -303,7 +315,7 @@ public class Menu : Control
     base.OnCustomEvent(e);
   }
 
-  protected override void OnTextChanged(ValueChangedEventArgs e)
+  protected override void OnTextChanged(ValueChangedEventArgs<string> e)
   {
     MenuBarBase bar = Parent as MenuBarBase;
     if(bar != null) bar.Relayout();
@@ -545,13 +557,13 @@ public abstract class MenuBarBase : Control
     base.OnMouseLeave();
   }
 
-  protected override void OnParentChanged(ValueChangedEventArgs e)
+  protected override void OnParentChanged(ValueChangedEventArgs<Control> e)
   {
     Relayout();
     base.OnParentChanged(e);
   }
 
-  protected override void OnEffectiveFontChanged(ValueChangedEventArgs e)
+  protected override void OnEffectiveFontChanged(ValueChangedEventArgs<Font> e)
   {
     base.OnEffectiveFontChanged(e);
     Relayout();

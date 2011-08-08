@@ -109,9 +109,7 @@ public class Control
 
     /// <summary>Returns a value indicating whether the named control a child or descendant of this one.</summary>
     /// <returns>Returns true if the control was found and false if not.</returns>
-    /// <remarks>Calling this method is equivalent to calling <see cref="Contains(string, bool)"/> with
-    /// <paramref name="deepSearch"/> set to false.
-    /// </remarks>
+    /// <remarks>Calling this method is equivalent to calling <see cref="Contains(string, bool)"/> with <c>deepSearch</c> set to false.</remarks>
     public bool Contains(string name)
     {
       return Find(name, false) != null;
@@ -129,9 +127,7 @@ public class Control
     }
 
     /// <summary>Finds a control by name and returns a reference to it, or null if the control could not be found.</summary>
-    /// <remarks>Calling this method is equivalent to calling <see cref="Find(string, bool)"/> with
-    /// <paramref name="deepSearch"/> set to false.
-    /// </remarks>
+    /// <remarks>Calling this method is equivalent to calling <see cref="Find(string, bool)"/> with <c>deepSearch</c> set to false.</remarks>
     public Control Find(string name)
     {
       return Find(name, false);
@@ -297,7 +293,7 @@ public class Control
     {
       Color old = BorderColor;
       _borderColor = value;
-      if(value != old && BorderWidth != 0) Invalidate();
+      if(value != old && BorderThickness != Size.Empty) Invalidate();
     }
   }
 
@@ -309,7 +305,7 @@ public class Control
     {
       if(value != BorderStyle)
       {
-        if(Renderer != null && BorderWidth != Renderer.GetBorderWidth(value)) OnContentOffsetChanged();
+        if(Renderer != null && BorderThickness != Renderer.GetBorderThickness(value)) OnContentOffsetChanged();
         _borderStyle = value;
       }
     }
@@ -318,9 +314,9 @@ public class Control
   /// <summary>Gets the width of the control's border.</summary>
   /// <value>The width of the border, in pixels.</value>
   /// <remarks>The border width is determined by the <see cref="BorderStyle"/> property.</remarks>
-  public int BorderWidth
+  public Size BorderThickness
   {
-    get { return Renderer == null ? 0 : Renderer.GetBorderWidth(BorderStyle); }
+    get { return Renderer == null ? Size.Empty : Renderer.GetBorderThickness(BorderStyle); }
   }
 
   /// <summary>Determines where the control will be anchored in relation to its parent.</summary>
@@ -443,7 +439,7 @@ public class Control
   /// the <see cref="ContentRect"/>.
   /// </value>
   /// <remarks>By default, this is defined as the offset created by <see cref="Padding"/> and
-  /// <see cref="BorderWidth"/>. It can be overridden to provide a new definition of the content area, but for
+  /// <see cref="BorderThickness"/>. It can be overridden to provide a new definition of the content area, but for
   /// compatibility, you should define your new offset as a modification of the base class's version. Also,
   /// make sure to call <see cref="OnContentOffsetChanged"/> if your criteria for evaluating the offset change.
   /// </remarks>
@@ -452,8 +448,7 @@ public class Control
     get
     {
       RectOffset offset = Padding;
-      int borderWidth = BorderWidth;
-      if(borderWidth != 0) offset.Offset(borderWidth);
+      offset.Offset(BorderThickness);
       return offset;
     }
   }
@@ -504,7 +499,7 @@ public class Control
     {
       if(value != Parent)
       {
-        ValueChangedEventArgs e = new ValueChangedEventArgs(_parent);
+        ValueChangedEventArgs<Control> e = new ValueChangedEventArgs<Control>(_parent);
         SetFlags(Flag.MyChange, true); // set this flag so we don't get two OnParentChanged() notifications
         if(Parent != null) Parent.Controls.Remove(this);
         if(value != null) value.Controls.Add(this);
@@ -570,7 +565,7 @@ public class Control
       {
         SetFlags(Flag.Enabled, value);
         RecursivelySetEnabled();
-        OnEnabledChanged(new ValueChangedEventArgs(!value));
+        OnEnabledChanged(new ValueChangedEventArgs<bool>(!value));
       }
     }
   }
@@ -736,7 +731,7 @@ public class Control
       if(!string.Equals(value, _text, StringComparison.Ordinal))
       {
         if(value == null) throw new ArgumentNullException();
-        ValueChangedEventArgs e = new ValueChangedEventArgs(_text);
+        ValueChangedEventArgs<string> e = new ValueChangedEventArgs<string>(_text);
         _text = value;
         OnTextChanged(e);
       }
@@ -756,7 +751,7 @@ public class Control
       {
         SetFlags(Flag.Visible, value);
         RecursivelySetVisible();
-        OnVisibleChanged(new ValueChangedEventArgs(!value));
+        OnVisibleChanged(new ValueChangedEventArgs<bool>(!value));
       }
     }
   }
@@ -877,7 +872,7 @@ public class Control
   public event EventHandler Resize;
 
   /// <summary>Occurs when the value of the <see cref="Text"/> property changes.</summary>
-  public event ValueChangedEventHandler TextChanged;
+  public event ValueChangedEventHandler<string> TextChanged;
 
   /// <summary>Occurs when the control is activated (i.e. <see cref="Active"/> became true).</summary>
   protected virtual void OnActivated() { }
@@ -901,7 +896,7 @@ public class Control
   /// <remarks>When overriding this method in a derived class, be sure to call the base class' version to ensure that
   /// the default processing gets performed. The proper place to do this is at the beginning of the derived version.
   /// </remarks>
-  protected virtual void OnBackColorChanged(ValueChangedEventArgs e)
+  protected virtual void OnBackColorChanged(ValueChangedEventArgs<Color> e)
   {
     Invalidate();
   }
@@ -928,7 +923,7 @@ public class Control
   /// <remarks>When overriding this method in a derived class, be sure to call the base class' version to ensure that
   /// the default processing gets performed. The proper place to do this is at the beginning of the derived version.
   /// </remarks>
-  protected virtual void OnEffectiveFontChanged(ValueChangedEventArgs e)
+  protected virtual void OnEffectiveFontChanged(ValueChangedEventArgs<Font> e)
   {
     Invalidate();
   }
@@ -937,7 +932,7 @@ public class Control
   /// <remarks>When overriding this method in a derived class, be sure to call the base class' version to ensure that
   /// the default processing gets performed. The proper place to do this is at the beginning of the derived version.
   /// </remarks>
-  protected virtual void OnEnabledChanged(ValueChangedEventArgs e)
+  protected virtual void OnEnabledChanged(ValueChangedEventArgs<bool> e)
   {
     if(!Enabled) Blur();
     Invalidate();
@@ -947,22 +942,22 @@ public class Control
   /// <remarks>When overriding this method in a derived class, be sure to call the base class' version to ensure that
   /// the default processing gets performed. The proper place to do this is at the beginning of the derived version.
   /// </remarks>
-  protected virtual void OnForeColorChanged(ValueChangedEventArgs e)
+  protected virtual void OnForeColorChanged(ValueChangedEventArgs<Color> e)
   {
-    if((Color)e.OldValue != GetEffectiveForeColor()) Invalidate();
+    if(e.OldValue != GetEffectiveForeColor()) Invalidate();
   }
 
   /// <summary>Called when the <see cref="Location"/> property has changed.</summary>
-  /// <param name="e">A <see cref="ValueChangedEventArgs"/> that contains the event data.</param>
+  /// <param name="e">A <see cref="ValueChangedEventArgs{T}"/> that contains the event data.</param>
   /// <remarks>When overriding this method in a derived class, be sure to call the base class' version to ensure that
   /// the default processing gets performed. The proper place to do this is at the end of the derived version.
   /// </remarks>
-  protected virtual void OnLocationChanged(ValueChangedEventArgs e)
+  protected virtual void OnLocationChanged(ValueChangedEventArgs<Point> e)
   {
     if(EffectivelyVisible && Parent != null)
     {
       // invalidate the area of the parent where we used to be
-      Parent.Invalidate(new Rectangle((Point)e.OldValue, Size));
+      Parent.Invalidate(new Rectangle(e.OldValue, Size));
       Invalidate(); // and invalidate our new area so that we get redrawn
     }
 
@@ -973,7 +968,7 @@ public class Control
   /// <remarks>When overriding this method in a derived class, be sure to call the base class' version to ensure that
   /// the default processing gets performed. The proper place for this is at the beginning of the derived version.
   /// </remarks>
-  protected virtual void OnParentChanged(ValueChangedEventArgs e)
+  protected virtual void OnParentChanged(ValueChangedEventArgs<Control> e)
   {
     if(Parent != null) Invalidate();
   }
@@ -982,7 +977,7 @@ public class Control
   /// <remarks>When overriding this method in a derived class, be sure to call the base class' version to ensure that
   /// the default processing gets performed. The proper place to do this is at the end of the derived version.
   /// </remarks>
-  protected virtual void OnSizeChanged(ValueChangedEventArgs e)
+  protected virtual void OnSizeChanged(ValueChangedEventArgs<Size> e)
   {
     if(invalid.Width != 0) invalid.Intersect(ControlRect); // if we have an invalid rectangle, clip it to the new size
 
@@ -991,7 +986,7 @@ public class Control
     // if we have a parent and got smaller, we'll need to invalidate a portion of the parent
     if(Parent != null && EffectivelyVisible)
     {
-      Size oldSize = (Size)e.OldValue;
+      Size oldSize = e.OldValue;
       if(Width < oldSize.Width) // if the width shrunk...
       {
         // if both dimensions shrunk, invalidate the area of the parent containing our old location. it may seem
@@ -1019,17 +1014,20 @@ public class Control
   }
 
   /// <summary>Called when the <see cref="Text"/> property changes.</summary>
-  /// <param name="e">A <see cref="ValueChangedEventArgs"/> that contains the event data.</param>
+  /// <param name="e">A <see cref="ValueChangedEventArgs{T}"/> that contains the event data.</param>
   /// <remarks>When overriding this method in a derived class, be sure to call the base class'
   /// version to ensure that the default processing gets performed.
   /// </remarks>
-  protected virtual void OnTextChanged(ValueChangedEventArgs e) { if(TextChanged!=null) TextChanged(this, e); }
+  protected virtual void OnTextChanged(ValueChangedEventArgs<string> e)
+  {
+    if(TextChanged!=null) TextChanged(this, e);
+  }
 
   /// <summary>Called when the <see cref="Visible"/> property changes.</summary>
   /// <remarks>When overriding this method in a derived class, be sure to call the base class' version to ensure that
   /// the default processing gets performed. The proper place to do this is at the beginning of the derived version.
   /// </remarks>
-  protected virtual void OnVisibleChanged(ValueChangedEventArgs e)
+  protected virtual void OnVisibleChanged(ValueChangedEventArgs<bool> e)
   {
     if(!Visible)
     {
@@ -1576,7 +1574,7 @@ public class Control
   /// <param name="height">The new height of the control.</param>
   /// <param name="absolute">Determines whether the coordinates will be affected by layout logic or not.</param>
   /// <remarks>Calling this method is equivalent to calling <see cref="SetBounds(Rectangle,bool)"/> and
-  /// using the <paramref name="location"/> and <paramref name="size"/> parameters to create the new rectangle.
+  /// using the location and size parameters to create the new rectangle.
   /// See <see cref="SetBounds(Rectangle,bool)"/> for more information on this method.
   /// </remarks>
   public void SetBounds(int x, int y, int width, int height, bool absolute)
@@ -1644,14 +1642,14 @@ public class Control
 
     if(newBounds.Location != Location)
     {
-      ValueChangedEventArgs e = new ValueChangedEventArgs(Location);
+      ValueChangedEventArgs<Point> e = new ValueChangedEventArgs<Point>(Location);
       _bounds.Location = newBounds.Location;
       OnLocationChanged(e);
     }
 
     if(newBounds.Size != Size)
     {
-      ValueChangedEventArgs e = new ValueChangedEventArgs(Size);
+      ValueChangedEventArgs<Size> e = new ValueChangedEventArgs<Size>(Size);
       _bounds.Size = newBounds.Size;
       OnSizeChanged(e);
     }
@@ -2237,7 +2235,7 @@ public class Control
       Font newFont = Font ?? Parent.EffectiveFont;
       if(newFont != EffectiveFont)
       {
-        ValueChangedEventArgs e = new ValueChangedEventArgs(EffectiveFont);
+        ValueChangedEventArgs<Font> e = new ValueChangedEventArgs<Font>(EffectiveFont);
         _effectiveFont = newFont;
         OnEffectiveFontChanged(e);
       }
@@ -2270,7 +2268,7 @@ public class Control
     Font newFont = Font ?? (Parent == null ? null : Parent.EffectiveFont);
     if(newFont != EffectiveFont)
     {
-      ValueChangedEventArgs e = new ValueChangedEventArgs(EffectiveFont);
+      ValueChangedEventArgs<Font> e = new ValueChangedEventArgs<Font>(EffectiveFont);
       _effectiveFont = newFont;
       OnEffectiveFontChanged(e);
 
@@ -2317,7 +2315,7 @@ public class Control
         Parent.OnControlAdded(ce);
         if(oldParent == null) TriggerLayout();
       }
-      if(!HasFlag(Flag.MyChange)) OnParentChanged(new ValueChangedEventArgs(oldParent));
+      if(!HasFlag(Flag.MyChange)) OnParentChanged(new ValueChangedEventArgs<Control>(oldParent));
     }
   }
 
@@ -2348,7 +2346,7 @@ public class Control
 
   RectOffset _padding;
 
-  Color _backColor = Color.Empty, _color, _borderColor;
+  Color _backColor, _color, _borderColor;
 
   IGuiImage _backImage;
 

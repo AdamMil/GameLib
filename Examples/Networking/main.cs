@@ -110,7 +110,7 @@ namespace NetworkingTest
 
     public void Deserialize(AdamMil.IO.BinaryReader reader, Stream attachedStream)
     {
-      Array  = reader.ReadInt32(reader.ReadEncodedInt32());
+      Array  = reader.ReadInt32s(reader.ReadEncodedInt32());
       String = reader.ReadStringWithLength();
     }
     #endregion

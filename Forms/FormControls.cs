@@ -210,11 +210,11 @@ public abstract class FormBase : Control
   {
     if(!e.Cancel && BorderStyle == BorderStyle.Resizeable && e.OnlyPressed(MouseButton.Left))
     {
-      int bwidth = BorderWidth;
+      Size borderThickness = BorderThickness;
       drag = DragEdge.None;
 
-      if(e.Start.X >= Width - bwidth) drag |= DragEdge.Right;
-      else if(e.Start.X < bwidth) drag |= DragEdge.Left;
+      if(e.Start.X >= Width - borderThickness.Width) drag |= DragEdge.Right;
+      else if(e.Start.X < borderThickness.Width) drag |= DragEdge.Left;
 
       if(drag != DragEdge.None)
       {
@@ -222,11 +222,11 @@ public abstract class FormBase : Control
         else if(e.Start.Y >= Height - 16) drag |= DragEdge.Bottom;
       }
 
-      if(e.Start.Y < bwidth || e.Start.Y >= Height - bwidth)
+      if(e.Start.Y < borderThickness.Height || e.Start.Y >= Height - borderThickness.Height)
       {
         if(e.Start.X < 16) drag |= DragEdge.Left;
         else if(e.Start.X >= Width - 16) drag |= DragEdge.Right;
-        if(e.Start.Y >= Height - bwidth) drag |= DragEdge.Bottom;
+        if(e.Start.Y >= Height - borderThickness.Height) drag |= DragEdge.Bottom;
         else drag |= DragEdge.Top;
       }
 
@@ -314,7 +314,8 @@ public abstract class FormBase : Control
   {
     base.LayOutChildren();
 
-    Rectangle rect = Rectangle.Inflate(ControlRect, -BorderWidth, -BorderWidth);
+    Size borderThickness = BorderThickness;
+    Rectangle rect = Rectangle.Inflate(ControlRect, -borderThickness.Width, -borderThickness.Height);
     rect.Height = TitleBar.Height;
     TitleBar.SetBounds(rect, true);
   }
@@ -383,28 +384,23 @@ public class Form : FormBase
       }
     }
 
-    protected override void OnEffectiveFontChanged(ValueChangedEventArgs e)
+    protected override void OnEffectiveFontChanged(ValueChangedEventArgs<Font> e)
     {
       base.OnEffectiveFontChanged(e);
       UpdateSize();
       Invalidate();
     }
 
-    protected override void OnVisibleChanged(ValueChangedEventArgs e)
+    protected override void OnVisibleChanged(ValueChangedEventArgs<bool> e)
     {
       UpdateSize();
       base.OnVisibleChanged(e);
     }
 
-    protected override void OnSizeChanged(ValueChangedEventArgs e)
+    protected override void OnSizeChanged(ValueChangedEventArgs<Size> e)
     {
       base.OnSizeChanged(e);
-
-      if(Parent != null)
-      {
-        int oldHeight = ((Size)e.OldValue).Height;
-        if(oldHeight != Height) Parent.TriggerLayout();
-      }
+      if(Parent != null && e.OldValue.Height != Height) Parent.TriggerLayout();
     }
 
     void UpdateSize()

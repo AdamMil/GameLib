@@ -882,6 +882,27 @@ public static class Events
     return GetEvent(timeout, true);
   }
 
+  /// <summary>Processes the given event and returns the complement of the quit flag.</summary>
+  public static bool ProcessEvent(Event e)
+  {
+    if(e == null) throw new ArgumentNullException();
+
+    if(eventProcs.Count != 0)
+    {
+      foreach(EventProcedure eventProc in eventProcs)
+      {
+        if(!eventProc(e))
+        {
+          QuitFlag = true;
+          break;
+        }
+      }
+    }
+    else if(e.Type == EventType.Quit) QuitFlag = true;
+
+    return !QuitFlag;
+  }
+
   /// <summary>This method adds an event to the queue without passing it through any event filters.</summary>
   /// <param name="evt">The event to add.</param>
   /// <exception cref="ArgumentNullException">Thrown if <paramref name="evt"/> is null.</exception>
@@ -971,21 +992,13 @@ public static class Events
 
     if(e != null)
     {
-      if(eventProcs.Count != 0)
-      {
-        foreach(EventProcedure eventProc in eventProcs)
-        {
-          if(!eventProc(e))
-          {
-            QuitFlag = true;
-            break;
-          }
-        }
-      }
-      else if(e.Type == EventType.Quit) QuitFlag = true;
+      ProcessEvent(e);
+      return true;
     }
-
-    return e != null;
+    else
+    {
+      return false;
+    }
   }
 
   /// <summary>Handle events until the application decides to quit.</summary>

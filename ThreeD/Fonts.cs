@@ -6,7 +6,7 @@ using GameLib.Interop.OpenGL;
 using GameLib.Interop.SDL;
 using GameLib.Interop.SDLTTF;
 using GameLib.Video;
-using RectanglePacker = AdamMil.Mathematics.Geometry.TwoD.RectanglePacker;
+using RectanglePacker = AdamMil.Mathematics.Geometry.RectanglePacker;
 
 namespace GameLib.Fonts
 {

@@ -31,7 +31,6 @@ public enum AutoFocus
 
 public delegate void PaintHandler(PaintEventArgs e);
 
-#region Desktop
 public class Desktop : Control, IDisposable
 {
   public Desktop()
@@ -288,7 +287,7 @@ public class Desktop : Control, IDisposable
 
           if(ei == enteredLen && passModal) // if we haven't entered this child yet, do it now
           {
-            AdamMil.Utilities.Utility.EnlargeArray(ref entered, enteredLen, 1);
+            entered = AdamMil.Utilities.Utility.EnlargeArray(entered, enteredLen, 1);
             entered[enteredLen++] = child;
             child.OnMouseEnter();
           }
@@ -820,6 +819,5 @@ public class Desktop : Control, IDisposable
   int enteredLen, updatedLen, _dcDelay = 350, _defaultDragThreshold = 16;
   bool _didPainting, dragStarted, _trackUpdates, sentUpdateEvent, disposed;
 }
-#endregion
 
 } // namespace GameLib.Forms

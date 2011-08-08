@@ -19,7 +19,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 using System;
 using System.Collections.Generic;
 using AdamMil.Mathematics.Geometry;
-using AdamMil.Mathematics.Geometry.TwoD;
 using GameLib;
 using GameLib.Audio;
 using GameLib.CD;
@@ -36,13 +35,13 @@ namespace Asteroids
   {
     const int SIDES=8;
 
-    public Asteroid(double diameter, Point pos, Vector vel)
+    public Asteroid(double diameter, Point2 pos, Vector2 vel)
     {
       retryPoly:
       double angleLeft = (SIDES-2)*Math.PI;
       double lengthLeft = diameter * Math.PI;
-      Point pt = new Point();
-      Vector vect = new Vector(1, 0);
+      Point2 pt = new Point2();
+      Vector2 vect = new Vector2(1, 0);
       Poly.AddPoint(pt);
       for(int side=0, tries=0; side<SIDES; tries=0, side++)
       {
@@ -51,8 +50,8 @@ namespace Asteroids
         double goalLength = lengthLeft/(SIDES-side);
         double angle = goalAngle  + goalAngle*0.6f*App.Rand.NextDouble()-goalAngle*0.3f;
         double length = goalLength + goalAngle*0.6f*App.Rand.NextDouble()-goalAngle*0.3f;
-        Vector tv = (-vect.Normal*length).Rotated(angle);
-        Line segment = new Line(pt, tv);
+        Vector2 tv = (-vect.Normal*length).Rotated(angle);
+        Line2 segment = new Line2(pt, tv);
         for(int i=0; i<side; i++)
         {
           LineIntersection info = segment.GetIntersectionInfo(Poly.GetEdge(i));
@@ -67,7 +66,7 @@ namespace Asteroids
         }
       }
 
-      Vector cent = new Vector(Poly.GetCentroid());
+      Vector2 cent = new Vector2(Poly.GetCentroid());
       for(int i=0; i<Poly.PointCount; i++) Poly[i] -= cent;
       Hits = Poly.Split();
       Size = diameter;
@@ -76,7 +75,7 @@ namespace Asteroids
       AngleVel = (App.Rand.Next(360)-180) * vel.Length/128;
     }
 
-    public bool Collided(Line segment)
+    public bool Collided(Line2 segment)
     {
       segment.Start.X -= Pos.X; segment.Start.Y -= Pos.Y;
       foreach(Polygon p in Hits) if(p.ConvexContains(segment.Start)) return true;
@@ -92,7 +91,7 @@ namespace Asteroids
     {
       for(int i=0; i<ship.Poly.PointCount; i++)
       {
-        Line edge = ship.Poly.GetEdge(i);
+        Line2 edge = ship.Poly.GetEdge(i);
         edge.Start.Offset(ship.Pos.X, ship.Pos.Y);
         if(Collided(edge)) return true;
       }
@@ -118,8 +117,8 @@ namespace Asteroids
     }
 
     public Polygon Poly = new Polygon();
-    public Point Pos;
-    public Vector Vel;
+    public Point2 Pos;
+    public Vector2 Vel;
     public double Size, Angle, AngleVel;
     Polygon[] Hits;
   }
@@ -128,7 +127,7 @@ namespace Asteroids
   #region Bullet
   public class Bullet
   {
-    public Bullet(Point pos, Vector vel) { Pos=pos; Vel=vel; Life=2; }
+    public Bullet(Point2 pos, Vector2 vel) { Pos=pos; Vel=vel; Life=2; }
 
     public void Draw()
     {
@@ -146,8 +145,8 @@ namespace Asteroids
       return true;
     }
 
-    public Point Pos;
-    public Vector Vel;
+    public Point2 Pos;
+    public Vector2 Vel;
     public double Life;
   }
   #endregion
@@ -176,8 +175,8 @@ namespace Asteroids
 
     public void Reset()
     {
-      Pos   = new Point(320, 240);
-      Vel   = new Vector();
+      Pos   = new Point2(320, 240);
+      Vel   = new Vector2();
       Fade  = 0;
       Angle = 0;
     }
@@ -190,22 +189,22 @@ namespace Asteroids
       double angle = Angle * MathConst.DegreesToRadians;
       if(Keyboard.Pressed(Key.Up))
       {
-        Vel += new Vector(0, accel).Rotated(angle)*App.TimeDelta;
+        Vel += new Vector2(0, accel).Rotated(angle)*App.TimeDelta;
       }
       if(Delay>0) Delay -= App.TimeDelta;
       else if(Keyboard.Pressed(Key.Space) && Delay<=0)
       {
-        App.AddBullet(new Bullet(Pos + new Vector(0, 10).Rotated(angle),
-                                 new Vector(0, bulletSpeed).Rotated(angle) + Vel));
+        App.AddBullet(new Bullet(Pos + new Vector2(0, 10).Rotated(angle),
+                                 new Vector2(0, bulletSpeed).Rotated(angle) + Vel));
         Delay = 0.2f;
       }
       Pos = App.Wrap(Pos + Vel*App.TimeDelta);
       if((Fade+=0.2f*App.TimeDelta)>1) Fade=1;
     }
 
-    public Polygon Poly = new Polygon(new Point[] { new Point(0, 10), new Point(8, -10), new Point(-8, -10) });
-    public Point Pos;
-    public Vector Vel;
+    public Polygon Poly = new Polygon(new Point2[] { new Point2(0, 10), new Point2(8, -10), new Point2(-8, -10) });
+    public Point2 Pos;
+    public Vector2 Vel;
     public double Angle, AngleVel, Fade;
     double Delay;
   }
@@ -230,7 +229,7 @@ namespace Asteroids
       score -= 5;
     }
 
-    public static Point Wrap(Point p)
+    public static Point2 Wrap(Point2 p)
     {
       if(p.X<0) p.X=640;
       else if(p.X>640) p.X=0;
@@ -260,8 +259,8 @@ namespace Asteroids
             int xv=(int)(160*difficulty), yv=(int)(120*difficulty);
             for(int i=0; i<8; i++)
               asteroids.Add(new Asteroid(75,
-                              new Point(Rand.Next(640), Rand.Next(480)),
-                              new Vector(Rand.Next(xv)-xv/2, Rand.Next(yv)-yv/2)));
+                              new Point2(Rand.Next(640), Rand.Next(480)),
+                              new Vector2(Rand.Next(xv)-xv/2, Rand.Next(yv)-yv/2)));
             ship.Reset();
             bullets.Clear();
             difficulty *= 1.1f;
@@ -342,12 +341,12 @@ namespace Asteroids
 
     static void UpdateWorld()
     {
-      List<Line> segs = bullets.Count>0 ? new List<Line>(bullets.Count) : null;
+      List<Line2> segs = bullets.Count>0 ? new List<Line2>(bullets.Count) : null;
 
       for(int bi=0; bi<bullets.Count; bi++)
       {
         Bullet b = (Bullet)bullets[bi];
-        Line seg = new Line(b.Pos, b.Vel*TimeDelta);
+        Line2 seg = new Line2(b.Pos, b.Vel*TimeDelta);
         if(b.Update()) segs.Add(seg);
         else bullets.RemoveAt(bi--);
       }
@@ -358,7 +357,7 @@ namespace Asteroids
         bool broke=false;
         if(segs!=null)
           for(int bi=0; bi<segs.Count; bi++)
-            if(a.Collided((Line)segs[bi]))
+            if(a.Collided((Line2)segs[bi]))
             {
               asteroids.RemoveAt(ai--);
               broke=true;
@@ -383,7 +382,7 @@ namespace Asteroids
           {
             for(int i=0; i<2; i++)
               asteroids.Add(new Asteroid(a.Size*2/3, a.Pos, a.Vel/4 +
-                            new Vector(Rand.Next(160)-80, Rand.Next(120)-60)));
+                            new Vector2(Rand.Next(160)-80, Rand.Next(120)-60)));
             continue;
           }
         }

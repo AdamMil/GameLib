@@ -25,6 +25,7 @@ namespace GameLib
 /// the old value.
 /// </summary>
 public delegate void ValueChangedEventHandler(object sender, ValueChangedEventArgs e);
+
 /// <summary>This class is used along with <see cref="ValueChangedEventHandler"/> to provide notification of when a
 /// value changes and allow the application to see the old value.
 /// </summary>
@@ -35,6 +36,23 @@ public class ValueChangedEventArgs : EventArgs
   public ValueChangedEventArgs(object old) { OldValue=old; }
   /// <summary>The old value of the property, field, etc. that changed.</summary>
   public object OldValue;
+}
+
+/// <summary>This delegate is used to provide notification of when a value changes and allow the application to see
+/// the old value.
+/// </summary>
+public delegate void ValueChangedEventHandler<T>(object sender, ValueChangedEventArgs<T> e);
+
+/// <summary>This class is used along with <see cref="ValueChangedEventHandler"/> to provide notification of when a
+/// value changes and allow the application to see the old value.
+/// </summary>
+public class ValueChangedEventArgs<T> : EventArgs
+{
+  /// <summary>Initializes this class.</summary>
+  /// <param name="old">The old value of the property, field, etc. that changed.</param>
+  public ValueChangedEventArgs(T old) { OldValue=old; }
+  /// <summary>The old value of the property, field, etc. that changed.</summary>
+  public T OldValue;
 }
 
 } // namespace GameLib

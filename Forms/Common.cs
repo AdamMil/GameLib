@@ -231,6 +231,13 @@ public struct RectOffset
   {
     Left += amount; Top += amount; Right += amount; Bottom += amount;
   }
+
+  /// <summary>Adds a given amount to each offset.</summary>
+  public void Offset(Size amount)
+  {
+    Left += amount.Width; Top += amount.Height; Right += amount.Width; Bottom += amount.Height;
+  }
+
   /// <summary>Adds a given amount to each offset.</summary>
   /// <param name="horizontal">The amount to add to the <see cref="Left"/> and <see cref="Right"/> offsets.</param>
   /// <param name="vertical">The amount to add to the <see cref="Top"/> and <see cref="Bottom"/> offsets.</param>

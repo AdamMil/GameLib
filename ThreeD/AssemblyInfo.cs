@@ -30,7 +30,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyProduct("GameLib")]
 [assembly: AssemblyCopyright("Copyright 2002-2010 Adam Milazzo")]
 
-[assembly: AssemblyVersion("0.2.*")]
+[assembly: AssemblyVersion("0.2.0.0")]
 
 [assembly: CLSCompliant(true)]
 [assembly: ComVisible(false)]
