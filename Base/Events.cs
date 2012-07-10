@@ -659,6 +659,7 @@ public static class Events
       SDL.Initialize(SDL.InitFlag.EventThread); // SDL quirk: this must be done AFTER video
       SDL.EnableUNICODE(1); // SDL quirk: must be done AFTER Initialize(EventThread)
       quit = false;
+      mainThreadId = System.Threading.Thread.CurrentThread.ManagedThreadId;
     }
   }
 
@@ -676,6 +677,7 @@ public static class Events
         SDL.Deinitialize(SDL.InitFlag.Video | SDL.InitFlag.EventThread);
         queue.Clear();
       }
+      mainThreadId = -1;
     }
   }
 
@@ -800,6 +802,9 @@ public static class Events
     else
     {
       uint start = SDL.GetTicks();
+      #if WINDOWS
+      if(timeout != 0) timeBeginPeriod(1); // increase the timer resolution so Sleep(1) won't sleep for 15ms
+      #endif
       while(true)
       {
         ret = PollSDLEvent();
@@ -812,21 +817,23 @@ public static class Events
           }
         }
 
-        if(timeout == 0) break;
-
-        System.Threading.Thread.Sleep(Math.Min(5, timeout)); // i don't like this, but SDL doesn't provide a
-        timeout -= (int)(SDL.GetTicks()-start);              // version that waits for an arbitrary timeout
-
-        if(timeout <= 0) break;
+        // i don't like this, but SDL doesn't provide a version that waits for an arbitrary timeout
+        if(timeout == 0 || SDL.GetTicks()-start >= (uint)timeout) break;
+        System.Threading.Thread.Sleep(1);
 
         if(queue.Count != 0) // this may happen if an event is pushed using PushEvent()
         {
           lock(queue)
           {
-            if(queue.Count != 0) return remove ? queue.Dequeue() : queue.Peek();
+            if(queue.Count != 0) ret = remove ? queue.Dequeue() : queue.Peek();
           }
+          if(ret != null) break;
         }
       }
+
+      #if WINDOWS
+      if(timeout != 0) timeEndPeriod(1);
+      #endif
     }
 
     return ret;
@@ -1002,24 +1009,36 @@ public static class Events
   }
 
   /// <summary>Handle events until the application decides to quit.</summary>
-  /// <remarks>Calling this method is equivalent to calling <see cref="PumpEvents(EventProcedure,IdleProcedure)"/>
-  /// and passing null for both parameters.
+  /// <remarks>Calling this method is equivalent to calling <see cref="PumpEvents(EventProcedure,IdleProcedure,int)"/>
+  /// and passing null for both event procedures, and <see cref="Infinite"/> for the timeout.
   /// </remarks>
   public static void PumpEvents()
   {
-    PumpEvents(null, null);
+    PumpEvents(null, null, Infinite);
+  }
+
+  /// <summary>Handle events until the application decides to quit.</summary>
+  /// <param name="timeoutMs">The maximum amount of time to spend handling events, or <see cref="Infinite"/> to handle events until a quit
+  /// event is received.
+  /// </param>
+  /// <remarks>Calling this method is equivalent to calling <see cref="PumpEvents(EventProcedure,IdleProcedure,int)"/>
+  /// and passing null for both event procedures.
+  /// </remarks>
+  public static void PumpEvents(int timeoutMs)
+  {
+    PumpEvents(null, null, timeoutMs);
   }
 
   /// <summary>Handle events until the application decides to quit.</summary>
   /// <param name="proc">A <see cref="GameLib.Events.EventProcedure"/> that will be prepended to the list of event
   /// handlers, or null to not add any.
   /// </param>
-  /// <remarks>Calling this method is equivalent to calling <see cref="PumpEvents(EventProcedure,IdleProcedure)"/>
-  /// and passing null for the <see cref="IdleProcedure"/> parameter.
+  /// <remarks>Calling this method is equivalent to calling <see cref="PumpEvents(EventProcedure,IdleProcedure,int)"/>
+  /// and passing null for the <see cref="IdleProcedure"/> parameter and <see cref="Infinite"/> for the timeout.
   /// </remarks>
   public static void PumpEvents(EventProcedure proc)
   {
-    PumpEvents(proc, null);
+    PumpEvents(proc, null, Infinite);
   }
 
   /// <summary>Handle events until the application decides to quit.</summary>
@@ -1028,6 +1047,9 @@ public static class Events
   /// </param>
   /// <param name="idle">A <see cref="GameLib.Events.IdleProcedure"/> that will be prepended to the list of idle
   /// procedures, or null to not add any.
+  /// </param>
+  /// <param name="timeoutMs">The maximum amount of time to spend handling events, or <see cref="Infinite"/> to handle events until a quit
+  /// event is received.
   /// </param>
   /// <remarks>
   /// <para>
@@ -1046,18 +1068,36 @@ public static class Events
   /// </para>
   /// </remarks>
   /// <exception cref="InvalidOperationException">Thrown if no event procedure has been registered.</exception>
-  public static void PumpEvents(EventProcedure proc, IdleProcedure idle)
+  public static void PumpEvents(EventProcedure proc, IdleProcedure idle, int timeoutMs)
   {
-    try
+    if(!QuitFlag)
     {
-      if(proc != null) PrependEventHandler(proc);
-      if(idle != null) PrependIdleProcedure(idle);
-      while(PumpEvent(true)) { }
-    }
-    finally
-    {
-      if(idle != null) RemoveIdleProcedure(idle);
-      if(proc != null) RemoveEventHandler(proc);
+      try
+      {
+        if(proc != null) PrependEventHandler(proc);
+        if(idle != null) PrependIdleProcedure(idle);
+        if(timeoutMs == Infinite)
+        {
+          while(PumpEvent(true)) { }
+        }
+        else
+        {
+          uint start = SDL.GetTicks();
+          do
+          {
+            Event e = NextEvent(timeoutMs);
+            if(e != null && !ProcessEvent(e)) break;
+            uint now = SDL.GetTicks(), elapsed = now - start;
+            start = now;
+            timeoutMs -= (int)elapsed;
+          } while(timeoutMs > 0);
+        }
+      }
+      finally
+      {
+        if(idle != null) RemoveIdleProcedure(idle);
+        if(proc != null) RemoveEventHandler(proc);
+      }
     }
   }
 
@@ -1199,7 +1239,8 @@ public static class Events
   }
 
   internal static KeyMod mods;
-  internal static bool minimized=true, inputFocus=true, mouseFocus=true;
+  internal static int mainThreadId = -1;
+  internal static bool minimized = true, inputFocus = true, mouseFocus = true;
 
   static System.Collections.Generic.Queue<Event> queue = new System.Collections.Generic.Queue<Event>();
   static readonly List<EventFilter> filters = new List<EventFilter>(4);
@@ -1208,6 +1249,14 @@ public static class Events
   static uint initCount;
   static int  maxEvents = 128;
   static bool quit;
+
+  #if WINDOWS
+  [System.Runtime.InteropServices.DllImport("winmm.dll")]
+  static extern uint timeBeginPeriod(uint period);
+
+  [System.Runtime.InteropServices.DllImport("winmm.dll")]
+  static extern uint timeEndPeriod(uint period);
+  #endif
 }
 #endregion
 

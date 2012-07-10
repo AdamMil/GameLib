@@ -1498,12 +1498,26 @@ public class Control
     return new Rectangle(ScreenToControl(screenRect.Location), screenRect.Size);
   }
 
+  /// <summary>Executes the given action on the main event thread.</summary>
+  public void Dispatch(Action action)
+  {
+    if(action == null) throw new ArgumentNullException();
+    if(Events.Events.mainThreadId == System.Threading.Thread.CurrentThread.ManagedThreadId) action();
+    else Events.Events.PushEvent(new DispatchEvent(this, action));
+  }
+
   /// <summary>Disposes this child and all of its descendants, if they implement <see cref="IDisposable"/>, and clears
   /// the <see cref="Controls"/> collection.
   /// </summary>
   public void DisposeAll()
   {
     DisposeAll(true);
+  }
+
+  /// <summary>Disposes the descendants of this control and clears the <see cref="Controls"/> collection.</summary>
+  public void DisposeDescendants()
+  {
+    DisposeAll(false);
   }
 
   /// <summary>Disposes this child and all of its descendants, if they implement <see cref="IDisposable"/>, and clears
@@ -1516,12 +1530,7 @@ public class Control
   {
     foreach(Control child in Controls) child.DisposeAll(true);
     Controls.Clear();
-
-    if(disposeThis)
-    {
-      IDisposable disposable = this as IDisposable;
-      if(disposable != null) disposable.Dispose();
-    }
+    if(disposeThis) Utility.Dispose(this);
   }
 
   /// <summary>Returns the first ancestor matching the given type parameter, or null if no matching ancestor is found.</summary>

@@ -25,6 +25,7 @@ using System.Net.Sockets;
 using System.Threading;
 using AdamMil.IO;
 using GameLib.Events;
+using AdamMil.Utilities;
 
 namespace GameLib.Network
 {
@@ -244,6 +245,10 @@ public class Server
         throw;
       }
 
+      udp = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+      udp.Bind(server.LocalEndpoint);
+      udp.Blocking = false;
+
       if(thread == null)
       {
         thread = new Thread(ThreadFunc);
@@ -262,6 +267,13 @@ public class Server
       lock(this)
       {
         listening = false;
+
+        if(udp != null)
+        {
+          udp.Close();
+          udp = null;
+        }
+
         server.Stop();
         server = null;
       }
@@ -800,7 +812,7 @@ public class Server
             Socket sock = server.AcceptSocket();
             try
             {
-              ServerPlayer player = new ServerPlayer(new NetLink(sock), nextID++);
+              ServerPlayer player = new ServerPlayer(new NetLink(sock, udp, true), nextID++);
               if(!quit && OnPlayerConnecting(player))
               {
                 player.Link.LagAverage      = lagAverage;
@@ -850,6 +862,35 @@ public class Server
             catch(SocketException) { }
           }
 
+          try
+          {
+            while(listening && udp.Available != 0)
+            {
+              int length = udp.Available;
+              if(udpBuffer.Length < length) udpBuffer = new byte[length];
+              EndPoint remoteEndpoint = udp.LocalEndPoint;
+              length = udp.ReceiveFrom(udpBuffer, length, SocketFlags.None, ref remoteEndpoint);
+
+              for(int i=0; i<players.Count; i++)
+              {
+                NetLink link = players[i].Link;
+                if(link.RemoteEndPoint.Equals(remoteEndpoint))
+                {
+                  if(link.ReceiveUdpMessage(udpBuffer, length))
+                  {
+                    LinkMessage msg = players[i].Link.ReceiveMessage();
+                    if(msg != null)
+                    {
+                      didSomething = true;
+                      OnMessageReceived(players[i], cvt.Deserialize(msg));
+                    }
+                  }
+                }
+              }
+            }
+          }
+          catch(SocketException) { }
+
           if(disconnected != null && disconnected.Count != 0)
           {
             foreach(ServerPlayer p in disconnected) OnPlayerDisconnected(p);
@@ -874,10 +915,12 @@ public class Server
     }
   }
 
-  List<ServerPlayer> players = new List<ServerPlayer>();
-  List<NetLink> links = new List<NetLink>();
+  readonly List<ServerPlayer> players = new List<ServerPlayer>();
+  readonly List<NetLink> links = new List<NetLink>();
   MessageConverter cvt = new MessageConverter();
+  byte[] udpBuffer = new byte[128];
   TcpListener server;
+  Socket udp;
   Thread thread;
   int nextID=1, lagAverage, lagVariance;
   bool quit, listening;

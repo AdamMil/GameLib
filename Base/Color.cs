@@ -30,7 +30,7 @@ public enum BlendMode
 {
   /// <summary>The blend color is used.</summary>
   Normal,
-  /// <summary>The two colors are added, with channels saturating at white. (This blend mode is also called "linear dodge".)</summary>
+  /// <summary>The two colors are added, with channels saturating at full brightness. (This blend mode is also called "linear dodge".)</summary>
   Add,
   /// <summary>Not quite the opposite of <see cref="Add"/>, this causes dark colors to be truncated instead of light ones.
   /// Negative intensities produce black. (This blend mode is also called "linear burn".)
@@ -117,7 +117,7 @@ public enum BlendMode
   /// also called "luminosity".
   /// </summary>
   Luma,
-  /// <summary>Preserves the HCL luma of the base color while adopting  the hue and chroma of the blend color.</summary>
+  /// <summary>Preserves the HCL luma of the base color while adopting the hue and chroma of the blend color.</summary>
   Color,
   /// <summary>Preserves the HSV saturation and value (brightness) of the base color while adopting the hue of the blend color.</summary>
   HSVHue,
@@ -268,6 +268,12 @@ public struct Color
   public override bool Equals(object obj)
   {
     return obj is Color && Value == ((Color)obj).Value;
+  }
+
+  /// <summary>Determines whether the given color is equal to this one.</summary>
+  public bool Equals(Color color)
+  {
+    return Value == color.Value;
   }
 
   /// <summary>Gets a hash code for this color.</summary>
@@ -913,6 +919,7 @@ public struct Color
         return (byte)value;
 
       case BlendMode.Exclusion: // a + b - 2ab
+        // TODO: if a and b are 0, we get 0 + 0 - 1 == -1, which is incorrect
         // with byte values, 2ab is in [0,130050]. we want it in the range of [0,510], so we have to divide by 255. or, we can
         // simply not multiply by 2 in the first place and get ab in [0,65025]. then we need to divide by 127.5. we don't want to
         // do that either, so we solve (65025+n)/128 == 510, and get n=255. so we can add 255 and divide by 128
@@ -942,6 +949,7 @@ public struct Color
         }
 
       case BlendMode.HardLight: // 2ab [if b<0.5], 1 - 2*(1-a)*(1-b) [otherwise]
+        // TODO: if a and b are 0, we get the wrong value
         // with byte values, 2ab is in [0,32385], but we want it in the range of [0,255]. so we should divide by 127, but to
         // avoid the division we'll instead solve (32385+n)/128 == 255 and get n==255.
         if(blendValue < 128) return (byte)((baseValue*blendValue+255) >> 7);

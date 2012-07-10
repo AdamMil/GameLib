@@ -677,7 +677,8 @@ public class ListBox : ListControl
   void Init()
   {
     ControlStyle     |= ControlStyle.CanReceiveFocus;
-    BackColor         = Color.White;
+    BackColor         = SystemColors.Window;
+    ForeColor         = SystemColors.WindowText;
     BorderColor       = SystemColors.ControlDarkDark;
     BorderStyle       = BorderStyle.FixedFlat;
     Padding           = new RectOffset(1);
@@ -1200,21 +1201,24 @@ public class ListBox : ListControl
 
   void CalculateIndexes()
   {
-    bottom  = -1; // force the bottom index to be recalculated the next time GetBottomIndex() is called
-    lastTop = GetLastTopIndex(); // recalculate and cache the last top index
+    Dispatch(delegate // this needs to be executed on the main UI thread because the method may be called during operations that aren't
+    {                 // obviously disallowed across threads (like updating an item) and index calculation may require font rendering
+      bottom  = -1; // force the bottom index to be recalculated the next time GetBottomIndex() is called
+      lastTop = GetLastTopIndex(); // recalculate and cache the last top index
 
-    if(lastTop > 0) // if there are more items that can be shown at once (and so a scrollbar is needed)...
-    {
-      ShowVerticalScrollBar     = true;    // show a vertical scroll bar. the number of items the user can scroll through is the
-      VerticalScrollBar.Maximum = lastTop; // number that would be hidden after scrolling all the way down
+      if(lastTop > 0) // if there are more items that can be shown at once (and so a scrollbar is needed)...
+      {
+        ShowVerticalScrollBar     = true;    // show a vertical scroll bar. the number of items the user can scroll through is the
+        VerticalScrollBar.Maximum = lastTop; // number that would be hidden after scrolling all the way down
 
-      int visibleItems = GetBottomIndex() - TopIndex + 1;
-      VerticalScrollBar.ThumbSize = (float)visibleItems / Items.Count;
-    }
-    else // otherwise, we don't need a vertical scrollbar, so hide it
-    {
-      ShowVerticalScrollBar = false;
-    }
+        int visibleItems = GetBottomIndex() - TopIndex + 1;
+        VerticalScrollBar.ThumbSize = (float)visibleItems / Items.Count;
+      }
+      else // otherwise, we don't need a vertical scrollbar, so hide it
+      {
+        ShowVerticalScrollBar = false;
+      }
+    });
   }
 
   void DragTo(int index)
