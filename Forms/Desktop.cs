@@ -470,10 +470,13 @@ public class Desktop : Control, IDisposable
         case ControlEvent.MessageType.DesktopUpdated:
           if(we.Control == this)
           {
+            sentUpdateEvent = false;
             DoLayout();
             DoPaint();
-            sentUpdateEvent = false;
           }
+          break;
+        case ControlEvent.MessageType.Dispatch:
+          ((DispatchEvent)we).Action();
           break;
       }
       return true;

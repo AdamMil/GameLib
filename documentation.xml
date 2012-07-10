@@ -209,11 +209,11 @@
           </returns>
         </Common>
         <Pt>
-          <include file="documentation.xml" path="//Fonts/Render/Point/Common/*"/>
+          <!--<include file="documentation.xml" path="//Fonts/Render/Point/Common/*"/>-->
           <param name="pt">The point where the top-left corner of the rendered text should appear.</param>
         </Pt>
         <XY>
-          <include file="documentation.xml" path="//Fonts/Render/Point/Common/*"/>
+          <!--<include file="documentation.xml" path="//Fonts/Render/Point/Common/*"/>-->
           <param name="x">The X coordinate where the left side of the rendered text should appear.</param>
           <param name="y">The Y coordinate where the top edge of the rendered text should appear.</param>
         </XY>
@@ -227,7 +227,7 @@
           <param name="rect">The area into which text will be rendered.</param>
         </Common>
         <Align>
-          <include file="documentation.xml" path="//Fonts/Render/Rect/Common/*"/>
+          <!--<include file="documentation.xml" path="//Fonts/Render/Rect/Common/*"/>-->
           <param name="align">The <see cref="ContentAlignment"/> to use inside the rectangle.</param>
           <returns>Returns the end point of the rendering, where rendering can be continue with more text.
           This only works with top-left alignment, since the endpoints for other types of alignment require before-hand
@@ -235,7 +235,7 @@
           </returns>
         </Align>
         <NoAlign>
-          <include file="documentation.xml" path="//Fonts/Render/Rect/Common/*"/>
+          <!--<include file="documentation.xml" path="//Fonts/Render/Rect/Common/*"/>-->
           <returns>Returns the end point of the rendering, where rendering can be continue with more text.</returns>
         </NoAlign>
         <Offset>
@@ -257,15 +257,15 @@
         </remarks>
       </Common>
       <Size>
-        <include file="documentation.xml" path="//Fonts/WordWrap/Common/*"/>
+        <!--<include file="documentation.xml" path="//Fonts/WordWrap/Common/*"/>-->
         <param name="size">The size of the area bounding the text.</param>
       </Size>
       <Rect>
-        <include file="documentation.xml" path="//Fonts/WordWrap/Common/*"/>
+        <!--<include file="documentation.xml" path="//Fonts/WordWrap/Common/*"/>-->
         <param name="rect">The area bounding the text.</param>
       </Rect>
       <Dims>
-        <include file="documentation.xml" path="//Fonts/WordWrap/Common/*"/>
+        <!--<include file="documentation.xml" path="//Fonts/WordWrap/Common/*"/>-->
         <param name="width">The width of the area bounding the text.</param>
         <param name="height">The height of the area bounding the text.</param>
       </Dims>
@@ -289,7 +289,7 @@
         </param>
       </Common>
       <BitmapFont1>
-        <include file="documentation.xml" path="//Fonts/BitmapFont/Common/*"/>
+        <!--<include file="documentation.xml" path="//Fonts/BitmapFont/Common/*"/>-->
         <param name="charWidth">The width of the characters in the font.</param>
         <remarks>The surface should contain all the characters, in the order specified by <paramref name="charset"/>,
         all in a single row. Each character should be <paramref name="charWidth"/> pixels wide, and there should be no
@@ -297,7 +297,7 @@
         </remarks>
       </BitmapFont1>
       <BitmapFont2>
-        <include file="documentation.xml" path="//Fonts/BitmapFont/Common/*"/>
+        <!--<include file="documentation.xml" path="//Fonts/BitmapFont/Common/*"/>-->
         <param name="charWidths">An array the same length as <paramref name="charset"/>, containing the width of each
         character.
         </param>
@@ -727,13 +727,13 @@
       </Common>
       <Hollow>
         <summary>Draws a hollow ellipse, with optional alpha blending.</summary>
-        <include file="documentation.xml" path="//Video/Primitives/Ellipse/Common/*"/>
+        <!--<include file="documentation.xml" path="//Video/Primitives/Ellipse/Common/*"/>-->
       </Hollow>
       <Filled>
-        <include file="documentation.xml" path="//Video/Primitives/Ellipse/Common/*"/>
+        <!--<include file="documentation.xml" path="//Video/Primitives/Ellipse/Common/*"/>-->
       </Filled>
       <AA>
-        <include file="documentation.xml" path="//Video/Primitives/Ellipse/Common/*"/>
+        <!--<include file="documentation.xml" path="//Video/Primitives/Ellipse/Common/*"/>-->
       </AA>
       <Pt>
         <param name="pt">The ellipse's center point.</param>
@@ -771,11 +771,11 @@
     <Pie>
       <Filled>
         <summary>Draws a filled pie, with optional alpha blending.</summary>
-        <include file="documentation.xml" path="//Video/Primitives/Pie/Common/*"/>
+        <!--<include file="documentation.xml" path="//Video/Primitives/Pie/Common/*"/>-->
       </Filled>
       <Hollow>
         <summary>Draws a hollow pie, with optional alpha blending.</summary>
-      <include file="documentation.xml" path="//Video/Primitives/Pie/Common/*"/>
+        <!--<include file="documentation.xml" path="//Video/Primitives/Pie/Common/*"/>-->
         </Hollow>
       <Pt>
         <param name="pt">The pie's center point.</param>
@@ -958,12 +958,12 @@
    <Read>
     <summary>Reads a PSD image from the given file.</summary>
     <returns>A <see cref="PSDImage"/> containing the flattened image and all the layers.</returns>
-    <include file="documentation.xml" path="//Video/PSDCodec/Reading_X/*"/>
+    <!--<include file="documentation.xml" path="//Video/PSDCodec/Reading_X/*"/>-->
    </Read>
    <ReadComposite>
     <summary>Reads the flattened image from a PSD file.</summary>
     <returns>A <see cref="Surface"/> containing the flattened image from the PSD file.</returns>
-    <include file="documentation.xml" path="//Video/PSDCodec/Reading_X/*"/>
+    <!--<include file="documentation.xml" path="//Video/PSDCodec/Reading_X/*"/>-->
    </ReadComposite>
    <Reading_X>
     <exception cref="ArgumentException">Thrown if the file does not contain a valid PSD image.</exception>
@@ -975,7 +975,7 @@
     <returns>The <see cref="PSDImage"/> object in which data for this file will be stored. All fields except
     <see cref="Surface"/> fields will be populated.
     </returns>
-    <include file="documentation.xml" path="//Video/PSDCodec/Reading_X/*"/>
+    <!--<include file="documentation.xml" path="//Video/PSDCodec/Reading_X/*"/>-->
    </StartReading>
    <StartWriting>
     <summary>Starts writing a PSD image.</summary>
@@ -985,14 +985,14 @@
     <remarks>All data in <paramref name="image"/> is written into the PSD header and is expected to remain the
     same throughout the writing process.
     </remarks>
-    <include file="documentation.xml" path="//Video/PSDCodec/Writing_X/*"/>
+    <!--<include file="documentation.xml" path="//Video/PSDCodec/Writing_X/*"/>-->
    </StartWriting>
    <Write>
     <summary>Writes a PSD image.</summary>
     <param name="image">A <see cref="PSDImage"/> object with all fields populated, including layer information
     and image data (<see cref="Surface"/> fields).
     </param>
-    <include file="documentation.xml" path="//Video/PSDCodec/Writing_X/*"/>
+    <!--<include file="documentation.xml" path="//Video/PSDCodec/Writing_X/*"/>-->
    </Write>
    <Write_Surface>
     <summary>Writes a PSD image.</summary>
@@ -1243,7 +1243,7 @@ USA  SHA  Effect
 
       <Logical>
         <summary>Sets the logical palette colors.</summary>
-        <include file="documentation.xml" path="//Video/Surface/SetPalette/Common/*"/>
+        <!--<include file="documentation.xml" path="//Video/Surface/SetPalette/Common/*"/>-->
       </Logical>
 
       <A>
@@ -1251,7 +1251,7 @@ USA  SHA  Effect
         </remarks>
       </A>
       <AN>
-        <include file="documentation.xml" path="//Video/Surface/SetPalette/ANCommon/*"/>
+        <!--<include file="documentation.xml" path="//Video/Surface/SetPalette/ANCommon/*"/>-->
         <remarks>If <paramref name="numColors"/> is smaller than the number of colors in the palette, part of the
         palette will remain unchanged.
         </remarks>
@@ -1259,7 +1259,7 @@ USA  SHA  Effect
         </exception>
       </AN>
       <AA>
-        <include file="documentation.xml" path="//Video/Surface/SetPalette/AN/*"/>
+        <!--<include file="documentation.xml" path="//Video/Surface/SetPalette/AN/*"/>-->
         <param name="startIndex">The starting index within the palette where colors will be written.</param>
         <param name="startColor">The starting index within the color array from where colors will be read.</param>
         <exception cref="ArgumentOutOfRangeException">Thrown if the number of colors would overflow the palette or

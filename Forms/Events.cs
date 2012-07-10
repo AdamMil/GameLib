@@ -55,6 +55,8 @@ public abstract class ControlEvent : Event
     /// <summary>A custom event.</summary>
     /// <remarks>All windowing events that are not used to implement the core windowing logic use this type.</remarks>
     Custom,
+    /// <summary>An action has been dispatched to the main UI thread.</summary>
+    Dispatch,
     /// <summary>An event which signals that a control needs to arrange its children.</summary>
     Layout,
     /// <summary>An event which serves to wake up the desktop so it'll redraw itself.</summary>
@@ -84,6 +86,26 @@ public class DesktopUpdatedEvent : ControlEvent
 {
   public DesktopUpdatedEvent(Desktop desktop)
     : base(desktop, ControlEvent.MessageType.DesktopUpdated) { }
+}
+#endregion
+
+#region DispatchEvent
+/// <summary>This event is used to dispatch an action to the main UI thread. The event is automatically raised by the
+/// <see cref="Control.Dispatch"/> method.
+/// </summary>
+/// <remarks>This event helps serve to implement the internals of the windowing system and does not need to be
+/// handled by ordinary user code.
+/// </remarks>
+public class DispatchEvent : ControlEvent
+{
+  public DispatchEvent(Control control, Action action) : base(control, ControlEvent.MessageType.Dispatch)
+  {
+    if(action == null) throw new ArgumentNullException();
+    Action = action;
+  }
+
+  /// <summary>The action to execute on the main UI thread.</summary>
+  public Action Action;
 }
 #endregion
 

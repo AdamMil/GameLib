@@ -271,7 +271,32 @@ public class NetLink
 
   /// <summary>Initializes the class from a TCP connection that's already connected.</summary>
   /// <param name="tcp">A TCP stream <see cref="Socket"/> that's already connected.</param>
-  public NetLink(Socket tcp) { Open(tcp); }
+  public NetLink(Socket tcp)
+  {
+    Open(tcp, true);
+  }
+
+  /// <summary>Initializes the class from a TCP connection that's already connected.</summary>
+  /// <param name="tcp">A TCP stream <see cref="Socket"/> that's already connected.</param>
+  /// <param name="udp">A UDP stream <see cref="Socket"/>.</param>
+  /// <param name="udpShared">If true, the UDP socket is shared by multiple links, and the link will not automatically receive messages
+  /// over the UDP socket.
+  /// </param>
+  internal NetLink(Socket tcp, Socket udp, bool udpShared)
+  {
+    Open(tcp, false);
+    this.udp = udp;
+    this.udpShared = udpShared && udp != null;
+
+    if(udp != null)
+    {
+      #if WINDOWS
+      udpMax = (int)udp.GetSocketOption(SocketOptionLevel.Socket, (SocketOptionName)0x2003);
+      #else
+      udpMax = something;
+      #endif
+    }
+  }
 
   /// <summary>This value can be passed to methods expecting a timeout to indicate that the method should wait
   /// forever if necessary.
@@ -410,24 +435,38 @@ public class NetLink
   /// <param name="tcp">A TCP stream <see cref="Socket"/> that's already connected.</param>
   public void Open(Socket tcp)
   {
+    Open(tcp, true);
+  }
+
+  /// <summary>Initializes the connection from a socket that's already connected.</summary>
+  /// <param name="tcp">A TCP stream <see cref="Socket"/> that's already connected.</param>
+  /// <param name="useUdp">If true, a UDP socket will be created and bound to the same local endpoint as the TCP socket and used to send
+  /// short messages.
+  /// </param>
+  public void Open(Socket tcp, bool useUdp)
+  {
     if(tcp == null) throw new ArgumentNullException();
     if(!tcp.Connected) throw new ArgumentException("The socket must be connected already!");
 
     Disconnect();
-    IPEndPoint localTcp = (IPEndPoint)tcp.LocalEndPoint, remote = (IPEndPoint)tcp.RemoteEndPoint;
-
-    Socket udp = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-    udp.Bind(new IPEndPoint(localTcp.Address, localTcp.Port));  // bind the udp to the same port/interface
-    udp.Connect(remote);
-
     tcp.Blocking = false;
-    udp.Blocking = false;
 
-    #if WINDOWS
-    udpMax   = (int)udp.GetSocketOption(SocketOptionLevel.Socket, (SocketOptionName)0x2003);
-    #else
-    udpMax   = something;
-    #endif
+    Socket udp = null;
+    if(useUdp)
+    {
+      IPEndPoint localTcp = (IPEndPoint)tcp.LocalEndPoint, remote = (IPEndPoint)tcp.RemoteEndPoint;
+      udp = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+      udp.Bind(new IPEndPoint(localTcp.Address, localTcp.Port));  // bind the udp to the same port/interface
+      udp.Connect(remote);
+      udp.Blocking = false;
+
+      #if WINDOWS
+      udpMax = (int)udp.GetSocketOption(SocketOptionLevel.Socket, (SocketOptionName)0x2003);
+      #else
+      udpMax = something;
+      #endif
+    }
+
     recv     = new Queue<LinkMessage>();
     recvBuf  = new byte[4];
     sendBuf  = new byte[512];
@@ -705,7 +744,7 @@ public class NetLink
               if(avail >= HeaderSize) // if we're waiting for the header, and it's available now
               {
                 tcp.Receive(recvBuf, HeaderSize, SocketFlags.None);
-                ParseHeader(ref tcpMessage);
+                ParseHeader(recvBuf, ref tcpMessage);
                 avail -= HeaderSize;
 
                 if(tcpMessage.Size > MaxMessageSize) // if the other side sent too much data, disconnect
@@ -791,23 +830,13 @@ public class NetLink
         catch(SocketException) { Disconnect(); }
       }
 
-      if(udp != null)
+      if(udp != null && !udpShared)
       {
         while(udp.Available != 0)
         {
           int avail = udp.Available;
           ResizeReceiveBuffer(avail);
-
-          int read = udp.Receive(recvBuf, 0, avail, SocketFlags.None);
-          if(read >= HeaderSize)
-          {
-            ParseHeader(ref udpMessage);
-            if(HeaderSize+udpMessage.Size != read) continue; // ignore truncated messages (they should have been resent via tcp)
-
-            udpMessage.Buffer = new byte[udpMessage.Size];
-            Array.Copy(recvBuf, HeaderSize, udpMessage.Buffer, 0, udpMessage.Size);
-            OnMessageReceived(new LinkMessage(ref udpMessage));
-          }
+          ReceiveUdpMessage(recvBuf, udp.Receive(recvBuf, avail, SocketFlags.None));
         }
       }
     }
@@ -823,10 +852,10 @@ public class NetLink
     if(sendQueue == 0 || !connected) return;
     lock(this)
     {
-      ProcessSendQueue(high);
-      ProcessSendQueue(norm);
-      ProcessSendQueue(low);
-      SendCurrentMessage();
+      while(toSend != null || ProcessSendQueue(high) || ProcessSendQueue(norm) || ProcessSendQueue(low))
+      {
+        if(!SendCurrentMessage()) break;
+      }
     }
   }
 
@@ -853,13 +882,13 @@ public class NetLink
     while(true)
     {
       read.Add(tcp);
-      read.Add(udp);
+      if(udp != null) read.Add(udp);
 
       if(sendQueue != 0)
       {
         if(write == null) write = new List<Socket>(2);
         write.Add(tcp);
-        write.Add(udp);
+        if(udp != null) write.Add(udp);
       }
 
       Socket.Select(read, write, null, timeoutMs == NoTimeout ? -1 : timeoutMs*1000);
@@ -917,7 +946,7 @@ public class NetLink
       else if(ret.Count == 0) // there's only a point in building the dictionary if we're not going to return immediately
       {
         dict[link.tcp] = i;
-        dict[link.udp] = i;
+        if(link.udp != null) dict[link.udp] = i;
       }
     }
 
@@ -930,13 +959,13 @@ public class NetLink
       foreach(NetLink link in links)
       {
         read.Add(link.tcp);
-        read.Add(link.udp);
+        if(link.udp != null) read.Add(link.udp);
 
         if(link.sendQueue != 0)
         {
-          if(write != null) write = new List<Socket>();
+          if(write == null) write = new List<Socket>();
           write.Add(link.tcp);
-          write.Add(link.udp);
+          if(link.udp != null) write.Add(link.udp);
         }
       }
 
@@ -1018,6 +1047,22 @@ public class NetLink
     if(MessageSent != null) MessageSent(this, message);
   }
 
+  internal bool ReceiveUdpMessage(byte[] buffer, int length)
+  {
+    if(length >= HeaderSize)
+    {
+      ParseHeader(buffer, ref udpMessage);
+      if(HeaderSize+udpMessage.Size == length) // ignore truncated messages (they should have been resent via tcp)
+      {
+        udpMessage.Buffer = new byte[udpMessage.Size];
+        Array.Copy(buffer, HeaderSize, udpMessage.Buffer, 0, udpMessage.Size);
+        OnMessageReceived(new LinkMessage(ref udpMessage));
+        return true;
+      }
+    }
+    return false;
+  }
+
   internal enum State : byte { Header, StreamSize, Message, Stream, Done }
   const SendFlag DefaultFlags = SendFlag.Reliable;
   const int HeaderSize = 4;
@@ -1028,7 +1073,7 @@ public class NetLink
     {
       connected = false;
       tcp.Close();
-      udp.Close();
+      if(udp != null && !udpShared) udp.Close();
       tcp = udp = null;
       recvBuf = sendBuf = null;
       toSend = null;
@@ -1039,16 +1084,16 @@ public class NetLink
     }
   }
 
-  void ParseHeader(ref IncomingMessage msg)
+  void ParseHeader(byte[] buffer, ref IncomingMessage msg)
   {
-    uint header   = IOH.ReadBE4U(recvBuf, 0);
+    uint header   = IOH.ReadBE4U(buffer, 0);
     msg.Size      = (int)(header & (1<<30)-1);
     msg.Index     = 0;
     msg.Flags     = (header & 1<<30) != 0 ? SendFlag.NotifyReceived : 0;
     msg.HasStream = (header & 1<<31) != 0;
   }
 
-  void ProcessSendQueue(Queue<LinkMessage> queue)
+  bool ProcessSendQueue(Queue<LinkMessage> queue)
   {
     if(queue != null && queue.Count != 0)
     {
@@ -1070,9 +1115,12 @@ public class NetLink
         {
           toSend    = queue.Dequeue();
           sendState = State.Header;
+          return true;
         }
       }
     }
+
+    return false;
   }
 
   void ResizeReceiveBuffer(int length)
@@ -1080,128 +1128,126 @@ public class NetLink
     if(length > recvBuf.Length) recvBuf = new byte[length];
   }
 
-  void SendCurrentMessage()
+  bool SendCurrentMessage()
   {
-    if(toSend != null)
+    if(sendState == State.Header)
     {
-      if(sendState == State.Header)
+      int dataLength = toSend.Length + HeaderSize;
+      // TODO: we should be able to send small streams over UDP, but that's probably not important in practice...
+      bool sendWithTcp = (toSend.Flags & SendFlag.Reliable) != 0 || toSend.AttachedStream != null || udp == null || dataLength > udpMax;
+
+      // if we're sending with UDP, we'll need to fit the entire message into the send buffer, so resize it
+      if(!sendWithTcp && sendBuf.Length < toSend.Length+HeaderSize) sendBuf = new byte[toSend.Length+HeaderSize];
+
+      // add the header to the send buffer
+      uint header = (uint)(toSend.Length | ((toSend.Flags & SendFlag.NotifyReceived) != 0 ? 1<<30 : 0) |
+                            (toSend.AttachedStream != null ? 1<<31 : 0));
+      IOH.WriteBE4U(sendBuf, 0, header);
+      bytesInSendBuffer = 4;
+
+      if(!sendWithTcp) // if we're sending with UDP...
       {
-        int dataLength = toSend.Length + HeaderSize;
-        // TODO: we should be able to send small streams over UDP, but i that's probably not important in practice...
-        bool sendWithTcp = (toSend.Flags & SendFlag.Reliable) != 0 || toSend.AttachedStream != null ||
-                           dataLength > udpMax;
-
-        // if we're sending with UDP, we'll need to fit the entire message into the send buffer, so resize it
-        if(!sendWithTcp && sendBuf.Length < toSend.Length+HeaderSize) sendBuf = new byte[toSend.Length+HeaderSize];
-
-        // add the header to the send buffer
-        uint header = (uint)(toSend.Length | ((toSend.Flags & SendFlag.NotifyReceived) != 0 ? 1<<30 : 0) |
-                             (toSend.AttachedStream != null ? 1<<31 : 0));
-        IOH.WriteBE4U(sendBuf, 0, header);
-        bytesInSendBuffer = 4;
-
-        if(!sendWithTcp) // if we're sending with UDP...
+        Array.Copy(toSend.Data, 0, sendBuf, HeaderSize, toSend.Length); // add the message data
+        try
         {
-          Array.Copy(sendBuf, HeaderSize, toSend.Data, 0, toSend.Length); // add the message data
-          try
-          {
-            udp.Send(sendBuf, 0, dataLength, SocketFlags.None); // and send
-            sendState = State.Done;
-            goto sentSuccessfully;
-          }
-          catch(SocketException ex)
-          {
-            if(ex.ErrorCode == Config.EMSGSIZE) // the message was too long
-            {
-              udpMax = dataLength-1; // update the maximum allowed UDP length
-              sendWithTcp = true;    // and try again with TCP
-            }
-            else return; // try again later
-          }
-        }
-
-        if(sendWithTcp)
-        {
-          if(toSend.AttachedStream != null)
-          {
-            IOH.WriteBE4(sendBuf, bytesInSendBuffer, toSend.StreamLength);
-            bytesInSendBuffer = 8;
-          }
-          sentLength = -bytesInSendBuffer; // don't include the header bytes in the message bytes sent
-
-          int dataInBuffer = Math.Min(sendBuf.Length-bytesInSendBuffer, toSend.Length);
-          Array.Copy(toSend.Data, toSend.Index, sendBuf, bytesInSendBuffer, dataInBuffer);
-          bytesInSendBuffer += dataInBuffer;
-          sendBufferIndex    = 0;
-        }
-
-        sendState = State.Message;
-      }
-
-      try
-      {
-        if(sendState == State.Message)
-        {
-          // if we got here, we're sending with TCP
-          do
-          {
-            if(bytesInSendBuffer == 0)
-            {
-              bytesInSendBuffer = Math.Min(sendBuf.Length, toSend.Length-sentLength);
-              Array.Copy(toSend.Data, toSend.Index+sentLength, sendBuf, 0, bytesInSendBuffer);
-              sendBufferIndex = 0;
-            }
-
-            int sent = tcp.Send(sendBuf, sendBufferIndex, bytesInSendBuffer, SocketFlags.None);
-            sendBufferIndex   += sent;
-            sentLength        += sent;
-            bytesInSendBuffer -= sent;
-            if(bytesInSendBuffer != 0) return; // the underlying send buffer is full
-          } while(sentLength < toSend.Length);
-
-          sendState  = toSend.AttachedStream != null ? State.Stream : State.Done;
-          sentLength = 0;
-        }
-
-        if(sendState == State.Stream)
-        {
-          do
-          {
-            if(bytesInSendBuffer == 0)
-            {
-              bytesInSendBuffer = Math.Min(sendBuf.Length, toSend.StreamLength-sentLength);
-              lock(toSend.AttachedStream)
-              {
-                toSend.AttachedStream.Position = toSend.StreamPosition + sentLength;
-                toSend.AttachedStream.ReadOrThrow(sendBuf, 0, bytesInSendBuffer);
-              }
-              sendBufferIndex = 0;
-            }
-
-            int sent = tcp.Send(sendBuf, sendBufferIndex, bytesInSendBuffer, SocketFlags.None);
-            sendBufferIndex   += sent;
-            sentLength        += sent;
-            bytesInSendBuffer -= sent;
-            if(bytesInSendBuffer != 0) return; // the underlying send buffer is full
-          } while(sentLength < toSend.StreamLength);
-
+          udp.Send(sendBuf, 0, dataLength, SocketFlags.None); // and send
           sendState = State.Done;
+          goto sentSuccessfully;
+        }
+        catch(SocketException ex)
+        {
+          if(ex.ErrorCode == Config.EMSGSIZE) // the message was too long
+          {
+            udpMax = dataLength-1; // update the maximum allowed UDP length
+            sendWithTcp = true;    // and try again with TCP
+          }
+          else return false; // try again later
         }
       }
-      catch(SocketException ex)
+
+      if(sendWithTcp)
       {
-        if(ex.ErrorCode == Config.EWOULDBLOCK) return;
-        else Disconnect();
+        if(toSend.AttachedStream != null)
+        {
+          IOH.WriteBE4(sendBuf, bytesInSendBuffer, toSend.StreamLength);
+          bytesInSendBuffer = 8;
+        }
+        sentLength = -bytesInSendBuffer; // don't include the header bytes in the message bytes sent
+
+        int dataInBuffer = Math.Min(sendBuf.Length-bytesInSendBuffer, toSend.Length);
+        Array.Copy(toSend.Data, toSend.Index, sendBuf, bytesInSendBuffer, dataInBuffer);
+        bytesInSendBuffer += dataInBuffer;
+        sendBufferIndex    = 0;
       }
 
-      sentSuccessfully:
-      if(sendState == State.Done)
+      sendState = State.Message;
+    }
+
+    try
+    {
+      if(sendState == State.Message)
       {
-        Utility.Dispose(ref toSend);
-        sendState = State.Header;
-        sendQueue--;
+        // if we got here, we're sending with TCP
+        do
+        {
+          if(bytesInSendBuffer == 0)
+          {
+            bytesInSendBuffer = Math.Min(sendBuf.Length, toSend.Length-sentLength);
+            Array.Copy(toSend.Data, toSend.Index+sentLength, sendBuf, 0, bytesInSendBuffer);
+            sendBufferIndex = 0;
+          }
+
+          int sent = tcp.Send(sendBuf, sendBufferIndex, bytesInSendBuffer, SocketFlags.None);
+          sendBufferIndex   += sent;
+          sentLength        += sent;
+          bytesInSendBuffer -= sent;
+          if(bytesInSendBuffer != 0) return false; // the underlying send buffer is full. try again later
+        } while(sentLength < toSend.Length);
+
+        sendState  = toSend.AttachedStream != null ? State.Stream : State.Done;
+        sentLength = 0;
+      }
+
+      if(sendState == State.Stream)
+      {
+        do
+        {
+          if(bytesInSendBuffer == 0)
+          {
+            bytesInSendBuffer = Math.Min(sendBuf.Length, toSend.StreamLength-sentLength);
+            lock(toSend.AttachedStream)
+            {
+              toSend.AttachedStream.Position = toSend.StreamPosition + sentLength;
+              toSend.AttachedStream.ReadOrThrow(sendBuf, 0, bytesInSendBuffer);
+            }
+            sendBufferIndex = 0;
+          }
+
+          int sent = tcp.Send(sendBuf, sendBufferIndex, bytesInSendBuffer, SocketFlags.None);
+          sendBufferIndex   += sent;
+          sentLength        += sent;
+          bytesInSendBuffer -= sent;
+          if(bytesInSendBuffer != 0) return false; // the underlying send buffer is full. try again later
+        } while(sentLength < toSend.StreamLength);
+
+        sendState = State.Done;
       }
     }
+    catch(SocketException ex)
+    {
+      if(ex.ErrorCode == Config.EWOULDBLOCK) return false;
+      else Disconnect();
+    }
+
+    sentSuccessfully:
+    if(sendState == State.Done)
+    {
+      Utility.Dispose(ref toSend);
+      sendState = State.Header;
+      sendQueue--;
+    }
+
+    return true;
   }
 
   internal struct IncomingMessage
@@ -1228,7 +1274,7 @@ public class NetLink
   int maxMessageSize = 64*1024, maxStreamSize = 1024*1024;
   IncomingMessage tcpMessage, udpMessage;
   State sendState;
-  bool connected;
+  bool connected, udpShared;
 
   static void AddSendQueueStatistics(ref QueueStatus status, Queue<LinkMessage> queue)
   {

@@ -244,37 +244,37 @@ public class Client
   /// <include file="../documentation.xml" path="//Network/Client/Send/*[self::Common or self::byteData]/*"/>
   public void Send(byte[] data)
   {
-    DoSend(data, 0, data.Length, null, DefaultFlags, 0, data);
+    SendCore(data, 0, data.Length, null, DefaultFlags, 0, data);
   }
 
   /// <include file="../documentation.xml" path="//Network/Client/Send/*[self::Common or self::byteData or self::Length or self::Index]/*"/>
   public void Send(byte[] data, int index, int length)
   {
-    DoSend(data, index, length, null, DefaultFlags, 0, data);
+    SendCore(data, index, length, null, DefaultFlags, 0, data);
   }
 
   /// <include file="../documentation.xml" path="//Network/Client/Send/*[self::Common or self::byteData or self::Flags]/*"/>
   public void Send(byte[] data, SendFlag flags)
   {
-    DoSend(data, 0, data.Length, null, flags, 0, data);
+    SendCore(data, 0, data.Length, null, flags, 0, data);
   }
 
   /// <include file="../documentation.xml" path="//Network/Client/Send/*[self::Common or self::byteData or self::Index or self::Length or self::Flags]/*"/>
   public void Send(byte[] data, int index, int length, SendFlag flags)
   {
-    DoSend(data, index, length, null, flags, 0, data);
+    SendCore(data, index, length, null, flags, 0, data);
   }
 
   /// <include file="../documentation.xml" path="//Network/Client/Send/*[self::Common or self::byteData or self::Flags or self::Timeout]/*"/>
   public void Send(byte[] data, SendFlag flags, int timeoutMs)
   {
-    DoSend(data, 0, data.Length, null, flags, timeoutMs, data);
+    SendCore(data, 0, data.Length, null, flags, timeoutMs, data);
   }
 
   /// <include file="../documentation.xml" path="//Network/Client/Send/*[self::Common or self::byteData or self::Index or self::Length or self::Flags or self::Timeout]/*"/>
   public void Send(byte[] data, int index, int length, SendFlag flags, int timeoutMs)
   {
-    DoSend(data, index, length, null, flags, timeoutMs, data);
+    SendCore(data, index, length, null, flags, timeoutMs, data);
   }
 
   /// <include file="../documentation.xml" path="//Network/Client/Send/*[self::Common or self::objData]/*"/>
@@ -294,7 +294,7 @@ public class Client
   {
     AssertLink();
     Stream attachedStream;
-    DoSend(cvt.Serialize(data, out attachedStream), attachedStream, flags, timeoutMs, data);
+    SendCore(cvt.Serialize(data, out attachedStream), attachedStream, flags, timeoutMs, data);
   }
 
   /// <summary>Raises the <see cref="Connected"/> event.</summary>
@@ -352,12 +352,12 @@ public class Client
 
   const SendFlag DefaultFlags = SendFlag.Reliable;
 
-  void DoSend(byte[] data, Stream attachedStream, SendFlag flags, int timeoutMs, object orig)
+  void SendCore(byte[] data, Stream attachedStream, SendFlag flags, int timeoutMs, object orig)
   {
-    DoSend(data, 0, data.Length, attachedStream, flags, timeoutMs, orig);
+    SendCore(data, 0, data.Length, attachedStream, flags, timeoutMs, orig);
   }
 
-  void DoSend(byte[] data, int index, int length, Stream attachedStream, SendFlag flags, int timeoutMs, object orig)
+  void SendCore(byte[] data, int index, int length, Stream attachedStream, SendFlag flags, int timeoutMs, object orig)
   {
     if(data != orig) flags |= SendFlag.NoCopy;
     link.Send(data, index, length, attachedStream, flags, timeoutMs, orig);
